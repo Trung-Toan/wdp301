@@ -24,13 +24,13 @@ exports.login = async (req, res) => {
             }
         );
 
-        const userRes = new User ({
+        const userRes = {
             id: user._id,
             fullname: user.fullname,
             email: user.email,
             image: user.image,
             role: user.role
-        })
+        };
 
         res.status(200).json({ token, user: userRes });
     } catch (err) {
@@ -55,7 +55,7 @@ exports.register = async (req, res) => {
         const newUser = new User({
             fullname,
             email,
-            password: hashedPassword, 
+            password: hashedPassword,
             role
         });
 
@@ -72,6 +72,58 @@ exports.profile = async (req, res) => {
         const user = await User.findById(userId);
 
         res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ message: "Server error ", error: err.message });
+    }
+};
+
+exports.findUserByEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({ message: "User not found!" });
+        }
+
+        const userRes = {
+            id: user._id,
+            fullname: user.fullname,
+            email: user.email,
+            image: user.image,
+            role: user.role
+        };
+        res.status(200).json({ user: userRes });
+    } catch (err) {
+        res.status(500).json({ message: "Server error ", error: err.message });
+    }
+};
+
+exports.forgetPassword = async (req, res) => {
+    try {
+        const { userId, password, rePassword } = req.body;
+        if (password !== rePassword) {
+            return res.status(400).json({ message: "Password and repassword is not matching!" });
+        }
+
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                message: "Password must contain at least one lowercase, one uppercase, one number, and one special character!"
+            });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Cập nhật vào DB
+        await User.updateOne(
+            { _id: userId },
+            { $set: { password: hashedPassword } }
+        );
+        return res.status(200).json({ message: "Password updated successfully!" });
     } catch (err) {
         res.status(500).json({ message: "Server error ", error: err.message });
     }

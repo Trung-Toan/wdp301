@@ -2,7 +2,7 @@ import emailjs from 'emailjs-com';
 
 const sendEmail = (to, subject, message) => {
   return emailjs.send(
-    'service_drveurc',
+    'service_nrr3tw2',
     'template_abotd4t',
     {
       to: to,

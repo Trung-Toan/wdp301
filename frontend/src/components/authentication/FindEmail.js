@@ -1,5 +1,5 @@
 import { useFormik } from "formik";
-import React, { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Button, Container, Form, InputGroup } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
@@ -11,7 +11,7 @@ import { sendEmail } from "../../utility/send.mail";
 const FindEmail = () => {
   const [timer, setTimer] = useState(0);
   const [otp, setOtp] = useState("");
-  const timeReset = 10;
+  const timeReset = 5*60;
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState(null);
 
@@ -97,11 +97,12 @@ const FindEmail = () => {
       return findEmail(email);
     },
     onSuccess: async (data) => {
-      setUser(data?.result);
+      const userFind = data?.user;
+      setUser(userFind);
       const newOtp = generateNewOtp();
       setIsLoading(true);
       try {
-        await sendEmail(data?.result?.email, "OTP verification code", newOtp);
+        await sendEmail(userFind?.email, "OTP verification code", newOtp);
         Swal.fire({
           icon: "success",
           title: "Success",
