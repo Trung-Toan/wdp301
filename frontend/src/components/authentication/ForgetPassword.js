@@ -45,7 +45,7 @@ const ForgetPassword = () => {
     mutationFn: ({ userId, password, rePassword }) => {
       return forgotPassword(userId, password, rePassword);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       Swal.fire({
         icon: "success",
         title: "Success",
