@@ -24,7 +24,8 @@ function App() {
       if (
         location.pathname !== "/login" &&
         location.pathname !== "/find_email" &&
-        location.pathname !== "/forgot_password"
+        location.pathname !== "/register" &&
+        location.pathname !== "/forgot_password" 
       ) {
         navigate("/login");
       }
