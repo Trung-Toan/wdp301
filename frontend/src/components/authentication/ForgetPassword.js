@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import { forgotPassword } from "../../controller/LoginController";
 import Swal from "sweetalert2";
+import GoogleLoginButton from "./GoogleLoginButton";
 
 // Separate PasswordInput to prevent unnecessary re-renders
 const PasswordInput = memo(
@@ -128,6 +129,7 @@ const ForgetPassword = () => {
           Reset Password
         </Button>
       </Form>
+      <GoogleLoginButton/>
     </Container>
   );
 };

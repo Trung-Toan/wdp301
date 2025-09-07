@@ -7,6 +7,7 @@ import { findEmail } from "../../controller/LoginController";
 import Swal from "sweetalert2";
 import { useMutation } from "@tanstack/react-query";
 import { sendEmail } from "../../utility/send.mail";
+import GoogleLoginButton from "./GoogleLoginButton";
 
 const FindEmail = () => {
   const [timer, setTimer] = useState(0);
@@ -213,6 +214,7 @@ const FindEmail = () => {
           Login
         </Link>
       </p>
+      <GoogleLoginButton/>
     </Container>
   );
 };
