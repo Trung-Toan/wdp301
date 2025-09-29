@@ -8,7 +8,7 @@ const licenseSchema = new Schema(
     issued_date: { type: Date },
     expiry_date: { type: Date },
     document_url: [{ type: String }],
-    status: { type: String, enum: [], required: true },
+    status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"], default: "PENDING", required: true },
     approved_at: { type: Date },
     rejected_reason: { type: String },
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },

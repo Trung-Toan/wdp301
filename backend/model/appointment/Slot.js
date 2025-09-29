@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const slotSchema = new Schema({
   start_time: { type: Date },
   end_time: { type: Date },
-  status: { type: String, enum: [], required: true },
+  status: { type: String, enum: ["AVAIABLE", "BOOKED", "CANCELLED"], required: true },
   max_datients: { type: Number },
   note: { type: String },
   doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
