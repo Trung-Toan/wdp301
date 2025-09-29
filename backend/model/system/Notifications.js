@@ -8,10 +8,6 @@ const notificationSchema = new Schema({
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
 });
 
-const Notification = mongoose.model(
-  "Notification",
-  notificationSchema,
-  "notifications"
-);
+const Notification = mongoose.model( "Notification",  notificationSchema, "notifications" );
 
 module.exports = Notification;

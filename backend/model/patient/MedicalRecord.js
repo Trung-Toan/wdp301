@@ -43,7 +43,7 @@ const MedicalRecordSchema = new mongoose.Schema(
 
     prescription: PrescriptionSchema,
 
-    status: { type: String },
+    status: { type: String, enum: ["PUBLIC", "PRIVATE"], default: "PRIVATE", required: true },
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
     patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
   },
