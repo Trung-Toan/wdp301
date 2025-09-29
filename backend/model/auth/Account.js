@@ -7,7 +7,11 @@ const accountSchema = new Schema(
     email: { type: String, required: true, unique: true },
     phone_number: { type: String },
     password: { type: String, required: true },
-    status: { type: String, default: "ACTIVE" },
+    status: { 
+        type: String, 
+        default: "ACTIVE", 
+        enum: ["ACTIVE", "INACTIVE", "SUSPENDED", "INREVIEW", "REJECTED", "PENDING"]
+    },
     role: {
       type: String,
       enum: ["ADMIN_SYSTEM", "ADMIN_CLINIC", "DOCTOR", "ASSISTANT", "PATIENT"],

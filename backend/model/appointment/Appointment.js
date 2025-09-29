@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const appointmentSchema = new Schema({
   reason: String,
-  status: String,
+  status: { type: String, enum: ["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"], default: "SCHEDULED", required: true },
   slot_id: { type: mongoose.Schema.Types.ObjectId, ref: "Slot" },
   doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
   patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
@@ -11,10 +11,6 @@ const appointmentSchema = new Schema({
   specialty_id: { type: mongoose.Schema.Types.ObjectId, ref: "Specialty" },
 });
 
-const Appointment = mongoose.model(
-  "Appointment",
-  appointmentSchema,
-  "appointments"
-);
+const Appointment = mongoose.model( "Appointment", appointmentSchema, "appointments");
 
 module.exports = Appointment;
