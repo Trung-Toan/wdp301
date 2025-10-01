@@ -3,11 +3,12 @@ import { memo, useEffect, useState } from "react";
 import { Button, Container, Form, InputGroup } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
-import { findEmail } from "../../controller/LoginController";
+
 import Swal from "sweetalert2";
 import { useMutation } from "@tanstack/react-query";
 import { sendEmail } from "../../utility/send.mail";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { findEmail } from "../../api/LoginController";
 
 const FindEmail = () => {
   const [timer, setTimer] = useState(0);
