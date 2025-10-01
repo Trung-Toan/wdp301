@@ -5,9 +5,9 @@ import { Button, Container, Form, InputGroup } from "react-bootstrap";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
-import { forgotPassword } from "../../controller/LoginController";
 import Swal from "sweetalert2";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { forgotPassword } from "../../api/LoginController";
 
 // Separate PasswordInput to prevent unnecessary re-renders
 const PasswordInput = memo(

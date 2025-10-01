@@ -6,10 +6,9 @@ import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { loginByGoogleAccount, loginUser } from "../../controller/LoginController";
-import { clearSessionStorage, setSessionStorage } from "../../utility/useSessionStorage";
-import { GoogleLogin } from "@react-oauth/google";
+import { clearSessionStorage, setSessionStorage } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { loginUser } from "../../api/LoginController";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -121,12 +120,12 @@ const Login = () => {
         </Button>
       </Form>
 
-      <p className="text-center mt-3" style={{fontSize: "12px"}}>
+      <p className="text-center mt-3" style={{ fontSize: "12px" }}>
         Do you have account?{" "}
         <Link to="/register" className="text-warning">
           Register account
         </Link>
-        <br/>
+        <br />
         Forget password ?{" "}
         <Link to="/find_email" className="text-warning">
           Find account

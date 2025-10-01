@@ -1,8 +1,9 @@
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import RouterUser from "./router/RouterUser.js";
+import RouterUser from "./routes/RouterUser.js";
 import { useEffect } from "react";
-import { useSessionStorage } from "./utility/useSessionStorage";
-import RouterOwner from "./router/RouterOwner";
+import { useSessionStorage } from "./hooks/useSessionStorage.js";
+import RouterOwner from "./routes/RouterOwner.js";
+
 
 function App() {
   const navigate = useNavigate();
@@ -22,10 +23,11 @@ function App() {
     if (!user) {
       // Chưa đăng nhập
       if (
+        location.pathname !== "/" &&
         location.pathname !== "/login" &&
         location.pathname !== "/find_email" &&
         location.pathname !== "/register" &&
-        location.pathname !== "/forgot_password" 
+        location.pathname !== "/forgot_password"
       ) {
         navigate("/login");
       }
@@ -56,13 +58,13 @@ function App() {
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]); // Chỉ chạy khi pathname thay đổi
 
   return (
     <Routes>
       <Route path="/*" element={<RouterUser />} />
-      <Route path="/owner/*" element={<RouterOwner/>} />
+      <Route path="/owner/*" element={<RouterOwner />} />
     </Routes>
   );
 }
