@@ -4,10 +4,10 @@ const { Schema } = mongoose;
 const patientSchema = new Schema(
   {
     blood_type: { type: String },
-    allergies: [String],
-    chronic_diseases: [String],
-    medications: [String],
-    surgery_history: [String],
+    allergies: [{ type: String }],
+    chronic_diseases: [{ type: String }],
+    medications: [{ type: String }],
+    surgery_history: [{ type: String }],
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
