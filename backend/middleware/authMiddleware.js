@@ -18,22 +18,30 @@ const verifyToken = (req, res, next) => {
     if (err) {
       return res.status(401).json({ error: "Unauthorized. Invalid token!" });
     }
-    req.user = decoded;
+    req.account = decoded;
     next();
   });
 };
 
 // verify with role is ADMIN
 const isAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
+  if (req.account.role !== "admin") {
     return res.status(403).json({ error: "Access denied. Admins only." });
+  }
+  next();
+};
+
+// verify with role is DOCTOR
+const isDoctor = (req, res, next) => {
+  if (req.account.role !== "DOCTOR") {
+    return res.status(403).json({ error: "Access denied. Doctor only." });
   }
   next();
 };
 
 // verify with role is OWNER
 const isOwner = (req, res, next) => {
-  if (req.user.role !== "owner") {
+  if (req.account.role !== "owner") {
     return res.status(403).json({ error: "Access denied. Owners only." });
   }
   next();
@@ -41,7 +49,7 @@ const isOwner = (req, res, next) => {
 
 // verify with role is CUSTOMER
 const isCustomer = (req, res, next) => {
-  if (req.user.role !== "customer") {
+  if (req.account.role !== "customer") {
     return res.status(403).json({ error: "Access denied. Customers only." });
   }
   next();
