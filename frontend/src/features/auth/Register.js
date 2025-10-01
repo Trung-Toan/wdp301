@@ -6,9 +6,10 @@ import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { registerUser } from "../../controller/LoginController";
-import { clearSessionStorage } from "../../utility/useSessionStorage";
+
+import { clearSessionStorage } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
+import { registerUser } from "../../api/LoginController";
 
 const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
