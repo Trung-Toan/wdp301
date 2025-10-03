@@ -1,8 +1,9 @@
-import { CTASection } from "./pages/cta-section";
-import { FeaturedDoctorsSection } from "./pages/featured-doctors-section";
-import { FeaturesSection } from "./pages/features-section";
-import { HeroSection } from "./pages/hero-section";
-import { SpecialtiesSection } from "./pages/specialties-section";
+import CTASection from "./cta-section";
+import { FeaturedDoctorsSection } from "./featured-doctors-section";
+import { FeaturesSection } from "./features-section";
+import { HeroSection } from "./hero-section";
+import { SpecialtiesSection } from "./specialties-section";
+
 
 
 export default function HomePage() {

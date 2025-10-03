@@ -23,20 +23,22 @@ function App() {
     if (!user) {
       // Chưa đăng nhập
       if (
-        location.pathname !== "/" &&
+        location.pathname !== "/home" &&
+        location.pathname !== "/home/doctorlist" &&
+        !location.pathname.startsWith("/home/doctordetail") && // Cho phép vào doctor detail
         location.pathname !== "/login" &&
         location.pathname !== "/find_email" &&
         location.pathname !== "/register" &&
         location.pathname !== "/forgot_password"
       ) {
-        navigate("/login");
+        navigate("/home");
       }
     } else {
       // Đã đăng nhập
       const validPath = roleRedirects[user.role];
       if (!validPath) {
         // Role không hợp lệ, có thể logout hoặc redirect về trang mặc định
-        navigate("/login");
+        navigate("/home");
         sessionStorage.removeItem("user");
         return;
       }
