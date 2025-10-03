@@ -42,7 +42,7 @@ export default function Header() {
             <a href="#specialties" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Chuyên khoa
             </a>
-            <a href="#doctors" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="/home/doctorlist" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Bác sĩ
             </a>
             <a href="#facilities" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
