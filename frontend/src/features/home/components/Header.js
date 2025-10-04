@@ -27,7 +27,7 @@ export default function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/home" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
               <span className="text-xl font-bold text-white">H+</span>
             </div>
@@ -36,7 +36,7 @@ export default function Header() {
 
           {/* Menu Desktop */}
           <nav className="hidden items-center gap-6 md:flex">
-            <Link to="/" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
+            <Link to="/home" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
               Trang chủ
             </Link>
             <a href="#specialties" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
@@ -44,6 +44,9 @@ export default function Header() {
             </a>
             <a href="/home/doctorlist" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Bác sĩ
+            </a>
+            <a href="/home/appointment" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+              Lịch Hẹn
             </a>
             <a href="#facilities" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Cơ sở y tế

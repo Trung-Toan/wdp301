@@ -9,7 +9,7 @@ import {
     Calendar,
     ChevronLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
@@ -105,6 +105,7 @@ const mockReviews = [
 
 // ====== Component JS ======
 export function DoctorDetailContent({ doctorId }) {
+    const { id } = useParams();
     const [selectedDay, setSelectedDay] = useState(0);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
@@ -260,9 +261,15 @@ export function DoctorDetailContent({ doctorId }) {
                                         <span className="text-muted-foreground">Giá khám:</span>
                                         <span className="text-xl font-bold text-primary">{doctor.price}</span>
                                     </div>
-                                    <Button className="w-full" size="lg" disabled={!selectedSlot || !doctor.available}>
-                                        {selectedSlot ? "Xác nhận đặt lịch" : "Chọn giờ khám"}
-                                    </Button>
+                                    <Link to={`/home/doctordetail/${id}/booking`}>
+                                        <Button
+                                            className="w-full"
+                                            size="lg"
+                                            disabled={!selectedSlot || !doctor.available}
+                                        >
+                                            {selectedSlot ? "Xác nhận đặt lịch" : "Chọn giờ khám"}
+                                        </Button>
+                                    </Link>
                                 </div>
                             </CardContent>
                         </Card>
