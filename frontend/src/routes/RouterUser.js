@@ -10,6 +10,8 @@ import { DoctorsListContent } from "../features/home/pages/DoctorPage/doctors-li
 import DoctorDetailPage from "../features/home/pages/DoctorPage";
 import { BookingContent } from "../features/customer/pages/Booking/booking";
 import { AppointmentsContent } from "../features/customer/pages/Appointment/appointment";
+import SpecialtyDetail from "../features/home/pages/Specialties/specialty-detail-content";
+import SpecialtiesList from "../features/home/pages/Specialties/specialties-list-content";
 
 
 const RouterUser = () => {
@@ -22,6 +24,8 @@ const RouterUser = () => {
         <Route path="home/doctordetail/:id" element={<DoctorDetailPage />} />
 
         <Route path="home/appointment" element={<AppointmentsContent />} />
+        <Route path="home/specialty" element={<SpecialtiesList />} />
+        <Route path="home/specialty/detail/:slug" element={<SpecialtyDetail />} />
 
         <Route path="login" element={<Login />} />
         <Route path="find_email" element={<FindEmail />} />
