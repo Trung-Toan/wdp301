@@ -114,7 +114,7 @@ export function DoctorDetailContent({ doctorId }) {
     return (
         <div className="bg-muted/30 min-h-screen">
             <div className="container mx-auto px-4 py-8">
-                <Link to="/doctors">
+                <Link to="/home/doctorlist">
                     <Button variant="ghost" className="mb-6">
                         <ChevronLeft className="h-4 w-4 mr-2" /> Quay lại danh sách
                     </Button>

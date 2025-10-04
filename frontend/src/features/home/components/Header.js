@@ -39,7 +39,7 @@ export default function Header() {
             <Link to="/home" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
               Trang chủ
             </Link>
-            <a href="#specialties" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a href="/home/specialty" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Chuyên khoa
             </a>
             <a href="/home/doctorlist" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">

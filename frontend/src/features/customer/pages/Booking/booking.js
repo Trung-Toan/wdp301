@@ -30,6 +30,7 @@ export function BookingContent() {
 
     // Mock data
     const bookingInfo = {
+        doctorId: 1,
         doctorName: "BS. Nguyễn Văn An",
         specialty: "Tim mạch",
         hospital: "Bệnh viện Đa khoa Trung ương",
@@ -39,6 +40,7 @@ export function BookingContent() {
         price: "500.000đ",
         image: "/doctor-portrait-male.jpg",
     };
+
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -56,11 +58,12 @@ export function BookingContent() {
     return (
         <div className="bg-gray-100 min-h-screen py-8">
             <div className="container mx-auto px-4">
-                <Link to="/doctors/1">
+                <Link to={`/home/doctordetail/${bookingInfo.doctorId}`}>
                     <button className="flex items-center gap-2 text-gray-600 hover:text-black mb-6">
                         <ChevronLeft className="h-4 w-4" /> Quay lại
                     </button>
                 </Link>
+
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Form */}
