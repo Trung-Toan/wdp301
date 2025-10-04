@@ -8,6 +8,8 @@ import UserLayout from "../layouts/UserLayout";
 import HomePage from "../features/home/pages/HomePage";
 import { DoctorsListContent } from "../features/home/pages/DoctorPage/doctors-list-content";
 import DoctorDetailPage from "../features/home/pages/DoctorPage";
+import { BookingContent } from "../features/customer/pages/Booking/booking";
+import { AppointmentsContent } from "../features/customer/pages/Appointment/appointment";
 
 
 const RouterUser = () => {
@@ -15,8 +17,12 @@ const RouterUser = () => {
     <Routes>
       <Route path="/" element={<UserLayout />}>
         <Route path="home" element={<HomePage />} />
+        <Route path="home/doctordetail/:id/booking" element={<BookingContent />} />
         <Route path="home/doctorlist" element={<DoctorsListContent />} />
         <Route path="home/doctordetail/:id" element={<DoctorDetailPage />} />
+
+        <Route path="home/appointment" element={<AppointmentsContent />} />
+
         <Route path="login" element={<Login />} />
         <Route path="find_email" element={<FindEmail />} />
         <Route path="forgot_password" element={<ForgetPassword />} />
