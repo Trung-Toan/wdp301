@@ -1,0 +1,243 @@
+/* Dashboard Styles */
+.doctor-dashboard-new {
+    @apply space-y-6;
+}
+
+/* Loading State */
+.dashboard-loading {
+    @apply flex flex-col items-center justify-center min-h-[400px] gap-4;
+}
+
+.spinner {
+    @apply w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin;
+}
+
+/* Welcome Section */
+.dashboard-welcome {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white flex items-center justify-between;
+}
+
+.welcome-title {
+    @apply text-2xl font-bold mb-1;
+}
+
+.welcome-subtitle {
+    @apply text-blue-100 text-sm;
+}
+
+.activity-indicator {
+    @apply flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm;
+}
+
+/* Stats Grid */
+.stats-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+}
+
+.stat-card {
+    @apply bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 no-underline;
+}
+
+.stat-card-blue {
+    @apply hover:border-blue-300;
+}
+
+.stat-card-green {
+    @apply hover:border-green-300;
+}
+
+.stat-card-orange {
+    @apply hover:border-orange-300;
+}
+
+.stat-card-purple {
+    @apply hover:border-purple-300;
+}
+
+.stat-header {
+    @apply flex items-start gap-4 mb-4;
+}
+
+.stat-icon-wrapper {
+    @apply p-3 rounded-lg;
+}
+
+.stat-card-blue .stat-icon-wrapper {
+    @apply bg-blue-100 text-blue-600;
+}
+
+.stat-card-green .stat-icon-wrapper {
+    @apply bg-green-100 text-green-600;
+}
+
+.stat-card-orange .stat-icon-wrapper {
+    @apply bg-orange-100 text-orange-600;
+}
+
+.stat-card-purple .stat-icon-wrapper {
+    @apply bg-purple-100 text-purple-600;
+}
+
+.stat-info {
+    @apply flex-1;
+}
+
+.stat-title {
+    @apply text-sm text-gray-600 mb-1;
+}
+
+.stat-value {
+    @apply text-3xl font-bold text-gray-800;
+}
+
+.stat-change {
+    @apply flex items-center gap-1 text-sm font-medium;
+}
+
+.stat-change-positive {
+    @apply text-green-600;
+}
+
+.stat-change-negative {
+    @apply text-red-600;
+}
+
+/* Dashboard Content */
+.dashboard-content {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+/* Appointments Section */
+.appointments-section {
+    @apply lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200;
+}
+
+.section-header {
+    @apply flex items-center justify-between mb-6;
+}
+
+.section-title {
+    @apply text-xl font-bold text-gray-800;
+}
+
+.view-all-link {
+    @apply text-sm text-blue-600 hover:text-blue-700 font-medium no-underline;
+}
+
+.appointments-list {
+    @apply space-y-4;
+}
+
+.appointment-item {
+    @apply flex items-center gap-4 p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all duration-200;
+}
+
+.appointment-time {
+    @apply flex items-center gap-2 text-gray-600 min-w-[80px];
+}
+
+.appointment-details {
+    @apply flex-1;
+}
+
+.appointment-patient {
+    @apply font-semibold text-gray-800 mb-1;
+}
+
+.appointment-type {
+    @apply text-sm text-gray-600 m-0;
+}
+
+.appointment-status {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+}
+
+.status-confirmed {
+    @apply bg-green-100 text-green-700;
+}
+
+.status-pending {
+    @apply bg-yellow-100 text-yellow-700;
+}
+
+/* Quick Actions Section */
+.quick-actions-section {
+    @apply lg:col-span-1 bg-white rounded-xl p-6 border border-gray-200;
+}
+
+.quick-actions-grid {
+    @apply space-y-3;
+}
+
+.quick-action-card {
+    @apply flex items-start gap-3 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-200 no-underline;
+}
+
+.quick-action-blue {
+    @apply hover:border-blue-300 hover:bg-blue-50/50;
+}
+
+.quick-action-green {
+    @apply hover:border-green-300 hover:bg-green-50/50;
+}
+
+.quick-action-purple {
+    @apply hover:border-purple-300 hover:bg-purple-50/50;
+}
+
+.quick-action-orange {
+    @apply hover:border-orange-300 hover:bg-orange-50/50;
+}
+
+.quick-action-icon {
+    @apply p-2 rounded-lg bg-gray-100 text-gray-600 flex-shrink-0;
+}
+
+.quick-action-blue .quick-action-icon {
+    @apply bg-blue-100 text-blue-600;
+}
+
+.quick-action-green .quick-action-icon {
+    @apply bg-green-100 text-green-600;
+}
+
+.quick-action-purple .quick-action-icon {
+    @apply bg-purple-100 text-purple-600;
+}
+
+.quick-action-orange .quick-action-icon {
+    @apply bg-orange-100 text-orange-600;
+}
+
+.quick-action-title {
+    @apply text-sm font-semibold text-gray-800 mb-1;
+}
+
+.quick-action-description {
+    @apply text-xs text-gray-600 m-0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .stats-grid {
+        @apply grid-cols-2;
+    }
+
+    .dashboard-content {
+        @apply grid-cols-1;
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-grid {
+        @apply grid-cols-1;
+    }
+
+    .dashboard-welcome {
+        @apply flex-col items-start gap-4;
+    }
+
+    .welcome-title {
+        @apply text-xl;
+    }
+}

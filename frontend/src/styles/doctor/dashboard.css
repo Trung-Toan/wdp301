@@ -1,0 +1,75 @@
+.doctor-dashboard {
+    @apply p-6 max-w-7xl mx-auto;
+}
+
+.dashboard-header {
+    @apply mb-8;
+}
+
+.dashboard-title {
+    @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.dashboard-subtitle {
+    @apply text-gray-600 text-lg;
+}
+
+.features-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.feature-card {
+    @apply bg-white rounded-lg shadow-md p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 no-underline;
+}
+
+.feature-icon-wrapper {
+    @apply w-16 h-16 rounded-full flex items-center justify-center mb-4;
+}
+
+.feature-icon {
+    @apply w-8 h-8 text-white;
+}
+
+.feature-card-blue .feature-icon-wrapper {
+    @apply bg-blue-500;
+}
+
+.feature-card-green .feature-icon-wrapper {
+    @apply bg-green-500;
+}
+
+.feature-card-purple .feature-icon-wrapper {
+    @apply bg-purple-500;
+}
+
+.feature-card-orange .feature-icon-wrapper {
+    @apply bg-orange-500;
+}
+
+.feature-card-red .feature-icon-wrapper {
+    @apply bg-red-500;
+}
+
+.feature-card-teal .feature-icon-wrapper {
+    @apply bg-teal-500;
+}
+
+.feature-card-pink .feature-icon-wrapper {
+    @apply bg-pink-500;
+}
+
+.feature-card-indigo .feature-icon-wrapper {
+    @apply bg-indigo-500;
+}
+
+.feature-card-emerald .feature-icon-wrapper {
+    @apply bg-emerald-500;
+}
+
+.feature-title {
+    @apply text-xl font-semibold text-gray-900 mb-2;
+}
+
+.feature-description {
+    @apply text-gray-600 text-sm;
+}
