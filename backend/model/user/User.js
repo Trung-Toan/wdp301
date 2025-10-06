@@ -3,6 +3,7 @@ const { Schema } = mongoose;
 
 const userSchema = new Schema(
   {
+    citizenId: { type: String, required: true, unique: true },
     full_name: { type: String, required: true, required: true },
     dob: { type: Date, required: true },
     gender: { type: String, required: true },
