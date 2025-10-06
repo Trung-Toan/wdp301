@@ -2,8 +2,9 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useMutation } from "@tanstack/react-query";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { loginByGoogleAccount } from "../../controller/LoginController";
-import { setSessionStorage } from "../../utility/useSessionStorage";
+
+import { setSessionStorage } from "../../hooks/useSessionStorage";
+import { loginByGoogleAccount } from "../../api/LoginController";
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
