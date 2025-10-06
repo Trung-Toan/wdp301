@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Route, Routes } from "react-router-dom";
 import DoctorDashboard from "../features/doctor/DoctorDashboard";
 import DoctorLayout from "../layouts/DoctorLayout";
-// import PatientList from "../features/doctor/PatientList";
+import PatientList from "../features/doctor/PatientList";
 import AppointmentSchedule from "../features/doctor/AppointmentSchedule";
 // import DoctorRegistration from "../features/doctor/DoctorRegistration";
 // import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
@@ -19,8 +19,8 @@ const RouterDoctor = () => {
         <Route index element={<DoctorDashboard />} />
         <Route path="dashboard" element={<DoctorDashboard />} />
         <Route path="appointments" element={<AppointmentSchedule />} />
-        {/* <Route path="patients" element={<PatientList />} />
-        <Route path="register" element={<DoctorRegistration />} />
+        <Route path="patients" element={<PatientList />} />
+        {/* <Route path="register" element={<DoctorRegistration />} />
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="absence" element={<AbsenceNotification />} />
         <Route

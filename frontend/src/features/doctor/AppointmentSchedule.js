@@ -25,10 +25,17 @@ const AppointmentSchedule = () => {
     const fetchAppointments = async () => {
       setLoading(true);
       try {
-        const data = await getAppointments(selectedDate);
-        setAppointments(data);
+        // doctorId = "DOC001" test data
+        const res = await getAppointments("DOC001", { date: selectedDate });
+
+        if (res.success) {
+          setAppointments(res.data);
+        } else {
+          setAppointments([]);
+        }
       } catch (error) {
         console.error("Error fetching appointments:", error);
+        setAppointments([]);
       } finally {
         setLoading(false);
       }
@@ -137,8 +144,17 @@ const AppointmentSchedule = () => {
                   <div className="appointment-time">
                     <Clock className="time-icon" />
                     <span className="time-text">
-                      {appointment.slot?.start_time} -{" "}
-                      {appointment.slot?.end_time}
+                      {new Date(
+                        appointment.slot?.start_time
+                      ).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      -
+                      {new Date(appointment.slot?.end_time).toLocaleTimeString(
+                        [],
+                        { hour: "2-digit", minute: "2-digit" }
+                      )}
                     </span>
                   </div>
                   <span className={`status-badge ${statusInfo.class}`}>
