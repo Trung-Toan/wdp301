@@ -29,9 +29,9 @@ export default function Header() {
         <div className="flex items-center gap-8">
           <Link to="/home" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-              <span className="text-xl font-bold text-white">H+</span>
+              <span className="text-xl font-bold text-white">M+</span>
             </div>
-            <span className="text-xl font-bold text-gray-800">HealthCare</span>
+            <span className="text-xl font-bold text-gray-800">MediSched</span>
           </Link>
 
           {/* Menu Desktop */}

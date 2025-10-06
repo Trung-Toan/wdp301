@@ -3,7 +3,8 @@ import RouterUser from "./routes/RouterUser.js";
 import { useEffect } from "react";
 import { useSessionStorage } from "./hooks/useSessionStorage.js";
 import RouterOwner from "./routes/RouterOwner.js";
-
+import RouterDoctor from "./routes/RouterDoctor.js";
+import DoctorLayout from "./layouts/DoctorLayout.js";
 
 function App() {
   const navigate = useNavigate();
@@ -16,9 +17,20 @@ function App() {
   const roleRedirects = {
     customer: "/",
     owner: "/owner",
+    doctor: "/doctor",
   };
 
   const checkLogin = () => {
+    if (location.pathname === "/doctor-dashboard-test") {
+      return;
+    }
+
+    if (
+      location.pathname === "/doctor/dashboard" ||
+      location.pathname === "/doctor/appointments"
+    ) {
+      return;
+    }
 
     // if (!user) {
     //   // Chưa đăng nhập
@@ -67,6 +79,9 @@ function App() {
     <Routes>
       <Route path="/*" element={<RouterUser />} />
       <Route path="/owner/*" element={<RouterOwner />} />
+      <Route path="/doctor/*" element={<RouterDoctor />} />
+
+      <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
     </Routes>
   );
 }
