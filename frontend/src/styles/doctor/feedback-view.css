@@ -1,0 +1,145 @@
+.feedback-view-container {
+  @apply p-6 max-w-7xl mx-auto;
+}
+
+/* Header styles */
+.page-header {
+  @apply mb-8;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.page-subtitle {
+  @apply text-gray-600 text-base;
+}
+
+/* Statistics grid - 4 cards in a row */
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8;
+}
+
+.stat-card {
+  @apply bg-white rounded-xl border border-gray-200 p-6 flex items-start gap-4 hover:shadow-md transition-shadow;
+}
+
+.stat-icon {
+  @apply w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0;
+}
+
+.stat-icon-yellow {
+  @apply bg-yellow-50 text-yellow-500;
+}
+
+.stat-icon-blue {
+  @apply bg-blue-50 text-blue-500;
+}
+
+.stat-icon-green {
+  @apply bg-green-50 text-green-500;
+}
+
+.stat-icon-purple {
+  @apply bg-purple-50 text-purple-500;
+}
+
+.stat-content {
+  @apply flex-1;
+}
+
+.stat-label {
+  @apply text-sm text-gray-600 mb-1;
+}
+
+.stat-value {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.stat-unit {
+  @apply text-lg font-normal text-gray-500;
+}
+
+/* Feedback section */
+.feedback-section {
+  @apply bg-white rounded-xl border border-gray-200 p-6;
+}
+
+.feedback-section-header {
+  @apply flex items-center justify-between mb-6;
+}
+
+.section-title {
+  @apply text-xl font-bold text-gray-900;
+}
+
+.filter-dropdown {
+  @apply px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+/* Feedback list */
+.feedbacks-list {
+  @apply space-y-4;
+}
+
+.feedback-card {
+  @apply bg-gray-50 rounded-lg p-5 border border-gray-200;
+}
+
+.feedback-card-header {
+  @apply flex items-start justify-between mb-4;
+}
+
+.feedback-rating {
+  @apply flex items-center gap-2;
+}
+
+.star-icon {
+  @apply w-5 h-5;
+}
+
+.star-filled {
+  @apply text-yellow-400;
+}
+
+.star-empty {
+  @apply text-gray-300;
+}
+
+.rating-number {
+  @apply text-lg font-semibold text-gray-900 ml-1;
+}
+
+.feedback-meta {
+  @apply flex items-center gap-2 text-sm text-gray-600;
+}
+
+.feedback-category {
+  @apply font-medium;
+}
+
+.feedback-date {
+  @apply text-gray-500;
+}
+
+.feedback-comment {
+  @apply text-gray-700 leading-relaxed mb-4;
+}
+
+.feedback-footer {
+  @apply flex items-center gap-1 text-sm;
+}
+
+.anonymous-badge {
+  @apply bg-gray-200 text-gray-700 px-3 py-1 rounded-full font-medium;
+}
+
+.verified-text {
+  @apply text-gray-500;
+}
+
+/* Loading and empty states */
+.loading-state,
+.empty-state {
+  @apply text-center py-12 text-gray-500;
+}

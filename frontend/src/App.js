@@ -28,7 +28,8 @@ function App() {
     if (
       location.pathname === "/doctor/dashboard" ||
       location.pathname === "/doctor/appointments" ||
-      location.pathname === "/doctor/patients"
+      location.pathname === "/doctor/patients" ||
+      location.pathname === "/doctor/feedback"
     ) {
       return;
     }

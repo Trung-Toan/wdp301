@@ -8,7 +8,7 @@ import AppointmentSchedule from "../features/doctor/AppointmentSchedule";
 // import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
 // import AbsenceNotification from "../features/doctor/AbsenceNotification";
 // import PatientMedicalRecords from "../features/doctor/PatientMedicalRecords";
-// import FeedbackView from "../features/doctor/FeedbackView";
+import FeedbackView from "../features/doctor/FeedbackView";
 // import AssistantManagement from "../features/doctor/AssistantManagement";
 // import PrescriptionVerification from "../features/doctor/PrescriptionVerification";
 
@@ -20,6 +20,7 @@ const RouterDoctor = () => {
         <Route path="dashboard" element={<DoctorDashboard />} />
         <Route path="appointments" element={<AppointmentSchedule />} />
         <Route path="patients" element={<PatientList />} />
+        <Route path="feedback" element={<FeedbackView />} />
         {/* <Route path="register" element={<DoctorRegistration />} />
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="absence" element={<AbsenceNotification />} />
@@ -27,7 +28,6 @@ const RouterDoctor = () => {
           path="medical-records/:patientId"
           element={<PatientMedicalRecords />}
         />
-        <Route path="feedback" element={<FeedbackView />} />
         <Route path="assistants" element={<AssistantManagement />} />
         <Route path="prescriptions" element={<PrescriptionVerification />} /> */}
       </Route>
