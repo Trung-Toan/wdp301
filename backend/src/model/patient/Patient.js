@@ -3,6 +3,7 @@ const { Schema } = mongoose;
 
 const patientSchema = new Schema(
   {
+    patient_code: { type: String, unique: true, required: true },
     blood_type: { type: String },
     allergies: [String],
     chronic_diseases: [String],
