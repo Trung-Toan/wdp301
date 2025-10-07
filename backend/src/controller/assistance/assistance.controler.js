@@ -1,27 +1,27 @@
 
 /* ========================= PATIENTS ========================= */
-// GET /doctor/patients
+// GET /patients
 exports.viewListPatients = async (req, res) => {
     res.json({ message: "View list of patients" });
 };
 
-// GET /doctor/patients/:patientId
+// GET /patients/:patientId
 exports.viewPatientById = async (req, res) => {
     res.json({ message: `View patient with ID ${req.params.patientId}` });
 };
 
-// GET /doctor/patients/citizen/:citizenId
-exports.viewPatientByCitizenId = async (req, res) => {
-    res.json({ message: `View patient with Citizen ID ${req.params.citizenId}` });
+// GET /patients/code/:patientCode
+exports.viewPatientByCode = async (req, res) => {
+    res.json({ message: `View patient with code ${req.params.patientCode}` });
 };
 
 /* ========================= APPOINTMENTS ========================= */
-// GET /doctor/appointments
+// GET /appointments
 exports.viewAppointments = async (req, res) => {
     res.json({ message: "View list of appointments" });
 };
 
-// GET /doctor/appointments/:appointmentId
+// GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
     res.json({ message: `View appointment detail with ID ${req.params.appointmentId}` });
 };

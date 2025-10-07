@@ -14,9 +14,9 @@ router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.v
 // view information patient by patientId
 router.get("/patients/:patientId", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientById);
 
-// GET /patients/citizen/:citizenId
-// view information patient by citizenId
-router.get("/patients/citizen/:citizenId", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientByCitizenId);
+// GET /patients/code/:patientCode
+// view information patient by code patient
+router.get("/patients/code/:patientCode", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientByCode);
 
 /* ========================= APPOINTMENTS ========================= */
 // GET /appointments?page=1

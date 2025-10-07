@@ -10,9 +10,9 @@ exports.viewPatientById = async (req, res) => {
     res.json({ message: `View patient with ID ${req.params.patientId}` });
 };
 
-// GET /doctor/patients/citizen/:citizenId
-exports.viewPatientByCitizenId = async (req, res) => {
-    res.json({ message: `View patient with Citizen ID ${req.params.citizenId}` });
+// GET /patients/code/:patientCode
+exports.viewPatientByCode = async (req, res) => {
+    res.json({ message: `View patient with code ${req.params.patientCode}` });
 };
 
 /* ========================= APPOINTMENTS ========================= */
