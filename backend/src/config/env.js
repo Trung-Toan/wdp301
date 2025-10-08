@@ -4,7 +4,7 @@ const {
     MONGO_URI,
     PORT = 3000,
     JWT_SECRET,
-    ACCESS_EXPIRES = '15m',
+    ACCESS_EXPIRES = '15h',
     REFRESH_EXPIRES_DAYS,
     REFRESH_TOKEN_EXPIRES_IN,
     FRONTEND_ORIGIN = 'http://localhost:3000',

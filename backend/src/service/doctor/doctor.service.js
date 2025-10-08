@@ -4,82 +4,107 @@ const Appointment = require("../../model/appointment/Appointment");
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
 
+
+/**
+ * Hàm tìm kiếm một bác sĩ dựa trên user_id.
+ * @param {mongoose.Types.ObjectId | string} userId - ID của người dùng cần tìm.
+ * @returns {Promise<Doctor|null>}
+ */
 exports.findDoctorByUserId = async (userId) => {
-    return await Doctor.findOne({ user_id: userId }).populate("user_id");
-}
-
-
-// get list patient users of doctor with pagination (chỉ users của patients đã khám COMPLETED)
-exports.getListPatients = async (req, { page = 1, limit = 10 } = {}) => {
     try {
-        // Lấy Account.id từ JWT
+        const doctor = await Doctor.findOne({ user_id: userId });
+        return doctor;
+    } catch (error) {
+        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+        return null;
+    }
+};
+
+/**
+ * Lấy danh sách ID duy nhất của các bệnh nhân đã có lịch hẹn ở trạng thái 'COMPLETED'.
+ * @param {mongoose.Types.ObjectId | string} doctorId ID của bác sĩ cần lọc.
+ * @returns {Promise<Array<mongoose.Types.ObjectId>>}
+ */
+exports.uniquePatientIdsCompleted = async (doctorId) => {
+    return await Appointment.distinct('patient_id', {
+        doctor_id: doctorId,
+        status: 'COMPLETED'
+    });
+};
+
+/**
+ * Từ danh sách ID bệnh nhân, truy vấn và trả về danh sách document User tương ứng.
+ * @param {Array<mongoose.Types.ObjectId>} patientIds Mảng chứa ID của các bệnh nhân.
+ * @returns {Promise<Array<User>>} Mảng chứa các document User đầy đủ.
+ */
+const getUsersFromPatientIds = async (patientIds) => {
+    if (!patientIds || patientIds.length === 0) {
+        return [];
+    }
+    // Từ ID của patient, tìm ra user_id tương ứng
+    const patients = await Patient.find({ _id: { $in: patientIds } }).select('user_id');
+    const userIds = patients.map(p => p.user_id);
+
+    // Lấy thông tin đầy đủ của User từ user_id
+    return await User.find({ _id: { $in: userIds } });
+};
+
+/**
+ * Thực hiện phân trang trên một mảng ID.
+ * @param {Array<any>} allIds Mảng chứa tất cả ID.
+ * @param {object} paginationOptions - Tùy chọn phân trang.
+ * @param {number} paginationOptions.page - Trang hiện tại.
+ * @param {number} paginationOptions.limit - Số lượng mục trên mỗi trang.
+ * @returns {Array<any>} Mảng chứa các ID của trang hiện tại.
+ */
+const getPaginatedIds = (allIds, { page, limit }) => {
+    const skip = (page - 1) * limit;
+    return allIds.slice(skip, skip + limit);
+};
+
+/**
+ * Lấy danh sách người dùng là bệnh nhân của bác sĩ (đã khám xong) kèm theo phân trang.
+ * @param {*} req
+ * @returns {Promise<object>}
+ */
+exports.getListPatients = async (req) => {
+    const { page = 1, limit = 10 } = req.query;
+
+    try {
+        // Bước 1: Xác thực và lấy thông tin bác sĩ
         const accountId = req.user.sub;
-
-        // Từ accountId, lấy User tương ứng
         const user = await userService.findUserByAccountId(accountId);
+        if (!user) throw new Error('Truy cập bị từ chối: Không tìm thấy người dùng.');
+        
+        const doctor = await exports.findDoctorByUserId(user._id);
+        if (!doctor) throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ.');
 
-        if (!user) {
-            throw new Error('Truy cập bị từ chối: Không tìm thấy người dùng hoặc không được phép');
+        // Bước 2: Lấy toàn bộ ID bệnh nhân hợp lệ
+        const allPatientIds = await exports.uniquePatientIdsCompleted(doctor._id);
+        const totalPatients = allPatientIds.length;
+        
+        if (totalPatients === 0) {
+            return { patients: [], pagination: { totalItems: 0, totalPages: 0, currentPage: 1, limit: parseInt(limit) } };
         }
 
-        // Từ User, lấy Doctor tương ứng
-        console.log("user_id: ", user.id);
-        // const doctor = await  exports.findDoctorByUserId(user.id);
-        // console.log("doctor: ", doctor);
-        // if (!doctor) {
-        //     throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ hoặc không được phép');
-        // }
-        
-        
+        // Bước 3: Lấy ra các ID cho trang hiện tại
+        const pageNumber = parseInt(page);
+        const limitNumber = parseInt(limit);
+        const paginatedPatientIds = getPaginatedIds(allPatientIds, { page: pageNumber, limit: limitNumber });
 
-        // // Bước 2: Lấy tất cả unique patient IDs từ Appointments COMPLETED
-        // // Sử dụng distinct() để lấy unique, kèm sort theo createdAt (giả sử Appointment có field này)
-        // const patientIds = await Appointment.distinct('patient', {
-        //     doctor: doctorId,
-        //     status: 'COMPLETED'
-        // }).sort({ createdAt: -1 });  // Sort descending theo thời gian khám gần nhất
+        // Bước 4: Lấy thông tin user từ các ID đã phân trang
+        const userDocs = await getUsersFromPatientIds(paginatedPatientIds);
 
-        // // Bước 3: Tính pagination trên mảng IDs (dễ hiểu: slice như array JS)
-        // const skip = (page - 1) * limit;
-        // const totalItems = patientIds.length;
-        // const totalPages = Math.ceil(totalItems / limit);
-
-        // // Slice IDs cho page hiện tại (unique và paginated)
-        // const paginatedPatientIds = patientIds.slice(skip, skip + limit);
-
-        // if (paginatedPatientIds.length === 0) {
-        //     return {
-        //         users: [],
-        //         page,
-        //         limit,
-        //         totalItems,
-        //         totalPages
-        //     };
-        // }
-
-        // // Bước 4: Lấy Patients từ IDs đã paginate, populate User (chỉ fields cần)
-        // const patients = await Patient.find({
-        //     _id: { $in: paginatedPatientIds }
-        // })
-        //     .populate({
-        //         path: 'user',
-        //         select: 'fullName gender DOB address avatarUrl account'  // Chỉ lấy fields User cần
-        //     })
-        //     .sort({ _id: 1 });  // Sort theo _id để khớp order từ slice (nếu cần)
-
-        // // Bước 5: Map chỉ trả User info (dễ hiểu: transform ở JS)
-        // const users = patients.map(patient => ({
-        //     _id: patient.user._id,
-        //     fullName: patient.user.fullName,
-        //     gender: patient.user.gender,
-        //     DOB: patient.user.DOB,
-        //     address: patient.user.address,
-        //     avatarUrl: patient.user.avatarUrl,
-        //     accountId: patient.user.account  // ObjectId của Account
-        // }));
-
+        // Bước 5: Tạo đối tượng trả về
+        const totalPages = Math.ceil(totalPatients / limitNumber);
         return {
-            users: user,
+            patients: userDocs,
+            pagination: {
+                totalItems: totalPatients,
+                totalPages: totalPages,
+                currentPage: pageNumber,
+                limit: limitNumber
+            }
         };
     } catch (error) {
         throw error;
