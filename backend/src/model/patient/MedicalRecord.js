@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const AccessRequestSchema = new mongoose.Schema(
   {
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    status: { type: String },
+    status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" },
     requested_at: { type: Date, default: Date.now },
     approved_at: { type: Date },
     date_expired: { type: Date },
@@ -35,17 +35,17 @@ const PrescriptionSchema = new mongoose.Schema(
 const MedicalRecordSchema = new mongoose.Schema(
   {
     diagnosis: { type: String },
-    symptoms: { type: [String] },
+    symptoms: [{ type: String }],
     notes: { type: String },
-    attachments: { type: [String] },
+    attachments: [{ type: String }],
 
     access_requests: [AccessRequestSchema],
 
     prescription: PrescriptionSchema,
 
     status: { type: String, enum: ["PUBLIC", "PRIVATE"], default: "PRIVATE", required: true },
-    doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
+    doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true },
+    patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient", required: true },
   },
   { timestamps: true }
 );
