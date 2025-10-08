@@ -2,30 +2,35 @@ const Patient = require("../../model/patient/Patient");
 const User = require("../../model/user/User");
 const Appointment = require("../../model/appointment/Appointment");
 const Doctor = require("../../model/doctor/Doctor");
+const userService = require("../user/user.service");
+
+exports.findDoctorByUserId = async (userId) => {
+    return await Doctor.findOne({ user_id: userId }).populate("user_id");
+}
+
 
 // get list patient users of doctor with pagination (chỉ users của patients đã khám COMPLETED)
-const getListPatients = async (req, { page = 1, limit = 10 } = {}) => {
+exports.getListPatients = async (req, { page = 1, limit = 10 } = {}) => {
     try {
         // Lấy Account.id từ JWT
         const accountId = req.user.sub;
 
         // Từ accountId, lấy User tương ứng
-        const user = await User.findOne({
-            account: accountId,
-        }).populate('account', '_id role');
+        const user = await userService.findUserByAccountId(accountId);
+
         if (!user) {
-            throw new Error('Access denied: User not found or not authorized');
+            throw new Error('Truy cập bị từ chối: Không tìm thấy người dùng hoặc không được phép');
         }
 
         // Từ User, lấy Doctor tương ứng
-        const doctor = await Doctor.findOne({ user: user._id })
-            .populate({
-                path: 'user',
-                populate: {
-                    path: 'account',
-                    select: '_id'
-                }
-            });
+        console.log("user_id: ", user.id);
+        // const doctor = await  exports.findDoctorByUserId(user.id);
+        // console.log("doctor: ", doctor);
+        // if (!doctor) {
+        //     throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ hoặc không được phép');
+        // }
+        
+        
 
         // // Bước 2: Lấy tất cả unique patient IDs từ Appointments COMPLETED
         // // Sử dụng distinct() để lấy unique, kèm sort theo createdAt (giả sử Appointment có field này)
@@ -74,11 +79,7 @@ const getListPatients = async (req, { page = 1, limit = 10 } = {}) => {
         // }));
 
         return {
-            users: accountId,
-            page,
-            limit,
-            totalItems,
-            totalPages
+            users: user,
         };
     } catch (error) {
         throw error;
