@@ -22,7 +22,7 @@ const clinicSchema = new Schema({
   status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE", required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: "AdminClinic" },
   address_id: { type: mongoose.Schema.Types.ObjectId, ref: "Address" },
-});
+}, { timestamps: true });
 
 const Clinic = mongoose.model("Clinic", clinicSchema, "clinics");
 

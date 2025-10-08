@@ -50,4 +50,4 @@ const MedicalRecordSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("MedicalRecord", MedicalRecordSchema);
+module.exports = mongoose.model("MedicalRecord", MedicalRecordSchema, "medical_records");

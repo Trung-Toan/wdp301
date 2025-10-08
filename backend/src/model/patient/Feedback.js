@@ -7,7 +7,7 @@ const feedbackSchema = new Schema({
   is_annonymous: { type: Boolean },
   patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
   doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-});
+}, { timestamps: true });
 
 const Feedback = mongoose.model("Feedback", feedbackSchema, "feedbacks");
 

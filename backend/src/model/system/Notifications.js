@@ -6,7 +6,7 @@ const notificationSchema = new Schema({
   type: { type: String },
   content: { type: String },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
-});
+}, { timestamps: true });
 
 const Notification = mongoose.model( "Notification",  notificationSchema, "notifications" );
 

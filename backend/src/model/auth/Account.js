@@ -30,7 +30,4 @@ const accountSchema = new Schema(
 );
 
 
-accountSchema.index({ email: 1 });
-accountSchema.index({ username: 1 });
-
 module.exports = mongoose.model("Account", accountSchema);

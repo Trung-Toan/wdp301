@@ -7,7 +7,7 @@ const complaintSchema = new Schema({
   status: { type: String, enum: ["PENDING", "RESOLVED", "DISMISSED"], default: "PENDING", required: true },
   patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
   doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-});
+}, { timestamps: true });
 
 const Complaint = mongoose.model("Complaint", complaintSchema, "complaints");
 

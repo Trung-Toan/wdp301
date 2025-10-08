@@ -6,9 +6,9 @@ const doctorSchema = new Schema(
     title: { type: String },
     degree: { type: String },
     workplace: { type: String },
-    staff_number: { type: Number },
+    rating: { type: Number },
     clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
-    specialty_id: { type: mongoose.Schema.Types.ObjectId, ref: "Specialty" },
+    specialty_id: [{ type: mongoose.Schema.Types.ObjectId, ref: "Specialty" }],
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
