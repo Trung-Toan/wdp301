@@ -2,9 +2,7 @@ import { Menu, Search, Bell } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
-import {
-  Dropdown,
-} from "react-bootstrap";
+import { Dropdown } from "react-bootstrap";
 import {
   PersonCircle,
   BoxArrowRight,
@@ -27,51 +25,43 @@ export default function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-8">
-<<<<<<< HEAD
           <Link to="/home" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
               <span className="text-xl font-bold text-white">M+</span>
             </div>
             <span className="text-xl font-bold text-gray-800">MediSched</span>
-=======
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-              <span className="text-xl font-bold text-white">H+</span>
-            </div>
-            <span className="text-xl font-bold text-gray-800">HealthCare</span>
->>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
           </Link>
 
           {/* Menu Desktop */}
           <nav className="hidden items-center gap-6 md:flex">
-<<<<<<< HEAD
-            <Link to="/home" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
+            <Link
+              to="/"
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+            >
               Trang chủ
             </Link>
-            <a href="/home/specialty" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a
+              href="#specialties"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+            >
               Chuyên khoa
             </a>
-            <a href="/home/doctorlist" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a
+              href="#doctors"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+            >
               Bác sĩ
             </a>
-            <a href="/home/appointment" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Lịch Hẹn
-            </a>
-=======
-            <Link to="/" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-              Trang chủ
-            </Link>
-            <a href="#specialties" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Chuyên khoa
-            </a>
-            <a href="#doctors" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Bác sĩ
-            </a>
->>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
-            <a href="#facilities" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a
+              href="#facilities"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+            >
               Cơ sở y tế
             </a>
-            <a href="#about" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
+            <a
+              href="#about"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+            >
               Về chúng tôi
             </a>
           </nav>
@@ -83,18 +73,26 @@ export default function Header() {
           <button className="hidden md:flex p-2 rounded-full hover:bg-gray-100">
             <Search className="h-5 w-5 text-gray-700" />
           </button>
+
+          {/* Notifications */}
           <button className="hidden md:flex p-2 rounded-full hover:bg-gray-100">
             <Bell className="h-5 w-5 text-gray-700" />
           </button>
 
-          {/* Nếu đã login thì hiện Invoice + Dropdown user */}
+          {/* Logged-in user menu */}
           {user ? (
             <>
-              <Link to="list_invoice" className="flex items-center text-gray-700 hover:text-blue-600">
+              <Link
+                to="list_invoice"
+                className="flex items-center text-gray-700 hover:text-blue-600"
+              >
                 <Receipt className="me-1" /> Invoice
               </Link>
               <Dropdown align="end">
-                <Dropdown.Toggle variant="outline-secondary" id="dropdown-basic">
+                <Dropdown.Toggle
+                  variant="outline-secondary"
+                  id="dropdown-basic"
+                >
                   <PersonCircle size={24} />
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
@@ -123,7 +121,10 @@ export default function Header() {
               </Dropdown>
             </>
           ) : (
-            <Link to="/login" className="hidden md:flex px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
+            <Link
+              to="/login"
+              className="hidden md:flex px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700"
+            >
               Đăng nhập
             </Link>
           )}
@@ -158,11 +159,17 @@ export default function Header() {
               Về chúng tôi
             </a>
             {user ? (
-              <button onClick={onLogout} className="w-full px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700">
+              <button
+                onClick={onLogout}
+                className="w-full px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700"
+              >
                 Logout
               </button>
             ) : (
-              <Link to="/login" className="w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
+              <Link
+                to="/login"
+                className="w-full px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700"
+              >
                 Đăng nhập
               </Link>
             )}
