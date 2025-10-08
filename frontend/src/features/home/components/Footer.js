@@ -8,9 +8,15 @@ export default function Footer() {
                     <div>
                         <div className="mb-4 flex items-center gap-2">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+<<<<<<< HEAD
                                 <span className="text-xl font-bold text-primary-foreground">M+</span>
                             </div>
                             <span className="text-xl font-bold">MediSched</span>
+=======
+                                <span className="text-xl font-bold text-primary-foreground">H+</span>
+                            </div>
+                            <span className="text-xl font-bold">HealthCare</span>
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
                             Nền tảng đặt lịch khám bệnh trực tuyến hàng đầu Việt Nam, kết nối bạn với các bác sĩ và cơ sở y tế uy tín.

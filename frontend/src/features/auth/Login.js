@@ -1,11 +1,16 @@
 import { memo, useEffect, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+<<<<<<< HEAD
 import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
+=======
+import { Button, Container, Form, InputGroup } from "react-bootstrap";
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+<<<<<<< HEAD
 import {
   clearSessionStorage,
   setSessionStorage,
@@ -13,6 +18,11 @@ import {
 import GoogleLoginButton from "./GoogleLoginButton";
 import { loginUser } from "../../api/LoginController";
 import "../../styles/Login.css";
+=======
+import { clearSessionStorage, setSessionStorage } from "../../hooks/useSessionStorage";
+import GoogleLoginButton from "./GoogleLoginButton";
+import { loginUser } from "../../api/LoginController";
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,13 +34,20 @@ const Login = () => {
 
   useEffect(() => {
     clearSessionStorage();
+<<<<<<< HEAD
   }, []);
 
   // Gọi API login
+=======
+  }, [])
+
+  // Sử dụng useMutation để gọi loginUser
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
     onSuccess: (data) => {
       const token = data.token;
+<<<<<<< HEAD
       const user = data.user;
       setSessionStorage("token", token);
       setSessionStorage("user", user);
@@ -40,20 +57,34 @@ const Login = () => {
         timer: 1500,
         showConfirmButton: false,
       });
+=======
+      setSessionStorage("token", token);
+
+      const user = data.user;
+      setSessionStorage("user", user);
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
       navigate("/");
     },
     onError: (error) => {
       Swal.fire({
         icon: "error",
+<<<<<<< HEAD
         title: "Lỗi đăng nhập",
         text: error.message || "Tên đăng nhập hoặc mật khẩu không đúng!",
+=======
+        title: "Error",
+        text: error.message || "Login failed!",
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
         timer: 3000,
         showConfirmButton: true,
       });
     },
   });
 
+<<<<<<< HEAD
   // Formik
+=======
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
   const formik = useFormik({
     initialValues: {
       username: "",
@@ -61,6 +92,7 @@ const Login = () => {
     },
     validationSchema: Yup.object({
       username: Yup.string()
+<<<<<<< HEAD
         .required("Vui lòng nhập email hoặc tên đăng nhập")
         .min(3, "Tối thiểu 3 ký tự")
         .max(255, "Tối đa 255 ký tự"),
@@ -68,6 +100,15 @@ const Login = () => {
         .required("Vui lòng nhập mật khẩu")
         .min(6, "Tối thiểu 6 ký tự")
         .max(100, "Tối đa 100 ký tự"),
+=======
+        .required("Username or email cannot be blank")
+        .min(3, "Username or email must be between 3 and 255 characters")
+        .max(255, "Username or email must be between 3 and 255 characters"),
+      password: Yup.string()
+        .required("Password cannot be blank")
+        .min(6, "Password must be between 6 and 100 characters")
+        .max(100, "Password must be between 6 and 100 characters"),
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
     }),
     onSubmit: (values) => {
       mutation.mutate(values);
@@ -75,6 +116,7 @@ const Login = () => {
   });
 
   return (
+<<<<<<< HEAD
     <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100 bg-light">
       <Container
         className="p-4 bg-white rounded-4 shadow-lg"
@@ -194,3 +236,78 @@ const Login = () => {
 };
 
 export default memo(Login);
+=======
+    <Container
+      className="p-4 bg-white rounded shadow"
+      style={{ maxWidth: "400px" }}
+    >
+      <h2 className="text-center mb-4">Login</h2>
+      <Form onSubmit={formik.handleSubmit}>
+        {/* Tên đăng nhập */}
+        <Form.Group className="mb-3" controlId="formUsername">
+          <Form.Label className="fw-bold">Email</Form.Label>
+          <Form.Control
+            type="text"
+            name="username"
+            placeholder="Enter email"
+            value={formik.values.username}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            isInvalid={!!formik.errors.username && formik.touched.username}
+          />
+          <Form.Control.Feedback type="invalid">
+            {formik.errors.username}
+          </Form.Control.Feedback>
+        </Form.Group>
+
+        {/* Mật khẩu */}
+        <Form.Group className="mb-3" controlId="formPassword">
+          <Form.Label className="fw-bold">Password</Form.Label>
+          <InputGroup>
+            <Form.Control
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Enter password"
+              value={formik.values.password}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              isInvalid={!!formik.errors.password && formik.touched.password}
+            />
+            <Button
+              variant="outline-secondary"
+              onClick={togglePasswordVisibility}
+              className="border-left-0"
+            >
+              {showPassword ? <EyeSlash /> : <Eye />}
+            </Button>
+            <Form.Control.Feedback type="invalid">
+              {formik.errors.password}
+            </Form.Control.Feedback>
+          </InputGroup>
+        </Form.Group>
+
+        {/* Nút đăng nhập */}
+        <Button variant="warning" type="submit" className="w-100">
+          Submit
+        </Button>
+      </Form>
+
+      <p className="text-center mt-3" style={{ fontSize: "12px" }}>
+        Do you have account?{" "}
+        <Link to="/register" className="text-warning">
+          Register account
+        </Link>
+        <br />
+        Forget password ?{" "}
+        <Link to="/find_email" className="text-warning">
+          Find account
+        </Link>
+      </p>
+
+      <GoogleLoginButton />
+    </Container>
+  );
+};
+
+export default memo(Login);
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2

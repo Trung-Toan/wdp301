@@ -1,6 +1,10 @@
 import React from "react";
 
+<<<<<<< HEAD
 export default function Badge({ children, variant = "default", className = "" }) {
+=======
+export function Badge({ children, variant = "default", className = "" }) {
+>>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
     const baseStyle =
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium";
 
