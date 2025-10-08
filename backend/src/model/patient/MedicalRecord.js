@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const AccessRequestSchema = new mongoose.Schema(
   {
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" },
+    status: { type: String },
     requested_at: { type: Date, default: Date.now },
     approved_at: { type: Date },
     date_expired: { type: Date },
@@ -35,9 +35,9 @@ const PrescriptionSchema = new mongoose.Schema(
 const MedicalRecordSchema = new mongoose.Schema(
   {
     diagnosis: { type: String },
-    symptoms: [{ type: String }],
+    symptoms: { type: [String] },
     notes: { type: String },
-    attachments: [{ type: String }],
+    attachments: { type: [String] },
 
     access_requests: [AccessRequestSchema],
 

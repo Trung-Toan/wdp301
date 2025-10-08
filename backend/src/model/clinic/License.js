@@ -3,11 +3,11 @@ const { Schema } = mongoose;
 
 const licenseSchema = new Schema(
   {
-    license_number: { type: String, required: true },
-    issued_by: { type: String, required: true },
-    issued_date: { type: Date, required: true },
-    expiry_date: { type: Date, required: true },
-    document_url: [{ type: String, required: true }],
+    licenseNumber: { type: String },
+    issued_by: { type: String },
+    issued_date: { type: Date },
+    expiry_date: { type: Date },
+    document_url: [{ type: String }],
     status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"], default: "PENDING", required: true },
     approved_at: { type: Date },
     rejected_reason: { type: String },
