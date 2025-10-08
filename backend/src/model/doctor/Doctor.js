@@ -8,8 +8,8 @@ const doctorSchema = new Schema(
     workplace: { type: String },
     rating: { type: Number },
     clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
-    specialty_id: [{ type: mongoose.Schema.Types.ObjectId, ref: "Specialty" }],
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    specialty_id: [{ type: mongoose.Schema.Types.ObjectId, ref: "Specialty", required: true }],
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
 );

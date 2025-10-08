@@ -3,16 +3,16 @@ const { Schema } = mongoose;
 
 const licenseSchema = new Schema(
   {
-    licenseNumber: { type: String },
-    issued_by: { type: String },
-    issued_date: { type: Date },
-    expiry_date: { type: Date },
-    document_url: [{ type: String }],
+    licenseNumber: { type: String , required: true},
+    issued_by: { type: String, required: true },
+    issued_date: { type: Date, required: true },
+    expiry_date: { type: Date, required: true },
+    document_url: [{ type: String, required: true }],
     status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"], default: "PENDING", required: true },
-    approved_at: { type: Date },
-    rejected_reason: { type: String },
-    doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    approved_by: { type: mongoose.Schema.Types.ObjectId, ref: "AdminClinic" },
+    approved_at: { type: Date, required: true },
+    rejected_reason: { type: String, required: true },
+    doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true },
+    approved_by: { type: mongoose.Schema.Types.ObjectId, ref: "AdminClinic", required: true },
   },
   { timestamps: true }
 );
