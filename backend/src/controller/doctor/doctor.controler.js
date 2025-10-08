@@ -1,7 +1,11 @@
 const doctorService = require("../../service/doctor/doctor.service");
 const resUtils = require("../../utils/responseUtils");
+const patientService = require("../../service/patient/patient.service");
+const appointmentService = require("../../service/appointment/appointment.service");
+const formatDataUtils = require("../../utils/formatData");
+
 /* ========================= PATIENTS ========================= */
-// GET /doctor/patients
+// GET /patients
 exports.viewListPatients = async (req, res) => {
     try {
         // 1. Lấy dữ liệu từ service, bao gồm cả 'patients' và 'pagination'
@@ -10,28 +14,13 @@ exports.viewListPatients = async (req, res) => {
         const { patients, pagination } = await doctorService.getListPatients(req);
 
         // 2. Dùng .map() để tạo một mảng mới với định dạng mong muốn
-        const formattedPatients = patients.map(patient => {
-            // Chuyển Mongoose document thành plain object
-            const patientObject = patient.toObject();
-            // Tách _id ra và lấy phần còn lại của object
-            const { _id, ...rest } = patientObject;
-            // Trả về object mới với 'id' và các thuộc tính còn lại
-            return {
-                id: _id,
-                ...rest
-            };
-        });
+        const formattedPatients = patients.map(patient => formatDataUtils.formatData(patient)) || [];
 
         // 3. Trả về response thành công với dữ liệu đã được định dạng
-        return resUtils.successResponse(
+        return resUtils.paginatedResponse(
             res,
-            {
-                // Đưa cả danh sách bệnh nhân và thông tin phân trang vào data
-                data: {
-                    patients: formattedPatients,
-                    pagination: pagination
-                }
-            },
+            { patients: formattedPatients },
+            pagination,
             "Lấy danh sách bệnh nhân thành công."
         );
     } catch (error) {
@@ -41,38 +30,17 @@ exports.viewListPatients = async (req, res) => {
     }
 };
 
-// GET /doctor/patients/:patientId
+// GET /patients/:patientId
 exports.viewPatientById = async (req, res) => {
     try {
-        // 1. Lấy dữ liệu từ service, bao gồm cả 'patients' và 'pagination'
-        // Truyền req.query vào để service có thể lấy page và limit (ví dụ: /patients?page=1&limit=10)
+        const { patient } = await patientService.getPatientById(req);
 
-        const { patients } = await doctorService.getListPatients(req);
-
-        // 2. Dùng .map() để tạo một mảng mới với định dạng mong muốn
-        const formattedPatients = patients.map(patient => {
-            // Chuyển Mongoose document thành plain object
-            const patientObject = patient.toObject();
-            // Tách _id ra và lấy phần còn lại của object
-            const { _id, ...rest } = patientObject;
-            // Trả về object mới với 'id' và các thuộc tính còn lại
-            return {
-                id: _id,
-                ...rest
-            };
-        });
-
-        // 3. Trả về response thành công với dữ liệu đã được định dạng
         return resUtils.successResponse(
             res,
             {
-                // Đưa cả danh sách bệnh nhân và thông tin phân trang vào data
-                data: {
-                    patients: formattedPatients,
-                    pagination: pagination
-                }
+                patients: formatDataUtils.formatData(patient) || null,
             },
-            "Lấy danh sách bệnh nhân thành công."
+            "Lấy thông tin bệnh nhân thành công."
         );
     } catch (error) {
         // Xử lý lỗi nếu có
@@ -83,18 +51,56 @@ exports.viewPatientById = async (req, res) => {
 
 // GET /patients/code/:patientCode
 exports.viewPatientByCode = async (req, res) => {
-    res.json({ message: `View patient with code ${req.params.patientCode}` });
+    try {
+        const { patient } = await patientService.getPatientByCode(req);
+
+        return resUtils.successResponse(
+            res,
+            {
+                patient: formatDataUtils.formatData(patient) || null,
+            },
+            "Lấy thông tin bệnh nhân thành công."
+        );
+    } catch (error) {
+        // Xử lý lỗi nếu có
+        console.error("Error in viewListPatients:", error);
+        return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
+    }
 };
 
 /* ========================= APPOINTMENTS ========================= */
-// GET /doctor/appointments
+// GET /appointments
 exports.viewAppointments = async (req, res) => {
-    res.json({ message: "View list of appointments" });
+
+    const { appointments, pagination } = await appointmentService.getListAppointments(req);
+    const formattedAppointments = appointments.map(a => formatDataUtils.formatData(a)) || [];
+    return resUtils.paginatedResponse(
+        res,
+        { appointments: formattedAppointments },
+        pagination,
+        "Lấy danh sách cuộc hẹn thành công."
+    );
 };
 
-// GET /doctor/appointments/:appointmentId
+// GET /appointments/status/:status?page=1
+exports.viewAppointmentsByStatus = async (req, res) => {
+    const { appointments, pagination } = await appointmentService.getListAppointments(req);
+    return resUtils.paginatedResponse(
+        res,
+        { appointments: appointments.map(a => formatDataUtils.formatData(a)) || [] },
+        pagination,
+        "Lấy danh sách cuộc hẹn thành công."
+    );
+}
+
+// GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
-    res.json({ message: `View appointment detail with ID ${req.params.appointmentId}` });
+    const {appointment} = await appointmentService.getAppointmentById(req);
+    return resUtils.successResponse(
+        res,
+        { appointment: formatDataUtils.formatData(appointment) || null },
+        "Lấy thông tin cuộc hẹn thành công."
+    );
 };
 
 /* ========================= MEDICAL RECORD REQUESTS ========================= */

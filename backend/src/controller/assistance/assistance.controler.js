@@ -2,18 +2,67 @@
 /* ========================= PATIENTS ========================= */
 // GET /patients
 exports.viewListPatients = async (req, res) => {
-    res.json({ message: "View list of patients" });
+    try {
+        // 1. Lấy dữ liệu từ service, bao gồm cả 'patients' và 'pagination'
+        // Truyền req.query vào để service có thể lấy page và limit (ví dụ: /patients?page=1&limit=10)
+
+        const { patients, pagination } = await doctorService.getListPatients(req);
+
+        // 2. Dùng .map() để tạo một mảng mới với định dạng mong muốn
+        const formattedPatients = patients.map(patient => formatDataUtils.formatData(patient)) || [];
+
+        // 3. Trả về response thành công với dữ liệu đã được định dạng
+        return resUtils.paginatedResponse(
+            res,
+            { patients: formattedPatients },
+            pagination,
+            "Lấy danh sách bệnh nhân thành công."
+        );
+    } catch (error) {
+        // Xử lý lỗi nếu có
+        console.error("Error in viewListPatients:", error);
+        return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
+    }
 };
 
 // GET /patients/:patientId
 exports.viewPatientById = async (req, res) => {
-    res.json({ message: `View patient with ID ${req.params.patientId}` });
+    try {
+        const { patient } = await patientService.getPatientById(req);
+
+        return resUtils.successResponse(
+            res,
+            {
+                patients: formatDataUtils.formatData(patient) || null,
+            },
+            "Lấy thông tin bệnh nhân thành công."
+        );
+    } catch (error) {
+        // Xử lý lỗi nếu có
+        console.error("Error in viewListPatients:", error);
+        return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
+    }
 };
 
 // GET /patients/code/:patientCode
 exports.viewPatientByCode = async (req, res) => {
-    res.json({ message: `View patient with code ${req.params.patientCode}` });
+    try {
+        const { patient } = await patientService.getPatientByCode(req);
+
+        return resUtils.successResponse(
+            res,
+            {
+                patient: formatDataUtils.formatData(patient) || null,
+            },
+            "Lấy thông tin bệnh nhân thành công."
+        );
+    } catch (error) {
+        // Xử lý lỗi nếu có
+        console.error("Error in viewListPatients:", error);
+        return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
+    }
 };
+
 
 /* ========================= APPOINTMENTS ========================= */
 // GET /appointments
