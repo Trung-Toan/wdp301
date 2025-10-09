@@ -35,19 +35,19 @@ export default function Header() {
           {/* Menu Desktop */}
           <nav className="hidden items-center gap-6 md:flex">
             <Link
-              to="/"
+              to="/home"
               className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
             >
               Trang chủ
             </Link>
             <a
-              href="#specialties"
+              href="/home/specialty"
               className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
             >
               Chuyên khoa
             </a>
             <a
-              href="#doctors"
+              href="/home/doctorlist"
               className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
             >
               Bác sĩ
@@ -143,10 +143,10 @@ export default function Header() {
       {isMenuOpen && (
         <div className="border-t bg-white md:hidden">
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
-            <Link to="/" className="text-sm font-medium text-gray-700">
+            <Link to="/home" className="text-sm font-medium text-gray-700">
               Trang chủ
             </Link>
-            <a href="#specialties" className="text-sm font-medium text-gray-600">
+            <a href="/home/specialty" className="text-sm font-medium text-gray-600">
               Chuyên khoa
             </a>
             <a href="#doctors" className="text-sm font-medium text-gray-600">

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function PatientRegisterForm() {
@@ -129,13 +129,13 @@ export default function PatientRegisterForm() {
                                 <input id="terms" type="checkbox" required className="mt-1" />
                                 <label htmlFor="terms" className="text-sm leading-relaxed text-gray-700">
                                     Tôi đồng ý với{" "}
-                                    <a href="#" className="text-blue-600 hover:underline">
+                                    <Link to="#" className="text-blue-600 hover:underline">
                                         Điều khoản dịch vụ
-                                    </a>{" "}
+                                    </Link>{" "}
                                     và{" "}
-                                    <a href="#" className="text-blue-600 hover:underline">
+                                    <Link to="#" className="text-blue-600 hover:underline">
                                         Chính sách bảo mật
-                                    </a>
+                                    </Link>
                                 </label>
                             </div>
 

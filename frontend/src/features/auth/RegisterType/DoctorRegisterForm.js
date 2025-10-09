@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft, Check } from "lucide-react";
 
 export default function DoctorRegisterForm() {
@@ -62,10 +62,10 @@ export default function DoctorRegisterForm() {
                                     <div className="flex flex-col items-center">
                                         <div
                                             className={`flex h-12 w-12 items-center justify-center rounded-lg border-2 font-semibold ${currentStep === step.number
-                                                    ? "border-blue-600 bg-blue-600 text-white"
-                                                    : currentStep > step.number
-                                                        ? "border-green-500 bg-green-500 text-white"
-                                                        : "border-gray-300 bg-gray-200 text-gray-500"
+                                                ? "border-blue-600 bg-blue-600 text-white"
+                                                : currentStep > step.number
+                                                    ? "border-green-500 bg-green-500 text-white"
+                                                    : "border-gray-300 bg-gray-200 text-gray-500"
                                                 }`}
                                         >
                                             {currentStep > step.number ? <Check className="h-6 w-6" /> : step.number}
@@ -316,13 +316,13 @@ export default function DoctorRegisterForm() {
                                         <input type="checkbox" id="terms" required className="mt-1" />
                                         <label htmlFor="terms" className="text-sm leading-relaxed text-gray-700">
                                             Tôi đồng ý với{" "}
-                                            <a href="#" className="text-blue-600 hover:underline">
+                                            <Link to="#" className="text-blue-600 hover:underline">
                                                 Điều khoản dịch vụ
-                                            </a>{" "}
+                                            </Link>{" "}
                                             và{" "}
-                                            <a href="#" className="text-blue-600 hover:underline">
+                                            <Link to="#" className="text-blue-600 hover:underline">
                                                 Chính sách bảo mật
-                                            </a>
+                                            </Link>
                                         </label>
                                     </div>
                                 </>
