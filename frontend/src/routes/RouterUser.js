@@ -3,7 +3,10 @@ import { Route, Routes } from "react-router-dom";
 import Login from "../features/auth/Login";
 import FindEmail from "../features/auth/FindEmail";
 import ForgetPassword from "../features/auth/ForgetPassword";
-import Register from "../features/auth/Register";
+import Register from "../features/auth/RegisterTypeSelection";
+import RegistePatients from "../features/auth/RegisterType/PatientRegisterForm";
+import RegisteDoctor from "../features/auth/RegisterType/DoctorRegisterForm";
+import RegisteClinic from "../features/auth/RegisterType/ClinicRegisterForm";
 import UserLayout from "../layouts/UserLayout";
 import HomePage from "../features/home/pages/HomePage";
 import { DoctorsListContent } from "../features/home/pages/DoctorPage/doctors-list-content";
@@ -31,6 +34,9 @@ const RouterUser = () => {
         <Route path="find_email" element={<FindEmail />} />
         <Route path="forgot_password" element={<ForgetPassword />} />
         <Route path="register" element={<Register />} />
+        <Route path="register/patient" element={<RegistePatients />} />
+        <Route path="register/doctor" element={<RegisteDoctor />} />
+        <Route path="register/clinic" element={<RegisteClinic />} />
       </Route>
     </Routes>
   );

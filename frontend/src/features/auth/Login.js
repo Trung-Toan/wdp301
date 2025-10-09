@@ -81,7 +81,6 @@ const Login = () => {
         style={{ maxWidth: "420px" }}
       >
         <div className="text-center mb-4">
-          <img src="#" alt="HealthyCare" width="150" className="mb-3" />
           <h3 className="fw-bold text-primary" style={{ color: "#45c3d2" }}>
             Đăng nhập hệ thống
           </h3>
