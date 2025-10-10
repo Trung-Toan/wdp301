@@ -49,7 +49,9 @@ export default function DoctorRegisterForm() {
                     {/* Thẻ form */}
                     <div className="rounded-xl border bg-white p-8 shadow-sm">
                         <div className="mb-6">
-                            <h1 className="text-2xl font-bold text-gray-900">Đăng ký làm Bác sĩ</h1>
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                Đăng ký tài khoản Bác sĩ
+                            </h1>
                             <p className="mt-1 text-sm text-gray-500">
                                 Điền đầy đủ thông tin để đăng ký tài khoản bác sĩ
                             </p>
