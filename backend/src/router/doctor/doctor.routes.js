@@ -36,6 +36,8 @@ router.get("/appointments/:appointmentId", authRequired, roleRequired("DOCTOR"),
 // request to view medical record of patient
 router.post("/patients/:patientId/medical-records/request", authRequired, roleRequired("DOCTOR"), DoctorController.requestViewMedicalRecord);
 
+// POST /doctor/patients/:patientId/medical-records/:medicalRecordId/request
+router.post("/patients/:patientId/medical-records/:medicalRecordId/request", authRequired, roleRequired("DOCTOR"), DoctorController.requestViewMedicalRecordById);
 // GET /medical-records/requests/history?page=1
 // view history request view medical record pagination
 router.get("/medical-records/requests/history", authRequired, roleRequired("DOCTOR"), DoctorController.viewHistoryMedicalRecordRequests);

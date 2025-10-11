@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const AccessRequestSchema = new mongoose.Schema(
   {
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" },
+    status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"], default: "PENDING" },
     requested_at: { type: Date, default: Date.now },
     approved_at: { type: Date },
     date_expired: { type: Date },
