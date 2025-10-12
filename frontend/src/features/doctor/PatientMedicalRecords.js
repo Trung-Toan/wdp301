@@ -1,12 +1,9 @@
-"use client"
-
 import { memo, useState, useEffect } from "react"
 import {
   FileText,
   Calendar,
   Capsule,
   Activity,
-  Download,
   Lock,
   Unlock,
   Search,
@@ -428,33 +425,6 @@ const PatientMedicalRecords = () => {
                   <p className="text-base text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
                     {selectedRecord.notes}
                   </p>
-                </div>
-              )}
-
-              {selectedRecord.attachments?.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-indigo-100 p-2.5 rounded-lg">
-                      <Download size={20} className="text-indigo-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Tài liệu đính kèm</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {selectedRecord.attachments.map((attachment, idx) => (
-                      <a
-                        key={idx}
-                        href={attachment}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors duration-200 group"
-                      >
-                        <div className="bg-indigo-600 p-2 rounded-lg group-hover:scale-110 transition-transform duration-200">
-                          <Download size={18} className="text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-indigo-900">Tài liệu {idx + 1}</span>
-                      </a>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
