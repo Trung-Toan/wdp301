@@ -4,13 +4,13 @@ import DoctorDashboard from "../features/doctor/DoctorDashboard";
 import DoctorLayout from "../layouts/DoctorLayout";
 import PatientList from "../features/doctor/PatientList";
 import AppointmentSchedule from "../features/doctor/AppointmentSchedule";
-// import DoctorRegistration from "../features/doctor/DoctorRegistration";
-// import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
-// import AbsenceNotification from "../features/doctor/AbsenceNotification";
-// import PatientMedicalRecords from "../features/doctor/PatientMedicalRecords";
+import PatientMedicalRecords from "../features/doctor/PatientMedicalRecords";
 import FeedbackView from "../features/doctor/FeedbackView";
 // import AssistantManagement from "../features/doctor/AssistantManagement";
 // import PrescriptionVerification from "../features/doctor/PrescriptionVerification";
+// import DoctorRegistration from "../features/doctor/DoctorRegistration";
+// import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
+// import AbsenceNotification from "../features/doctor/AbsenceNotification";
 
 const RouterDoctor = () => {
   return (
@@ -21,13 +21,13 @@ const RouterDoctor = () => {
         <Route path="appointments" element={<AppointmentSchedule />} />
         <Route path="patients" element={<PatientList />} />
         <Route path="feedback" element={<FeedbackView />} />
+        <Route
+          path="medical-records"
+          element={<PatientMedicalRecords />}
+        />
         {/* <Route path="register" element={<DoctorRegistration />} />
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="absence" element={<AbsenceNotification />} />
-        <Route
-          path="medical-records/:patientId"
-          element={<PatientMedicalRecords />}
-        />
         <Route path="assistants" element={<AssistantManagement />} />
         <Route path="prescriptions" element={<PrescriptionVerification />} /> */}
       </Route>

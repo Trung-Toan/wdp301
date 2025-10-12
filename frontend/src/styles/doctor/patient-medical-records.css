@@ -1,0 +1,456 @@
+.medical-records-container {
+  @apply p-6 max-w-7xl mx-auto;
+}
+
+.page-header {
+  @apply mb-6;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.page-subtitle {
+  @apply text-gray-600;
+}
+
+.patient-info-card {
+  @apply bg-white rounded-lg shadow-md p-6 mb-6;
+}
+
+.card-title {
+  @apply text-xl font-semibold text-gray-900 mb-4;
+}
+
+.info-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+.info-item {
+  @apply flex flex-col;
+}
+
+.info-label {
+  @apply text-sm text-gray-600 mb-1;
+}
+
+.info-value {
+  @apply text-base font-medium text-gray-900;
+}
+
+.records-section {
+  @apply bg-white rounded-lg shadow-md p-6;
+}
+
+.records-timeline {
+  @apply space-y-6;
+}
+
+.record-card {
+  @apply border border-gray-200 rounded-lg p-6;
+}
+
+.record-header {
+  @apply flex items-center justify-between mb-4 pb-4 border-b border-gray-200;
+}
+
+.record-date {
+  @apply flex items-center gap-2 text-gray-700;
+}
+
+.date-icon {
+  @apply w-5 h-5 text-blue-600;
+}
+
+.record-id {
+  @apply text-sm text-gray-500 font-mono;
+}
+
+.record-body {
+  @apply space-y-4;
+}
+
+.record-section {
+  @apply space-y-2;
+}
+
+.section-header {
+  @apply flex items-center gap-2;
+}
+
+.section-icon {
+  @apply w-4 h-4 text-blue-600;
+}
+
+.section-title {
+  @apply text-sm font-semibold text-gray-900;
+}
+
+.section-content {
+  @apply text-sm text-gray-700 ml-6;
+}
+
+.record-notes {
+  @apply mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-sm text-gray-700;
+}
+
+/* Added loading and empty states */
+.loading-state,
+.empty-state {
+  @apply flex flex-col items-center justify-center py-12 text-gray-500;
+}
+
+.spinner {
+  @apply w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4;
+}
+
+.medical-history-section {
+  @apply mt-6 pt-6 border-t border-gray-200;
+}
+
+.section-subtitle {
+  @apply text-base font-semibold text-gray-900 mb-3;
+}
+
+.tags-list {
+  @apply flex flex-wrap gap-2;
+}
+
+.tag {
+  @apply px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.tag-medication {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.tag-surgery {
+  @apply bg-purple-100 text-purple-800;
+}
+
+/* Search and filter section */
+.filters-section {
+  @apply bg-white rounded-lg shadow-md p-4 mb-6 flex flex-col md:flex-row gap-4;
+}
+
+.search-box {
+  @apply flex-1 relative;
+}
+
+.search-icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5;
+}
+
+.search-input {
+  @apply w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.filter-group {
+  @apply flex items-center gap-2;
+}
+
+.filter-icon {
+  @apply text-gray-400 w-5 h-5;
+}
+
+.filter-select {
+  @apply px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+/* Enhanced records section */
+.section-header-row {
+  @apply flex items-center justify-between mb-6;
+}
+
+.records-count {
+  @apply text-sm text-gray-500 font-medium;
+}
+
+.record-badges {
+  @apply flex items-center gap-2;
+}
+
+.status-badge {
+  @apply flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium;
+}
+
+.status-badge.status-public {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge.status-private {
+  @apply bg-gray-100 text-gray-800;
+}
+
+/* Symptoms display */
+.symptoms-list {
+  @apply flex flex-wrap gap-2 ml-6;
+}
+
+.symptom-tag {
+  @apply px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm;
+}
+
+/* Enhanced prescription section */
+.prescription-section {
+  @apply bg-blue-50 rounded-lg p-4 -mx-2;
+}
+
+.prescription-status {
+  @apply flex items-center gap-1 ml-auto px-2 py-1 rounded text-xs font-medium;
+}
+
+.prescription-status.verified {
+  @apply bg-green-100 text-green-800;
+}
+
+.prescription-status.pending {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.medicines-list {
+  @apply space-y-3 ml-6 mt-3;
+}
+
+.medicine-item {
+  @apply bg-white rounded-lg p-3 border border-blue-200;
+}
+
+.medicine-name {
+  @apply font-semibold text-gray-900 mb-2;
+}
+
+.medicine-details {
+  @apply flex flex-wrap gap-4 text-sm text-gray-600;
+}
+
+.medicine-note {
+  @apply mt-2 text-sm text-gray-500 italic;
+}
+
+.prescription-instruction {
+  @apply mt-3 ml-6 p-3 bg-white rounded border border-blue-200 text-sm text-gray-700;
+}
+
+/* Attachments section */
+.attachments-section {
+  @apply mt-4 pt-4 border-t border-gray-200;
+}
+
+.attachments-title {
+  @apply text-sm font-semibold text-gray-900 mb-2;
+}
+
+.attachments-list {
+  @apply flex flex-wrap gap-2;
+}
+
+.attachment-link {
+  @apply flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors;
+}
+
+/* Added table view styles for records list */
+.records-table-container {
+  @apply overflow-x-auto;
+}
+
+.records-table {
+  @apply w-full border-collapse;
+}
+
+.records-table thead {
+  @apply bg-gray-50;
+}
+
+.records-table th {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200;
+}
+
+.records-table tbody tr {
+  @apply border-b border-gray-200 hover:bg-gray-50 transition-colors;
+}
+
+.records-table td {
+  @apply px-6 py-4 whitespace-nowrap;
+}
+
+.date-cell {
+  @apply text-sm text-gray-900;
+}
+
+.date-cell .date-icon {
+  @apply inline-block mr-2 text-blue-600;
+}
+
+.patient-cell {
+  @apply max-w-xs;
+}
+
+.patient-info {
+  @apply flex flex-col;
+}
+
+.patient-name {
+  @apply text-sm font-medium text-gray-900;
+}
+
+.patient-email {
+  @apply text-xs text-gray-500;
+}
+
+.diagnosis-cell {
+  @apply max-w-md;
+}
+
+.diagnosis-text {
+  @apply text-sm text-gray-700 truncate;
+}
+
+.status-cell {
+  @apply text-sm;
+}
+
+.prescription-cell {
+  @apply text-sm;
+}
+
+.no-prescription {
+  @apply text-gray-400 italic;
+}
+
+.actions-cell {
+  @apply text-right;
+}
+
+.btn-view {
+  @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors;
+}
+
+/* Added modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 56rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.modal-close {
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #4b5563;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  background-color: #ffffff;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .records-table {
+    @apply text-sm;
+  }
+
+  .records-table th,
+  .records-table td {
+    @apply px-3 py-2;
+  }
+
+  .btn-view {
+    @apply px-3 py-1 text-xs;
+  }
+
+  .modal-content {
+    @apply max-h-[95vh];
+  }
+}
+
+/* Adding smooth animations for modal */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
