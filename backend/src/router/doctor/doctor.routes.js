@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { authRequired, roleRequired } = require("./../../middleware/auth");
+const { getDoctorsBySpecialty } = require("../../controller/doctor/doctorBySpecialty.controller");
+const { getTopDoctorsController } = require("../../controller/doctor/topDoctor.controller");
 
 // Import controller for doctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
@@ -77,5 +79,51 @@ router.get("/assistants", authRequired, roleRequired("DOCTOR"), DoctorController
 // GET /profile
 // view profile of doctor
 router.get("/profile", authRequired, roleRequired("DOCTOR"), DoctorController.viewProfile);
+
+
+
+/**
+ * @openapi
+ * /api/doctor/by-specialty:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy bác sĩ theo chuyên khoa (kèm tên & địa chỉ phòng khám)
+ *     parameters:
+ *       - in: query
+ *         name: specialtyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: OK
+ */
+router.get("/by-specialty", getDoctorsBySpecialty);
+
+
+/**
+ * @openapi
+ * /api/doctor/top:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy danh sách bác sĩ nổi bật (rating cao nhất)
+ *     description: Trả về các bác sĩ có điểm đánh giá (rating) cao nhất, kèm thông tin phòng khám.
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *           minimum: 1
+ *           maximum: 50
+ *         description: Số lượng bác sĩ muốn lấy (mặc định 5)
+ *     responses:
+ *       200:
+ *         description: Danh sách bác sĩ nổi bật
+ */
+router.get("/top", getTopDoctorsController);
+
 
 module.exports = router;
