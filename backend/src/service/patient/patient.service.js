@@ -1,0 +1,61 @@
+const Patient = require('../../model/patient/Patient');
+const userService = require("../user/user.service");
+
+/**
+ * get patient by id
+ * @param {*} req 
+ * @returns 
+ */
+exports.getPatientById = async (req) => {
+    try {
+        const patientId = req.params.patientId;
+        const patient = await Patient.findById(patientId).lean();
+        return { patient };
+    } catch (error) {
+        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+        return null;
+    }
+};
+
+/**
+ * get patient by code
+ * @param {*} req 
+ * @returns 
+ */
+exports.getPatientByCode = async (req) => {
+    try {
+        const {patientCode} = req.params;
+        const patient = await Patient.findOne({patient_code: patientCode}).lean();
+        return { patient };
+    } catch (error) {
+        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+        return null;
+    }
+};
+
+exports.findPatientByUserId = async (userId) => {
+    try {
+        const patient = await Patient.findOne({ user_id: userId }).lean();
+        return patient || null;
+    } catch (error) {
+        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+        return null;
+    }
+};
+
+exports.findPatientByAccountId = async (accountId) => {
+    try {
+        const user = await userService.findUserByAccountId(accountId);
+        if (!user) {
+            return null;
+        } 
+        const patient = await exports.findPatientByUserId(user._id);
+        return patient || null;
+    } catch (error) {
+        console.error("Lỗi khi tìm user bằng accountId:", error);
+        return null;
+    }
+}
+
+
+

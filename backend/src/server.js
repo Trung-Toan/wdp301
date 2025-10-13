@@ -1,10 +1,13 @@
 require('dotenv').config();
+require('./model')
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 
 const connectDB = require('./config/db');
 const authRoutes = require('./router/auth/auth.routes');
+const locationRoutes = require('./router/address/location.routes');
+const clinicRoutes = require('./router/clinic/specialty.route');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
@@ -31,6 +34,8 @@ app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/doctor', require('./router/doctor/doctor.routes'));
 app.use('/api/assistant', require('./router/assistance/assistance.routes'));
+app.use('/api/locations', locationRoutes);
+app.use('/api/clinic', clinicRoutes);
 
 app.get('/', (_req, res) => res.json({ message: 'Welcome to WDP301!' }));
 
