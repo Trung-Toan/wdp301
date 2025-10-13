@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { provinceApi, wardApi } from "../../../api/address";
+import { provinceApi, wardApi } from "../../../api";
 import { MapPin } from "lucide-react";
 
 export default function LocationSelector({ onChange }) {
