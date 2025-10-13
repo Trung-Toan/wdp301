@@ -1,0 +1,193 @@
+/* Layout cơ bản */
+.assistant-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #f8fafc;
+}
+
+/* Sidebar hẹp, nền trắng như trong ảnh */
+.sidebar {
+  width: 72px;
+  background: #ffffff;
+  border-right: 1px solid #e6eef6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+}
+
+/* Logo nhỏ trên cùng */
+.sidebar-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 12px;
+  box-sizing: border-box;
+}
+
+.logo-text {
+  display: none; /* ẩn text logo để giữ gọn */
+}
+
+/* Menu dọc, chữ nhỏ, icon rõ */
+.sidebar-nav {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  box-sizing: border-box;
+}
+
+.nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 10px 8px;
+  color: #111827;
+  text-decoration: none;
+  font-size: 12px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: background-color 0.12s, color 0.12s;
+}
+
+/* Icon canh giữa, text hiển thị nhỏ bên cạnh */
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+/* Giữ text, nhưng hiển thị nhỏ (giống ảnh) */
+.nav-text {
+  display: inline-block;
+  font-size: 12px;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* Khi thu nhỏ muốn trông gọn: ẩn text nếu không đủ chỗ */
+@media (max-width: 1200px) {
+  .nav-text {
+    display: none;
+  }
+}
+
+/* Hover / active */
+.nav-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.nav-item-active {
+  background: #eef2ff;
+  color: #0f172a;
+  box-shadow: inset 2px 0 0 #3b82f6;
+}
+
+/* Footer / logout */
+.sidebar-footer {
+  margin-top: auto;
+  width: 100%;
+  padding: 10px 6px;
+  box-sizing: border-box;
+}
+
+.logout-btn {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 12px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.logout-btn:hover {
+  background: #f8fafc;
+  color: #111827;
+}
+
+/* Phần nội dung chính (đặt bên phải sidebar) */
+.main-content {
+  margin-left: 72px; /* đúng bằng width sidebar */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header đơn giản, nền trắng như ảnh 1 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6eef6;
+  box-shadow: none;
+}
+
+/* Nút thu/gọn (giữ nhỏ) */
+.toggle-sidebar-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #374151;
+  padding: 6px;
+}
+
+/* Nội dung trang */
+.page-content {
+  padding: 20px;
+  background: #ffffff;
+  min-height: calc(100vh - 64px);
+}
+
+/* Footer */
+.footer {
+  padding: 12px 20px;
+  background: #ffffff;
+  border-top: 1px solid #e6eef6;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Tinh chỉnh responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 64px;
+  }
+
+  .main-content {
+    margin-left: 64px;
+  }
+
+  .nav-icon {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .nav-item {
+    padding: 8px;
+  }
+}

@@ -5,6 +5,7 @@ import { useSessionStorage } from "./hooks/useSessionStorage.js";
 import RouterOwner from "./routes/RouterOwner.js";
 import RouterDoctor from "./routes/RouterDoctor.js";
 import DoctorLayout from "./layouts/DoctorLayout.js";
+import { assistantRoutes } from "./routes/RouterAssistant.js";
 
 function App() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function App() {
     customer: "/",
     owner: "/owner",
     doctor: "/doctor",
+    assistant: "/assistant",
   };
 
   const checkLogin = () => {
@@ -29,8 +31,13 @@ function App() {
       location.pathname === "/doctor/dashboard" ||
       location.pathname === "/doctor/appointments" ||
       location.pathname === "/doctor/patients" ||
-      location.pathname === "/doctor/feedback"||
-      location.pathname === "/doctor/medical-records"
+      location.pathname === "/doctor/feedback" ||
+      location.pathname === "/doctor/medical-records" ||
+      location.pathname === "/doctor/prescriptions" ||
+      location.pathname === "/doctor/record-requests" ||
+      location.pathname === "/doctor/assistants" ||
+      location.pathname === "/doctor/absence" ||
+      location.pathname === "/assistant/dashboard"
     ) {
       return;
     }
@@ -84,6 +91,9 @@ function App() {
       <Route path="/*" element={<RouterUser />} />
       <Route path="/owner/*" element={<RouterOwner />} />
       <Route path="/doctor/*" element={<RouterDoctor />} />
+
+      {/* render trực tiếp các Route cho assistant */}
+      {assistantRoutes}
 
       <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
     </Routes>
