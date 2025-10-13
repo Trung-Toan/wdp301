@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MapPin, Star, Phone, Building2, CheckCircle2, Calendar, Award, ChevronLeft } from "lucide-react";
+import {  Star, Phone, Building2, CheckCircle2, Calendar, ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const facilityData = {
