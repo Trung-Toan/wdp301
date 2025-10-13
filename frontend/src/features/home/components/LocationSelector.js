@@ -1,113 +1,74 @@
-import React, { useState, useEffect } from "react";
-import Input from "../../../components/ui/Input";
-
+import React, { useEffect, useState } from "react";
+import { provinceApi, wardApi } from "../../../api/address";
+import { MapPin } from "lucide-react";
 
 export default function LocationSelector({ onChange }) {
-    const [data, setData] = useState([]);
-    const [province, setProvince] = useState("");
-    const [district, setDistrict] = useState("");
-    const [ward, setWard] = useState("");
-    const [open, setOpen] = useState(false);
+    const [provinces, setProvinces] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [selectedProvince, setSelectedProvince] = useState("");
+    const [selectedWard, setSelectedWard] = useState("");
 
     useEffect(() => {
-        // Lấy dữ liệu hành chính Việt Nam
-        fetch("https://raw.githubusercontent.com/kenzouno1/DiaGioiHanhChinhVN/master/data.json")
-            .then((res) => res.json())
-            .then(setData);
+        async function fetchProvinces() {
+            try {
+                const res = await provinceApi.getProvinces();
+                if (res.data.success) setProvinces(res.data.options);
+            } catch (err) {
+                console.error("Lỗi khi tải tỉnh:", err);
+            }
+        }
+        fetchProvinces();
     }, []);
 
-    const handleSelect = (type, value) => {
-        if (type === "province") {
-            setProvince(value);
-            setDistrict("");
-            setWard("");
-        } else if (type === "district") {
-            setDistrict(value);
-            setWard("");
-        } else {
-            setWard(value);
-            setOpen(false);
-            onChange && onChange(`${value.Name}, ${district.Name}, ${province.Name}`);
+    const handleProvinceChange = async (e) => {
+        const code = e.target.value;
+        setSelectedProvince(code);
+        setSelectedWard("");
+        if (!code) return;
+        try {
+            const res = await wardApi.getWardsByProvince(code);
+            if (res.data.success) setWards(res.data.options);
+        } catch (err) {
+            console.error("Lỗi khi tải phường:", err);
         }
     };
 
-    const selectedProvince = data.find((p) => p.Name === province.Name);
-    const selectedDistrict =
-        selectedProvince?.Districts?.find((d) => d.Name === district.Name) || null;
+    const handleWardChange = (e) => {
+        const code = e.target.value;
+        setSelectedWard(code);
+        if (onChange) onChange({ province: selectedProvince, ward: code });
+    };
 
     return (
-        <div className="relative">
-            <Input
-                readOnly
-                placeholder="Chọn địa điểm"
-                value={ward && district && province ? `${ward.Name}, ${district.Name}, ${province.Name}` : ""}
-                className="pl-10 cursor-pointer"
-                onClick={() => setOpen(!open)}
-            />
+        <div className="flex flex-col gap-3">
+            <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <select
+                    onChange={handleProvinceChange}
+                    value={selectedProvince}
+                    className="w-full appearance-none rounded-lg border border-gray-300 bg-white/70 py-2 pl-10 pr-4 text-gray-700 backdrop-blur-sm focus:border-primary focus:outline-none"
+                >
+                    <option value="">-- Chọn Tỉnh --</option>
+                    {provinces.map((p) => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                </select>
+            </div>
 
-            {open && (
-                <div className="absolute left-0 top-full mt-2 z-50 w-full bg-white shadow-lg rounded-lg p-4 border">
-                    <div className="grid gap-3">
-                        {/* Chọn Tỉnh/Thành phố */}
-                        <select
-                            className="border rounded p-2 w-full"
-                            onChange={(e) =>
-                                handleSelect("province", data.find((p) => p.Name === e.target.value))
-                            }
-                            value={province.Name || ""}
-                        >
-                            <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                            {data.map((item) => (
-                                <option key={item.Id} value={item.Name}>
-                                    {item.Name}
-                                </option>
-                            ))}
-                        </select>
-
-                        {/* Chọn Quận/Huyện */}
-                        {province && (
-                            <select
-                                className="border rounded p-2 w-full"
-                                onChange={(e) =>
-                                    handleSelect(
-                                        "district",
-                                        selectedProvince.Districts.find((d) => d.Name === e.target.value)
-                                    )
-                                }
-                                value={district.Name || ""}
-                            >
-                                <option value="">-- Chọn Quận/Huyện --</option>
-                                {selectedProvince?.Districts?.map((d) => (
-                                    <option key={d.Id} value={d.Name}>
-                                        {d.Name}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-
-                        {/* Chọn Xã/Phường */}
-                        {district && (
-                            <select
-                                className="border rounded p-2 w-full"
-                                onChange={(e) =>
-                                    handleSelect(
-                                        "ward",
-                                        selectedDistrict.Wards.find((w) => w.Name === e.target.value)
-                                    )
-                                }
-                                value={ward.Name || ""}
-                            >
-                                <option value="">-- Chọn Xã/Phường --</option>
-                                {selectedDistrict?.Wards?.map((w) => (
-                                    <option key={w.Id} value={w.Name}>
-                                        {w.Name}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                    </div>
-                </div>
-            )}
+            <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <select
+                    disabled={!wards.length}
+                    onChange={handleWardChange}
+                    value={selectedWard}
+                    className="w-full appearance-none rounded-lg border border-gray-300 bg-white/70 py-2 pl-10 pr-4 text-gray-700 backdrop-blur-sm focus:border-primary focus:outline-none disabled:opacity-50"
+                >
+                    <option value="">-- Chọn Phường --</option>
+                    {wards.map((w) => (
+                        <option key={w.value} value={w.value}>{w.label}</option>
+                    ))}
+                </select>
+            </div>
         </div>
     );
 }
