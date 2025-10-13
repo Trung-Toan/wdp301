@@ -1,17 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-    Calendar,
-    Clock,
-    MapPin,
-    User,
-    FileText,
-    ChevronLeft,
-} from "lucide-react";
+import { Calendar, Clock, MapPin, User, FileText, ChevronLeft } from "lucide-react";
 import BookingSuccess from "./bookingSuccess";
-
-// Nếu chưa có Button, Card... bạn có thể tạo sẵn component tái sử dụng
-// Ở đây mình viết trực tiếp bằng Tailwind để dùng ngay
 
 export function BookingContent() {
     const [formData, setFormData] = useState({
@@ -20,13 +10,21 @@ export function BookingContent() {
         email: "",
         dateOfBirth: "",
         gender: "male",
+        province: "",
+        district: "",
         address: "",
         reason: "",
-        hasInsurance: false,
-        insuranceNumber: "",
     });
 
     const [isSubmitted, setIsSubmitted] = useState(false);
+
+    // Danh sách tỉnh/thành và quận/huyện mẫu
+    const provinces = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng"];
+    const districts = {
+        "Hà Nội": ["Ba Đình", "Hoàn Kiếm", "Cầu Giấy", "Đống Đa", "Tây Hồ"],
+        "TP. Hồ Chí Minh": ["Quận 1", "Quận 3", "Quận 7", "Thủ Đức", "Bình Thạnh"],
+        "Đà Nẵng": ["Hải Châu", "Thanh Khê", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu"],
+    };
 
     // Mock data
     const bookingInfo = {
@@ -40,7 +38,6 @@ export function BookingContent() {
         price: "500.000đ",
         image: "/doctor-portrait-male.jpg",
     };
-
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -63,7 +60,6 @@ export function BookingContent() {
                         <ChevronLeft className="h-4 w-4" /> Quay lại
                     </button>
                 </Link>
-
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Form */}
@@ -128,9 +124,7 @@ export function BookingContent() {
                                             type="date"
                                             className="w-full border rounded-lg p-2"
                                             value={formData.dateOfBirth}
-                                            onChange={(e) =>
-                                                handleChange("dateOfBirth", e.target.value)
-                                            }
+                                            onChange={(e) => handleChange("dateOfBirth", e.target.value)}
                                             required
                                         />
                                     </div>
@@ -156,12 +150,58 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
+                                {/* Chọn tỉnh/thành & quận/huyện */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block mb-1 font-medium">
+                                            Tỉnh/Thành phố <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            className="w-full border rounded-lg p-2"
+                                            value={formData.province}
+                                            onChange={(e) => {
+                                                handleChange("province", e.target.value);
+                                                handleChange("district", "");
+                                            }}
+                                            required
+                                        >
+                                            <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                                            {provinces.map((p) => (
+                                                <option key={p} value={p}>
+                                                    {p}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block mb-1 font-medium">
+                                            Quận/Huyện <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            className="w-full border rounded-lg p-2"
+                                            value={formData.district}
+                                            onChange={(e) => handleChange("district", e.target.value)}
+                                            required
+                                            disabled={!formData.province}
+                                        >
+                                            <option value="">-- Chọn Quận/Huyện --</option>
+                                            {formData.province &&
+                                                districts[formData.province].map((d) => (
+                                                    <option key={d} value={d}>
+                                                        {d}
+                                                    </option>
+                                                ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Địa chỉ cụ thể */}
                                 <div>
-                                    <label className="block mb-1 font-medium">Địa chỉ</label>
+                                    <label className="block mb-1 font-medium">Địa chỉ cụ thể</label>
                                     <input
                                         type="text"
                                         className="w-full border rounded-lg p-2"
-                                        placeholder="Số nhà, đường, quận/huyện..."
+                                        placeholder="Số nhà, đường, phường/xã..."
                                         value={formData.address}
                                         onChange={(e) => handleChange("address", e.target.value)}
                                     />
@@ -183,48 +223,6 @@ export function BookingContent() {
                                         onChange={(e) => handleChange("reason", e.target.value)}
                                     />
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.hasInsurance}
-                                        onChange={(e) =>
-                                            handleChange("hasInsurance", e.target.checked)
-                                        }
-                                    />
-                                    <span>Tôi có bảo hiểm y tế</span>
-                                </div>
-
-                                {formData.hasInsurance && (
-                                    <div className="ml-6">
-                                        <label className="block mb-1 font-medium">
-                                            Số thẻ bảo hiểm y tế
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="w-full border rounded-lg p-2"
-                                            value={formData.insuranceNumber}
-                                            onChange={(e) =>
-                                                handleChange("insuranceNumber", e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Điều khoản */}
-                            <div className="flex items-start gap-2">
-                                <input type="checkbox" required />
-                                <p className="text-sm">
-                                    Tôi đồng ý với{" "}
-                                    <Link to="/terms" className="text-blue-600 underline">
-                                        điều khoản sử dụng
-                                    </Link>{" "}
-                                    và{" "}
-                                    <Link to="/privacy" className="text-blue-600 underline">
-                                        chính sách bảo mật
-                                    </Link>
-                                </p>
                             </div>
 
                             <button
@@ -287,10 +285,26 @@ export function BookingContent() {
                                 </div>
                             </div>
 
-                            <p className="text-xs text-gray-500 pt-4 border-t">
-                                Bạn có thể thanh toán trực tiếp hoặc chuyển khoản trước khi đến
-                                khám.
-                            </p>
+                            {/* ✅ Phần lưu ý mới thêm */}
+                            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm leading-relaxed text-gray-700">
+                                <p className="font-semibold text-yellow-800 mb-1">
+                                    Lưu ý:
+                                </p>
+                                <p>
+                                    Thông tin anh/chị cung cấp sẽ được sử dụng làm hồ sơ khám bệnh.
+                                    Khi điền thông tin, anh/chị vui lòng:
+                                </p>
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                    <li>
+                                        Ghi rõ họ và tên, viết hoa những chữ cái đầu tiên,
+                                        ví dụ: <strong>Trần Văn Phú</strong>.
+                                    </li>
+                                    <li>
+                                        Điền đầy đủ, đúng và kiểm tra lại thông tin trước khi ấn{" "}
+                                        <strong>“Xác nhận”</strong>.
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

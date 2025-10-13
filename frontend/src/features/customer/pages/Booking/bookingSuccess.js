@@ -62,7 +62,7 @@ export default function BookingSuccess({ bookingInfo }) {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link to="/appointments">
+                            <Link to="/home/appointment">
                                 <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                     Xem lịch hẹn của tôi
                                 </button>

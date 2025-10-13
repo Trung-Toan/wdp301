@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import {
     Star,
     MapPin,
@@ -6,10 +6,9 @@ import {
     Award,
     GraduationCap,
     Stethoscope,
-    Calendar,
     ChevronLeft,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
@@ -106,9 +105,7 @@ const mockReviews = [
 
 // ====== Component JS ======
 export function DoctorDetailContent({ doctorId }) {
-    const { id } = useParams();
-    const [selectedDay, setSelectedDay] = useState(0);
-    const [selectedSlot, setSelectedSlot] = useState(null);
+
 
     const doctor = mockDoctorDetails[doctorId] || mockDoctorDetails["1"];
 
@@ -274,7 +271,7 @@ export function DoctorDetailContent({ doctorId }) {
                                 </div>
                             </CardContent>
                         </Card> */}
-                          <DoctorBookingCalendar doctor={doctor} />
+                        <DoctorBookingCalendar doctor={doctor} />
                     </div>
                 </div>
             </div>
