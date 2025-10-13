@@ -1,6 +1,7 @@
 import Button from "../../../../components/ui/Button"
 import Input from "../../../../components/ui/Input"
 import { Search, MapPin } from "lucide-react"
+import LocationSelector from "../../components/LocationSelector"
 
 export function HeroSection() {
     return (
@@ -22,11 +23,11 @@ export function HeroSection() {
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                                    <Input placeholder="Tìm bác sĩ, chuyên khoa..." className="pl-10" />
+                                    <Input placeholder="Tìm Chuyên khoa..." className="pl-10" />
                                 </div>
                                 <div className="relative">
                                     <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                                    <Input placeholder="Chọn địa điểm" className="pl-10" />
+                                    <LocationSelector onChange={(value) => console.log("Địa chỉ đã chọn:", value)} />
                                 </div>
                                 <Button className="w-full" size="lg">
                                     <Search className="mr-2 h-5 w-5" />

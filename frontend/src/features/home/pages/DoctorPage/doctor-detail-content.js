@@ -20,6 +20,7 @@ import Tabs from "../../../../components/ui/Tabs";
 import TabsList from "../../../../components/ui/TabsList";
 import TabsTrigger from "../../../../components/ui/TabsTrigger";
 import TabsContent from "../../../../components/ui/TabsContent";
+import { DoctorBookingCalendar } from "../../components/DoctorBookingCalendar";
 
 // ====== Mock Data ======
 const mockDoctorDetails = {
@@ -228,7 +229,7 @@ export function DoctorDetailContent({ doctorId }) {
 
                     {/* Sidebar Booking */}
                     <div className="lg:col-span-1">
-                        <Card className="sticky top-24">
+                        {/* <Card className="sticky top-24">
                             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Đặt lịch khám</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
@@ -272,7 +273,8 @@ export function DoctorDetailContent({ doctorId }) {
                                     </Link>
                                 </div>
                             </CardContent>
-                        </Card>
+                        </Card> */}
+                          <DoctorBookingCalendar doctor={doctor} />
                     </div>
                 </div>
             </div>
