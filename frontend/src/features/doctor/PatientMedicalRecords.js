@@ -41,6 +41,7 @@ const PatientMedicalRecords = () => {
 
   useEffect(() => {
     filterRecords();
+    // eslint-disable-next-line
   }, [records, searchTerm, statusFilter]);
 
   const fetchData = async () => {

@@ -278,8 +278,6 @@ const AppointmentSchedule = () => {
           </div>
         </div>
 
-        
-
         {/* Content */}
         {loading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">

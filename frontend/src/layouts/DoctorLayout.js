@@ -145,13 +145,13 @@ const DoctorLayout = () => {
           <div className="footer-content">
             <p className="footer-text">© 2025 MediCare. All rights reserved.</p>
             <div className="footer-links">
-              <a href="#" className="footer-link">
+              <a href="/" className="footer-link">
                 Điều khoản
               </a>
-              <a href="#" className="footer-link">
+              <a href="/" className="footer-link">
                 Chính sách
               </a>
-              <a href="#" className="footer-link">
+              <a href="/" className="footer-link">
                 Hỗ trợ
               </a>
             </div>
