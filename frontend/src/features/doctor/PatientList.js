@@ -171,15 +171,6 @@ const PatientList = () => {
                           >
                             <Eye size={18} />
                           </button>
-                          <button
-                            onClick={() =>
-                              navigate(`/doctor/medical-records/${patientId}`)
-                            }
-                            className="action-btn action-btn-record"
-                            title="Xem bệnh án"
-                          >
-                            <FileText size={18} />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -369,7 +360,7 @@ const PatientList = () => {
                 onClick={() => {
                   handleCloseModal();
                   navigate(
-                    `/doctor/medical-records/${
+                    `/doctor/medical-records/?patientId=${
                       selectedPatient?._id || selectedPatient?.user?._id
                     }`
                   );

@@ -27,6 +27,7 @@ const PrescriptionSchema = new mongoose.Schema(
     medicines: [MedicineSchema],
     instruction: { type: String },
     verified_at: { type: Date },
+    status: { type: String, enum: ["PENDING", "VERIFIED", "REJECTED"], default: "PENDING" },
     created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
   },
   { _id: false }

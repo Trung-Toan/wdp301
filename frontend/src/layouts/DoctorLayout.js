@@ -9,7 +9,6 @@ import {
   BellSlash,
   ChatLeftText,
   PersonBadge,
-  CheckCircle,
   List,
   X,
   BoxArrowRight,

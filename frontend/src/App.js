@@ -67,7 +67,7 @@ function App() {
   };
 
   useEffect(() => {
-    checkLogin();
+    // checkLogin();
 
     // Lắng nghe sự kiện thay đổi sessionStorage (nếu cần)
     const handleStorageChange = () => checkLogin();

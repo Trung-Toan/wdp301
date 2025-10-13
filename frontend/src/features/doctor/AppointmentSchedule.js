@@ -1,13 +1,9 @@
-"use client";
-
 import { memo, useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
   Person,
   Telephone,
-  GeoAlt,
-  FileText,
   CheckCircle,
   XCircle,
   Eye,
@@ -105,10 +101,6 @@ const AppointmentSchedule = () => {
       appointment?.patient?.user?.account_id?.phone_number ||
       "Chưa có thông tin"
     );
-  };
-
-  const getClinicName = (appointment) => {
-    return appointment?.clinic?.name || "Chưa có thông tin";
   };
 
   const getSpecialtyName = (appointment) => {
