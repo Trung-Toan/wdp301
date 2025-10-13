@@ -40,7 +40,7 @@ const DoctorLayout = () => {
       link: "/doctor/appointments",
     },
     {
-      title: "Yêu cầu bệnh án",
+      title: "Yêu cầu xem bệnh án",
       icon: <FileText size={20} />,
       link: "/doctor/record-requests",
     },
