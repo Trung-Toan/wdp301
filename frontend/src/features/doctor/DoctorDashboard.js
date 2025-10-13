@@ -1,8 +1,20 @@
-import { memo, useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { Users, Calendar, FileText, CheckCircle, TrendingUp, TrendingDown, Clock, Activity } from "lucide-react"
-import { getDashboardStats, getTodayAppointmentsList } from "../../services/doctorService"
-import "../../styles/doctor/DoctorDashboard.css"
+import { memo, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  Users,
+  Calendar,
+  FileText,
+  CheckCircle,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  Activity,
+} from "lucide-react";
+import {
+  getDashboardStats,
+  getTodayAppointmentsList,
+} from "../../services/doctorService";
+import "../../styles/doctor/DoctorDashboard.css";
 
 const DoctorDashboard = () => {
   const [stats, setStats] = useState({
@@ -12,45 +24,48 @@ const DoctorDashboard = () => {
     pendingRequests: 0,
     totalPatients: 0,
     upcomingAppointments: 0,
-  })
+  });
 
-  const [recentAppointments, setRecentAppointments] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [recentAppointments, setRecentAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
 
       // Fetch dashboard stats
-      const statsResponse = await getDashboardStats()
+      const statsResponse = await getDashboardStats();
       if (statsResponse.success) {
-        setStats(statsResponse.data)
+        setStats(statsResponse.data);
       }
 
       // Fetch today's appointments
-      const appointmentsResponse = await getTodayAppointmentsList("DOC001")
+      const appointmentsResponse = await getTodayAppointmentsList("DOC001");
       if (appointmentsResponse.success) {
         // Format appointments for display
         const formattedAppointments = appointmentsResponse.data.map((apt) => ({
           id: apt.id,
-          patientName: apt.patient_name,
-          time: apt.time,
+          patientName: apt?.patient?.user?.full_name,
+          start_time: apt?.slot?.start_time,
+          end_time: apt?.slot?.end_time,
           type: apt.reason,
           status: apt.status,
-        }))
-        setRecentAppointments(formattedAppointments)
+        }));
+        setRecentAppointments(formattedAppointments);
       }
 
-      setLoading(false)
+      console.log("appointmentsResponse", appointmentsResponse);
+
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-      setLoading(false)
+      console.error("Error fetching dashboard data:", error);
+      setLoading(false);
     }
-  }
+  };
 
   const statCards = [
     {
@@ -82,7 +97,7 @@ const DoctorDashboard = () => {
       color: "purple",
       link: "/doctor/record-requests",
     },
-  ]
+  ];
 
   const quickActions = [
     {
@@ -113,7 +128,19 @@ const DoctorDashboard = () => {
       link: "/doctor/medical-records",
       color: "orange",
     },
-  ]
+  ];
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    try {
+      return new Date(timeString).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
 
   if (loading) {
     return (
@@ -121,7 +148,7 @@ const DoctorDashboard = () => {
         <div className="spinner"></div>
         <p>Đang tải dữ liệu...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -147,7 +174,11 @@ const DoctorDashboard = () => {
 
       <div className="stats-grid">
         {statCards.map((card, index) => (
-          <Link key={index} to={card.link} className={`stat-card stat-card-${card.color}`}>
+          <Link
+            key={index}
+            to={card.link}
+            className={`stat-card stat-card-${card.color}`}
+          >
             <div className="stat-header">
               <div className="stat-icon-wrapper">{card.icon}</div>
               <div className="stat-info">
@@ -156,8 +187,18 @@ const DoctorDashboard = () => {
               </div>
             </div>
             {card.change !== undefined && (
-              <div className={`stat-change ${card.change >= 0 ? "stat-change-positive" : "stat-change-negative"}`}>
-                {card.change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+              <div
+                className={`stat-change ${
+                  card.change >= 0
+                    ? "stat-change-positive"
+                    : "stat-change-negative"
+                }`}
+              >
+                {card.change >= 0 ? (
+                  <TrendingUp size={16} />
+                ) : (
+                  <TrendingDown size={16} />
+                )}
                 <span>{Math.abs(card.change)}% so với hôm qua</span>
               </div>
             )}
@@ -179,7 +220,9 @@ const DoctorDashboard = () => {
             <div className="appointments-empty">
               <Calendar size={48} className="empty-icon" />
               <h3 className="empty-title">Không có lịch hẹn</h3>
-              <p className="empty-description">Bạn chưa có lịch hẹn nào trong hôm nay</p>
+              <p className="empty-description">
+                Bạn chưa có lịch hẹn nào trong hôm nay
+              </p>
             </div>
           ) : (
             <div className="appointments-table-container">
@@ -191,19 +234,23 @@ const DoctorDashboard = () => {
                     <th className="table-header">Bệnh nhân</th>
                     <th className="table-header">Lý do khám</th>
                     <th className="table-header">Trạng thái</th>
-                    <th className="table-header">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentAppointments.map((appointment, index) => (
                     <tr key={appointment.id} className="table-row">
                       <td className="table-cell">
-                        <div className="appointment-number-badge">#{index + 1}</div>
+                        <div className="appointment-number-badge">
+                          #{index + 1}
+                        </div>
                       </td>
                       <td className="table-cell">
                         <div className="time-cell">
                           <Clock size={16} className="time-icon-inline" />
-                          <span className="time-text">{appointment.time}</span>
+                          <span className="time-text">
+                            {formatTime(appointment.start_time)} -{" "}
+                            {formatTime(appointment.end_time)}
+                          </span>
                         </div>
                       </td>
                       <td className="table-cell">
@@ -211,30 +258,22 @@ const DoctorDashboard = () => {
                           <div className="patient-avatar-small">
                             <Users size={16} />
                           </div>
-                          <span className="patient-name-text">{appointment.patientName}</span>
+                          <span className="patient-name-text">
+                            {appointment.patientName}
+                          </span>
                         </div>
                       </td>
                       <td className="table-cell">
                         <span className="reason-text">{appointment.type}</span>
                       </td>
                       <td className="table-cell">
-                        <span className={`status-badge badge-${appointment.status}`}>
-                          {appointment.status === "confirmed" ? "Đã xác nhận" : "Chờ xác nhận"}
+                        <span
+                          className={`status-badge badge-${appointment.status}`}
+                        >
+                          {appointment.status === "confirmed"
+                            ? "Đã xác nhận"
+                            : "Chờ xác nhận"}
                         </span>
-                      </td>
-                      <td className="table-cell">
-                        <div className="action-buttons">
-                          <Link to={`/doctor/appointments/${appointment.id}`} className="action-btn btn-view-small">
-                            <FileText size={14} />
-                            <span>Chi tiết</span>
-                          </Link>
-                          {appointment.status === "pending" && (
-                            <button className="action-btn btn-confirm-small">
-                              <CheckCircle size={14} />
-                              <span>Xác nhận</span>
-                            </button>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   ))}
@@ -252,7 +291,11 @@ const DoctorDashboard = () => {
 
           <div className="quick-actions-grid">
             {quickActions.map((action, index) => (
-              <Link key={index} to={action.link} className={`quick-action-card quick-action-${action.color}`}>
+              <Link
+                key={index}
+                to={action.link}
+                className={`quick-action-card quick-action-${action.color}`}
+              >
                 <div className="quick-action-icon">{action.icon}</div>
                 <h3 className="quick-action-title">{action.title}</h3>
                 <p className="quick-action-description">{action.description}</p>
@@ -262,7 +305,7 @@ const DoctorDashboard = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default memo(DoctorDashboard)
+export default memo(DoctorDashboard);
