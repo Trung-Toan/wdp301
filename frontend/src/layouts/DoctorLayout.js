@@ -50,11 +50,6 @@ const DoctorLayout = () => {
       link: "/doctor/medical-records",
     },
     {
-      title: "Duyệt đơn thuốc",
-      icon: <CheckCircle size={20} />,
-      link: "/doctor/prescriptions",
-    },
-    {
       title: "Feedback",
       icon: <ChatLeftText size={20} />,
       link: "/doctor/feedback",
