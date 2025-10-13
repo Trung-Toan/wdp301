@@ -20,6 +20,7 @@
     "emailjs-com": "^3.2.0",
     "formik": "^2.4.6",
     "json-server": "^1.0.0-beta.3",
+    "lucide-react": "^0.544.0",
     "nodemailer": "^7.0.6",
     "react": "^19.1.1",
     "react-bootstrap": "^2.10.10",
@@ -59,5 +60,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
   }
 }

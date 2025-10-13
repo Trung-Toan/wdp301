@@ -1,8 +1,10 @@
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import RouterUser from "./router/RouterUser.js";
+import RouterUser from "./routes/RouterUser.js";
 import { useEffect } from "react";
-import { useSessionStorage } from "./utility/useSessionStorage";
-import RouterOwner from "./router/RouterOwner";
+import { useSessionStorage } from "./hooks/useSessionStorage.js";
+import RouterOwner from "./routes/RouterOwner.js";
+import RouterDoctor from "./routes/RouterDoctor.js";
+import DoctorLayout from "./layouts/DoctorLayout.js";
 
 function App() {
   const navigate = useNavigate();
@@ -15,17 +17,32 @@ function App() {
   const roleRedirects = {
     customer: "/",
     owner: "/owner",
+    doctor: "/doctor",
   };
 
   const checkLogin = () => {
+    if (location.pathname === "/doctor-dashboard-test") {
+      return;
+    }
+
+    if (
+      location.pathname === "/doctor/dashboard" ||
+      location.pathname === "/doctor/appointments" ||
+      location.pathname === "/doctor/patients" ||
+      location.pathname === "/doctor/feedback"||
+      location.pathname === "/doctor/medical-records"
+    ) {
+      return;
+    }
 
     if (!user) {
       // Chưa đăng nhập
       if (
+        location.pathname !== "/" &&
         location.pathname !== "/login" &&
         location.pathname !== "/find_email" &&
         location.pathname !== "/register" &&
-        location.pathname !== "/forgot_password" 
+        location.pathname !== "/forgot_password"
       ) {
         navigate("/login");
       }
@@ -40,7 +57,10 @@ function App() {
       }
 
       // Kiểm tra đường dẫn hiện tại có phù hợp với role không
-      if (!location.pathname.startsWith(validPath) && location.pathname !== validPath) {
+      if (
+        !location.pathname.startsWith(validPath) &&
+        location.pathname !== validPath
+      ) {
         navigate(validPath);
       }
     }
@@ -56,13 +76,16 @@ function App() {
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]); // Chỉ chạy khi pathname thay đổi
 
   return (
     <Routes>
       <Route path="/*" element={<RouterUser />} />
-      <Route path="/owner/*" element={<RouterOwner/>} />
+      <Route path="/owner/*" element={<RouterOwner />} />
+      <Route path="/doctor/*" element={<RouterDoctor />} />
+
+      <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
     </Routes>
   );
 }

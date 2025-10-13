@@ -1,0 +1,67 @@
+.patient-list-container {
+  @apply p-6 max-w-7xl mx-auto;
+}
+
+.page-header {
+  @apply mb-6;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.page-subtitle {
+  @apply text-gray-600;
+}
+
+.search-section {
+  @apply mb-6;
+}
+
+.search-input-wrapper {
+  @apply relative max-w-md;
+}
+
+.search-icon {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5;
+}
+
+.search-input {
+  @apply w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.patients-table-wrapper {
+  @apply bg-white rounded-lg shadow overflow-hidden;
+}
+
+.patients-table {
+  @apply w-full;
+}
+
+.patients-table thead {
+  @apply bg-gray-50;
+}
+
+.patients-table th {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.patients-table td {
+  @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-t border-gray-200;
+}
+
+.action-buttons {
+  @apply flex gap-2;
+}
+
+.action-btn {
+  @apply p-2 rounded-lg transition-colors duration-200;
+}
+
+.action-btn-view {
+  @apply bg-blue-100 text-blue-600 hover:bg-blue-200;
+}
+
+.action-btn-record {
+  @apply bg-green-100 text-green-600 hover:bg-green-200;
+}
