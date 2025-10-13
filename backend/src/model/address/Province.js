@@ -21,10 +21,6 @@ const provinceSchema = new Schema({
         type: String,
         enum: ["Thành phố", "Tỉnh"],
         required: true
-    }, // "Thành phố"
-    region: {
-        type: String,
-        enum: ["Miền Bắc", "Miền Trung", "Miền Nam"]
     }
 }, {
     timestamps: true,

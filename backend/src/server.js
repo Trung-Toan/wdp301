@@ -7,7 +7,7 @@ const morgan = require('morgan');
 const connectDB = require('./config/db');
 const authRoutes = require('./router/auth/auth.routes');
 const locationRoutes = require('./router/address/location.routes');
-const clinicRoutes = require('./router/clinic/specialty.route');
+const clinicRoutes = require('./router/clinic/clinic.route');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');

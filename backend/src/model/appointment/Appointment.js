@@ -9,6 +9,7 @@ const appointmentSchema = new Schema({
   patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient", required: true },
   specialty_id: { type: mongoose.Schema.Types.ObjectId, ref: "Specialty", required: true },
   clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
+  //add date
 }, { timestamps: true });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema, "appointments");
