@@ -3,6 +3,7 @@ const router = express.Router();
 const { authRequired, roleRequired } = require("./../../middleware/auth");
 const { getDoctorsBySpecialty } = require("../../controller/doctor/doctorBySpecialty.controller");
 const { getTopDoctorsController } = require("../../controller/doctor/topDoctor.controller");
+const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");;
 
 // Import controller for doctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
@@ -124,6 +125,48 @@ router.get("/by-specialty", getDoctorsBySpecialty);
  *         description: Danh sách bác sĩ nổi bật
  */
 router.get("/top", getTopDoctorsController);
+
+/**
+ * @openapi
+ * /api/doctor/search:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Search doctors by name, clinic, specialty
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: clinicId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: specialtyId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, -createdAt, rating, -rating, full_name, -full_name]
+ *           default: -createdAt
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get("/search", searchDoctorController);
 
 
 module.exports = router;

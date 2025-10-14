@@ -15,6 +15,12 @@ const doctorSchema = new Schema(
   { timestamps: true }
 );
 
+doctorSchema.index({ clinic_id: 1 });
+doctorSchema.index({ specialty_id: 1 });
+doctorSchema.index({ user_id: 1 });
+doctorSchema.index({ rating: -1 });
+
+
 const Doctor = mongoose.model("Doctor", doctorSchema, "doctors");
 
 module.exports = Doctor;
