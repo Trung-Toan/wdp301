@@ -11,8 +11,9 @@ import {
   setSessionStorage,
 } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
-import { loginUser } from "../../api/LoginController";
+
 import "../../styles/Login.css";
+import { loginUser } from "../../api/auth/LoginController";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
