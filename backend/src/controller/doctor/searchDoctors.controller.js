@@ -1,14 +1,10 @@
-const { searchDoctors } = require("../../service/doctor/doctor.service");
-
+const { searchDoctors } = require("../../service/doctor/searchDoctor.service");
 
 const ok = (res, data) => res.status(200).json({ success: true, data });
 const fail = (res, err, status = 500) =>
-    res.status(status).json({
-        success: false,
-        error: err?.message || String(err),
-    });
+    res.status(status).json({ success: false, error: err?.message || String(err) });
 
-async function searchDoctorController(req, res) {
+exports.searchDoctorController = async (req, res) => {
     try {
         const {
             q,
@@ -33,8 +29,4 @@ async function searchDoctorController(req, res) {
         console.error("❌ Error in searchDoctorController:", err);
         return fail(res, err);
     }
-}
-
-module.exports = {
-    searchDoctorController,
 };

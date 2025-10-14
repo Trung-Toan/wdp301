@@ -1,39 +1,64 @@
 const mongoose = require("mongoose");
 const Doctor = require("../../model/doctor/Doctor");
 
-async function searchDoctors({ q, clinicId, specialtyId, page = 1, limit = 20, sort = "-createdAt" }) {
+// Tìm kiếm theo tên bác sĩ / tên phòng khám / tên chuyên khoa
+// Đồng thời chấp nhận lọc theo clinicId/specialtyId ở dạng ID hoặc tên.
+async function searchDoctors({
+    q,
+    clinicId,
+    specialtyId,
+    page = 1,
+    limit = 20,
+    sort = "-createdAt",
+}) {
     const toObjectId = (id) =>
         mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
 
     const pipeline = [];
+
+    // Join các bảng liên quan trước để có thể match theo tên
+    pipeline.push(
+        { $lookup: { from: "users", localField: "user_id", foreignField: "_id", as: "user" } },
+        { $unwind: "$user" },
+        { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
+        { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
+        { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } }
+    );
+
     const and = [];
 
+    // Lọc theo phòng khám: ID hoặc tên
     if (clinicId) {
         const cid = toObjectId(clinicId);
         if (cid) and.push({ clinic_id: cid });
+        else and.push({ "clinic.name": new RegExp(String(clinicId).trim(), "i") });
     }
+
+    // Lọc theo chuyên khoa: ID hoặc tên
     if (specialtyId) {
         const sid = toObjectId(specialtyId);
         if (sid) and.push({ specialty_id: { $in: [sid] } });
+        else and.push({ "specialties.name": new RegExp(String(specialtyId).trim(), "i") });
     }
-    if (and.length) pipeline.push({ $match: { $and: and } });
 
-    pipeline.push(
-        { $lookup: { from: "users", localField: "user_id", foreignField: "_id", as: "user" } },
-        { $unwind: "$user" }
-    );
-
+    // Tìm kiếm tổng hợp theo q
     if (q && q.trim()) {
         const rx = new RegExp(q.trim(), "i");
-        pipeline.push({ $match: { "user.full_name": rx } });
+        and.push({
+            $or: [
+                { "user.full_name": rx },   // tên bác sĩ
+                { "clinic.name": rx },      // tên phòng khám
+                { "specialties.name": rx }, // tên chuyên khoa
+                { title: rx },
+                { degree: rx },
+                { workplace: rx },
+            ],
+        });
     }
 
-    pipeline.push(
-        { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
-        { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
-        { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } },
-    );
+    if (and.length) pipeline.push({ $match: { $and: and } });
 
+    // Sort whitelist
     const sortMap = {
         createdAt: { createdAt: 1 },
         "-createdAt": { createdAt: -1 },
@@ -44,6 +69,7 @@ async function searchDoctors({ q, clinicId, specialtyId, page = 1, limit = 20, s
     };
     const sortStage = sortMap[sort] || { createdAt: -1 };
 
+    // Pagination
     const skip = Math.max(0, (Number(page) - 1) * Number(limit));
     const take = Math.max(1, Math.min(100, Number(limit)));
 
@@ -88,4 +114,4 @@ async function searchDoctors({ q, clinicId, specialtyId, page = 1, limit = 20, s
     };
 }
 
-module.exports = { searchDoctors };
+module.exports = { searchDoctors }; 

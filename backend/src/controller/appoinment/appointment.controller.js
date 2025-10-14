@@ -1,4 +1,3 @@
-
 const svc = require("../../service/appointment/book.service");
 
 const ok = (res, data, status = 200) => res.status(status).json({ success: true, data });

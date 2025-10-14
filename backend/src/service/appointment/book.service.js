@@ -33,13 +33,8 @@ async function createAsync(payload) {
         full_name, phone, email, dob, gender,
         province_code, ward_code, address_text, reason,
         booking_code,
-        fee_amount,                 // <-- snapshot giá từ slot
-        // scheduled_date sẽ do hook tính theo slot.start_time nếu bạn đã viết;
-        // nếu muốn gắn ngay tại đây thì mở comment bên dưới:
-        // scheduled_date: new Date(
-        //   Date.UTC(new Date(slot.start_time).getUTCFullYear(),
-        //            new Date(slot.start_time).getUTCMonth(),
-        //            new Date(slot.start_time).getUTCDate()))
+        fee_amount,
+
     });
 
     await appt.save();
