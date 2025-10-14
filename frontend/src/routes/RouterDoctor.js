@@ -21,10 +21,7 @@ const RouterDoctor = () => {
         <Route path="appointments" element={<AppointmentSchedule />} />
         <Route path="patients" element={<PatientList />} />
         <Route path="feedback" element={<FeedbackView />} />
-        <Route
-          path="medical-records"
-          element={<PatientMedicalRecords />}
-        />
+        <Route path="medical-records" element={<PatientMedicalRecords />} />
         {/* <Route path="register" element={<DoctorRegistration />} />
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="absence" element={<AbsenceNotification />} />
