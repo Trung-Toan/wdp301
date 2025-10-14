@@ -35,6 +35,9 @@ export function DoctorDetailContent({ doctorId }) {
     const [doctor, setDoctor] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const formatCurrency = (amount, currency = 'VND') => {
+        return `${new Intl.NumberFormat('vi-VN').format(amount)} ${currency}`;
+    };
 
     useEffect(() => {
         const fetchDoctor = async () => {
@@ -85,7 +88,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                 {doctor.data.specialties?.[0]?.name || "Chưa có chuyên khoa"}
                                             </Badge>
                                         </div>
-                                        {doctor.slots?.length > 0 && <Badge className="bg-green-500">Còn lịch</Badge>}
+                                        {doctor.data.slots?.length > 0 && <Badge className="bg-green-500">Còn lịch</Badge>}
                                     </div>
 
                                     <div className="space-y-3">
@@ -101,9 +104,12 @@ export function DoctorDetailContent({ doctorId }) {
                                         </div>
                                         <div className="pt-2">
                                             <span className="text-sm text-muted-foreground">Giá khám: </span>
-                                            <span className="text-2xl font-bold text-primary">
-                                                {doctor.pricing?.minFee ? `${doctor.pricing.minFee} ${doctor.pricing.currency}` : "Chưa có giá"}
+                                            <span className="text-xl font-bold text-primary">
+                                                {doctor.data.pricing?.minFee
+                                                    ? formatCurrency(doctor.data.pricing.minFee, doctor.data.pricing.currency)
+                                                    : "Chưa có giá"}
                                             </span>
+
                                         </div>
                                     </div>
                                 </div>
