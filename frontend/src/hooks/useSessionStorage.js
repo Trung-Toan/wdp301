@@ -1,16 +1,25 @@
-// useSessionStorage.js
 import { useState, useEffect } from "react";
 
-export const useSessionStorage = (key) => {
+export const useSessionStorage = (key, defaultValue = null) => {
   const [value, setValue] = useState(() => {
-    const storedValue = sessionStorage.getItem(key);
-    return storedValue ? JSON.parse(storedValue) : null;
+    try {
+      const storedValue = sessionStorage.getItem(key);
+      return storedValue ? JSON.parse(storedValue) : defaultValue;
+    } catch (err) {
+      console.warn(`Cannot parse sessionStorage key "${key}":`, err);
+      return defaultValue;
+    }
   });
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const updatedValue = sessionStorage.getItem(key);
-      setValue(updatedValue ? JSON.parse(updatedValue) : null);
+      try {
+        const updatedValue = sessionStorage.getItem(key);
+        setValue(updatedValue ? JSON.parse(updatedValue) : defaultValue);
+      } catch (err) {
+        console.warn(`Cannot parse sessionStorage key "${key}" on update:`, err);
+        setValue(defaultValue);
+      }
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -20,17 +29,25 @@ export const useSessionStorage = (key) => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("session-update", handleStorageChange);
     };
-  }, [key]);
+  }, [key, defaultValue]);
 
   return value;
 };
 
 export const clearSessionStorage = () => {
   sessionStorage.clear();
-  window.dispatchEvent(new Event("session-update")); // Thông báo thay đổi
+  window.dispatchEvent(new Event("session-update"));
 };
 
 export const setSessionStorage = (key, value) => {
-  sessionStorage.setItem(key, JSON.stringify(value));
-  window.dispatchEvent(new Event("session-update")); // Thông báo thay đổi
+  try {
+    if (value === undefined) {
+      sessionStorage.removeItem(key);
+    } else {
+      sessionStorage.setItem(key, JSON.stringify(value));
+    }
+    window.dispatchEvent(new Event("session-update"));
+  } catch (err) {
+    console.error(`Cannot set sessionStorage key "${key}":`, err);
+  }
 };

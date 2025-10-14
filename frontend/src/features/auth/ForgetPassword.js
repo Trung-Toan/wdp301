@@ -7,7 +7,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import Swal from "sweetalert2";
 import GoogleLoginButton from "./GoogleLoginButton";
-import { forgotPassword } from "../../api/auth/LoginController";
+import { forgotPassword } from "../../api/auth/login/LoginController";
 
 
 // Separate PasswordInput to prevent unnecessary re-renders

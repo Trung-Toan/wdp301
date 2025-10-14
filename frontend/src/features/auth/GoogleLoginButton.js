@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 import { setSessionStorage } from "../../hooks/useSessionStorage";
-import { loginByGoogleAccount } from "../../api/auth/LoginController";
+import { loginByGoogleAccount } from "../../api/auth/login/LoginController";
 
 
 const GoogleLoginButton = () => {

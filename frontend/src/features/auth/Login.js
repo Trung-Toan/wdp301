@@ -13,7 +13,8 @@ import {
 import GoogleLoginButton from "./GoogleLoginButton";
 
 import "../../styles/Login.css";
-import { loginUser } from "../../api/auth/LoginController";
+import { loginUser } from "../../api/auth/login/LoginController";
+
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +42,7 @@ const Login = () => {
         timer: 1500,
         showConfirmButton: false,
       });
-      navigate("/");
+      navigate("/home");
     },
     onError: (error) => {
       Swal.fire({
