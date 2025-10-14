@@ -31,19 +31,46 @@ const Login = () => {
   // Gọi API đăng nhập
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
-    onSuccess: (data) => {
-      const token = data.token;
-      const user = data.user;
+    onSuccess: (response) => {
+      if (!response.ok) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi đăng nhập",
+          text: response.message || "Tên đăng nhập hoặc mật khẩu không đúng!",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
+      const token = response.tokens?.accessToken;
+      const user = response.account;
+
+      if (!token || !user) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi dữ liệu đăng nhập",
+          text: "Token hoặc user không tồn tại.",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
       setSessionStorage("token", token);
       setSessionStorage("user", user);
+
       Swal.fire({
         icon: "success",
         title: "Đăng nhập thành công!",
         timer: 1500,
         showConfirmButton: false,
       });
+
       navigate("/home");
     },
+
+
     onError: (error) => {
       Swal.fire({
         icon: "error",

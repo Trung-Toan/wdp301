@@ -4,20 +4,13 @@ import { AUTHEN_API } from "../../api";
 export const loginUser = async (email, password) => {
   try {
     const response = await axios.post(AUTHEN_API.LOGIN, { email, password });
+    console.log(response.data);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Login failed!" };
   }
 };
 
-export const registerUser = async (fullname, email, password, role) => {
-  try {
-    const response = await axios.post(AUTHEN_API.REGISTER, { fullname, email, password, role: role || "customer" });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: "Login failed!" };
-  }
-}
 
 export const findEmail = async (email) => {
   try {
@@ -38,10 +31,10 @@ export const forgotPassword = async (userId, password, rePassword) => {
 };
 
 export const loginByGoogleAccount = async (token) => {
-    try {
-        const response = await axios.post(AUTHEN_API.LOGIN_BY_GOOGLE, { token });
-        return response.data;
-    } catch (error) {
-        throw error.response?.data || { message: "Google login failed!" };
-    }
+  try {
+    const response = await axios.post(AUTHEN_API.LOGIN_BY_GOOGLE, { token });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Google login failed!" };
+  }
 }

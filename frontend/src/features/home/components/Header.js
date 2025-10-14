@@ -14,6 +14,7 @@ import {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useSessionStorage("user");
+  console.log(user);
   const navigate = useNavigate();
 
   const onLogout = () => {
