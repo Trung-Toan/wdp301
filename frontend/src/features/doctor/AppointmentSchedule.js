@@ -1,4 +1,6 @@
-import { memo, useState, useEffect } from "react";
+"use client"
+
+import { memo, useState, useEffect } from "react"
 import {
   Calendar,
   Clock,
@@ -10,56 +12,61 @@ import {
   ClockHistory,
   X,
   Activity,
-} from "react-bootstrap-icons";
-import {
-  updateAppointmentStatus,
-  getAppointments,
-} from "../../services/doctorService";
-import "../../styles/doctor/appointment-schedule.css";
+} from "react-bootstrap-icons"
+import { updateAppointmentStatus, getAppointments, getSlotsByDate } from "../../services/doctorService"
+import "../../styles/doctor/appointment-schedule.css"
 
 const AppointmentSchedule = () => {
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState("ALL");
-  const [showModal, setShowModal] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [appointments, setAppointments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filterStatus, setFilterStatus] = useState("ALL")
+  const [slots, setSlots] = useState([])
+  const [selectedSlot, setSelectedSlot] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState(null)
+
+  useEffect(() => {
+    const fetchSlots = async () => {
+      try {
+        const res = await getSlotsByDate("DOC001", selectedDate)
+        if (res.success) {
+          setSlots(res.data || [])
+        } else {
+          setSlots([])
+        }
+      } catch (error) {
+        console.error("Error fetching slots:", error)
+        setSlots([])
+      }
+    }
+
+    fetchSlots()
+  }, [selectedDate])
 
   useEffect(() => {
     const fetchAppointments = async () => {
-      setLoading(true);
+      setLoading(true)
       try {
-        const res = await getAppointments("DOC001", { date: selectedDate });
+        const res = await getAppointments("DOC001", { date: selectedDate })
 
-        console.log("[v0] Appointments response:", res);
+        console.log("[v0] Appointments response:", res)
 
         if (res.success) {
-          setAppointments(res.data || []);
+          setAppointments(res.data || [])
         } else {
-          setAppointments([]);
+          setAppointments([])
         }
       } catch (error) {
-        console.error("Error fetching appointments:", error);
-        setAppointments([]);
+        console.error("Error fetching appointments:", error)
+        setAppointments([])
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchAppointments();
-  }, [selectedDate]);
-
-  const handleViewDetails = (appointment) => {
-    setSelectedAppointment(appointment);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedAppointment(null);
-  };
+    fetchAppointments()
+  }, [selectedDate])
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -75,98 +82,102 @@ const AppointmentSchedule = () => {
       },
       CANCELLED: { label: "Đã hủy", class: "status-cancelled", icon: XCircle },
       NO_SHOW: { label: "Không đến", class: "status-no-show", icon: XCircle },
-    };
-    return statusConfig[status] || statusConfig.SCHEDULED;
-  };
+    }
+    return statusConfig[status] || statusConfig.SCHEDULED
+  }
 
   const filteredAppointments = Array.isArray(appointments)
     ? appointments.filter((apt) => {
-        if (filterStatus === "ALL") return true;
-        return apt.status === filterStatus;
+        if (filterStatus !== "ALL" && apt.status !== filterStatus) {
+          return false
+        }
+        if (selectedSlot && apt.slot_id !== selectedSlot) {
+          return false
+        }
+        return true
       })
-    : [];
+    : []
 
   const getPatientName = (appointment) => {
-    return (
-      appointment?.patient?.user?.full_name ||
-      appointment?.patient?.full_name ||
-      "Chưa có thông tin"
-    );
-  };
+    return appointment?.patient?.user?.full_name || appointment?.patient?.full_name || "Chưa có thông tin"
+  }
 
-  console.log("Patient data:", appointments[0]?.patient);
+  console.log("Patient data:", appointments[0]?.patient)
 
   const getPatientPhone = (appointment) => {
-    return (
-      appointment?.patient?.user?.account_id?.phone_number ||
-      "Chưa có thông tin"
-    );
-  };
+    return appointment?.patient?.user?.account_id?.phone_number || "Chưa có thông tin"
+  }
 
   const getSpecialtyName = (appointment) => {
-    return appointment?.specialty?.name || "Chưa có thông tin";
-  };
+    return appointment?.specialty?.name || "Chưa có thông tin"
+  }
 
   const calculateAge = (dob) => {
-    if (!dob) return "N/A";
+    if (!dob) return "N/A"
     try {
-      const birthDate = new Date(dob);
-      const ageDifMs = Date.now() - birthDate.getTime();
-      const ageDate = new Date(ageDifMs);
-      return Math.abs(ageDate.getUTCFullYear() - 1970);
+      const birthDate = new Date(dob)
+      const ageDifMs = Date.now() - birthDate.getTime()
+      const ageDate = new Date(ageDifMs)
+      return Math.abs(ageDate.getUTCFullYear() - 1970)
     } catch {
-      return "N/A";
+      return "N/A"
     }
-  };
+  }
 
   const getPatientDob = (appointment) => {
-    return (
-      appointment?.patient?.user?.dob ||
-      appointment?.patient?.dob ||
-      "Chưa có thông tin"
-    );
-  };
+    return appointment?.patient?.user?.dob || appointment?.patient?.dob || "Chưa có thông tin"
+  }
 
   const formatTime = (timeString) => {
-    if (!timeString) return "N/A";
+    if (!timeString) return "N/A"
     try {
       return new Date(timeString).toLocaleTimeString("vi-VN", {
         hour: "2-digit",
         minute: "2-digit",
-      });
+      })
     } catch {
-      return "N/A";
+      return "N/A"
     }
-  };
+  }
 
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return "N/A"
     try {
       return new Date(dateString).toLocaleDateString("vi-VN", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
-      });
+      })
     } catch {
-      return "N/A";
+      return "N/A"
     }
-  };
+  }
 
   const handleUpdateStatus = async (appointmentId, newStatus) => {
     try {
-      const res = await updateAppointmentStatus(appointmentId, newStatus);
+      const res = await updateAppointmentStatus(appointmentId, newStatus)
       if (res.success) {
         const updatedRes = await getAppointments("DOC001", {
           date: selectedDate,
-        });
+        })
         if (updatedRes.success) {
-          setAppointments(updatedRes.data || []);
+          setAppointments(updatedRes.data || [])
         }
       }
     } catch (error) {
-      console.error("Error updating appointment status:", error);
+      console.error("Error updating appointment status:", error)
     }
-  };
+  }
+
+  const handleViewDetails = (appointment) => {
+    setSelectedAppointment(appointment)
+    setShowModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setSelectedAppointment(null)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -178,12 +189,8 @@ const AppointmentSchedule = () => {
               <Calendar className="text-white" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                Lịch khám bệnh
-              </h1>
-              <p className="text-gray-500 mt-1">
-                Quản lý và theo dõi lịch hẹn của bạn
-              </p>
+              <h1 className="text-3xl font-bold text-gray-800">Lịch khám bệnh</h1>
+              <p className="text-gray-500 mt-1">Quản lý và theo dõi lịch hẹn của bạn</p>
             </div>
           </div>
         </div>
@@ -193,14 +200,14 @@ const AppointmentSchedule = () => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="relative">
-                <Calendar
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value)
+                    setSelectedSlot(null)
+                  }}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -220,62 +227,64 @@ const AppointmentSchedule = () => {
 
             <div className="px-4 py-2 bg-blue-50 rounded-lg">
               <span className="text-blue-700 font-semibold">
-                Tổng số:{" "}
-                <strong className="text-blue-900">
-                  {filteredAppointments.length}
-                </strong>{" "}
-                lịch hẹn
+                Tổng số: <strong className="text-blue-900">{filteredAppointments.length}</strong> lịch hẹn
               </span>
             </div>
           </div>
 
-          <div>
-            <button
-              onClick={() => {
-                setSelectedDate(new Date().toISOString().split("T")[0]);
-                setFilterStatus("ALL");
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              slot 1
-            </button>
-            <button
-              onClick={() => {
-                setSelectedDate(new Date().toISOString().split("T")[0]);
-                setFilterStatus("ALL");
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              slot 1
-            </button>
-            <button
-              onClick={() => {
-                setSelectedDate(new Date().toISOString().split("T")[0]);
-                setFilterStatus("ALL");
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              slot 1
-            </button>
-            <button
-              onClick={() => {
-                setSelectedDate(new Date().toISOString().split("T")[0]);
-                setFilterStatus("ALL");
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              slot 1
-            </button>
-            <button
-              onClick={() => {
-                setSelectedDate(new Date().toISOString().split("T")[0]);
-                setFilterStatus("ALL");
-              }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              slot 1
-            </button>
-          </div>
+          {slots.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <Clock size={16} />
+                Lọc theo khung giờ:
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedSlot(null)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedSlot === null
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Tất cả
+                </button>
+                {slots.map((slot) => {
+                  const appointmentCount = appointments.filter((apt) => apt.slot_id === slot._id).length
+
+                  return (
+                    <button
+                      key={slot._id}
+                      onClick={() => setSelectedSlot(slot._id)}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all relative ${
+                        selectedSlot === slot._id
+                          ? "bg-blue-600 text-white shadow-md"
+                          : slot.status === "BOOKED"
+                            ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                            : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clock size={14} />
+                        <span>
+                          {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                        </span>
+                      </div>
+                      {appointmentCount > 0 && (
+                        <span
+                          className={`absolute -top-2 -right-2 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${
+                            selectedSlot === slot._id ? "bg-white text-blue-600" : "bg-blue-600 text-white"
+                          }`}
+                        >
+                          {appointmentCount}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -289,16 +298,16 @@ const AppointmentSchedule = () => {
             <div className="p-6 bg-gray-100 rounded-full mb-4">
               <Calendar className="text-gray-400" size={48} />
             </div>
-            <p className="text-xl font-semibold text-gray-700 mb-2">
-              Không có lịch hẹn nào
+            <p className="text-xl font-semibold text-gray-700 mb-2">Không có lịch hẹn nào</p>
+            <p className="text-gray-500">
+              {selectedSlot ? "Không có lịch hẹn trong khung giờ này" : "Chọn ngày khác để xem lịch hẹn"}
             </p>
-            <p className="text-gray-500">Chọn ngày khác để xem lịch hẹn</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredAppointments.map((appointment, index) => {
-              const statusInfo = getStatusBadge(appointment.status);
-              const StatusIcon = statusInfo.icon;
+              const statusInfo = getStatusBadge(appointment.status)
+              const StatusIcon = statusInfo.icon
 
               return (
                 <div
@@ -308,14 +317,11 @@ const AppointmentSchedule = () => {
                   {/* Card Header */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 flex items-center justify-between border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">
-                        #{index + 1}
-                      </div>
+                      <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">#{index + 1}</div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <Clock size={18} />
                         <span className="font-semibold">
-                          {formatTime(appointment.slot?.start_time)} -{" "}
-                          {formatTime(appointment.slot?.end_time)}
+                          {formatTime(appointment.slot?.start_time)} - {formatTime(appointment.slot?.end_time)}
                         </span>
                       </div>
                     </div>
@@ -324,10 +330,10 @@ const AppointmentSchedule = () => {
                         appointment.status === "SCHEDULED"
                           ? "bg-blue-100 text-blue-700"
                           : appointment.status === "COMPLETED"
-                          ? "bg-green-100 text-green-700"
-                          : appointment.status === "CANCELLED"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-700"
+                            ? "bg-green-100 text-green-700"
+                            : appointment.status === "CANCELLED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-700"
                       }`}
                     >
                       <StatusIcon size={14} />
@@ -342,9 +348,7 @@ const AppointmentSchedule = () => {
                       <div className="flex items-start gap-3">
                         <Person className="text-blue-600 mt-1" size={20} />
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800 text-lg">
-                            {getPatientName(appointment)}
-                          </p>
+                          <p className="font-semibold text-gray-800 text-lg">{getPatientName(appointment)}</p>
                           <p className="text-xs text-gray-500">Bệnh nhân</p>
                         </div>
                       </div>
@@ -352,9 +356,7 @@ const AppointmentSchedule = () => {
                       <div className="flex items-center gap-3">
                         <Telephone className="text-green-600" size={20} />
                         <div className="flex-1">
-                          <p className="text-gray-700">
-                            {getPatientPhone(appointment)}
-                          </p>
+                          <p className="text-gray-700">{getPatientPhone(appointment)}</p>
                           <p className="text-xs text-gray-500">Số điện thoại</p>
                         </div>
                       </div>
@@ -362,9 +364,7 @@ const AppointmentSchedule = () => {
 
                     {/* Booking Date */}
                     {appointment.createdAt && (
-                      <p className="text-xs text-gray-500">
-                        Đặt lịch: {formatDate(appointment.createdAt)}
-                      </p>
+                      <p className="text-xs text-gray-500">Đặt lịch: {formatDate(appointment.createdAt)}</p>
                     )}
                   </div>
 
@@ -379,7 +379,7 @@ const AppointmentSchedule = () => {
                     </button>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         )}
@@ -388,10 +388,7 @@ const AppointmentSchedule = () => {
       {showModal && selectedAppointment && (
         <div className="appointment-modal-overlay">
           {/* Backdrop */}
-          <div
-            className="appointment-modal-backdrop"
-            onClick={handleCloseModal}
-          ></div>
+          <div className="appointment-modal-backdrop" onClick={handleCloseModal}></div>
 
           {/* Slide-in panel */}
           <div className="appointment-modal-panel">
@@ -400,10 +397,7 @@ const AppointmentSchedule = () => {
                 <Calendar className="text-blue-600" size={20} />
                 Chi tiết lịch khám
               </h2>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
+              <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
                 <X size={24} />
               </button>
             </div>
@@ -412,8 +406,7 @@ const AppointmentSchedule = () => {
               {/* Patient Info */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Person className="text-blue-600" size={20} /> Thông tin bệnh
-                  nhân
+                  <Person className="text-blue-600" size={20} /> Thông tin bệnh nhân
                 </h3>
                 <div className="space-y-2 text-gray-700">
                   <p>
@@ -438,8 +431,7 @@ const AppointmentSchedule = () => {
               {/* Appointment Info */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Clock className="text-blue-600" size={20} /> Thông tin lịch
-                  khám
+                  <Clock className="text-blue-600" size={20} /> Thông tin lịch khám
                 </h3>
                 <div className="space-y-2 text-gray-700">
                   <p>
@@ -468,10 +460,10 @@ const AppointmentSchedule = () => {
                     selectedAppointment.status === "SCHEDULED"
                       ? "status-scheduled"
                       : selectedAppointment.status === "COMPLETED"
-                      ? "status-completed"
-                      : selectedAppointment.status === "CANCELLED"
-                      ? "status-cancelled"
-                      : "status-no-show"
+                        ? "status-completed"
+                        : selectedAppointment.status === "CANCELLED"
+                          ? "status-cancelled"
+                          : "status-no-show"
                   }`}
                 >
                   {selectedAppointment.status}
@@ -483,17 +475,13 @@ const AppointmentSchedule = () => {
                 {selectedAppointment.status === "SCHEDULED" && (
                   <>
                     <button
-                      onClick={() =>
-                        handleUpdateStatus(selectedAppointment._id, "COMPLETED")
-                      }
+                      onClick={() => handleUpdateStatus(selectedAppointment._id, "COMPLETED")}
                       className="btn-complete rounded-lg flex-1 flex items-center justify-center gap-2"
                     >
                       <CheckCircle size={18} /> Hoàn thành
                     </button>
                     <button
-                      onClick={() =>
-                        handleUpdateStatus(selectedAppointment._id, "CANCELLED")
-                      }
+                      onClick={() => handleUpdateStatus(selectedAppointment._id, "CANCELLED")}
                       className="btn-cancel rounded-lg flex-1 flex items-center justify-center gap-2"
                     >
                       <XCircle size={18} /> Hủy
@@ -512,7 +500,7 @@ const AppointmentSchedule = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default memo(AppointmentSchedule);
+export default memo(AppointmentSchedule)
