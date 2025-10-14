@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import {  Star, Phone, Building2, CheckCircle2, Calendar, ChevronLeft } from "lucide-react";
+import { Star, Phone, Building2, CheckCircle2, Calendar, ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const facilityData = {
@@ -102,7 +102,9 @@ export default function FacilityDetail() {
                         <div className="bg-white rounded-xl shadow p-6">
                             <h3 className="font-semibold text-lg mb-4">Đặt lịch khám</h3>
                             <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 mb-3 flex items-center justify-center">
-                                <Calendar className="h-5 w-5 mr-2" /> Đặt lịch ngay
+                                <Link to="/home/booking/facility" >
+                                    <Calendar className="h-5 w-5 mr-2" /> Đặt lịch ngay
+                                </Link>
                             </button>
                             <button className="w-full border py-2 rounded-lg hover:bg-gray-100 flex items-center justify-center">
                                 <Phone className="h-5 w-5 mr-2" /> Gọi điện tư vấn

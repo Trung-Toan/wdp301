@@ -53,7 +53,7 @@ export default function Header() {
               Bác sĩ
             </a>
             <a
-              href="#facilities"
+              href="/home/facility"
               className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
             >
               Cơ sở y tế
