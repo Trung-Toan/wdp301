@@ -5,6 +5,7 @@ const doctorSchema = new Schema(
   {
     title: { type: String },
     degree: { type: String },
+    avatar_url: { type: String },
     workplace: { type: String },
     rating: { type: Number },
     clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
