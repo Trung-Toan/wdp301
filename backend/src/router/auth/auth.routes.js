@@ -46,7 +46,7 @@ const { authRequired } = require('../../middleware/auth');
  *       '400':
  *         description: Bad Request
  */
-router.post('/register', ctrl.register);
+router.post('/register/patients', ctrl.registerPatients);
 
 /**
  * @openapi

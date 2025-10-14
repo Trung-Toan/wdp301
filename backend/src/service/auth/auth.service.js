@@ -33,7 +33,7 @@ const signAccessToken = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: 
 const sanitizeAccount = (acc) => { const o = acc.toObject ? acc.toObject() : { ...acc }; delete o.password; return o; };
 const fpRefresh = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
-exports.register = async ({ username, email, password, phone_number, role }) => {
+exports.registerPatients = async ({ username, email, password, phone_number, role }) => {
     const emailNorm = (email || '').trim().toLowerCase();
     const hash = await hashPassword(password);
 
@@ -63,7 +63,8 @@ exports.register = async ({ username, email, password, phone_number, role }) => 
         apiBaseUrl: APP_BASE_URL,
     });
 
-    await sendMail(acc.email, 'Verify your email', html);
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
+
     return sanitizeAccount(acc);
 };
 

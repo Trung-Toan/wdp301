@@ -4,6 +4,7 @@ const { JWT_SECRET } = require('../../config/env');
 
 const { verifyGoogleIdToken } = require('../../utils/verify-google');
 const { loginWithGoogle } = require('../../service/auth/google.service');
+const User = require('../../model/user/User');
 
 exports.googleLogin = async (req, res) => {
     try {
@@ -28,12 +29,50 @@ exports.googleLogin = async (req, res) => {
 
 
 
-exports.register = async (req, res) => {
+exports.registerPatients = async (req, res) => {
     try {
-        const { username, email, password, phone_number, role } = req.body;
-        const account = await svc.register({ username, email, password, phone_number, role });
-        res.json({ ok: true, account });
+        const {
+            username,
+            email,
+            password,
+            confirmPassword,
+            phone,
+            fullName,
+            dob,
+            gender,
+            address,
+        } = req.body;
+
+        // Kiểm tra xác nhận mật khẩu
+        if (password !== confirmPassword) {
+            return res.status(400).json({ ok: false, message: "Mật khẩu xác nhận không khớp" });
+        }
+
+        // Gọi service để tạo tài khoản (Account)
+        const account = await svc.registerPatients({
+            username,
+            email,
+            password,
+            phone_number: phone,
+            role: "PATIENT",
+        });
+
+        // Tạo bản ghi user liên kết với account_id
+        await User.create({
+            full_name: fullName,
+            dob,
+            gender,
+            address,
+            account_id: account._id,
+        });
+
+        res.json({
+            ok: true,
+            message: "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.",
+            account,
+        });
     } catch (e) {
+        console.error("Lỗi đăng ký:", e);
         res.status(400).json({ ok: false, message: e.message });
     }
 };
