@@ -114,10 +114,24 @@ export function HeroSection() {
                                     <h3 className="text-lg font-semibold">{clinic.name}</h3>
                                     {/* Hiển thị địa chỉ */}
                                     <p className="text-gray-500 text-sm mt-1">
-                                        {clinic.address
-                                            ? `${clinic.address.houseNumber} ${clinic.address.street}, ${clinic.address.ward?.name}, ${clinic.address.province?.name}`
-                                            : "Không có địa chỉ"}
+                                        {clinic.address ? (
+                                            <>
+                                                {clinic.address.houseNumber && `${clinic.address.houseNumber} `}
+                                                {clinic.address.street && `${clinic.address.street}, `}
+                                                {clinic.address.ward?.name
+                                                    ? clinic.address.ward.name
+                                                    : clinic.address.ward || ""}
+                                                {clinic.address.province?.name
+                                                    ? `, ${clinic.address.province.name}`
+                                                    : clinic.address.province
+                                                        ? `, ${clinic.address.province}`
+                                                        : ""}
+                                            </>
+                                        ) : (
+                                            "Không có địa chỉ"
+                                        )}
                                     </p>
+
                                     {/* Hiển thị specialties */}
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {clinic.specialties?.map((s) => (

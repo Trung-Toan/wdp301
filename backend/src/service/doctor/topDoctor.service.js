@@ -1,10 +1,9 @@
 // src/service/doctor/topDoctor.service.js
 const Doctor = require("../../model/doctor/Doctor");
 
-async function getTopDoctors({ limit = 5 }) {
-    const doctors = await Doctor.find({ rating: { $ne: null } })
+async function getTopDoctors({ limit }) {
+    let query = Doctor.find({ rating: { $ne: null } })
         .sort({ rating: -1, createdAt: -1 })
-        .limit(Number(limit))
         .populate({
             path: "clinic_id",
             select: "name address",
@@ -12,11 +11,18 @@ async function getTopDoctors({ limit = 5 }) {
         })
         .populate({
             path: "specialty_id",
-            select: "name", 
+            select: "name",
             model: "Specialty",
         })
         .select("title degree workplace rating avatar_url specialty_id clinic_id createdAt")
         .lean();
+
+    // Chỉ giới hạn nếu có limit > 0
+    if (limit && Number(limit) > 0) {
+        query = query.limit(Number(limit));
+    }
+
+    const doctors = await query;
 
     return doctors.map(d => ({
         _id: d._id,

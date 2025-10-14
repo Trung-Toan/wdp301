@@ -12,6 +12,7 @@ export default function SpecialtiesList() {
         async function fetchSpecialties() {
             try {
                 const res = await specialtyApi.getAll();
+                console.log("Danh sách chuyên khoa:", res.data);
                 if (res.data.success) {
                     setSpecialties(res.data.data);
                 }
@@ -66,7 +67,7 @@ export default function SpecialtiesList() {
                                 {filteredSpecialties.map((specialty, index) => (
                                     <Link
                                         key={index}
-                                        to={`/home/specialty/detail/${specialty.name}`}
+                                        to={`/home/specialty/detail/${specialty.id}`}
                                         className="block bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                                     >
                                         <div className="flex flex-col items-center gap-4 p-6 text-center">

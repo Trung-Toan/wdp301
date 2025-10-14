@@ -31,7 +31,7 @@ const RouterUser = () => {
 
         <Route path="home/appointment" element={<AppointmentsContent />} />
         <Route path="home/specialty" element={<SpecialtiesList />} />
-        <Route path="home/specialty/detail/:slug" element={<SpecialtyDetail />} />
+        <Route path="home/specialty/detail/:id" element={<SpecialtyDetail />} />
 
 
         <Route path="home/facility" element={<FacilitiesList />} />
