@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { registerPatientsApi } from "../../../api/auth/register/registerPatientsApi";
+import Toast from "../../../components/ui/Toast";
 
 export default function PatientRegisterForm() {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [notification, setNotification] = useState({ type: "", message: "" });
+
 
     const [formData, setFormData] = useState({
         username: "",
@@ -28,19 +31,28 @@ export default function PatientRegisterForm() {
         e.preventDefault();
 
         if (formData.password !== formData.confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp");
+            setNotification({ type: "error", message: "Mật khẩu xác nhận không khớp" });
             return;
         }
 
         try {
             const res = await registerPatientsApi.register(formData);
             console.log("Đăng ký thành công:", res.data);
-            alert("Đăng ký thành công!");
+
+            // Hiện toast
+            setNotification({ type: "success", message: "Đăng ký thành công! Chuyển đến trang đăng nhập..." });
+
+            // Chờ 2 giây để người dùng đọc toast, sau đó chuyển trang
+            setTimeout(() => {
+                navigate("/login");
+            }, 2000);
+
         } catch (err) {
             console.error("Lỗi đăng ký:", err.response?.data || err.message);
-            alert(err.response?.data?.message || "Đăng ký thất bại");
+            setNotification({ type: "error", message: err.response?.data?.message || "Đăng ký thất bại" });
         }
     };
+
 
 
     const handleBack = () => navigate(-1);
@@ -57,6 +69,7 @@ export default function PatientRegisterForm() {
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Quay lại chọn loại đăng ký
                     </button>
+
 
                     {/* Thẻ form */}
                     <div className="rounded-xl border bg-white p-8 shadow-sm">
@@ -247,6 +260,11 @@ export default function PatientRegisterForm() {
                         </div>
                     </div>
                 </div>
+                <Toast
+                    message={notification.message}
+                    type={notification.type}
+                    onClose={() => setNotification({ type: "", message: "" })}
+                />
             </div>
         </main>
     );
