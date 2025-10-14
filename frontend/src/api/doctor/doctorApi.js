@@ -8,4 +8,7 @@ export const doctorApi = {
     // Lấy bác sĩ theo chuyên khoa
     getBySpecialty: (specialtyId) =>
         axiosInstance.get("/doctor/by-specialty", { params: { specialtyId } }),
+
+    //lay lich kham cua bac si theo ngay
+    getTodayAppointmentsList: (doctorId) => axiosInstance.get(`/doctor/${doctorId}/appointments/today`),
 };

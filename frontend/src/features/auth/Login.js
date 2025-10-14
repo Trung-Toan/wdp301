@@ -15,7 +15,6 @@ import GoogleLoginButton from "./GoogleLoginButton";
 import "../../styles/Login.css";
 import { loginUser } from "../../api/auth/login/LoginController";
 
-
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -33,16 +32,25 @@ const Login = () => {
     mutationFn: ({ username, password }) => loginUser(username, password),
     onSuccess: (data) => {
       const token = data.token;
-      const user = data.user;
+      const refreshToken = data.tokens.refreshToken;
+      const user = data.account;
+
       setSessionStorage("token", token);
+      setSessionStorage("refreshToken", refreshToken);
       setSessionStorage("user", user);
+
       Swal.fire({
         icon: "success",
         title: "Đăng nhập thành công!",
         timer: 1500,
         showConfirmButton: false,
       });
-      navigate("/home");
+
+      if (user.role === "DOCTOR") {
+        navigate("/doctor/dashboard");
+      } else {
+        navigate("/home");
+      }
     },
     onError: (error) => {
       Swal.fire({

@@ -22,6 +22,8 @@ const DoctorLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const user = JSON.parse(sessionStorage.getItem("user"));
+
   const menuItems = [
     {
       title: "Trang chủ",
@@ -67,7 +69,7 @@ const DoctorLayout = () => {
 
   const handleLogout = () => {
     sessionStorage.clear();
-    navigate("/login");
+    navigate("/home");
   };
 
   return (
@@ -128,7 +130,7 @@ const DoctorLayout = () => {
             <div className="user-profile">
               <PersonCircle size={32} />
               <div className="user-info">
-                <span className="user-name">BS. Nguyễn Văn A</span>
+                <span className="user-name">{user.username}</span>
                 <span className="user-role">Bác sĩ</span>
               </div>
             </div>
