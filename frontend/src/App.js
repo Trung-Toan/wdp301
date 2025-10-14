@@ -27,7 +27,11 @@ function App() {
 
     if (
       location.pathname === "/doctor/dashboard" ||
-      location.pathname === "/doctor/appointments"
+      location.pathname === "/doctor/appointments" ||
+      location.pathname === "/doctor/patients" ||
+      location.pathname === "/doctor/feedback"||
+      location.pathname === "/doctor/medical-records"||
+      location.pathname === "/doctor/record-requests"
     ) {
       return;
     }
@@ -63,7 +67,7 @@ function App() {
   };
 
   useEffect(() => {
-    checkLogin();
+    // checkLogin();
 
     // Lắng nghe sự kiện thay đổi sessionStorage (nếu cần)
     const handleStorageChange = () => checkLogin();

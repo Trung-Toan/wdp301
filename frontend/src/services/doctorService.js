@@ -195,34 +195,62 @@ export const updateAppointmentStatus = async (appointmentId, status) => {
 };
 
 // Medical Record APIs
-export const getMedicalRecords = async (patientId) => {
+export const getAllMedicalRecordsByDoctor = async (doctorId) => {
   if (USE_MOCK_DATA) {
-    await delay();
+    await delay()
+    const records = mockMedicalRecords
+      .filter((r) => r.doctor_id === doctorId)
+      .map((record) => ({
+        ...record,
+        patient: getPopulatedPatient(record.patient_id),
+        doctor: getPopulatedDoctor(record.doctor_id),
+      }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+    console.log("[v0] getAllMedicalRecordsByDoctor - Found records:", records.length)
+
+    return {
+      success: true,
+      data: records,
+      total: records.length,
+    }
+  }
+
+  const response = await fetch(`${BASE_URL}/doctor/${doctorId}/medical-records`)
+  return response.json()
+}
+
+export const getMedicalRecordsByPatient = async (patientId) => {
+  if (USE_MOCK_DATA) {
+    await delay()
     const records = mockMedicalRecords
       .filter((r) => r.patient_id === patientId)
       .map((record) => ({
         ...record,
         patient: getPopulatedPatient(record.patient_id),
         doctor: getPopulatedDoctor(record.doctor_id),
-      }));
+      }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+    console.log("[v0] getMedicalRecordsByPatient - Found records:", records.length)
+
     return {
       success: true,
       data: records,
-    };
+      total: records.length,
+    }
   }
 
-  const response = await fetch(
-    `${BASE_URL}/patients/${patientId}/medical-records`
-  );
-  return response.json();
-};
+  const response = await fetch(`${BASE_URL}/patients/${patientId}/medical-records`)
+  return response.json()
+}
 
 export const getMedicalRecordById = async (recordId) => {
   if (USE_MOCK_DATA) {
-    await delay();
-    const record = mockMedicalRecords.find((r) => r._id === recordId);
+    await delay()
+    const record = mockMedicalRecords.find((r) => r._id === recordId)
     if (!record) {
-      return { success: false, message: "Không tìm thấy bệnh án" };
+      return { success: false, message: "Không tìm thấy bệnh án" }
     }
 
     return {
@@ -232,35 +260,114 @@ export const getMedicalRecordById = async (recordId) => {
         patient: getPopulatedPatient(record.patient_id),
         doctor: getPopulatedDoctor(record.doctor_id),
       },
-    };
+    }
   }
 
-  const response = await fetch(`${BASE_URL}/medical-records/${recordId}`);
-  return response.json();
-};
+  const response = await fetch(`${BASE_URL}/medical-records/${recordId}`)
+  return response.json()
+}
 
 export const createMedicalRecord = async (recordData) => {
   if (USE_MOCK_DATA) {
-    await delay();
+    await delay()
+    const newRecord = {
+      _id: "MR" + Date.now(),
+      ...recordData,
+      status: recordData.status || "PRIVATE",
+      access_requests: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    console.log("[v0] createMedicalRecord - Created:", newRecord._id)
+
     return {
       success: true,
       message: "Tạo hồ sơ bệnh án thành công",
       data: {
-        _id: "MR" + Date.now(),
-        ...recordData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        ...newRecord,
+        patient: getPopulatedPatient(newRecord.patient_id),
+        doctor: getPopulatedDoctor(newRecord.doctor_id),
       },
-    };
+    }
   }
 
   const response = await fetch(`${BASE_URL}/medical-records`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(recordData),
-  });
-  return response.json();
-};
+  })
+  return response.json()
+}
+
+export const updateMedicalRecord = async (recordId, recordData) => {
+  if (USE_MOCK_DATA) {
+    await delay()
+    const record = mockMedicalRecords.find((r) => r._id === recordId)
+    if (!record) {
+      return { success: false, message: "Không tìm thấy bệnh án" }
+    }
+
+    // Check if prescription is verified - if yes, cannot update
+    if (record.prescription?.verified_at) {
+      return {
+        success: false,
+        message: "Không thể chỉnh sửa bệnh án đã được duyệt đơn thuốc",
+      }
+    }
+
+    console.log("[v0] updateMedicalRecord - Updated:", recordId)
+
+    return {
+      success: true,
+      message: "Cập nhật hồ sơ bệnh án thành công",
+      data: {
+        ...record,
+        ...recordData,
+        updatedAt: new Date(),
+        patient: getPopulatedPatient(record.patient_id),
+        doctor: getPopulatedDoctor(record.doctor_id),
+      },
+    }
+  }
+
+  const response = await fetch(`${BASE_URL}/medical-records/${recordId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(recordData),
+  })
+  return response.json()
+}
+
+export const deleteMedicalRecord = async (recordId) => {
+  if (USE_MOCK_DATA) {
+    await delay()
+    const record = mockMedicalRecords.find((r) => r._id === recordId)
+    if (!record) {
+      return { success: false, message: "Không tìm thấy bệnh án" }
+    }
+
+    // Check if prescription is verified - if yes, cannot delete
+    if (record.prescription?.verified_at) {
+      return {
+        success: false,
+        message: "Không thể xóa bệnh án đã được duyệt đơn thuốc",
+      }
+    }
+
+    console.log("[v0] deleteMedicalRecord - Deleted:", recordId)
+
+    return {
+      success: true,
+      message: "Xóa hồ sơ bệnh án thành công",
+    }
+  }
+
+  const response = await fetch(`${BASE_URL}/medical-records/${recordId}`, {
+    method: "DELETE",
+  })
+  return response.json()
+}
 
 // Prescription APIs
 export const getPrescriptions = async (doctorId, filters = {}) => {

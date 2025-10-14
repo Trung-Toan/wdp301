@@ -1,5 +1,3 @@
-//test push lan 3
-
 import { memo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -46,18 +44,21 @@ const DoctorDashboard = () => {
       }
 
       // Fetch today's appointments
-      const appointmentsResponse = await getTodayAppointmentsList();
+      const appointmentsResponse = await getTodayAppointmentsList("DOC001");
       if (appointmentsResponse.success) {
         // Format appointments for display
         const formattedAppointments = appointmentsResponse.data.map((apt) => ({
           id: apt.id,
-          patientName: apt.patient_name,
-          time: apt.time,
+          patientName: apt?.patient?.user?.full_name,
+          start_time: apt?.slot?.start_time,
+          end_time: apt?.slot?.end_time,
           type: apt.reason,
           status: apt.status,
         }));
         setRecentAppointments(formattedAppointments);
       }
+
+      console.log("appointmentsResponse", appointmentsResponse);
 
       setLoading(false);
     } catch (error) {
@@ -128,6 +129,18 @@ const DoctorDashboard = () => {
       color: "orange",
     },
   ];
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    try {
+      return new Date(timeString).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
 
   if (loading) {
     return (
@@ -203,29 +216,71 @@ const DoctorDashboard = () => {
             </Link>
           </div>
 
-          <div className="appointments-list">
-            {recentAppointments.map((appointment) => (
-              <div key={appointment.id} className="appointment-item">
-                <div className="appointment-time">
-                  <Clock size={20} />
-                  <span>{appointment.time}</span>
-                </div>
-                <div className="appointment-details">
-                  <h4 className="appointment-patient">
-                    {appointment.patientName}
-                  </h4>
-                  <p className="appointment-type">{appointment.type}</p>
-                </div>
-                <span
-                  className={`appointment-status status-${appointment.status}`}
-                >
-                  {appointment.status === "confirmed"
-                    ? "Đã xác nhận"
-                    : "Chờ xác nhận"}
-                </span>
-              </div>
-            ))}
-          </div>
+          {recentAppointments.length === 0 ? (
+            <div className="appointments-empty">
+              <Calendar size={48} className="empty-icon" />
+              <h3 className="empty-title">Không có lịch hẹn</h3>
+              <p className="empty-description">
+                Bạn chưa có lịch hẹn nào trong hôm nay
+              </p>
+            </div>
+          ) : (
+            <div className="appointments-table-container">
+              <table className="appointments-table">
+                <thead>
+                  <tr>
+                    <th className="table-header">STT</th>
+                    <th className="table-header">Thời gian</th>
+                    <th className="table-header">Bệnh nhân</th>
+                    <th className="table-header">Lý do khám</th>
+                    <th className="table-header">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentAppointments.map((appointment, index) => (
+                    <tr key={appointment.id} className="table-row">
+                      <td className="table-cell">
+                        <div className="appointment-number-badge">
+                          #{index + 1}
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <div className="time-cell">
+                          <Clock size={16} className="time-icon-inline" />
+                          <span className="time-text">
+                            {formatTime(appointment.start_time)} -{" "}
+                            {formatTime(appointment.end_time)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <div className="patient-cell">
+                          <div className="patient-avatar-small">
+                            <Users size={16} />
+                          </div>
+                          <span className="patient-name-text">
+                            {appointment.patientName}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <span className="reason-text">{appointment.type}</span>
+                      </td>
+                      <td className="table-cell">
+                        <span
+                          className={`status-badge badge-${appointment.status}`}
+                        >
+                          {appointment.status === "confirmed"
+                            ? "Đã xác nhận"
+                            : "Chờ xác nhận"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}

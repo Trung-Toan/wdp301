@@ -9,7 +9,6 @@ import {
   BellSlash,
   ChatLeftText,
   PersonBadge,
-  CheckCircle,
   List,
   X,
   BoxArrowRight,
@@ -40,7 +39,7 @@ const DoctorLayout = () => {
       link: "/doctor/appointments",
     },
     {
-      title: "Yêu cầu bệnh án",
+      title: "Yêu cầu xem bệnh án",
       icon: <FileText size={20} />,
       link: "/doctor/record-requests",
     },
@@ -48,11 +47,6 @@ const DoctorLayout = () => {
       title: "Hồ sơ bệnh án",
       icon: <ClipboardCheck size={20} />,
       link: "/doctor/medical-records",
-    },
-    {
-      title: "Duyệt đơn thuốc",
-      icon: <CheckCircle size={20} />,
-      link: "/doctor/prescriptions",
     },
     {
       title: "Feedback",
@@ -151,13 +145,13 @@ const DoctorLayout = () => {
           <div className="footer-content">
             <p className="footer-text">© 2025 MediCare. All rights reserved.</p>
             <div className="footer-links">
-              <a href="#" className="footer-link">
+              <a href="/" className="footer-link">
                 Điều khoản
               </a>
-              <a href="#" className="footer-link">
+              <a href="/" className="footer-link">
                 Chính sách
               </a>
-              <a href="#" className="footer-link">
+              <a href="/" className="footer-link">
                 Hỗ trợ
               </a>
             </div>

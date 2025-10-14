@@ -21,46 +21,133 @@ const getDaysFromNow = (days) => {
   return date;
 };
 
+// Account schema (referenced by User)
+export const mockAccounts = [
+  {
+    _id: "ACC001",
+    username: "nguyenvanan",
+    email: "nguyenvanan@hospital.com",
+    phone_number: "0901234567",
+    password: "$2b$10$hashedpassword1", // hashed password
+    status: "ACTIVE",
+    role: "DOCTOR",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2020-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC002",
+    username: "tranthibinh",
+    email: "tranthibinh@hospital.com",
+    phone_number: "0901234568",
+    password: "$2b$10$hashedpassword2",
+    status: "ACTIVE",
+    role: "DOCTOR",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2020-02-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC003",
+    username: "nguyenthihoa",
+    email: "nguyenthihoa@email.com",
+    phone_number: "0912345678",
+    password: "$2b$10$hashedpassword3",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2022-01-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC004",
+    username: "tranvanminh",
+    email: "tranvanminh@email.com",
+    phone_number: "0923456789",
+    password: "$2b$10$hashedpassword4",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2023-05-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC005",
+    username: "nguyenthilan",
+    email: "nguyenthilan@email.com",
+    phone_number: "0911111111",
+    password: "$2b$10$hashedpassword5",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2021-03-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+]
+
 // User schema (referenced by Doctor and Patient)
 export const mockUsers = [
   {
     _id: "USER001",
     full_name: "BS. Nguyễn Văn An",
-    email: "nguyenvanan@hospital.com",
-    phone: "0901234567",
-    avatar: "/caring-doctor.png",
-    role: "doctor",
+    dob: new Date("1980-05-15"),
+    gender: "Nam",
+    address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+    avatar_url: "/caring-doctor.png",
+    account_id: "ACC001",
+    createdAt: "2020-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
     _id: "USER002",
     full_name: "BS. Trần Thị Bình",
-    email: "tranthibinh@hospital.com",
-    phone: "0901234568",
-    avatar: "/female-doctor.png",
-    role: "doctor",
+    dob: new Date("1985-08-20"),
+    gender: "Nữ",
+    address: "456 Lê Lợi, Quận 3, TP.HCM",
+    avatar_url: "/female-doctor.png",
+    account_id: "ACC002",
+    createdAt: "2020-02-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
     _id: "USER003",
     full_name: "Nguyễn Thị Hoa",
-    email: "nguyenthihoa@email.com",
-    phone: "0912345678",
-    role: "patient",
+    dob: new Date("1990-03-10"),
+    gender: "Nữ",
+    address: "789 Trần Hưng Đạo, Quận 5, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC003",
+    createdAt: "2022-01-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
     _id: "USER004",
     full_name: "Trần Văn Minh",
-    email: "tranvanminh@email.com",
-    phone: "0923456789",
-    role: "patient",
+    dob: new Date("1988-11-25"),
+    gender: "Nam",
+    address: "321 Võ Văn Tần, Quận 3, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC004",
+    createdAt: "2023-05-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
     _id: "USER005",
     full_name: "Nguyễn Thị Lan",
-    email: "nguyenthilan@hospital.com",
-    phone: "0911111111",
-    role: "patient",
+    dob: new Date("1975-07-08"),
+    gender: "Nữ",
+    address: "654 Hai Bà Trưng, Quận 1, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC005",
+    createdAt: "2021-03-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
-];
+]
 
 // Specialty schema
 export const mockSpecialties = [
@@ -215,7 +302,7 @@ export const mockPatients = [
     _id: "PAT003",
     blood_type: "B+",
     allergies: ["Sulfa drugs"],
-    chronic_diseases: ["Đái tháo đường type 2"],
+    chronic_diseases: ["Đái tháo đường type 2", "Rối loạn lipid máu"],
     medications: ["Metformin 500mg"],
     surgery_history: ["Phẫu thuật tim mạch - 2023-12-01"],
     user_id: "USER005",
@@ -636,12 +723,18 @@ export const getPopulatedDoctor = (doctorId) => {
   if (!doctor) return null;
 
   const user = mockUsers.find((u) => u._id === doctor.user_id);
+  const account = user ? mockAccounts.find((a) => a._id === user.account_id) : null
   const specialty = mockSpecialties.find((s) => s._id === doctor.specialty_id);
   const clinic = mockClinics.find((c) => c._id === doctor.clinic_id);
 
   return {
     ...doctor,
-    user,
+    user: user
+      ? {
+          ...user,
+          account_id: account, // Populate account reference
+        }
+      : null,
     specialty,
     clinic,
   };
@@ -653,10 +746,16 @@ export const getPopulatedPatient = (patientId) => {
   if (!patient) return null;
 
   const user = mockUsers.find((u) => u._id === patient.user_id);
+  const account = user ? mockAccounts.find((a) => a._id === user.account_id) : null
 
   return {
     ...patient,
-    user,
+    user: user
+      ? {
+          ...user,
+          account_id: account, // Populate account reference
+        }
+      : null,
   };
 };
 
