@@ -2,14 +2,18 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const slotSchema = new Schema({
-  start_time: { type: Number, required: true },
-  end_time: { type: Number, required: true },
-  status: { type: String, enum: ["AVAIABLE", "UNAVAIABLE"], default: "AVAIABLE", required: true },
-  max_datients: { type: Number, required: true },
+  doctor_id: { type: Schema.Types.ObjectId, ref: "Doctor", required: true, index: true },
+  clinic_id: { type: Schema.Types.ObjectId, ref: "Clinic" },
+  start_time: { type: Date, required: true },
+  end_time: { type: Date, required: true },
+  status: { type: String, enum: ["AVAILABLE", "UNAVAILABLE"], default: "AVAILABLE", required: true },
+  max_patients: { type: Number, required: true, min: 1 },
+  booked_count: { type: Number, default: 0 },
   note: { type: String },
-  doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true },
-  created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Assistant", required: true },
-});
+  created_by: { type: Schema.Types.ObjectId, ref: "Assistant", required: true },
+}, { timestamps: true });
+
+slotSchema.index({ doctor_id: 1, start_time: 1 }, { unique: true });
 
 const Slot = mongoose.model("Slot", slotSchema, "slots");
 

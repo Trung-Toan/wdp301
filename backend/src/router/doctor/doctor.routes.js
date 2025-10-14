@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { authRequired, roleRequired } = require("./../../middleware/auth");
+const { getDoctorsBySpecialty } = require("../../controller/doctor/doctorBySpecialty.controller");
+const { getTopDoctorsController } = require("../../controller/doctor/topDoctor.controller");
+const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");;
 
 // Import controller for doctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
@@ -73,5 +76,93 @@ router.get("/assistants", authRequired, roleRequired("DOCTOR"), DoctorController
 // GET /profile
 // view profile of doctor
 router.get("/profile", authRequired, roleRequired("DOCTOR"), DoctorController.viewProfile);
+
+
+
+/**
+ * @openapi
+ * /api/doctor/by-specialty:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy bác sĩ theo chuyên khoa (kèm tên & địa chỉ phòng khám)
+ *     parameters:
+ *       - in: query
+ *         name: specialtyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: OK
+ */
+router.get("/by-specialty", getDoctorsBySpecialty);
+
+
+/**
+ * @openapi
+ * /api/doctor/top:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy danh sách bác sĩ nổi bật (rating cao nhất)
+ *     description: Trả về các bác sĩ có điểm đánh giá (rating) cao nhất, kèm thông tin phòng khám.
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *           minimum: 1
+ *           maximum: 50
+ *         description: Số lượng bác sĩ muốn lấy (mặc định 5)
+ *     responses:
+ *       200:
+ *         description: Danh sách bác sĩ nổi bật
+ */
+router.get("/top", getTopDoctorsController);
+
+/**
+ * @openapi
+ * /api/doctor/search:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Search doctors by name, clinic, specialty
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: clinicId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: specialtyId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, -createdAt, rating, -rating, full_name, -full_name]
+ *           default: -createdAt
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get("/search", searchDoctorController);
+
 
 module.exports = router;
