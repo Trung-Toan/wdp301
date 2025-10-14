@@ -1,47 +1,57 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
+// Hook chính
 export const useSessionStorage = (key, defaultValue = null) => {
   const [value, setValue] = useState(() => {
     try {
       const storedValue = sessionStorage.getItem(key);
-      return storedValue ? JSON.parse(storedValue) : defaultValue;
+      return storedValue && storedValue !== "undefined"
+        ? JSON.parse(storedValue)
+        : defaultValue;
     } catch (err) {
       console.warn(`Cannot parse sessionStorage key "${key}":`, err);
       return defaultValue;
     }
   });
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const updatedValue = sessionStorage.getItem(key);
-        setValue(updatedValue ? JSON.parse(updatedValue) : defaultValue);
-      } catch (err) {
-        console.warn(`Cannot parse sessionStorage key "${key}" on update:`, err);
-        setValue(defaultValue);
-      }
-    };
+  // Cập nhật khi storage thay đổi
+  const updateValue = useCallback(() => {
+    try {
+      const storedValue = sessionStorage.getItem(key);
+      setValue(
+        storedValue && storedValue !== "undefined"
+          ? JSON.parse(storedValue)
+          : defaultValue
+      );
+    } catch (err) {
+      console.warn(`Cannot parse sessionStorage key "${key}" on update:`, err);
+      setValue(defaultValue);
+    }
+  }, [key, defaultValue]);
 
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("session-update", handleStorageChange);
+  useEffect(() => {
+    window.addEventListener("storage", updateValue);
+    window.addEventListener("session-update", updateValue);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("session-update", handleStorageChange);
+      window.removeEventListener("storage", updateValue);
+      window.removeEventListener("session-update", updateValue);
     };
-  }, [key, defaultValue]);
+  }, [updateValue]);
 
   return value;
 };
 
+// Xóa tất cả sessionStorage và thông báo thay đổi
 export const clearSessionStorage = () => {
   sessionStorage.clear();
   window.dispatchEvent(new Event("session-update"));
 };
 
+// Lưu giá trị vào sessionStorage an toàn
 export const setSessionStorage = (key, value) => {
   try {
-    if (value === undefined) {
+    if (value === undefined || value === null) {
       sessionStorage.removeItem(key);
     } else {
       sessionStorage.setItem(key, JSON.stringify(value));
