@@ -7,6 +7,7 @@ const slotSchema = new Schema({
   start_time: { type: Date, required: true },
   end_time: { type: Date, required: true },
   status: { type: String, enum: ["AVAILABLE", "UNAVAILABLE"], default: "AVAILABLE", required: true },
+  fee_amount: { type: Number, required: true, min: 0 },
   max_patients: { type: Number, required: true, min: 1 },
   booked_count: { type: Number, default: 0 },
   note: { type: String },
