@@ -1,9 +1,6 @@
-import axios from "axios";
-
-const api = axios.create({
-    baseURL: "http://localhost:5000/api/locations",
-});
+import { axiosInstance } from "../axiosInstance";
 
 export const provinceApi = {
-    getProvinces: (params) => api.get("/provinces/options", { params }),
+    getProvinces: (params) =>
+        axiosInstance.get("/locations/provinces/options", { params }),
 };
