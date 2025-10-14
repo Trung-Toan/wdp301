@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { registerPatientsApi } from "../../../api/auth/register/registerPatientsApi";
 
 export default function PatientRegisterForm() {
     const navigate = useNavigate();
@@ -23,18 +24,24 @@ export default function PatientRegisterForm() {
         setFormData({ ...formData, [e.target.id]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (formData.password !== formData.confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!");
+            alert("Mật khẩu xác nhận không khớp");
             return;
         }
 
-        console.log("Dữ liệu đăng ký:", formData);
-        alert("Đăng ký thành công!");
-        // TODO: Gọi API đăng ký tại đây
+        try {
+            const res = await registerPatientsApi.register(formData);
+            console.log("Đăng ký thành công:", res.data);
+            alert("Đăng ký thành công!");
+        } catch (err) {
+            console.error("Lỗi đăng ký:", err.response?.data || err.message);
+            alert(err.response?.data?.message || "Đăng ký thất bại");
+        }
     };
+
 
     const handleBack = () => navigate(-1);
 
