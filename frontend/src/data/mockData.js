@@ -4,22 +4,22 @@
 
 // Helper to get dates relative to today
 const getToday = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-};
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+}
 
 const getTodayAt = (hours, minutes = 0) => {
-  const date = getToday();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-};
+  const date = getToday()
+  date.setHours(hours, minutes, 0, 0)
+  return date
+}
 
 const getDaysFromNow = (days) => {
-  const date = getToday();
-  date.setDate(date.getDate() + days);
-  return date;
-};
+  const date = getToday()
+  date.setDate(date.getDate() + days)
+  return date
+}
 
 // Account schema (referenced by User)
 export const mockAccounts = [
@@ -88,6 +88,97 @@ export const mockAccounts = [
     createdAt: "2021-03-20T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
   },
+  {
+    _id: "ACC006",
+    username: "levanhung",
+    email: "levanhung@email.com",
+    phone_number: "0933333333",
+    password: "$2b$10$hashedpassword6",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2023-08-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC007",
+    username: "phamthimai",
+    email: "phamthimai@email.com",
+    phone_number: "0944444444",
+    password: "$2b$10$hashedpassword7",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2023-09-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC008",
+    username: "hoangvanduc",
+    email: "hoangvanduc@email.com",
+    phone_number: "0955555555",
+    password: "$2b$10$hashedpassword8",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2023-10-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC009",
+    username: "dangthihuong",
+    email: "dangthihuong@email.com",
+    phone_number: "0966666666",
+    password: "$2b$10$hashedpassword9",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2023-11-05T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC010",
+    username: "vuvanthanh",
+    email: "vuvanthanh@email.com",
+    phone_number: "0977777777",
+    password: "$2b$10$hashedpassword10",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2023-12-01T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC011",
+    username: "buithingoc",
+    email: "buithingoc@email.com",
+    phone_number: "0988888888",
+    password: "$2b$10$hashedpassword11",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2024-01-05T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "ACC012",
+    username: "trinhvanlong",
+    email: "trinhvanlong@email.com",
+    phone_number: "0999999999",
+    password: "$2b$10$hashedpassword12",
+    status: "ACTIVE",
+    role: "PATIENT",
+    resetPasswordOTP: null,
+    resetPasswordExpires: null,
+    createdAt: "2024-01-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
 ]
 
 // User schema (referenced by Doctor and Patient)
@@ -147,6 +238,83 @@ export const mockUsers = [
     createdAt: "2021-03-20T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
   },
+  {
+    _id: "USER006",
+    full_name: "Lê Văn Hùng",
+    dob: new Date("1992-06-15"),
+    gender: "Nam",
+    address: "234 Lý Thường Kiệt, Quận 10, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC006",
+    createdAt: "2023-08-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "USER007",
+    full_name: "Phạm Thị Mai",
+    dob: new Date("1995-09-20"),
+    gender: "Nữ",
+    address: "567 Nguyễn Thị Minh Khai, Quận 3, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC007",
+    createdAt: "2023-09-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "USER008",
+    full_name: "Hoàng Văn Đức",
+    dob: new Date("1987-04-12"),
+    gender: "Nam",
+    address: "890 Cách Mạng Tháng 8, Quận Tân Bình, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC008",
+    createdAt: "2023-10-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "USER009",
+    full_name: "Đặng Thị Hương",
+    dob: new Date("1993-11-05"),
+    gender: "Nữ",
+    address: "123 Phan Xích Long, Quận Phú Nhuận, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC009",
+    createdAt: "2023-11-05T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "USER010",
+    full_name: "Vũ Văn Thành",
+    dob: new Date("1978-12-01"),
+    gender: "Nam",
+    address: "456 Điện Biên Phủ, Quận Bình Thạnh, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC010",
+    createdAt: "2023-12-01T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "USER011",
+    full_name: "Bùi Thị Ngọc",
+    dob: new Date("1991-01-05"),
+    gender: "Nữ",
+    address: "789 Hoàng Văn Thụ, Quận Tân Bình, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC011",
+    createdAt: "2024-01-05T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "USER012",
+    full_name: "Trịnh Văn Long",
+    dob: new Date("1989-02-10"),
+    gender: "Nam",
+    address: "321 Xô Viết Nghệ Tĩnh, Quận Bình Thạnh, TP.HCM",
+    avatar_url: null,
+    account_id: "ACC012",
+    createdAt: "2024-01-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
 ]
 
 // Specialty schema
@@ -172,7 +340,7 @@ export const mockSpecialties = [
     icon_url: "/icons/pediatrics.png",
     status: "ACTIVE",
   },
-];
+]
 
 // Address schema (referenced by Clinic)
 export const mockAddresses = [
@@ -184,7 +352,7 @@ export const mockAddresses = [
     city: "TP. Hồ Chí Minh",
     country: "Việt Nam",
   },
-];
+]
 
 // Clinic schema
 export const mockClinics = [
@@ -194,8 +362,7 @@ export const mockClinics = [
     phone: "0281234567",
     email: "contact@clinic.com",
     website: ["https://clinic.com"],
-    description:
-      "Phòng khám đa khoa uy tín với đội ngũ bác sĩ giàu kinh nghiệm",
+    description: "Phòng khám đa khoa uy tín với đội ngũ bác sĩ giàu kinh nghiệm",
     logo_url: "/clinic-logo.png",
     banner_url: "/clinic-banner.png",
     tax_code: "0123456789",
@@ -210,7 +377,7 @@ export const mockClinics = [
     createdAt: "2020-01-15T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
   },
-];
+]
 
 // Doctor schema
 export const mockDoctors = [
@@ -238,7 +405,7 @@ export const mockDoctors = [
     createdAt: "2021-03-20T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
   },
-];
+]
 
 // License schema
 export const mockLicenses = [
@@ -272,7 +439,7 @@ export const mockLicenses = [
     createdAt: "2015-08-20T00:00:00Z",
     updatedAt: "2015-08-25T00:00:00Z",
   },
-];
+]
 
 // Patient schema
 export const mockPatients = [
@@ -309,7 +476,84 @@ export const mockPatients = [
     createdAt: "2021-03-20T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
   },
-];
+  {
+    _id: "PAT004",
+    blood_type: "AB+",
+    allergies: [],
+    chronic_diseases: ["Hen suyễn"],
+    medications: ["Ventolin"],
+    surgery_history: [],
+    user_id: "USER006",
+    createdAt: "2023-08-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "PAT005",
+    blood_type: "A-",
+    allergies: ["Aspirin"],
+    chronic_diseases: [],
+    medications: [],
+    surgery_history: [],
+    user_id: "USER007",
+    createdAt: "2023-09-20T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "PAT006",
+    blood_type: "O-",
+    allergies: [],
+    chronic_diseases: ["Viêm khớp"],
+    medications: ["Ibuprofen"],
+    surgery_history: [],
+    user_id: "USER008",
+    createdAt: "2023-10-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "PAT007",
+    blood_type: "B-",
+    allergies: ["Latex"],
+    chronic_diseases: [],
+    medications: [],
+    surgery_history: [],
+    user_id: "USER009",
+    createdAt: "2023-11-05T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "PAT008",
+    blood_type: "AB-",
+    allergies: [],
+    chronic_diseases: ["Bệnh thận mạn"],
+    medications: ["Losartan"],
+    surgery_history: [],
+    user_id: "USER010",
+    createdAt: "2023-12-01T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "PAT009",
+    blood_type: "A+",
+    allergies: ["Pollen"],
+    chronic_diseases: [],
+    medications: [],
+    surgery_history: [],
+    user_id: "USER011",
+    createdAt: "2024-01-05T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+  {
+    _id: "PAT010",
+    blood_type: "O+",
+    allergies: [],
+    chronic_diseases: ["Rối loạn lo âu"],
+    medications: ["Sertraline"],
+    surgery_history: [],
+    user_id: "USER012",
+    createdAt: "2024-01-10T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
+  },
+]
 
 // Assistant schema
 export const mockAssistants = [
@@ -333,7 +577,7 @@ export const mockAssistants = [
     status: "active",
     hired_date: "2023-03-20",
   },
-];
+]
 
 // Slot schema
 export const mockSlots = [
@@ -342,7 +586,7 @@ export const mockSlots = [
     start_time: getTodayAt(8, 0),
     end_time: getTodayAt(8, 30),
     status: "BOOKED",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -353,7 +597,7 @@ export const mockSlots = [
     start_time: getTodayAt(8, 30),
     end_time: getTodayAt(9, 0),
     status: "AVAIABLE",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -364,7 +608,7 @@ export const mockSlots = [
     start_time: getTodayAt(9, 0),
     end_time: getTodayAt(9, 30),
     status: "BOOKED",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -375,7 +619,7 @@ export const mockSlots = [
     start_time: getTodayAt(10, 0),
     end_time: getTodayAt(10, 30),
     status: "BOOKED",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -386,7 +630,7 @@ export const mockSlots = [
     start_time: getTodayAt(11, 0),
     end_time: getTodayAt(11, 30),
     status: "BOOKED",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -397,7 +641,7 @@ export const mockSlots = [
     start_time: getTodayAt(14, 0),
     end_time: getTodayAt(14, 30),
     status: "AVAIABLE",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -408,7 +652,7 @@ export const mockSlots = [
     start_time: getTodayAt(15, 0),
     end_time: getTodayAt(15, 30),
     status: "BOOKED",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -420,7 +664,7 @@ export const mockSlots = [
     start_time: new Date(getDaysFromNow(1).setHours(9, 0, 0, 0)),
     end_time: new Date(getDaysFromNow(1).setHours(9, 30, 0, 0)),
     status: "BOOKED",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
@@ -431,16 +675,17 @@ export const mockSlots = [
     start_time: new Date(getDaysFromNow(1).setHours(10, 0, 0, 0)),
     end_time: new Date(getDaysFromNow(1).setHours(10, 30, 0, 0)),
     status: "AVAIABLE",
-    max_patients: 1,
+    max_patients: 5,
     note: "",
     doctor_id: "DOC001",
     clinic_id: "CLI001",
     created_by: "AST001",
   },
-];
+]
 
 // Appointment schema
 export const mockAppointments = [
+  // SLOT001 - 5 patients (8:00-8:30)
   {
     _id: "APT001",
     reason: "Khám định kỳ tim mạch",
@@ -450,75 +695,338 @@ export const mockAppointments = [
     patient_id: "PAT001",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     _id: "APT002",
-    reason: "Đau ngực, khó thở",
+    reason: "Kiểm tra huyết áp",
     status: "SCHEDULED",
-    slot_id: "SLOT003",
+    slot_id: "SLOT001",
     doctor_id: "DOC001",
     patient_id: "PAT002",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     _id: "APT003",
+    reason: "Tái khám sau điều trị",
+    status: "SCHEDULED",
+    slot_id: "SLOT001",
+    doctor_id: "DOC001",
+    patient_id: "PAT003",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT004",
+    reason: "Khám sức khỏe tổng quát",
+    status: "SCHEDULED",
+    slot_id: "SLOT001",
+    doctor_id: "DOC001",
+    patient_id: "PAT004",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT005",
+    reason: "Đau ngực, khó thở",
+    status: "SCHEDULED",
+    slot_id: "SLOT001",
+    doctor_id: "DOC001",
+    patient_id: "PAT005",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // SLOT003 - 5 patients (9:00-9:30)
+  {
+    _id: "APT006",
+    reason: "Tư vấn dinh dưỡng tim mạch",
+    status: "SCHEDULED",
+    slot_id: "SLOT003",
+    doctor_id: "DOC001",
+    patient_id: "PAT006",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT007",
+    reason: "Khám bệnh lần đầu",
+    status: "SCHEDULED",
+    slot_id: "SLOT003",
+    doctor_id: "DOC001",
+    patient_id: "PAT007",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT008",
+    reason: "Theo dõi sau phẫu thuật",
+    status: "SCHEDULED",
+    slot_id: "SLOT003",
+    doctor_id: "DOC001",
+    patient_id: "PAT008",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT009",
+    reason: "Khám tim mạch định kỳ",
+    status: "SCHEDULED",
+    slot_id: "SLOT003",
+    doctor_id: "DOC001",
+    patient_id: "PAT009",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT010",
+    reason: "Đau thắt ngực",
+    status: "SCHEDULED",
+    slot_id: "SLOT003",
+    doctor_id: "DOC001",
+    patient_id: "PAT010",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // SLOT004 - 5 patients (10:00-10:30)
+  {
+    _id: "APT011",
     reason: "Tái khám sau phẫu thuật",
+    status: "SCHEDULED",
+    slot_id: "SLOT004",
+    doctor_id: "DOC001",
+    patient_id: "PAT001",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT012",
+    reason: "Kiểm tra nhịp tim",
+    status: "SCHEDULED",
+    slot_id: "SLOT004",
+    doctor_id: "DOC001",
+    patient_id: "PAT002",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT013",
+    reason: "Khám sức khỏe",
     status: "SCHEDULED",
     slot_id: "SLOT004",
     doctor_id: "DOC001",
     patient_id: "PAT003",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
-    _id: "APT004",
+    _id: "APT014",
+    reason: "Tư vấn điều trị",
+    status: "SCHEDULED",
+    slot_id: "SLOT004",
+    doctor_id: "DOC001",
+    patient_id: "PAT004",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT015",
+    reason: "Khám bệnh tim mạch",
+    status: "SCHEDULED",
+    slot_id: "SLOT004",
+    doctor_id: "DOC001",
+    patient_id: "PAT005",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // SLOT005 - 5 patients (11:00-11:30)
+  {
+    _id: "APT016",
     reason: "Kiểm tra huyết áp",
     status: "SCHEDULED",
     slot_id: "SLOT005",
     doctor_id: "DOC001",
+    patient_id: "PAT006",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT017",
+    reason: "Khám tổng quát",
+    status: "SCHEDULED",
+    slot_id: "SLOT005",
+    doctor_id: "DOC001",
+    patient_id: "PAT007",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    _id: "APT018",
+    reason: "Tái khám định kỳ",
+    status: "SCHEDULED",
+    slot_id: "SLOT005",
+    doctor_id: "DOC001",
+    patient_id: "PAT008",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: "APT019",
+    reason: "Khám sức khỏe",
+    status: "SCHEDULED",
+    slot_id: "SLOT005",
+    doctor_id: "DOC001",
+    patient_id: "PAT009",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: "APT020",
+    reason: "Tư vấn điều trị tim mạch",
+    status: "SCHEDULED",
+    slot_id: "SLOT005",
+    doctor_id: "DOC001",
+    patient_id: "PAT010",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+
+  // SLOT007 - 5 patients (15:00-15:30)
+  {
+    _id: "APT021",
+    reason: "Khám tổng quát",
+    status: "SCHEDULED",
+    slot_id: "SLOT007",
+    doctor_id: "DOC001",
     patient_id: "PAT001",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    createdAt: new Date().toISOString(),
   },
   {
-    _id: "APT005",
-    reason: "Khám tổng quát",
+    _id: "APT022",
+    reason: "Kiểm tra tim mạch",
     status: "SCHEDULED",
     slot_id: "SLOT007",
     doctor_id: "DOC001",
     patient_id: "PAT002",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date().toISOString(), // today
+    createdAt: new Date().toISOString(),
   },
   {
-    _id: "APT006",
-    reason: "Tư vấn dinh dưỡng",
+    _id: "APT023",
+    reason: "Tái khám sau điều trị",
     status: "SCHEDULED",
-    slot_id: "SLOT008",
+    slot_id: "SLOT007",
     doctor_id: "DOC001",
     patient_id: "PAT003",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date().toISOString(), // today
+    createdAt: new Date().toISOString(),
   },
   {
-    _id: "APT007",
-    reason: "Khám bệnh lần đầu",
-    status: "COMPLETED",
-    slot_id: "SLOT010",
+    _id: "APT024",
+    reason: "Khám định kỳ",
+    status: "SCHEDULED",
+    slot_id: "SLOT007",
     doctor_id: "DOC001",
-    patient_id: "PAT001",
+    patient_id: "PAT004",
     clinic_id: "CLI001",
     specialty_id: "SPEC001",
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+    createdAt: new Date().toISOString(),
   },
-];
+  {
+    _id: "APT025",
+    reason: "Tư vấn sức khỏe tim mạch",
+    status: "SCHEDULED",
+    slot_id: "SLOT007",
+    doctor_id: "DOC001",
+    patient_id: "PAT005",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+
+  // SLOT008 - 5 patients (Tomorrow 9:00-9:30)
+  {
+    _id: "APT026",
+    reason: "Tư vấn dinh dưỡng",
+    status: "SCHEDULED",
+    slot_id: "SLOT008",
+    doctor_id: "DOC001",
+    patient_id: "PAT006",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: "APT027",
+    reason: "Khám bệnh lần đầu",
+    status: "SCHEDULED",
+    slot_id: "SLOT008",
+    doctor_id: "DOC001",
+    patient_id: "PAT007",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: "APT028",
+    reason: "Kiểm tra sức khỏe",
+    status: "SCHEDULED",
+    slot_id: "SLOT008",
+    doctor_id: "DOC001",
+    patient_id: "PAT008",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: "APT029",
+    reason: "Tái khám tim mạch",
+    status: "SCHEDULED",
+    slot_id: "SLOT008",
+    doctor_id: "DOC001",
+    patient_id: "PAT009",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    _id: "APT030",
+    reason: "Khám định kỳ",
+    status: "SCHEDULED",
+    slot_id: "SLOT008",
+    doctor_id: "DOC001",
+    patient_id: "PAT010",
+    clinic_id: "CLI001",
+    specialty_id: "SPEC001",
+    createdAt: new Date().toISOString(),
+  },
+]
 
 // Medicine subdocument (part of Prescription)
 const sampleMedicines = [
@@ -536,14 +1044,13 @@ const sampleMedicines = [
     duration: "30 ngày",
     note: "Uống trước khi ngủ",
   },
-];
+]
 
 // Prescription subdocument (part of MedicalRecord)
 const samplePrescriptions = [
   {
     medicines: sampleMedicines,
-    instruction:
-      "Uống thuốc đều đặn, không tự ý ngừng thuốc. Theo dõi huyết áp hàng ngày.",
+    instruction: "Uống thuốc đều đặn, không tự ý ngừng thuốc. Theo dõi huyết áp hàng ngày.",
     verified_at: null,
     created_by: "DOC001",
   },
@@ -561,7 +1068,7 @@ const samplePrescriptions = [
     verified_at: new Date("2024-01-15T11:45:00Z"),
     created_by: "DOC001",
   },
-];
+]
 
 // AccessRequest subdocument (part of MedicalRecord)
 const sampleAccessRequests = [
@@ -573,21 +1080,21 @@ const sampleAccessRequests = [
     date_expired: null,
   },
   {
+    _id: "AR002",
     doctor_id: "DOC001",
     status: "APPROVED",
     requested_at: new Date("2024-01-12T09:00:00Z"),
     approved_at: new Date("2024-01-12T10:30:00Z"),
     date_expired: new Date("2024-02-12T10:30:00Z"),
   },
-];
+]
 
 // Feedback schema
 export const mockFeedback = [
   {
     _id: "FB001",
     rating: 5,
-    comment:
-      "Bác sĩ rất tận tâm và chuyên nghiệp. Giải thích rõ ràng về tình trạng bệnh.",
+    comment: "Bác sĩ rất tận tâm và chuyên nghiệp. Giải thích rõ ràng về tình trạng bệnh.",
     is_anonymous: true,
     patient_id: "PAT001",
     doctor_id: "DOC001",
@@ -605,14 +1112,13 @@ export const mockFeedback = [
   {
     _id: "FB003",
     rating: 5,
-    comment:
-      "Rất hài lòng với quá trình điều trị. Bác sĩ theo dõi sát sao sau phẫu thuật.",
+    comment: "Rất hài lòng với quá trình điều trị. Bác sĩ theo dõi sát sao sau phẫu thuật.",
     is_anonymous: true,
     patient_id: "PAT003",
     doctor_id: "DOC001",
     createdAt: "2024-01-13T20:00:00Z",
   },
-];
+]
 
 // MedicalRecord schema
 export const mockMedicalRecords = [
@@ -631,19 +1137,60 @@ export const mockMedicalRecords = [
     updatedAt: "2024-01-15T09:30:00Z",
   },
   {
-    _id: "MR002",
-    diagnosis: "Hậu phẫu tim mạch - Phục hồi tốt",
-    symptoms: [],
-    notes: "Vết mổ lành tốt, không có dấu hiệu nhiễm trùng",
-    attachments: ["/attachments/post-surgery-001.jpg"],
+    _id: "MR004",
+    diagnosis: "Cao huyết áp - Tái khám",
+    symptoms: ["Đau đầu nhẹ"],
+    notes: "Huyết áp đã ổn định hơn, tiếp tục điều trị",
+    attachments: [],
     access_requests: [],
-    prescription: samplePrescriptions[1],
+    prescription: {
+      medicines: [
+        {
+          name: "Amlodipine 5mg",
+          dosage: "1 viên",
+          frequency: "1 lần/ngày",
+          duration: "30 ngày",
+          note: "Uống sau ăn sáng",
+        },
+      ],
+      instruction: "Tiếp tục theo dõi huyết áp tại nhà",
+      verified_at: new Date("2023-12-20T10:00:00Z"),
+      created_by: "DOC001",
+    },
     status: "PRIVATE",
     doctor_id: "DOC001",
-    patient_id: "PAT003",
-    createdAt: "2024-01-15T11:30:00Z",
-    updatedAt: "2024-01-15T11:30:00Z",
+    patient_id: "PAT001",
+    createdAt: "2023-12-20T09:30:00Z",
+    updatedAt: "2023-12-20T10:00:00Z",
   },
+  {
+    _id: "MR005",
+    diagnosis: "Viêm họng cấp",
+    symptoms: ["Đau họng", "Sốt"],
+    notes: "Nghỉ ngơi, uống nhiều nước",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Amoxicillin 500mg",
+          dosage: "1 viên",
+          frequency: "3 lần/ngày",
+          duration: "7 ngày",
+          note: "Uống sau ăn",
+        },
+      ],
+      instruction: "Uống đủ liệu trình kháng sinh",
+      verified_at: new Date("2023-11-10T14:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PUBLIC",
+    doctor_id: "DOC001",
+    patient_id: "PAT001",
+    createdAt: "2023-11-10T13:30:00Z",
+    updatedAt: "2023-11-10T14:00:00Z",
+  },
+
   {
     _id: "MR003",
     diagnosis: "Viêm họng cấp",
@@ -661,8 +1208,7 @@ export const mockMedicalRecords = [
           note: "Không quá 8 viên/ngày",
         },
       ],
-      instruction:
-        "Nghỉ ngơi, uống nhiều nước. Tái khám nếu không đỡ sau 3 ngày.",
+      instruction: "Nghỉ ngơi, uống nhiều nước. Tái khám nếu không đỡ sau 3 ngày.",
       verified_at: new Date("2024-01-10T15:00:00Z"),
       created_by: "DOC001",
     },
@@ -672,7 +1218,213 @@ export const mockMedicalRecords = [
     createdAt: "2024-01-10T14:30:00Z",
     updatedAt: "2024-01-10T15:00:00Z",
   },
-];
+  {
+    _id: "MR006",
+    diagnosis: "Đau dạ dày",
+    symptoms: ["Đau bụng", "Ợ nóng", "Khó tiêu"],
+    notes: "Ăn uống điều độ, tránh thức ăn cay nóng",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Omeprazole 20mg",
+          dosage: "1 viên",
+          frequency: "1 lần/ngày trước ăn sáng",
+          duration: "14 ngày",
+          note: "Uống trước ăn 30 phút",
+        },
+      ],
+      instruction: "Ăn uống điều độ, tránh stress",
+      verified_at: new Date("2023-10-15T11:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT002",
+    createdAt: "2023-10-15T10:30:00Z",
+    updatedAt: "2023-10-15T11:00:00Z",
+  },
+
+  {
+    _id: "MR002",
+    diagnosis: "Hậu phẫu tim mạch - Phục hồi tốt",
+    symptoms: [],
+    notes: "Vết mổ lành tốt, không có dấu hiệu nhiễm trùng",
+    attachments: ["/attachments/post-surgery-001.jpg"],
+    access_requests: [],
+    prescription: samplePrescriptions[1],
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT003",
+    createdAt: "2024-01-15T11:30:00Z",
+    updatedAt: "2024-01-15T11:30:00Z",
+  },
+  {
+    _id: "MR007",
+    diagnosis: "Đái tháo đường type 2 - Kiểm soát tốt",
+    symptoms: ["Khát nước", "Tiểu nhiều"],
+    notes: "Đường huyết ổn định, tiếp tục điều trị",
+    attachments: ["/attachments/blood-test-003.pdf"],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Metformin 500mg",
+          dosage: "1 viên",
+          frequency: "2 lần/ngày",
+          duration: "30 ngày",
+          note: "Uống sau ăn",
+        },
+      ],
+      instruction: "Kiểm soát chế độ ăn, tập thể dục đều đặn",
+      verified_at: new Date("2023-09-20T09:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT003",
+    createdAt: "2023-09-20T08:30:00Z",
+    updatedAt: "2023-09-20T09:00:00Z",
+  },
+  {
+    _id: "MR008",
+    diagnosis: "Rối loạn lipid máu",
+    symptoms: [],
+    notes: "Cholesterol cao, cần điều chỉnh chế độ ăn",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Atorvastatin 10mg",
+          dosage: "1 viên",
+          frequency: "1 lần/ngày vào buổi tối",
+          duration: "30 ngày",
+          note: "Uống trước khi ngủ",
+        },
+      ],
+      instruction: "Hạn chế thức ăn nhiều dầu mỡ",
+      verified_at: new Date("2023-08-10T16:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT003",
+    createdAt: "2023-08-10T15:30:00Z",
+    updatedAt: "2023-08-10T16:00:00Z",
+  },
+
+  {
+    _id: "MR009",
+    diagnosis: "Hen suyễn - Kiểm soát",
+    symptoms: ["Khó thở", "Thở khò khè"],
+    notes: "Sử dụng thuốc xịt khi cần",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Ventolin Inhaler",
+          dosage: "2 nhát",
+          frequency: "Khi khó thở",
+          duration: "30 ngày",
+          note: "Xịt vào miệng khi cần",
+        },
+      ],
+      instruction: "Tránh tiếp xúc với dị nguyên",
+      verified_at: new Date("2024-01-05T10:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT004",
+    createdAt: "2024-01-05T09:30:00Z",
+    updatedAt: "2024-01-05T10:00:00Z",
+  },
+  {
+    _id: "MR010",
+    diagnosis: "Viêm mũi dị ứng",
+    symptoms: ["Hắt hơi", "Sổ mũi", "Ngứa mũi"],
+    notes: "Dị ứng theo mùa",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Loratadine 10mg",
+          dosage: "1 viên",
+          frequency: "1 lần/ngày",
+          duration: "14 ngày",
+          note: "Uống vào buổi tối",
+        },
+      ],
+      instruction: "Tránh tiếp xúc với phấn hoa",
+      verified_at: new Date("2023-12-01T14:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PUBLIC",
+    doctor_id: "DOC001",
+    patient_id: "PAT004",
+    createdAt: "2023-12-01T13:30:00Z",
+    updatedAt: "2023-12-01T14:00:00Z",
+  },
+
+  {
+    _id: "MR011",
+    diagnosis: "Đau đầu migraine",
+    symptoms: ["Đau đầu dữ dội", "Buồn nôn", "Nhạy cảm với ánh sáng"],
+    notes: "Cơn đau kéo dài 4-6 giờ",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Sumatriptan 50mg",
+          dosage: "1 viên",
+          frequency: "Khi có cơn đau",
+          duration: "30 ngày",
+          note: "Uống ngay khi bắt đầu đau",
+        },
+      ],
+      instruction: "Nghỉ ngơi trong phòng tối khi có cơn đau",
+      verified_at: new Date("2024-01-08T11:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT005",
+    createdAt: "2024-01-08T10:30:00Z",
+    updatedAt: "2024-01-08T11:00:00Z",
+  },
+  {
+    _id: "MR012",
+    diagnosis: "Stress và lo âu",
+    symptoms: ["Lo lắng", "Mất ngủ", "Căng thẳng"],
+    notes: "Tư vấn về quản lý stress",
+    attachments: [],
+    access_requests: [],
+    prescription: {
+      medicines: [
+        {
+          name: "Alprazolam 0.25mg",
+          dosage: "1 viên",
+          frequency: "1 lần/ngày trước khi ngủ",
+          duration: "14 ngày",
+          note: "Không lái xe sau khi uống",
+        },
+      ],
+      instruction: "Thực hành thư giãn, tập yoga",
+      verified_at: new Date("2023-11-20T15:00:00Z"),
+      created_by: "DOC001",
+    },
+    status: "PRIVATE",
+    doctor_id: "DOC001",
+    patient_id: "PAT005",
+    createdAt: "2023-11-20T14:30:00Z",
+    updatedAt: "2023-11-20T15:00:00Z",
+  },
+]
 
 // Absence notifications (custom collection for doctor absences)
 export const mockAbsences = [
@@ -698,7 +1450,7 @@ export const mockAbsences = [
     approved_by: null,
     approved_at: null,
   },
-];
+]
 
 // Dashboard statistics helper
 export const mockDashboardStats = {
@@ -713,19 +1465,19 @@ export const mockDashboardStats = {
   cancelledAppointmentsToday: 1,
   averageRating: 4.7,
   totalFeedback: 156,
-};
+}
 
 // Helper functions to work with the data
 
 // Get populated doctor data (with user info)
 export const getPopulatedDoctor = (doctorId) => {
-  const doctor = mockDoctors.find((d) => d._id === doctorId);
-  if (!doctor) return null;
+  const doctor = mockDoctors.find((d) => d._id === doctorId)
+  if (!doctor) return null
 
-  const user = mockUsers.find((u) => u._id === doctor.user_id);
+  const user = mockUsers.find((u) => u._id === doctor.user_id)
   const account = user ? mockAccounts.find((a) => a._id === user.account_id) : null
-  const specialty = mockSpecialties.find((s) => s._id === doctor.specialty_id);
-  const clinic = mockClinics.find((c) => c._id === doctor.clinic_id);
+  const specialty = mockSpecialties.find((s) => s._id === doctor.specialty_id)
+  const clinic = mockClinics.find((c) => c._id === doctor.clinic_id)
 
   return {
     ...doctor,
@@ -737,15 +1489,15 @@ export const getPopulatedDoctor = (doctorId) => {
       : null,
     specialty,
     clinic,
-  };
-};
+  }
+}
 
 // Get populated patient data (with user info)
 export const getPopulatedPatient = (patientId) => {
-  const patient = mockPatients.find((p) => p._id === patientId);
-  if (!patient) return null;
+  const patient = mockPatients.find((p) => p._id === patientId)
+  if (!patient) return null
 
-  const user = mockUsers.find((u) => u._id === patient.user_id);
+  const user = mockUsers.find((u) => u._id === patient.user_id)
   const account = user ? mockAccounts.find((a) => a._id === user.account_id) : null
 
   return {
@@ -756,21 +1508,19 @@ export const getPopulatedPatient = (patientId) => {
           account_id: account, // Populate account reference
         }
       : null,
-  };
-};
+  }
+}
 
 // Get populated appointment data
 export const getPopulatedAppointment = (appointmentId) => {
-  const appointment = mockAppointments.find((a) => a._id === appointmentId);
-  if (!appointment) return null;
+  const appointment = mockAppointments.find((a) => a._id === appointmentId)
+  if (!appointment) return null
 
-  const doctor = getPopulatedDoctor(appointment.doctor_id);
-  const patient = getPopulatedPatient(appointment.patient_id);
-  const slot = mockSlots.find((s) => s._id === appointment.slot_id);
-  const specialty = mockSpecialties.find(
-    (s) => s._id === appointment.specialty_id
-  );
-  const clinic = mockClinics.find((c) => c._id === appointment.clinic_id);
+  const doctor = getPopulatedDoctor(appointment.doctor_id)
+  const patient = getPopulatedPatient(appointment.patient_id)
+  const slot = mockSlots.find((s) => s._id === appointment.slot_id)
+  const specialty = mockSpecialties.find((s) => s._id === appointment.specialty_id)
+  const clinic = mockClinics.find((c) => c._id === appointment.clinic_id)
 
   return {
     ...appointment,
@@ -779,24 +1529,25 @@ export const getPopulatedAppointment = (appointmentId) => {
     slot,
     specialty,
     clinic,
-  };
-};
+  }
+}
 
 // Get today's appointments
 export const getTodayAppointments = () => {
-  const today = getToday();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const today = getToday()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
 
   return mockAppointments
     .filter((apt) => {
-      const slot = mockSlots.find((s) => s._id === apt.slot_id);
-      if (!slot) return false;
-      const slotDate = new Date(slot.start_time);
-      return slotDate >= today && slotDate < tomorrow;
+      const slot = mockSlots.find((s) => s._id === apt.slot_id)
+      if (!slot) return false
+      const slotDate = new Date(slot.start_time)
+      slotDate.setHours(0, 0, 0, 0)
+      return slotDate >= today && slotDate < tomorrow
     })
-    .map((apt) => getPopulatedAppointment(apt._id));
-};
+    .map((apt) => getPopulatedAppointment(apt._id))
+}
 
 // Get pending prescriptions (not verified)
 export const getPendingPrescriptions = () => {
@@ -806,12 +1557,12 @@ export const getPendingPrescriptions = () => {
       ...record,
       patient: getPopulatedPatient(record.patient_id),
       doctor: getPopulatedDoctor(record.doctor_id),
-    }));
-};
+    }))
+}
 
 // Get pending access requests
 export const getPendingAccessRequests = () => {
-  const requests = [];
+  const requests = []
   mockMedicalRecords.forEach((record) => {
     if (record.access_requests && record.access_requests.length > 0) {
       record.access_requests.forEach((request) => {
@@ -821,10 +1572,38 @@ export const getPendingAccessRequests = () => {
             medical_record_id: record._id,
             patient: getPopulatedPatient(record.patient_id),
             requesting_doctor: getPopulatedDoctor(request.doctor_id),
-          });
+          })
         }
-      });
+      })
     }
-  });
-  return requests;
-};
+  })
+  return requests
+}
+
+// Get slots for a specific doctor and date
+export const getSlotsByDoctorAndDate = (doctorId, date) => {
+  const filterDate = new Date(date)
+  filterDate.setHours(0, 0, 0, 0)
+  const nextDay = new Date(filterDate)
+  nextDay.setDate(nextDay.getDate() + 1)
+
+  return mockSlots
+    .filter((slot) => {
+      if (slot.doctor_id !== doctorId) return false
+      const slotDate = new Date(slot.start_time)
+      slotDate.setHours(0, 0, 0, 0)
+      return slotDate.getTime() === filterDate.getTime()
+    })
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+}
+
+export const getMedicalRecordsByPatientId = (patientId) => {
+  return mockMedicalRecords
+    .filter((record) => record.patient_id === patientId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((record) => ({
+      ...record,
+      patient: getPopulatedPatient(record.patient_id),
+      doctor: getPopulatedDoctor(record.doctor_id),
+    }))
+}
