@@ -1,22 +1,24 @@
-import { Facebook, Twitter, Instagram, Youtube } from "lucide-react"
+import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 
 export default function Footer() {
     return (
         <footer className="border-t bg-muted/30">
             <div className="container mx-auto px-4 py-12">
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                    {/* Logo + Description */}
                     <div>
                         <div className="mb-4 flex items-center gap-2">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                                <span className="text-xl font-bold text-primary-foreground">H+</span>
+                                <span className="text-xl font-bold text-primary-foreground">M+</span>
                             </div>
-                            <span className="text-xl font-bold">HealthCare</span>
+                            <span className="text-xl font-bold">MediSched</span>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
                             Nền tảng đặt lịch khám bệnh trực tuyến hàng đầu Việt Nam, kết nối bạn với các bác sĩ và cơ sở y tế uy tín.
                         </p>
                     </div>
 
+                    {/* Services */}
                     <div>
                         <h3 className="mb-4 font-semibold">Dịch vụ</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
@@ -43,6 +45,7 @@ export default function Footer() {
                         </ul>
                     </div>
 
+                    {/* Support */}
                     <div>
                         <h3 className="mb-4 font-semibold">Hỗ trợ</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
@@ -69,13 +72,15 @@ export default function Footer() {
                         </ul>
                     </div>
 
+                    {/* Contact + Socials */}
                     <div>
                         <h3 className="mb-4 font-semibold">Liên hệ</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li>Hotline: 1900 xxxx</li>
-                            <li>Email: support@healthcare.vn</li>
+                            <li>Email: support@medisched.vn</li>
                             <li>Địa chỉ: Hà Nội, Việt Nam</li>
                         </ul>
+
                         <div className="mt-4 flex gap-3">
                             <a
                                 href="#"
@@ -105,10 +110,11 @@ export default function Footer() {
                     </div>
                 </div>
 
+                {/* Copyright */}
                 <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-                    <p>© 2025 HealthCare. All rights reserved.</p>
+                    <p>© 2025 MediSched. All rights reserved.</p>
                 </div>
             </div>
         </footer>
-    )
+    );
 }

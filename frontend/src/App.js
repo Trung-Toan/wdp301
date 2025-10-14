@@ -36,35 +36,34 @@ function App() {
       return;
     }
 
-    if (!user) {
-      // Chưa đăng nhập
-      if (
-        location.pathname !== "/" &&
-        location.pathname !== "/login" &&
-        location.pathname !== "/find_email" &&
-        location.pathname !== "/register" &&
-        location.pathname !== "/forgot_password"
-      ) {
-        navigate("/login");
-      }
-    } else {
-      // Đã đăng nhập
-      const validPath = roleRedirects[user.role];
-      if (!validPath) {
-        // Role không hợp lệ, có thể logout hoặc redirect về trang mặc định
-        navigate("/login");
-        sessionStorage.removeItem("user");
-        return;
-      }
+    // if (!user) {
+    //   // Chưa đăng nhập
+    //   if (
+    //     location.pathname !== "/home" &&
+    //     location.pathname !== "/home/doctorlist" &&
+    //     !location.pathname.startsWith("/home/doctordetail") && // Cho phép vào doctor detail
+    //     location.pathname !== "/login" &&
+    //     location.pathname !== "/find_email" &&
+    //     location.pathname !== "/register" &&
+    //     location.pathname !== "/forgot_password"
+    //   ) {
+    //     navigate("/home");
+    //   }
+    // } else {
+    //   // Đã đăng nhập
+    //   const validPath = roleRedirects[user.role];
+    //   if (!validPath) {
+    //     // Role không hợp lệ, có thể logout hoặc redirect về trang mặc định
+    //     navigate("/home");
+    //     sessionStorage.removeItem("user");
+    //     return;
+    //   }
 
-      // Kiểm tra đường dẫn hiện tại có phù hợp với role không
-      if (
-        !location.pathname.startsWith(validPath) &&
-        location.pathname !== validPath
-      ) {
-        navigate(validPath);
-      }
-    }
+    //   // Kiểm tra đường dẫn hiện tại có phù hợp với role không
+    //   if (!location.pathname.startsWith(validPath) && location.pathname !== validPath) {
+    //     navigate(validPath);
+    //   }
+    // }
   };
 
   useEffect(() => {
