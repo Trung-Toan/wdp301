@@ -6,6 +6,7 @@ import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import { Star, MapPin, Calendar } from "lucide-react";
 import { doctorApi } from "../../../../api";
+import { Link } from "react-router-dom";
 
 export function FeaturedDoctorsSection() {
     const [doctors, setDoctors] = useState([]);
@@ -109,7 +110,7 @@ export function FeaturedDoctorsSection() {
 
                 <div className="mt-12 text-center">
                     <Button size="lg" variant="outline">
-                        Xem tất cả bác sĩ
+                        <Link to="/home/doctorlist">Xem tất cả bác sĩ</Link>
                     </Button>
                 </div>
             </div>
