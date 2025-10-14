@@ -1,15 +1,20 @@
-import React from "react";
-import { Route } from "react-router-dom";
+import React, { memo } from "react";
+import { Routes, Route } from "react-router-dom";
 import AssistantLayout from "../layouts/AssistantLayout";
-import AssistantDashboard from "../features/assistant/pages/AssistantDashboard";
+import AssistantDashboard from "../features/assistant/AssistantDashboard";
+import ShiftSchedule from "../features/assistant/ShiftSchedule";
 
-export const assistantRoutes = [
-  <Route key="assistant-root" path="/assistant/*" element={<AssistantLayout />}>
-    <Route index element={<AssistantDashboard />} />
-    {/* thêm các route con cho assistant ở đây, ví dụ:
-        <Route path="patients" element={<AssistantPatients />} />
-    */}
-  </Route>,
-];
+const AssistantRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<AssistantLayout />}>
+        <Route index element={<AssistantDashboard />} />
+        <Route path="dashboard" element={<AssistantDashboard />} />
+        {/* thêm các route con khác ở đây */}
+        <Route path="shift-schedule" element={<ShiftSchedule />} />
+      </Route>
+    </Routes>
+  );
+};
 
-export default assistantRoutes;
+export default memo(AssistantRoutes);

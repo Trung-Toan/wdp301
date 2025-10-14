@@ -5,7 +5,8 @@ import { useSessionStorage } from "./hooks/useSessionStorage.js";
 import RouterOwner from "./routes/RouterOwner.js";
 import RouterDoctor from "./routes/RouterDoctor.js";
 import DoctorLayout from "./layouts/DoctorLayout.js";
-import { assistantRoutes } from "./routes/RouterAssistant.js";
+import AssistantRoutes from "./routes/RouterAssistant.js";
+import AssistantLayout from "./layouts/AssistantLayout.js";
 
 function App() {
   const navigate = useNavigate();
@@ -37,7 +38,11 @@ function App() {
       location.pathname === "/doctor/record-requests" ||
       location.pathname === "/doctor/assistants" ||
       location.pathname === "/doctor/absence" ||
-      location.pathname === "/assistant/dashboard"
+      location.pathname === "/assistant/dashboard" ||
+      location.pathname === "/assistant/patients" ||
+      location.pathname === "/assistant/shiftschedule" ||
+      location.pathname === "/assistant/appointments" ||
+      location.pathname === "/doctor/absence"
     ) {
       return;
     }
@@ -74,7 +79,7 @@ function App() {
   };
 
   useEffect(() => {
-    checkLogin();
+    // checkLogin();
 
     // Lắng nghe sự kiện thay đổi sessionStorage (nếu cần)
     const handleStorageChange = () => checkLogin();
@@ -91,11 +96,12 @@ function App() {
       <Route path="/*" element={<RouterUser />} />
       <Route path="/owner/*" element={<RouterOwner />} />
       <Route path="/doctor/*" element={<RouterDoctor />} />
+      <Route path="/assistant/*" element={<AssistantRoutes />} />
 
       {/* render trực tiếp các Route cho assistant */}
-      {assistantRoutes}
 
       <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
+      <Route path="/assistant-dashboard" element={<AssistantLayout />} />
     </Routes>
   );
 }

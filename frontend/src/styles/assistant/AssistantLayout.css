@@ -1,193 +1,155 @@
-/* Layout cơ bản */
+/* Assistant Layout Styles */
 .assistant-layout {
-  display: flex;
-  min-height: 100vh;
-  font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: #f8fafc;
+  @apply flex min-h-screen bg-gray-50;
 }
 
-/* Sidebar hẹp, nền trắng như trong ảnh */
+/* Sidebar Styles */
 .sidebar {
-  width: 72px;
-  background: #ffffff;
-  border-right: 1px solid #e6eef6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 6px;
-  box-sizing: border-box;
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 30;
+  @apply fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-40 flex flex-col;
 }
 
-/* Logo nhỏ trên cùng */
+.sidebar-open {
+  @apply w-64;
+}
+
+.sidebar-closed {
+  @apply w-20;
+}
+
 .sidebar-header {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 6px 0 12px;
-  box-sizing: border-box;
+  @apply p-4 border-b border-gray-200;
+}
+
+.sidebar-logo {
+  @apply flex items-center gap-3;
+}
+
+.logo-icon {
+  @apply w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center flex-shrink-0;
 }
 
 .logo-text {
-  display: none; /* ẩn text logo để giữ gọn */
+  @apply text-xl font-bold text-gray-800 whitespace-nowrap;
 }
 
-/* Menu dọc, chữ nhỏ, icon rõ */
 .sidebar-nav {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 6px;
-  box-sizing: border-box;
+  @apply flex-1 py-6 px-3 overflow-y-auto;
 }
 
 .nav-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 10px 8px;
-  color: #111827;
-  text-decoration: none;
-  font-size: 12px;
-  border-radius: 8px;
-  box-sizing: border-box;
-  transition: background-color 0.12s, color 0.12s;
-}
-
-/* Icon canh giữa, text hiển thị nhỏ bên cạnh */
-.nav-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #374151;
-  min-width: 28px;
-  min-height: 28px;
-}
-
-/* Giữ text, nhưng hiển thị nhỏ (giống ảnh) */
-.nav-text {
-  display: inline-block;
-  font-size: 12px;
-  color: #374151;
-  white-space: nowrap;
-}
-
-/* Khi thu nhỏ muốn trông gọn: ẩn text nếu không đủ chỗ */
-@media (max-width: 1200px) {
-  .nav-text {
-    display: none;
-  }
-}
-
-/* Hover / active */
-.nav-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  @apply flex items-center gap-3 px-4 py-3 mb-2 rounded-lg text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 no-underline;
 }
 
 .nav-item-active {
-  background: #eef2ff;
-  color: #0f172a;
-  box-shadow: inset 2px 0 0 #3b82f6;
+  @apply bg-blue-600 text-white hover:bg-blue-700 hover:text-white;
 }
 
-/* Footer / logout */
+.nav-icon {
+  @apply flex-shrink-0;
+}
+
+.nav-text {
+  @apply whitespace-nowrap;
+}
+
 .sidebar-footer {
-  margin-top: auto;
-  width: 100%;
-  padding: 10px 6px;
-  box-sizing: border-box;
+  @apply p-0.5 border-t border-gray-200;
 }
 
 .logout-btn {
-  width: 100%;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-start;
-  background: transparent;
-  border: none;
-  color: #6b7280;
-  font-size: 12px;
-  padding: 8px;
-  cursor: pointer;
-  border-radius: 8px;
+  @apply w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200 border-0 bg-transparent cursor-pointer;
 }
 
-.logout-btn:hover {
-  background: #f8fafc;
-  color: #111827;
-}
-
-/* Phần nội dung chính (đặt bên phải sidebar) */
+/* Main Content Styles */
 .main-content {
-  margin-left: 72px; /* đúng bằng width sidebar */
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  @apply flex-1 flex flex-col transition-all duration-300;
+  margin-left: 16rem;
+  /* 64 * 4 = 256px = w-64 */
 }
 
-/* Header đơn giản, nền trắng như ảnh 1 */
+.sidebar-closed ~ .main-content {
+  margin-left: 5rem;
+  /* 20 * 4 = 80px = w-20 */
+}
+
+/* Header Styles */
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #e6eef6;
-  box-shadow: none;
+  @apply sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between;
 }
 
-/* Nút thu/gọn (giữ nhỏ) */
 .toggle-sidebar-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #374151;
-  padding: 6px;
+  @apply p-2 rounded-lg hover:bg-gray-100 transition-colors border-0 bg-transparent cursor-pointer text-gray-600;
 }
 
-/* Nội dung trang */
+.header-right {
+  @apply flex items-center gap-4;
+}
+
+.notification-btn {
+  @apply relative p-2 rounded-lg hover:bg-gray-100 transition-colors border-0 bg-transparent cursor-pointer text-gray-600;
+}
+
+.notification-badge {
+  @apply absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center;
+}
+
+.user-profile {
+  @apply flex items-center gap-3 pl-4 border-l border-gray-200;
+}
+
+.user-info {
+  @apply flex flex-col;
+}
+
+.user-name {
+  @apply text-sm font-semibold text-gray-800;
+}
+
+.user-role {
+  @apply text-xs text-gray-500;
+}
+
+/* Page Content */
 .page-content {
-  padding: 20px;
-  background: #ffffff;
-  min-height: calc(100vh - 64px);
+  @apply flex-1 p-6;
 }
 
-/* Footer */
+/* Footer Styles */
 .footer {
-  padding: 12px 20px;
-  background: #ffffff;
-  border-top: 1px solid #e6eef6;
-  text-align: center;
-  color: #64748b;
-  font-size: 13px;
+  @apply bg-white border-t border-gray-200 py-4 px-6;
 }
 
-/* Tinh chỉnh responsive */
+.footer-content {
+  @apply flex items-center justify-between;
+}
+
+.footer-text {
+  @apply text-sm text-gray-600 m-0;
+}
+
+.footer-links {
+  @apply flex gap-6;
+}
+
+.footer-link {
+  @apply text-sm text-gray-600 hover:text-blue-600 transition-colors no-underline;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .sidebar {
-    width: 64px;
+    @apply -translate-x-full;
+  }
+
+  .sidebar-open {
+    @apply translate-x-0;
   }
 
   .main-content {
-    margin-left: 64px;
+    @apply ml-0;
   }
 
-  .nav-icon {
-    min-width: 24px;
-    min-height: 24px;
-  }
-
-  .nav-item {
-    padding: 8px;
+  .sidebar-closed ~ .main-content {
+    @apply ml-0;
   }
 }
