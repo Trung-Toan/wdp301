@@ -16,8 +16,12 @@ export function DoctorBookingCalendar({ doctor }) {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
+    if (!doctor) return null; // bảo vệ nếu doctor chưa có
+
+    const schedule = doctor.schedule || []; // fallback nếu undefined
+
     // === Xác định các ngày bác sĩ làm việc (0 = CN, 1 = Thứ 2, … 6 = Thứ 7)
-    const workingDays = doctor.schedule.map((dayObj) => {
+    const workingDays = schedule.map((dayObj) => {
         const dayMap = { "Chủ nhật": 0, "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3, "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6 };
         return dayMap[dayObj.day];
     });
@@ -25,7 +29,7 @@ export function DoctorBookingCalendar({ doctor }) {
     // === Khi chọn ngày, xác định thứ trong tuần để lấy khung giờ tương ứng
     const selectedDayOfWeek = selectedDate ? getDay(selectedDate) : null;
     const availableSlots =
-        doctor.schedule.find((s) => {
+        schedule.find((s) => {
             const dayMap = { "Chủ nhật": 0, "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3, "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6 };
             return dayMap[s.day] === selectedDayOfWeek;
         })?.slots || [];
@@ -97,7 +101,7 @@ export function DoctorBookingCalendar({ doctor }) {
                 <div className="pt-4 border-t">
                     <div className="flex justify-between mb-4">
                         <span className="text-muted-foreground">Giá khám:</span>
-                        <span className="text-xl font-bold text-primary">{doctor.price}</span>
+                        <span className="text-xl font-bold text-primary">{doctor.price || "Chưa có giá"}</span>
                     </div>
                     <Link
                         to={`/home/doctordetail/${id}/booking`}

@@ -8,4 +8,9 @@ export const doctorApi = {
     // Lấy bác sĩ theo chuyên khoa
     getBySpecialty: (specialtyId) =>
         axiosInstance.get("/doctor/by-specialty", { params: { specialtyId } }),
+
+    // Lấy bác sĩ theo ID
+    getById: (id) =>
+        axiosInstance.get(`/doctor/${id}`),
 };
+
