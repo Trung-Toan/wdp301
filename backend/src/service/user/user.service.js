@@ -2,22 +2,22 @@ const User = require("../../model/user/User");
 const Patient = require('../../model/patient/Patient');
 
 exports.findUserByAccountId = async (accountId) => {
-    const user = await User.findOne({ account_id: accountId }).populate('account_id', '_id role');
-    const fomatUser = {
-        _id: user._id,
-        full_name: user.full_name,
-        dob: user.dob,
-        gender: user.gender,
-        address: user.address,
-        avatar_url: user.avatar_url,
-        account_id: {
-            _id: user.account_id._id,
-            role: user.account_id.role
-        },
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-    }
-    return fomatUser;
+  const user = await User.findOne({ account_id: accountId }).populate('account_id', '_id role');
+  const fomatUser = {
+    _id: user._id,
+    full_name: user.full_name,
+    dob: user.dob,
+    gender: user.gender,
+    address: user.address,
+    avatar_url: user.avatar_url,
+    account_id: {
+      _id: user.account_id._id,
+      role: user.account_id.role
+    },
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+  }
+  return fomatUser;
 }
 
 /**
@@ -33,24 +33,26 @@ exports.getUsersFromPatientIds = async (patientIds) => {
 
   // Lấy danh sách bệnh nhân và user_id tương ứng
   const patients = await Patient.find({ _id: { $in: patientIds } })
-    .select('_id user_id')
+    .select('_id patient_code user_id')
+    .populate({
+      path: 'user_id',
+      select: "_id full_name account_id",
+      populate: {
+        path: 'account_id',
+        select: '_id email email phone_number'
+      }
+    })
     .lean();
 
-  // Map bệnh nhân thành cặp { patient_id, user_id }
-  const patientMap = new Map(patients.map(p => [p.user_id.toString(), p._id]));
-
-  // Lấy danh sách user_id
-  const userIds = patients.map(p => p.user_id);
-
-  // Lấy danh sách user tương ứng
-  const users = await User.find({ _id: { $in: userIds } }).lean();
-
-  // Gắn thêm trường patient_id vào từng user
-  const usersWithPatientId = users.map(user => ({
-    ...user,
-    id: patientMap.get(user._id.toString()) || null,
-    user_id: user._id
+  const patient = patients.map(p => ({
+    patient_id: p._id,
+    user_id: p.user_id._id,
+    account_id: p.user_id.account_id._id,
+    patient_code: p.patient_code,
+    full_name: p.user_id.full_name,
+    email: p.user_id.account_id.email,
+    phone_number: p.user_id.account_id.phone_number,
   }));
 
-  return usersWithPatientId;
+  return patient;
 };

@@ -21,7 +21,7 @@ exports.viewListPatients = async (req, res) => {
     // 3. Trả về response thành công với dữ liệu đã được định dạng
     return resUtils.paginatedResponse(
       res,
-      { patients: formattedPatients },
+      formattedPatients,
       pagination,
       "Lấy danh sách bệnh nhân thành công."
     );
@@ -39,9 +39,7 @@ exports.viewPatientById = async (req, res) => {
 
     return resUtils.successResponse(
       res,
-      {
-        patients: formatDataUtils.formatData(patient) || null,
-      },
+      formatDataUtils.formatData(patient) || null,
       "Lấy thông tin bệnh nhân thành công."
     );
   } catch (error) {
@@ -71,12 +69,10 @@ exports.viewPatientByCode = async (req, res) => {
 };
 
 /* ========================= APPOINTMENTS ========================= */
-// GET /appointments
+// GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
-  const { appointments, pagination } =
-    await appointmentService.getListAppointments(req);
-  const formattedAppointments =
-    appointments.map((a) => formatDataUtils.formatData(a)) || [];
+  const { appointments, pagination } = await appointmentService.getListAppointments(req);
+  const formattedAppointments = appointments.map((a) => formatDataUtils.formatData(a)) || [];
   return resUtils.paginatedResponse(
     res,
     { appointments: formattedAppointments },

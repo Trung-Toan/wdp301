@@ -6,7 +6,7 @@ const { authRequired, roleRequired } = require("./../../middleware/auth");
 const DoctorController = require("../../controller/doctor/doctor.controler");
 
 /* ========================= PATIENTS ========================= */
-// GET /patients?page=1
+// GET /patients?page=1&limit=10&sarch=""
 // view list patient of doctor with pagination
 router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.viewListPatients);
 
@@ -14,12 +14,8 @@ router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.v
 // view information patient by patientId
 router.get("/patients/:patientId", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientById);
 
-// GET /patients/code/:patientCode
-// view information patient by code patient
-router.get("/patients/code/:patientCode", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientByCode);
-
 /* ========================= APPOINTMENTS ========================= */
-// GET /appointments?page=1
+// GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 // view list appointment of doctor with pagination
 router.get("/appointments", authRequired, roleRequired("DOCTOR"), DoctorController.viewAppointments);
 

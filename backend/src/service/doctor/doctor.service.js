@@ -51,7 +51,7 @@ exports.findDoctorByAccountId = async (accountId) => {
  * @returns {Promise<object>}
  */
 exports.getListPatients = async (req) => {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, search = "" } = req.query;
 
     try {
         // Bước 1: Xác thực và lấy thông tin bác sĩ
@@ -61,7 +61,7 @@ exports.getListPatients = async (req) => {
         if (!doctor) throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ.');
 
         // Bước 2: Lấy toàn bộ ID bệnh nhân hợp lệ
-        const allPatientIds = await appointmentService.uniquePatientIdsWithAppointmentIsCompleted(doctor._id);
+        const allPatientIds = await appointmentService.uniquePatientIdsWithAppointmentIsCompleted(doctor._id, search);
         const totalPatients = allPatientIds.length;
 
         if (totalPatients === 0) {
