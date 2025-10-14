@@ -72,25 +72,10 @@ exports.viewPatientByCode = async (req, res) => {
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
   const { appointments, pagination } = await appointmentService.getListAppointments(req);
-  const formattedAppointments = appointments.map((a) => formatDataUtils.formatData(a)) || [];
-  return resUtils.paginatedResponse(
-    res,
-    { appointments: formattedAppointments },
-    pagination,
-    "Lấy danh sách cuộc hẹn thành công."
-  );
-};
 
-// GET /appointments/status/:status?page=1
-exports.viewAppointmentsByStatus = async (req, res) => {
-  const { appointments, pagination } =
-    await appointmentService.getListAppointments(req);
   return resUtils.paginatedResponse(
     res,
-    {
-      appointments:
-        appointments.map((a) => formatDataUtils.formatData(a)) || [],
-    },
+    appointments,
     pagination,
     "Lấy danh sách cuộc hẹn thành công."
   );
@@ -101,7 +86,7 @@ exports.viewAppointmentDetail = async (req, res) => {
   const { appointment } = await appointmentService.getAppointmentById(req);
   return resUtils.successResponse(
     res,
-    { appointment: formatDataUtils.formatData(appointment) || null },
+    appointment,
     "Lấy thông tin cuộc hẹn thành công."
   );
 };
