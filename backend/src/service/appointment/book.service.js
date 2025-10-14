@@ -1,3 +1,6 @@
+const mongoose = require("mongoose");
+const { Types } = mongoose;
+
 const Appointment = require("../../model/appointment/Appointment");
 const Slot = require("../../model/appointment/Slot");
 const Patient = require("../../model/patient/Patient");
@@ -87,4 +90,30 @@ async function getByIdAsync(id) {
     return data;
 }
 
-module.exports = { createAsync, getByIdAsync };
+async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 10 }) {
+    const filter = { patient_id: new Types.ObjectId(patientId) };
+    if (status) filter.status = status;
+
+    const skip = (page - 1) * limit;
+
+    const appointments = await Appointment.find(filter)
+        .select("status booked_at scheduled_date fee_amount booking_code slot_id")
+        .populate("slot_id", "start_time end_time")
+        .sort({ booked_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const total = await Appointment.countDocuments(filter);
+
+    return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        data: appointments,
+    };
+}
+
+
+module.exports = { createAsync, getByIdAsync, getAppointmentsByPatient };

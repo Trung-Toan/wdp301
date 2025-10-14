@@ -1,4 +1,6 @@
 const svc = require("../../service/appointment/book.service");
+const mongoose = require("mongoose");
+const { Types } = mongoose;
 
 const ok = (res, data, status = 200) => res.status(status).json({ success: true, data });
 const fail = (res, err, status = 500) =>
@@ -22,5 +24,26 @@ exports.getById = async (req, res) => {
         return ok(res, result);
     } catch (err) {
         return fail(res, err, 404);
+    }
+};
+
+exports.getByPatient = async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(patientId)) {
+            return fail(res, new Error("Invalid patientId ObjectId."), 400);
+        }
+
+        const { status, page, limit } = req.query;
+
+        const result = await svc.getAppointmentsByPatient(patientId, {
+            status,
+            page: Number(page) || 1,
+            limit: Number(limit) || 10,
+        });
+
+        return ok(res, result);
+    } catch (err) {
+        return fail(res, err);
     }
 };
