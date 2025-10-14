@@ -101,14 +101,14 @@ exports.getListAppointments = async (req) => {
         throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ.');
     }
 
-    const { 
-        page = 1, 
-        limit = 10, 
-        status = null, 
-        slot = (await slotService.getSlotAtNowByDocterId(doctor._id))._id, 
-        date = new Date() 
+    const {
+        page = 1,
+        limit = 10,
+        status = null,
+        slot = (await slotService.getSlotAtNowByDocterId(doctor._id))._id,
+        date = new Date()
     } = req.query;
-    
+
     // Ép kiểu số nguyên
     const currentPage = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
@@ -128,34 +128,92 @@ exports.getListAppointments = async (req) => {
     const totalPages = Math.ceil(totalAppointments / limitNumber);
 
     // Lấy danh sách lịch hẹn có phân trang
-    const appointments = await Appointment.find({
-        doctor_id: doctor._id,
-        ...(status ? { status } : {}),
-        slot_id: slot,
-        scheduled_date: date
-    })
+    const appointments = await Appointment
+        .find({
+            doctor_id: doctor._id,
+            ...(status ? { status } : {}),
+            slot_id: slot,
+            scheduled_date: date
+        })
+        .select("_id slot_id patient_id scheduled_date status created_at")
+        .populate("slot_id", "start_time end_time")
+        .populate("patient_id", "full_name phone_number")
         .lean()
         .sort({ appointment_date: -1 })
         .skip(skip)
         .limit(limitNumber);
 
+    const formData = appointments.map(app => ({
+        appointment_id: app._id,
+        slot_id: app.slot_id._id,
+        patient_id: app.patient_id._id,
+        scheduled_date: app.scheduled_date,
+        status: app.status,
+        created_at: app.created_at,
+        start_time: app.slot_id.start_time,
+        end_time: app.slot_id.end_time,
+        full_name: app.patient_id.full_name,
+        phone_number: app.patient_id.phone_number
+    }));
+
     // Trả về cùng định dạng bạn đang dùng
     return {
-        appointments: appointments,
+        appointments: formData,
         pagination: {
             totalItems: totalAppointments,
             totalPages: totalPages,
             currentPage: currentPage,
             limit: limitNumber,
-        },
+        }
     };
 };
 
 exports.getAppointmentById = async (req) => {
     try {
-        const appointmentId = req.params.appointmentId;
-        const appointment = await Appointment.findById(appointmentId).lean();
-        return { appointment };
+        const {appointmentId} = req.params;
+        const appointment = await Appointment
+            .findById(appointmentId)
+            .populate("slot_id", "start_time end_time")
+            .populate({
+                path: "patient_id",
+                select: "patient_code user_id",
+                populate: { 
+                    path: "user_id", 
+                    select: "full_name account_id",
+                    populate: {
+                        path: "account_id",
+                        select: "email phone_number"
+                    }
+                }
+            })
+            .populate("specialty_id", "name")
+            .lean();
+        const formattedAppointment = {
+            patient: {
+                id: appointment.patient_id._id,
+                patient_code: appointment.patient_id.patient_code,
+                full_name: appointment.patient_id.user_id.full_name,
+                email: appointment.patient_id.user_id.account_id.email,
+                phone_number: appointment.patient_id.user_id.account_id.phone_number,
+            },
+            appointment: {
+                id: appointment._id,
+                slot: {
+                    id: appointment.slot_id._id,
+                    start_time: appointment.slot_id.start_time,
+                    end_time: appointment.slot_id.end_time,
+                },
+                scheduled_date: appointment.scheduled_date,
+                status: appointment.status,
+                specialty: appointment.specialty_id ? {
+                    id: appointment.specialty_id._id,
+                    name: appointment.specialty_id.name,
+                } : null,
+                reason: appointment.reason,
+                created_at: appointment.createdAt,
+            },
+        };
+        return { appointment: formattedAppointment };
     } catch (error) {
         console.error("Lỗi khi tìm cuộc hẹn bằng ID:", error);
         return null;

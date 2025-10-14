@@ -22,10 +22,6 @@ router.get("/patients/:patientId", authRequired, roleRequired("DOCTOR"), DoctorC
 // view list appointment of doctor with pagination
 router.get("/appointments", authRequired, roleRequired("DOCTOR"), DoctorController.viewAppointments);
 
-// GET /appointments/status/:status?page=1
-// view list appointment of doctor by status with pagination
-router.get("/appointments/status/:status", authRequired, roleRequired("DOCTOR"), DoctorController.viewAppointmentsByStatus);
-
 // GET /appointments/:appointmentId
 // view detail appointment by appointmentId
 router.get("/appointments/:appointmentId", authRequired, roleRequired("DOCTOR"), DoctorController.viewAppointmentDetail);
