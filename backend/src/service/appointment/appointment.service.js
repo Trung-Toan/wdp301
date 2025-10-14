@@ -101,8 +101,14 @@ exports.getListAppointments = async (req) => {
         throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ.');
     }
 
-    const { page = 1, limit = 10, status = null, slot = await slotService.getSlotAtNowByDocterId(doctor._id), date = new Date() } = req.query;
-
+    const { 
+        page = 1, 
+        limit = 10, 
+        status = null, 
+        slot = (await slotService.getSlotAtNowByDocterId(doctor._id))._id, 
+        date = new Date() 
+    } = req.query;
+    
     // Ép kiểu số nguyên
     const currentPage = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
@@ -112,14 +118,22 @@ exports.getListAppointments = async (req) => {
 
     // Đếm tổng số lịch hẹn
     const totalAppointments = await Appointment.countDocuments({
-        doctor_id: doctor._id, ...(status ? { status } : {}), slot_id: slot, 
+        doctor_id: doctor._id,
+        ...(status ? { status } : {}),
+        slot_id: slot,
+        scheduled_date: date
     });
 
     // Tính tổng số trang
     const totalPages = Math.ceil(totalAppointments / limitNumber);
 
     // Lấy danh sách lịch hẹn có phân trang
-    const appointments = await Appointment.find({ doctor_id: doctor._id, ...(status ? { status } : {}) })
+    const appointments = await Appointment.find({
+        doctor_id: doctor._id,
+        ...(status ? { status } : {}),
+        slot_id: slot,
+        scheduled_date: date
+    })
         .lean()
         .sort({ appointment_date: -1 })
         .skip(skip)

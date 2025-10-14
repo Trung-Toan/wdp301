@@ -2,15 +2,20 @@ const Slot = require("../../model/appointment/Slot");
 
 exports.getSlotAtNowByDocterId = async (doctor_id) => {
     const now = new Date();
-
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    const slot = await Slot.findOne({
-        start_time: { $lte: currentMinutes }, 
-        end_time: { $gte: currentMinutes },  
-        doctor_id: doctor_id,
-        status: "AVAIABLE"
+    let nowMinutes = now.getHours() * 60 + now.getMinutes();
+    nowMinutes = 490; // testing 8:10 AM
+    const slots = await Slot.find({
+        doctor_id,
+        status: "AVAILABLE"
     }).lean();
+
+    const slot = slots.find(s => {
+        const start = new Date(s.start_time);
+        const end = new Date(s.end_time);
+        const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes();
+        const endMinutes = end.getUTCHours() * 60 + end.getUTCMinutes();
+        return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+    });
 
     return slot || null;
 };
