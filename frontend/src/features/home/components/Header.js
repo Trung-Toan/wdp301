@@ -27,37 +27,15 @@ export default function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-8">
-<<<<<<< HEAD
-          <Link to="/home" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-              <span className="text-xl font-bold text-white">M+</span>
-            </div>
-            <span className="text-xl font-bold text-gray-800">MediSched</span>
-=======
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
               <span className="text-xl font-bold text-white">H+</span>
             </div>
             <span className="text-xl font-bold text-gray-800">HealthCare</span>
->>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
           </Link>
 
           {/* Menu Desktop */}
           <nav className="hidden items-center gap-6 md:flex">
-<<<<<<< HEAD
-            <Link to="/home" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
-              Trang chủ
-            </Link>
-            <a href="/home/specialty" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Chuyên khoa
-            </a>
-            <a href="/home/doctorlist" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Bác sĩ
-            </a>
-            <a href="/home/appointment" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
-              Lịch Hẹn
-            </a>
-=======
             <Link to="/" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">
               Trang chủ
             </Link>
@@ -67,7 +45,6 @@ export default function Header() {
             <a href="#doctors" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Bác sĩ
             </a>
->>>>>>> 29a14564fe27655d89a78025a7fa7933b7966dd2
             <a href="#facilities" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors">
               Cơ sở y tế
             </a>
