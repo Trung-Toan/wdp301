@@ -7,14 +7,10 @@ import {
   X,
   Calendar,
   Phone,
-  Mail,
-  MapPin,
-  Droplet,
-  Activity,
   AlertCircle,
 } from "lucide-react";
-import { getPatients } from "../../services/doctorService";
 import "../../styles/doctor/patient-list.css";
+import { doctorApi } from "../../api/doctor/doctorApi";
 
 const PatientList = () => {
   const navigate = useNavigate();
@@ -23,18 +19,25 @@ const PatientList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 5;
 
+  // Gọi danh sách bệnh nhân
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [page, searchTerm]);
 
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const doctorId = "DOC001"; // Replace with actual logged-in doctor ID
-      const response = await getPatients(doctorId);
-      if (response.success) {
-        setPatients(response.data);
+      const res = await doctorApi.getAllPatient(page, limit, searchTerm);
+      const data = await res.data;
+      if (data.ok) {
+        setPatients(data.data || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+      } else {
+        setPatients([]);
       }
     } catch (error) {
       console.error("Error fetching patients:", error);
@@ -43,25 +46,30 @@ const PatientList = () => {
     }
   };
 
-  const filteredPatients = patients.filter((patient) => {
-    const fullName = patient?.full_name || patient?.user?.full_name || "";
-    const phone = patient?.account_id?.phone_number || "";
-    const email = patient?.account_id?.email || "";
-    return (
-      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      phone.includes(searchTerm) ||
-      email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  // Gọi chi tiết bệnh nhân
+  const fetchPatientDetails = async (patientId) => {
+    try {
+      setLoading(true);
+      const res = await doctorApi.getPatientById(patientId);
+      const data = await res.data;
+      if (data.ok) {
+        setSelectedPatient(data.data);
+        setShowModal(true);
+      }
+    } catch (error) {
+      console.error("Error fetching patient details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleViewDetails = (patient) => {
-    setSelectedPatient(patient);
-    setShowModal(true);
+    fetchPatientDetails(patient.patient_id);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setTimeout(() => setSelectedPatient(null), 300); // Delay to allow animation
+    setTimeout(() => setSelectedPatient(null), 300);
   };
 
   const calculateAge = (dob) => {
@@ -100,7 +108,10 @@ const PatientList = () => {
             type="text"
             placeholder="Tìm kiếm theo tên, số điện thoại hoặc email..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
             className="search-input"
           />
         </div>
@@ -114,8 +125,8 @@ const PatientList = () => {
               <tr>
                 <th>Mã BN</th>
                 <th>Họ và tên</th>
-                <th>Tuổi</th>
-                <th>Giới tính</th>
+                <th>Email</th>
+                <th>SĐT</th>
                 <th className="text-center">Thao tác</th>
               </tr>
             </thead>
@@ -129,7 +140,7 @@ const PatientList = () => {
                     </div>
                   </td>
                 </tr>
-              ) : filteredPatients.length === 0 ? (
+              ) : patients.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="empty-state">
                     <div className="empty-content">
@@ -139,60 +150,68 @@ const PatientList = () => {
                   </td>
                 </tr>
               ) : (
-                filteredPatients.map((patient, index) => {
-                  const fullName =
-                    patient?.full_name || patient?.user?.full_name || "N/A";
-                  const dob = patient?.dob || patient?.user?.dob;
-                  const gender =
-                    patient?.gender || patient?.user?.gender || "N/A";
-                  const patientId = patient?._id || patient?.user?._id;
-
-                  return (
-                    <tr key={patientId || index}>
-                      <td className="patient-id">
-                        #{(index + 1).toString().padStart(4, "0")}
-                      </td>
-                      <td>
-                        <div className="patient-avatar-wrapper">
-                          <div className="patient-avatar">
-                            {fullName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="patient-name">{fullName}</span>
+                patients.map((patient, index) => (
+                  <tr key={patient.patient_id || index}>
+                    <td className="patient-id">#{patient.patient_code}</td>
+                    <td>
+                      <div className="patient-avatar-wrapper">
+                        <div className="patient-avatar">
+                          {patient.full_name.charAt(0).toUpperCase()}
                         </div>
-                      </td>
-                      <td>{calculateAge(dob)}</td>
-                      <td>{gender}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            onClick={() => handleViewDetails(patient)}
-                            className="action-btn action-btn-view"
-                            title="Xem chi tiết"
-                          >
-                            <Eye size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        <span className="patient-name">{patient.full_name}</span>
+                      </div>
+                    </td>
+                    <td>{patient.email || "N/A"}</td>
+                    <td>{patient.phone_number || "N/A"}</td>
+                    <td className="text-center">
+                      <button
+                        onClick={() => handleViewDetails(patient)}
+                        className="action-btn action-btn-view"
+                        title="Xem chi tiết"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        <div className="pagination-controls">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="pagination-btn"
+          >
+            Trang trước
+          </button>
+          <span className="pagination-info">
+            Trang {page}/{totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="pagination-btn"
+          >
+            Trang sau
+          </button>
+        </div>
       </div>
 
-      {showModal && (
+      {/* Modal chi tiết bệnh nhân */}
+      {showModal && selectedPatient && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Nền mờ */}
+          {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/40 transition-opacity duration-300"
             onClick={handleCloseModal}
           ></div>
 
-          {/* Panel trượt bên phải */}
+          {/* Panel */}
           <div className="relative z-50 w-full sm:w-[600px] h-full bg-white shadow-2xl rounded-l-2xl transform transition-transform duration-300 translate-x-0 flex flex-col">
-            {/* Header */}
             <div className="flex justify-between items-center p-4 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <FileText className="text-blue-500" size={20} />
@@ -206,30 +225,18 @@ const PatientList = () => {
               </button>
             </div>
 
-            {/* Nội dung */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {/* Avatar + tên */}
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 flex items-center justify-center bg-blue-100 text-blue-600 text-xl font-bold rounded-full">
-                  {(
-                    selectedPatient?.full_name ||
-                    selectedPatient?.user?.full_name ||
-                    "?"
-                  )
-                    .charAt(0)
-                    .toUpperCase()}
+                  {selectedPatient.full_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">
-                    {selectedPatient?.full_name ||
-                      selectedPatient?.user?.full_name ||
-                      "N/A"}
+                    {selectedPatient.full_name}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Mã BN: #
-                    {selectedPatient?._id ||
-                      selectedPatient?.user?._id ||
-                      "N/A"}
+                    Mã BN: #{selectedPatient.patient_code}
                   </p>
                 </div>
               </div>
@@ -241,30 +248,13 @@ const PatientList = () => {
                   Thông tin liên hệ
                 </h4>
                 <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
-                  <p className="flex items-center gap-2">
-                    <Phone size={16} className="text-gray-500" />
-                    <span className="font-medium">Số điện thoại:</span>
-                    <span>
-                      {selectedPatient?.user?.account_id?.phone_number ||
-                        "Chưa cập nhật"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Email:</span>{" "}
+                    {selectedPatient.email || "Chưa cập nhật"}
                   </p>
-                  <p className="flex items-center gap-2 break-words">
-                    <Mail size={16} className="text-gray-500" />
-                    <span className="font-medium">Email:</span>
-                    <span>
-                      {selectedPatient?.user?.account_id?.email ||
-                        "Chưa cập nhật"}
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <MapPin size={16} className="text-gray-500 mt-1" />
-                    <span className="font-medium">Địa chỉ:</span>
-                    <span>
-                      {selectedPatient?.address ||
-                        selectedPatient?.user?.address ||
-                        "Chưa cập nhật"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Số điện thoại:</span>{" "}
+                    {selectedPatient.phone_number || "Chưa cập nhật"}
                   </p>
                 </div>
               </div>
@@ -276,30 +266,21 @@ const PatientList = () => {
                   Thông tin cá nhân
                 </h4>
                 <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
-                  <p className="flex items-center gap-2">
-                    <Calendar size={16} className="text-gray-500" />
-                    <span className="font-medium">Ngày sinh:</span>
-                    <span>
-                      {formatDate(
-                        selectedPatient?.dob || selectedPatient?.user?.dob
-                      )}
-                    </span>
+                  <p>
+                    <span className="font-medium">Ngày sinh:</span>{" "}
+                    {formatDate(selectedPatient.dob)}
                   </p>
-                  <p className="flex items-center gap-2">
-                    <Activity size={16} className="text-gray-500" />
-                    <span className="font-medium">Giới tính:</span>
-                    <span>
-                      {selectedPatient?.gender ||
-                        selectedPatient?.user?.gender ||
-                        "Chưa cập nhật"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Giới tính:</span>{" "}
+                    {selectedPatient.gender === "MALE"
+                      ? "Nam"
+                      : selectedPatient.gender === "FEMALE"
+                      ? "Nữ"
+                      : "Khác"}
                   </p>
-                  <p className="flex items-center gap-2">
-                    <Droplet size={16} className="text-gray-500" />
-                    <span className="font-medium">Nhóm máu:</span>
-                    <span>
-                      {selectedPatient?.blood_type || "Chưa cập nhật"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Nhóm máu:</span>{" "}
+                    {selectedPatient.blood_type || "Chưa cập nhật"}
                   </p>
                 </div>
               </div>
@@ -311,44 +292,23 @@ const PatientList = () => {
                   Thông tin y tế
                 </h4>
                 <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
-                  <p className="flex items-start gap-2">
-                    <AlertCircle size={16} className="text-gray-500 mt-1" />
-                    <span className="font-medium">Dị ứng:</span>
-                    <span>
-                      {selectedPatient?.allergies?.length > 0 ? selectedPatient?.allergies : "Không có thông tin"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Dị ứng:</span>{" "}
+                    {selectedPatient.allergies?.length
+                      ? selectedPatient.allergies.join(", ")
+                      : "Không có thông tin"}
                   </p>
-                  <p className="flex items-start gap-2">
-                    <Activity
-                      size={16}
-                      className="text-gray-500 mt-1 shrink-0"
-                    />
-                    <span className="font-medium">Bệnh mãn tính:</span>
-                    <span className="text-gray-700">
-                      {selectedPatient?.chronic_diseases?.length > 0
-                        ? selectedPatient.chronic_diseases.map((disease, i) => (
-                            <span key={i} className="block">
-                              • {disease}
-                            </span>
-                          ))
-                        : "Không có thông tin"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Bệnh mãn tính:</span>{" "}
+                    {selectedPatient.chronic_diseases?.length
+                      ? selectedPatient.chronic_diseases.join(", ")
+                      : "Không có thông tin"}
                   </p>
-                  <p className="flex items-start gap-2">
-                    <FileText
-                      size={16}
-                      className="text-gray-500 mt-1 shrink-0"
-                    />
-                    <span className="font-medium">Lịch sử phẫu thuật:</span>
-                    <span className="text-gray-700">
-                      {selectedPatient?.surgery_history?.length > 0
-                        ? selectedPatient.surgery_history.map((surgery, i) => (
-                            <span key={i} className="block">
-                              • {surgery}
-                            </span>
-                          ))
-                        : "Không có thông tin"}
-                    </span>
+                  <p>
+                    <span className="font-medium">Lịch sử phẫu thuật:</span>{" "}
+                    {selectedPatient.surgery_history?.length
+                      ? selectedPatient.surgery_history.join(", ")
+                      : "Không có thông tin"}
                   </p>
                 </div>
               </div>
@@ -359,11 +319,7 @@ const PatientList = () => {
               <button
                 onClick={() => {
                   handleCloseModal();
-                  navigate(
-                    `/doctor/medical-records/?patientId=${
-                      selectedPatient?._id || selectedPatient?.user?._id
-                    }`
-                  );
+                  navigate(`/doctor/medical-records/?patientId=${selectedPatient.patient_id}`);
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
               >

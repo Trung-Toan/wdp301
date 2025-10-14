@@ -31,11 +31,10 @@ const Login = () => {
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
     onSuccess: (data) => {
-      const token = data.token;
       const refreshToken = data.tokens.refreshToken;
       const user = data.account;
 
-      setSessionStorage("token", token);
+      setSessionStorage("token", data.tokens.accessToken);
       setSessionStorage("refreshToken", refreshToken);
       setSessionStorage("user", user);
 

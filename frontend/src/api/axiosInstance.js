@@ -10,6 +10,22 @@ export const axiosInstance = axios.create({
     },
 });
 
+axiosInstance.interceptors.request.use(
+  (config) => {
+    let token = sessionStorage.getItem("token");
+
+    if (token && token.startsWith('"') && token.endsWith('"')) {
+      token = token.slice(1, -1); // loại bỏ dấu ngoặc kép
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Bắt lỗi chung
 axiosInstance.interceptors.response.use(
     (res) => res,
