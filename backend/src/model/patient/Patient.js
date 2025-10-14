@@ -1,19 +1,16 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const patientSchema = new Schema(
-  {
-    patient_code: { type: String, unique: true, required: true },
-    blood_type: { type: String },
-    allergies: [String],
-    chronic_diseases: [String],
-    medications: [String],
-    surgery_history: [String],
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  },
-  { timestamps: true }
-);
+const patientSchema = new Schema({
+  patient_code: { type: String, unique: true, required: true },
+  user_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
 
+  blood_type: { type: String },
+  allergies: [String],
+  chronic_diseases: [String],
+  medications: [String],
+  surgery_history: [String],
+}, { timestamps: true });
 // Middleware: Tự động sinh mã bệnh nhân 8 số không trùng lặp
 patientSchema.pre("save", async function (next) {
   if (this.patient_code) return next();

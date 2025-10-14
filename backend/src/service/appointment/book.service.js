@@ -1,0 +1,119 @@
+const mongoose = require("mongoose");
+const { Types } = mongoose;
+
+const Appointment = require("../../model/appointment/Appointment");
+const Slot = require("../../model/appointment/Slot");
+const Patient = require("../../model/patient/Patient");
+const { sendBookingEmail } = require("../../mail/mail");
+
+function randomBookingCode() {
+    return `BK${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+async function createAsync(payload) {
+    const {
+        slot_id, doctor_id, patient_id, specialty_id, clinic_id,
+        full_name, phone, email, dob, gender,
+        province_code, ward_code, address_text, reason,
+    } = payload;
+
+    // 1) Kiểm tra slot
+    const slot = await Slot.findById(slot_id).lean();
+    if (!slot) throw new Error("Slot not found");
+    if (slot.status !== "AVAILABLE") throw new Error("Slot is unavailable");
+    if (slot.booked_count >= slot.max_patients) throw new Error("Slot is full");
+
+    // 2) Kiểm tra bệnh nhân
+    const patient = await Patient.findById(patient_id).lean();
+    if (!patient) throw new Error("Patient not found");
+
+    // 3) Lấy giá từ slot & tạo lịch (KHÔNG nhận fee từ client)
+    const booking_code = randomBookingCode();
+    const fee_amount = Number(slot.fee_amount ?? 0);
+
+    const appt = new Appointment({
+        slot_id, doctor_id, patient_id, specialty_id, clinic_id,
+        full_name, phone, email, dob, gender,
+        province_code, ward_code, address_text, reason,
+        booking_code,
+        fee_amount,
+
+    });
+
+    await appt.save();
+
+    // 4) Cập nhật slot
+    await Slot.findByIdAndUpdate(slot_id, { $inc: { booked_count: 1 } });
+
+    // 5) Lấy dữ liệu populate để trả về/gửi mail
+    const populated = await Appointment.findById(appt._id)
+        .populate({
+            path: "doctor_id",
+            select: "title degree avatar_url user_id",
+            populate: { path: "user_id", select: "full_name" },
+        })
+        .populate("specialty_id", "name")
+        .populate("clinic_id", "name address")
+        .lean();
+
+
+    let email_sent = false, email_error = null;
+    try {
+        await sendBookingEmail({
+            to: email,
+            subject: `[${booking_code}] Xác nhận đặt lịch khám`,
+            booking: populated,
+            doctor: populated.doctor_id,
+            clinic: populated.clinic_id,
+            specialty: populated.specialty_id,
+            slot,
+        });
+        email_sent = true;
+    } catch (e) {
+        email_error = e?.message || String(e);
+    }
+
+    return { ...populated, email_sent, email_error };
+}
+
+async function getByIdAsync(id) {
+    const data = await Appointment.findById(id)
+        .populate({
+            path: "doctor_id",
+            select: "title degree avatar_url user_id",
+            populate: { path: "user_id", select: "full_name" },
+        })
+        .populate("specialty_id", "name")
+        .populate("clinic_id", "name address")
+        .lean();
+    if (!data) throw new Error("Appointment not found");
+    return data;
+}
+
+async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 10 }) {
+    const filter = { patient_id: new Types.ObjectId(patientId) };
+    if (status) filter.status = status;
+
+    const skip = (page - 1) * limit;
+
+    const appointments = await Appointment.find(filter)
+        .select("status booked_at scheduled_date fee_amount booking_code slot_id")
+        .populate("slot_id", "start_time end_time")
+        .sort({ booked_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+    const total = await Appointment.countDocuments(filter);
+
+    return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        data: appointments,
+    };
+}
+
+
+module.exports = { createAsync, getByIdAsync, getAppointmentsByPatient };

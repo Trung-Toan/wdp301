@@ -3,6 +3,8 @@ const router = express.Router();
 const { authRequired, roleRequired } = require("./../../middleware/auth");
 const { getDoctorsBySpecialty } = require("../../controller/doctor/doctorBySpecialty.controller");
 const { getTopDoctorsController } = require("../../controller/doctor/topDoctor.controller");
+const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");
+const { getDoctorDetailController } = require("../../controller/doctor/getDoctorDetail.controller");
 
 // Import controller for doctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
@@ -124,6 +126,222 @@ router.get("/by-specialty", getDoctorsBySpecialty);
  *         description: Danh sách bác sĩ nổi bật
  */
 router.get("/top", getTopDoctorsController);
+
+/**
+ * @openapi
+ * /api/doctor/search:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Search doctors by name, clinic, specialty (accepts IDs or names)
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search keyword (doctor name / clinic name / specialty name / title / degree / workplace)
+ *       - in: query
+ *         name: clinicId
+ *         schema:
+ *           type: string
+ *         description: Accepts Clinic ObjectId or clinic name
+ *       - in: query
+ *         name: specialtyId
+ *         schema:
+ *           type: string
+ *         description: Accepts Specialty ObjectId or specialty name
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, -createdAt, rating, -rating, full_name, -full_name]
+ *           default: -createdAt
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get("/search", searchDoctorController);
+
+/**
+ * @openapi
+ * /api/doctor/{id}:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Get doctor detail (includes clinic, specialties, pricing, and available slots)
+ *     description: |
+ *       Returns detailed information of a doctor including:
+ *       - Basic info (name, degree, title, rating)
+ *       - Clinic information
+ *       - Specialties
+ *       - Pricing range (min–max)
+ *       - Upcoming available slots (optionally filtered by date)
+ *
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Doctor ObjectId
+ *
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date to filter slots (default = current time)
+ *
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date to limit returned slots (optional)
+ *
+ *       - in: query
+ *         name: limitSlot
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of upcoming slots to return
+ *
+ *     responses:
+ *       200:
+ *         description: Successful response with doctor detail and slots
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "670b7fdc13dbe13e7d558a21"
+ *                     name:
+ *                       type: string
+ *                       example: "Trần Trung Toàn"
+ *                     avatar_url:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "https://res.cloudinary.com/.../avatar.jpg"
+ *                     title:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "BS."
+ *                     degree:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "CKI"
+ *                     workplace:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Phòng khám Da liễu Trung ương"
+ *                     rating:
+ *                       type: number
+ *                       example: 4.9
+ *                     clinic:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "670b7fdc13dbe13e7d558a11"
+ *                         name:
+ *                           type: string
+ *                           example: "Phòng khám Da liễu Trung ương"
+ *                         address:
+ *                           type: string
+ *                           example: "15A Phan Chu Trinh, Hà Nội"
+ *                     specialties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "670b7fdc13dbe13e7d558a31"
+ *                           name:
+ *                             type: string
+ *                             example: "Da liễu"
+ *                           icon_url:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "https://cdn.example.com/icons/derma.svg"
+ *                     pricing:
+ *                       type: object
+ *                       properties:
+ *                         minFee:
+ *                           type: number
+ *                           example: 250000
+ *                         maxFee:
+ *                           type: number
+ *                           example: 500000
+ *                         currency:
+ *                           type: string
+ *                           example: "VND"
+ *                     slots:
+ *                       type: array
+ *                       description: Upcoming available slots
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "670b8a8d3fbd214f14a00cda"
+ *                           start_time:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-10-15T08:00:00.000Z"
+ *                           end_time:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-10-15T09:00:00.000Z"
+ *                           fee_amount:
+ *                             type: number
+ *                             example: 250000
+ *                           clinic_name:
+ *                             type: string
+ *                             example: "Phòng khám Da liễu Trung ương"
+ *
+ *       404:
+ *         description: Doctor not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: false }
+ *                 error: { type: string, example: "Doctor not found" }
+ *
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: false }
+ *                 error: { type: string, example: "Unexpected server error" }
+ */
+router.get("/:id", getDoctorDetailController);
+
 
 
 module.exports = router;
