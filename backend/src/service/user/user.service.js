@@ -2,22 +2,27 @@ const User = require("../../model/user/User");
 const Patient = require('../../model/patient/Patient');
 
 exports.findUserByAccountId = async (accountId) => {
-  const user = await User.findOne({ account_id: accountId }).populate('account_id', '_id role');
-  const fomatUser = {
-    _id: user._id,
-    full_name: user.full_name,
-    dob: user.dob,
-    gender: user.gender,
-    address: user.address,
-    avatar_url: user.avatar_url,
-    account_id: {
-      _id: user.account_id._id,
-      role: user.account_id.role
-    },
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+  try {
+    const user = await User.findOne({ account_id: accountId }).populate('account_id', '_id role');
+    const fomatUser = {
+      _id: user._id,
+      full_name: user.full_name,
+      dob: user.dob,
+      gender: user.gender,
+      address: user.address,
+      avatar_url: user.avatar_url,
+      account_id: {
+        _id: user.account_id._id,
+        role: user.account_id.role
+      },
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }
+    return fomatUser;
+  } catch (error) {
+    console.error("Lỗi khi tìm user bằng account_id:", error);
+    return null;
   }
-  return fomatUser;
 }
 
 /**

@@ -45,26 +45,7 @@ exports.viewPatientById = async (req, res) => {
   } catch (error) {
     // Xử lý lỗi nếu có
     console.error("Error in viewListPatients:", error);
-    return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
-  }
-};
-
-// GET /patients/code/:patientCode
-exports.viewPatientByCode = async (req, res) => {
-  try {
-    const { patient } = await patientService.getPatientByCode(req);
-
-    return resUtils.successResponse(
-      res,
-      {
-        patient: formatDataUtils.formatData(patient) || null,
-      },
-      "Lấy thông tin bệnh nhân thành công."
-    );
-  } catch (error) {
-    // Xử lý lỗi nếu có
-    console.error("Error in viewListPatients:", error);
-    return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(res, error.message || "Có lỗi xảy ra", 500);
   }
 };
 
@@ -86,7 +67,7 @@ exports.viewAppointmentDetail = async (req, res) => {
   const { appointment } = await appointmentService.getAppointmentById(req);
   return resUtils.successResponse(
     res,
-    appointment,
+    { appointment: formatDataUtils.formatData(appointment) || null },
     "Lấy thông tin cuộc hẹn thành công."
   );
 };
@@ -190,8 +171,28 @@ exports.viewHistoryMedicalRecordRequests = async (req, res) => {
 };
 
 /* ========================= MEDICAL RECORDS ========================= */
-// GET /doctor/patients/:patientId/medical-records
+// GET /doctor/patients/medical-records
 exports.viewListMedicalRecords = async (req, res) => {
+  try {
+    const { records, pagination } = await medicalRecordService.getListMedicalRecords(req);
+    return resUtils.paginatedResponse(
+      res,
+      records,
+      pagination,
+      "Lấy danh sách hồ sơ bệnh án thành công."
+    );
+  } catch (error) {
+    console.error("Error in viewListMedicalRecords:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy danh sách hồ sơ bệnh án."
+    );
+  }
+};
+
+// GET /doctor/patients/:patientId/medical-records
+exports.viewListMedicalRecordsByPatient = async (req, res) => {
   try {
     const { records, pagination } = await medicalRecordService.getListMedicalRecords(req);
     return resUtils.paginatedResponse(
