@@ -59,8 +59,7 @@ const AppointmentSchedule = () => {
           selectedDate,
           filterStatus
         );
-        console.log("Appointments response:", res.data);
-
+        
         if (res.data.ok) {
           setAppointments(res.data.data || []);
         } else {
@@ -108,19 +107,19 @@ const AppointmentSchedule = () => {
     : [];
 
   const getPatientName = (appointment) => {
-    return appointment?.patient?.full_name || "Chưa có thông tin";
+    return appointment?.patient?.patient_name || "Chưa có thông tin";
   };
 
   const getPatientPhone = (appointment) => {
     return (
-      appointment?.patient?.user?.account_id?.phone_number ||
+      appointment?.patient?.phone_number ||
       "Chưa có thông tin"
     );
   };
 
-  const getSpecialtyName = (appointment) => {
-    return appointment?.specialty?.name || "Chưa có thông tin";
-  };
+  // const getSpecialtyName = (appointment) => {
+  //   return appointment?.specialty?.name || "Chưa có thông tin";
+  // };
 
   const calculateAge = (dob) => {
     if (!dob) return "N/A";
@@ -134,13 +133,13 @@ const AppointmentSchedule = () => {
     }
   };
 
-  const getPatientDob = (appointment) => {
-    return (
-      appointment?.patient?.user?.dob ||
-      appointment?.patient?.dob ||
-      "Chưa có thông tin"
-    );
-  };
+  // const getPatientDob = (appointment) => {
+  //   return (
+  //     appointment?.patient?.user?.dob ||
+  //     appointment?.patient?.dob ||
+  //     "Chưa có thông tin"
+  //   );
+  // };
 
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
@@ -187,7 +186,7 @@ const AppointmentSchedule = () => {
     try {
       setLoading(true);
       const res = await doctorApi.getAppointmentById(
-        appointment.appointment_id
+        appointment?.appointment.appointment_id
       );
       if (res.data.ok) {
         setSelectedAppointment(res.data.data);
@@ -352,7 +351,7 @@ const AppointmentSchedule = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredAppointments.map((appointment, index) => {
-              const statusInfo = getStatusBadge(appointment.status);
+              const statusInfo = getStatusBadge(appointment?.appointment?.status);
               const StatusIcon = statusInfo.icon;
 
               return (
@@ -418,7 +417,7 @@ const AppointmentSchedule = () => {
                     {/* Booking Date */}
                     {appointment.createdAt && (
                       <p className="text-xs text-gray-500">
-                        Đặt lịch: {formatDate(appointment.createdAt)}
+                        Đặt lịch: {formatDate(appointment?.appointment?.scheduled_date)}
                       </p>
                     )}
                   </div>
