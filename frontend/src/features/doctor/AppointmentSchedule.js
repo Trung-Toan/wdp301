@@ -1,6 +1,4 @@
-"use client"
-
-import { memo, useState, useEffect } from "react"
+import { memo, useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
@@ -12,61 +10,72 @@ import {
   ClockHistory,
   X,
   Activity,
-} from "react-bootstrap-icons"
-import { updateAppointmentStatus, getAppointments, getSlotsByDate } from "../../services/doctorService"
-import "../../styles/doctor/appointment-schedule.css"
+} from "react-bootstrap-icons";
+import {
+  updateAppointmentStatus,
+  getAppointments,
+  getSlotsByDate,
+} from "../../services/doctorService";
+import "../../styles/doctor/appointment-schedule.css";
+import { doctorApi } from "../../api/doctor/doctorApi";
 
 const AppointmentSchedule = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
-  const [appointments, setAppointments] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState("ALL")
-  const [slots, setSlots] = useState([])
-  const [selectedSlot, setSelectedSlot] = useState(null)
-  const [showModal, setShowModal] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   useEffect(() => {
     const fetchSlots = async () => {
       try {
-        const res = await getSlotsByDate("DOC001", selectedDate)
+        const res = await getSlotsByDate("DOC001", selectedDate);
         if (res.success) {
-          setSlots(res.data || [])
+          setSlots(res.data || []);
         } else {
-          setSlots([])
+          setSlots([]);
         }
       } catch (error) {
-        console.error("Error fetching slots:", error)
-        setSlots([])
+        console.error("Error fetching slots:", error);
+        setSlots([]);
       }
-    }
+    };
 
-    fetchSlots()
-  }, [selectedDate])
+    fetchSlots();
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchAppointments = async () => {
-      setLoading(true)
       try {
-        const res = await getAppointments("DOC001", { date: selectedDate })
+        setLoading(true);
+        const res = await doctorApi.getAppointments(
+          1,
+          10,
+          selectedDate,
+          filterStatus
+        );
+        console.log("Appointments response:", res.data);
 
-        console.log("[v0] Appointments response:", res)
-
-        if (res.success) {
-          setAppointments(res.data || [])
+        if (res.data.ok) {
+          setAppointments(res.data.data || []);
         } else {
-          setAppointments([])
+          setAppointments([]);
         }
       } catch (error) {
-        console.error("Error fetching appointments:", error)
-        setAppointments([])
+        console.error("Error fetching appointments:", error);
+        setAppointments([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchAppointments()
-  }, [selectedDate])
+    fetchAppointments();
+  }, [selectedDate, filterStatus]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -82,102 +91,119 @@ const AppointmentSchedule = () => {
       },
       CANCELLED: { label: "Đã hủy", class: "status-cancelled", icon: XCircle },
       NO_SHOW: { label: "Không đến", class: "status-no-show", icon: XCircle },
-    }
-    return statusConfig[status] || statusConfig.SCHEDULED
-  }
+    };
+    return statusConfig[status] || statusConfig.SCHEDULED;
+  };
 
   const filteredAppointments = Array.isArray(appointments)
     ? appointments.filter((apt) => {
         if (filterStatus !== "ALL" && apt.status !== filterStatus) {
-          return false
+          return false;
         }
         if (selectedSlot && apt.slot_id !== selectedSlot) {
-          return false
+          return false;
         }
-        return true
+        return true;
       })
-    : []
+    : [];
 
   const getPatientName = (appointment) => {
-    return appointment?.patient?.user?.full_name || appointment?.patient?.full_name || "Chưa có thông tin"
-  }
-
-  console.log("Patient data:", appointments[0]?.patient)
+    return appointment?.patient?.full_name || "Chưa có thông tin";
+  };
 
   const getPatientPhone = (appointment) => {
-    return appointment?.patient?.user?.account_id?.phone_number || "Chưa có thông tin"
-  }
+    return (
+      appointment?.patient?.user?.account_id?.phone_number ||
+      "Chưa có thông tin"
+    );
+  };
 
   const getSpecialtyName = (appointment) => {
-    return appointment?.specialty?.name || "Chưa có thông tin"
-  }
+    return appointment?.specialty?.name || "Chưa có thông tin";
+  };
 
   const calculateAge = (dob) => {
-    if (!dob) return "N/A"
+    if (!dob) return "N/A";
     try {
-      const birthDate = new Date(dob)
-      const ageDifMs = Date.now() - birthDate.getTime()
-      const ageDate = new Date(ageDifMs)
-      return Math.abs(ageDate.getUTCFullYear() - 1970)
+      const birthDate = new Date(dob);
+      const ageDifMs = Date.now() - birthDate.getTime();
+      const ageDate = new Date(ageDifMs);
+      return Math.abs(ageDate.getUTCFullYear() - 1970);
     } catch {
-      return "N/A"
+      return "N/A";
     }
-  }
+  };
 
   const getPatientDob = (appointment) => {
-    return appointment?.patient?.user?.dob || appointment?.patient?.dob || "Chưa có thông tin"
-  }
+    return (
+      appointment?.patient?.user?.dob ||
+      appointment?.patient?.dob ||
+      "Chưa có thông tin"
+    );
+  };
 
   const formatTime = (timeString) => {
-    if (!timeString) return "N/A"
+    if (!timeString) return "N/A";
     try {
       return new Date(timeString).toLocaleTimeString("vi-VN", {
         hour: "2-digit",
         minute: "2-digit",
-      })
+      });
     } catch {
-      return "N/A"
+      return "N/A";
     }
-  }
+  };
 
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A"
+    if (!dateString) return "N/A";
     try {
       return new Date(dateString).toLocaleDateString("vi-VN", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
-      })
+      });
     } catch {
-      return "N/A"
+      return "N/A";
     }
-  }
+  };
 
   const handleUpdateStatus = async (appointmentId, newStatus) => {
     try {
-      const res = await updateAppointmentStatus(appointmentId, newStatus)
+      const res = await updateAppointmentStatus(appointmentId, newStatus);
       if (res.success) {
         const updatedRes = await getAppointments("DOC001", {
           date: selectedDate,
-        })
+        });
         if (updatedRes.success) {
-          setAppointments(updatedRes.data || [])
+          setAppointments(updatedRes.data || []);
         }
       }
     } catch (error) {
-      console.error("Error updating appointment status:", error)
+      console.error("Error updating appointment status:", error);
     }
-  }
+  };
 
-  const handleViewDetails = (appointment) => {
-    setSelectedAppointment(appointment)
-    setShowModal(true)
-  }
+  const handleViewDetails = async (appointment) => {
+    try {
+      setLoading(true);
+      const res = await doctorApi.getAppointmentById(
+        appointment.appointment_id
+      );
+      if (res.data.ok) {
+        setSelectedAppointment(res.data.data);
+        setShowModal(true);
+      }
+    } catch (error) {
+      console.error("Error fetching appointment details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCloseModal = () => {
-    setShowModal(false)
-    setSelectedAppointment(null)
-  }
+    setShowModal(false);
+    setSelectedAppointment(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -189,8 +215,12 @@ const AppointmentSchedule = () => {
               <Calendar className="text-white" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Lịch khám bệnh</h1>
-              <p className="text-gray-500 mt-1">Quản lý và theo dõi lịch hẹn của bạn</p>
+              <h1 className="text-3xl font-bold text-gray-800">
+                Lịch khám bệnh
+              </h1>
+              <p className="text-gray-500 mt-1">
+                Quản lý và theo dõi lịch hẹn của bạn
+              </p>
             </div>
           </div>
         </div>
@@ -200,13 +230,16 @@ const AppointmentSchedule = () => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Calendar
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => {
-                    setSelectedDate(e.target.value)
-                    setSelectedSlot(null)
+                    setSelectedDate(e.target.value);
+                    setSelectedSlot(null);
                   }}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -227,7 +260,11 @@ const AppointmentSchedule = () => {
 
             <div className="px-4 py-2 bg-blue-50 rounded-lg">
               <span className="text-blue-700 font-semibold">
-                Tổng số: <strong className="text-blue-900">{filteredAppointments.length}</strong> lịch hẹn
+                Tổng số:{" "}
+                <strong className="text-blue-900">
+                  {filteredAppointments.length}
+                </strong>{" "}
+                lịch hẹn
               </span>
             </div>
           </div>
@@ -250,7 +287,9 @@ const AppointmentSchedule = () => {
                   Tất cả
                 </button>
                 {slots.map((slot) => {
-                  const appointmentCount = appointments.filter((apt) => apt.slot_id === slot._id).length
+                  const appointmentCount = appointments.filter(
+                    (apt) => apt.slot_id === slot._id
+                  ).length;
 
                   return (
                     <button
@@ -260,27 +299,30 @@ const AppointmentSchedule = () => {
                         selectedSlot === slot._id
                           ? "bg-blue-600 text-white shadow-md"
                           : slot.status === "BOOKED"
-                            ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                            : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
+                          ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                          : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <Clock size={14} />
                         <span>
-                          {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                          {formatTime(slot.start_time)} -{" "}
+                          {formatTime(slot.end_time)}
                         </span>
                       </div>
                       {appointmentCount > 0 && (
                         <span
                           className={`absolute -top-2 -right-2 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${
-                            selectedSlot === slot._id ? "bg-white text-blue-600" : "bg-blue-600 text-white"
+                            selectedSlot === slot._id
+                              ? "bg-white text-blue-600"
+                              : "bg-blue-600 text-white"
                           }`}
                         >
                           {appointmentCount}
                         </span>
                       )}
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -298,16 +340,20 @@ const AppointmentSchedule = () => {
             <div className="p-6 bg-gray-100 rounded-full mb-4">
               <Calendar className="text-gray-400" size={48} />
             </div>
-            <p className="text-xl font-semibold text-gray-700 mb-2">Không có lịch hẹn nào</p>
+            <p className="text-xl font-semibold text-gray-700 mb-2">
+              Không có lịch hẹn nào
+            </p>
             <p className="text-gray-500">
-              {selectedSlot ? "Không có lịch hẹn trong khung giờ này" : "Chọn ngày khác để xem lịch hẹn"}
+              {selectedSlot
+                ? "Không có lịch hẹn trong khung giờ này"
+                : "Chọn ngày khác để xem lịch hẹn"}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredAppointments.map((appointment, index) => {
-              const statusInfo = getStatusBadge(appointment.status)
-              const StatusIcon = statusInfo.icon
+              const statusInfo = getStatusBadge(appointment.status);
+              const StatusIcon = statusInfo.icon;
 
               return (
                 <div
@@ -317,11 +363,14 @@ const AppointmentSchedule = () => {
                   {/* Card Header */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 flex items-center justify-between border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">#{index + 1}</div>
+                      <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">
+                        #{index + 1}
+                      </div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <Clock size={18} />
                         <span className="font-semibold">
-                          {formatTime(appointment.slot?.start_time)} - {formatTime(appointment.slot?.end_time)}
+                          {formatTime(appointment.slot?.start_time)} -{" "}
+                          {formatTime(appointment.slot?.end_time)}
                         </span>
                       </div>
                     </div>
@@ -330,10 +379,10 @@ const AppointmentSchedule = () => {
                         appointment.status === "SCHEDULED"
                           ? "bg-blue-100 text-blue-700"
                           : appointment.status === "COMPLETED"
-                            ? "bg-green-100 text-green-700"
-                            : appointment.status === "CANCELLED"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-700"
+                          ? "bg-green-100 text-green-700"
+                          : appointment.status === "CANCELLED"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-gray-100 text-gray-700"
                       }`}
                     >
                       <StatusIcon size={14} />
@@ -348,7 +397,9 @@ const AppointmentSchedule = () => {
                       <div className="flex items-start gap-3">
                         <Person className="text-blue-600 mt-1" size={20} />
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800 text-lg">{getPatientName(appointment)}</p>
+                          <p className="font-semibold text-gray-800 text-lg">
+                            {getPatientName(appointment)}
+                          </p>
                           <p className="text-xs text-gray-500">Bệnh nhân</p>
                         </div>
                       </div>
@@ -356,7 +407,9 @@ const AppointmentSchedule = () => {
                       <div className="flex items-center gap-3">
                         <Telephone className="text-green-600" size={20} />
                         <div className="flex-1">
-                          <p className="text-gray-700">{getPatientPhone(appointment)}</p>
+                          <p className="text-gray-700">
+                            {getPatientPhone(appointment)}
+                          </p>
                           <p className="text-xs text-gray-500">Số điện thoại</p>
                         </div>
                       </div>
@@ -364,7 +417,9 @@ const AppointmentSchedule = () => {
 
                     {/* Booking Date */}
                     {appointment.createdAt && (
-                      <p className="text-xs text-gray-500">Đặt lịch: {formatDate(appointment.createdAt)}</p>
+                      <p className="text-xs text-gray-500">
+                        Đặt lịch: {formatDate(appointment.createdAt)}
+                      </p>
                     )}
                   </div>
 
@@ -379,7 +434,7 @@ const AppointmentSchedule = () => {
                     </button>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         )}
@@ -388,7 +443,10 @@ const AppointmentSchedule = () => {
       {showModal && selectedAppointment && (
         <div className="appointment-modal-overlay">
           {/* Backdrop */}
-          <div className="appointment-modal-backdrop" onClick={handleCloseModal}></div>
+          <div
+            className="appointment-modal-backdrop"
+            onClick={handleCloseModal}
+          ></div>
 
           {/* Slide-in panel */}
           <div className="appointment-modal-panel">
@@ -397,7 +455,10 @@ const AppointmentSchedule = () => {
                 <Calendar className="text-blue-600" size={20} />
                 Chi tiết lịch khám
               </h2>
-              <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
                 <X size={24} />
               </button>
             </div>
@@ -406,24 +467,27 @@ const AppointmentSchedule = () => {
               {/* Patient Info */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Person className="text-blue-600" size={20} /> Thông tin bệnh nhân
+                  <Person className="text-blue-600" size={20} /> Thông tin bệnh
+                  nhân
                 </h3>
                 <div className="space-y-2 text-gray-700">
                   <p>
                     <span className="font-medium">Mã BN: </span>
-                    {getPatientName(selectedAppointment)}
+                    {selectedAppointment.patient?.patient_code || "Không có"}
                   </p>
                   <p>
                     <span className="font-medium">Tên: </span>
-                    {getPatientName(selectedAppointment)}
+                    {selectedAppointment.patient?.full_name || "Không có"}
                   </p>
                   <p>
                     <span className="font-medium">Tuổi: </span>
-                    {calculateAge(getPatientDob(selectedAppointment))}
+                    {selectedAppointment.patient?.dob
+                      ? calculateAge(selectedAppointment.patient.dob)
+                      : "Chưa cập nhật"}
                   </p>
                   <p>
                     <span className="font-medium">Số điện thoại: </span>
-                    {getPatientPhone(selectedAppointment)}
+                    {selectedAppointment.patient?.phone_number || "Không có"}
                   </p>
                 </div>
               </div>
@@ -431,21 +495,35 @@ const AppointmentSchedule = () => {
               {/* Appointment Info */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Clock className="text-blue-600" size={20} /> Thông tin lịch khám
+                  <Clock className="text-blue-600" size={20} /> Thông tin lịch
+                  khám
                 </h3>
                 <div className="space-y-2 text-gray-700">
                   <p>
+                    <span className="font-medium">Ngày khám: </span>
+                    {formatDate(
+                      selectedAppointment.appointment?.scheduled_date
+                    )}
+                  </p>
+                  <p>
                     <span className="font-medium">Thời gian: </span>
-                    {formatTime(selectedAppointment.slot?.start_time)} -{" "}
-                    {formatTime(selectedAppointment.slot?.end_time)}
+                    {formatTime(
+                      selectedAppointment.appointment?.slot?.start_time
+                    )}{" "}
+                    -{" "}
+                    {formatTime(
+                      selectedAppointment.appointment?.slot?.end_time
+                    )}
                   </p>
                   <p>
                     <span className="font-medium">Chuyên khoa: </span>
-                    {getSpecialtyName(selectedAppointment) || "Chưa cập nhật"}
+                    {selectedAppointment.appointment?.specialty?.name ||
+                      "Chưa cập nhật"}
                   </p>
                   <p>
                     <span className="font-medium">Lý do khám: </span>
-                    {selectedAppointment?.reason || "Không có ghi chú"}
+                    {selectedAppointment.appointment?.reason ||
+                      "Không có ghi chú"}
                   </p>
                 </div>
               </div>
@@ -457,31 +535,41 @@ const AppointmentSchedule = () => {
                 </h3>
                 <span
                   className={`status-badge ${
-                    selectedAppointment.status === "SCHEDULED"
+                    selectedAppointment.appointment?.status === "SCHEDULED"
                       ? "status-scheduled"
-                      : selectedAppointment.status === "COMPLETED"
-                        ? "status-completed"
-                        : selectedAppointment.status === "CANCELLED"
-                          ? "status-cancelled"
-                          : "status-no-show"
+                      : selectedAppointment.appointment?.status === "COMPLETED"
+                      ? "status-completed"
+                      : selectedAppointment.appointment?.status === "CANCELLED"
+                      ? "status-cancelled"
+                      : "status-no-show"
                   }`}
                 >
-                  {selectedAppointment.status}
+                  {selectedAppointment.appointment?.status}
                 </span>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3 mt-6">
-                {selectedAppointment.status === "SCHEDULED" && (
+                {selectedAppointment.appointment?.status === "SCHEDULED" && (
                   <>
                     <button
-                      onClick={() => handleUpdateStatus(selectedAppointment._id, "COMPLETED")}
+                      onClick={() =>
+                        handleUpdateStatus(
+                          selectedAppointment.appointment?.id,
+                          "COMPLETED"
+                        )
+                      }
                       className="btn-complete rounded-lg flex-1 flex items-center justify-center gap-2"
                     >
                       <CheckCircle size={18} /> Hoàn thành
                     </button>
                     <button
-                      onClick={() => handleUpdateStatus(selectedAppointment._id, "CANCELLED")}
+                      onClick={() =>
+                        handleUpdateStatus(
+                          selectedAppointment.appointment?.id,
+                          "CANCELLED"
+                        )
+                      }
                       className="btn-cancel rounded-lg flex-1 flex items-center justify-center gap-2"
                     >
                       <XCircle size={18} /> Hủy
@@ -500,7 +588,7 @@ const AppointmentSchedule = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default memo(AppointmentSchedule)
+export default memo(AppointmentSchedule);

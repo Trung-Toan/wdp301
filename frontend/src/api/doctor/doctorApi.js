@@ -19,4 +19,18 @@ export const doctorApi = {
   //lay chi tiet benh nhan
   getPatientById: (patientId) =>
     axiosInstance.get(`/doctor/patients/${patientId}`),
+
+  // 📅 Lấy danh sách lịch hẹn
+  getAppointments: (page, limit, date, status) => {
+    const params = new URLSearchParams();
+    if (page) params.append("page", page);
+    if (limit) params.append("limit", limit);
+    if (date) params.append("date", date);
+    if (status && status !== "ALL") params.append("status", status);
+
+    return axiosInstance.get(`/doctor/appointments?${params.toString()}`);
+  },
+
+  getAppointmentById: (appointmentId) =>
+    axiosInstance.get(`/doctor/appointments/${appointmentId}`),
 };
