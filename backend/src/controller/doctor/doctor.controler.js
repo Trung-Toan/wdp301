@@ -67,7 +67,7 @@ exports.viewAppointmentDetail = async (req, res) => {
   const { appointment } = await appointmentService.getAppointmentById(req);
   return resUtils.successResponse(
     res,
-    { appointment: formatDataUtils.formatData(appointment) || null },
+    appointment,
     "Lấy thông tin cuộc hẹn thành công."
   );
 };
