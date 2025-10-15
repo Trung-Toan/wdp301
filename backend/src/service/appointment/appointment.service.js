@@ -135,19 +135,11 @@ exports.getListAppointments = async (req) => {
             slot_id: slot,
             scheduled_date: date
         })
-        .select("_id slot_id patient_id scheduled_date status created_at")
+        .select("_id slot_id patient_id scheduled_date status created_at phone full_name")
         .populate("slot_id", "start_time end_time")
         .populate({
             path: "patient_id", 
-            select: "user_id patient_code",
-            populate: {
-                path: "user_id",
-                select: "full_name account_id ",
-                populate: {
-                    path: "account_id",
-                    select: "phone_number"
-                }
-            }
+            select: "patient_code",
         })
         .lean()
         .sort({ appointment_date: -1 })
@@ -169,8 +161,8 @@ exports.getListAppointments = async (req) => {
         patient: {
             patient_id: app.patient_id._id,
             patient_code: app.patient_id.patient_code,
-            phone_number: app.patient_id.user_id.account_id.phone_number,
-            patient_name: app.patient_id.user_id.full_name,
+            phone_number: app.phone,
+            patient_name: app.full_name
         },
     }));
 
