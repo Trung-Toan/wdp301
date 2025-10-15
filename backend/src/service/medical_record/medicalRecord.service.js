@@ -235,12 +235,15 @@ exports.getListMedicalRecords = async (req) => {
     }
     const doctorId = doctor._id;
 
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 1, limit = 10, search = "" } = req.query;
     const pageNumber = Math.max(parseInt(page) || 1, 1);
     const limitNumber = Math.max(parseInt(limit) || 10, 1);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const filter = {
+    // --- Bắt đầu xây dựng Aggregation Pipeline ---
+
+    // 1. Điều kiện $match ban đầu để lọc quyền truy cập
+    const accessControlMatch = {
       $or: [
         { doctor_id: doctorId },
         { status: "PUBLIC" },
@@ -256,45 +259,90 @@ exports.getListMedicalRecords = async (req) => {
       ],
     };
 
-    const totalRecords = await MedicalRecord.countDocuments(filter);
+    // 2. Tạo pipeline cơ sở
+    let pipeline = [
+      { $match: accessControlMatch },
+      // Liên kết với collection 'patients' để lấy patient_code
+      {
+        $lookup: {
+          from: "patients", // Tên collection của Patient, thường là số nhiều
+          localField: "patient_id",
+          foreignField: "_id",
+          as: "patientInfo",
+        },
+      },
+      { $unwind: "$patientInfo" },
+      // Liên kết với collection 'users' để lấy full_name
+      {
+        $lookup: {
+          from: "users", // Tên collection của User, thường là số nhiều
+          localField: "patientInfo.user_id",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" },
+    ];
+
+    // 3. Thêm điều kiện $match cho tìm kiếm nếu có `search` query
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "patientInfo.patient_code": { $regex: search, $options: "i" } },
+            { "userInfo.full_name": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // --- Thực thi Pipeline ---
+
+    // 4. Pipeline để đếm tổng số bản ghi khớp điều kiện
+    const countPipeline = [...pipeline, { $count: "totalRecords" }];
+    const totalResult = await MedicalRecord.aggregate(countPipeline);
+    const totalRecords = totalResult.length > 0 ? totalResult[0].totalRecords : 0;
 
     if (totalRecords === 0) {
       return {
         records: [],
-        pagination: { /* ... */ },
+        pagination: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: pageNumber,
+          limit: limitNumber,
+        },
       };
     }
 
-    const records = await MedicalRecord.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNumber)
-      .select("_id createdAt updatedAt prescription.status diagnosis patient_id doctor_id")
-      .populate({
-        path: "patient_id",
-        select: "_id user_id patient_code",
-        populate: {
-          path: "user_id",
-          select: "full_name",
-        }
-      })
-      .lean();
-    const data = records.map((r) => ({
-      medical_record_id: r._id,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      prescription_status: r.prescription.status,
-      diagnosis: r.diagnosis,
-      patient_id: r.patient_id._id,
-      doctor_id: r.doctor_id,
-      patient_code: r.patient_id.patient_code,
-      patient_name: r.patient_id.user_id.full_name,
-    }));
+    // 5. Pipeline để lấy dữ liệu đã phân trang và định dạng lại
+    const dataPipeline = [
+      ...pipeline,
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limitNumber },
+      // Định dạng lại output cuối cùng
+      {
+        $project: {
+          _id: 0,
+          medical_record_id: "$_id",
+          createdAt: "$createdAt",
+          updatedAt: "$updatedAt",
+          prescription_status: "$prescription.status",
+          diagnosis: "$diagnosis",
+          patient_id: "$patientInfo._id",
+          doctor_id: "$doctor_id",
+          patient_code: "$patientInfo.patient_code",
+          patient_name: "$userInfo.full_name",
+        },
+      },
+    ];
 
+    const records = await MedicalRecord.aggregate(dataPipeline);
     const totalPages = Math.ceil(totalRecords / limitNumber);
 
     return {
-      records: data,
+      records: records,
       pagination: {
         totalItems: totalRecords,
         totalPages,
