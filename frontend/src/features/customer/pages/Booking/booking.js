@@ -1,9 +1,14 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Calendar, Clock, MapPin, User, FileText, ChevronLeft } from "lucide-react";
 import BookingSuccess from "./bookingSuccess";
 
 export function BookingContent() {
+    // Lấy thông tin user từ sessionStorage nếu đã login
+    const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
+    const location = useLocation();
+    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price } = location.state || {};
+
     const [formData, setFormData] = useState({
         fullName: "",
         phone: "",
@@ -18,6 +23,37 @@ export function BookingContent() {
 
     const [isSubmitted, setIsSubmitted] = useState(false);
 
+    useEffect(() => {
+        if (storedUser) {
+            setFormData((prev) => ({
+                ...prev,
+                fullName: storedUser.username || "",
+                phone: storedUser.phone_number || "",
+                email: storedUser.email || "",
+                dateOfBirth: storedUser.dateOfBirth || "",
+                gender: storedUser.gender || "male",
+            }));
+        }
+    }, [storedUser]);
+
+    if (!selectedSlot) return <p className="p-4">Vui lòng chọn lịch khám trước</p>;
+
+    // Dữ liệu hiển thị sidebar booking
+    const bookingInfo = {
+        doctorName,
+        specialty,
+        hospital,
+        location: hospital,
+        date: selectedDate,
+        time: selectedSlot.time,
+        price: price || "Chưa có giá",
+        image: "/doctor-portrait-male.jpg",
+        doctorId: selectedSlot.doctorId || 1,
+    };
+
+    console.log(bookingInfo);
+
+
     // Danh sách tỉnh/thành và quận/huyện mẫu
     const provinces = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng"];
     const districts = {
@@ -26,36 +62,22 @@ export function BookingContent() {
         "Đà Nẵng": ["Hải Châu", "Thanh Khê", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu"],
     };
 
-    // Mock data
-    const bookingInfo = {
-        doctorId: 1,
-        doctorName: "BS. Nguyễn Văn An",
-        specialty: "Tim mạch",
-        hospital: "Bệnh viện Đa khoa Trung ương",
-        location: "Hà Nội",
-        date: "Thứ 2, 20/01/2025",
-        time: "09:00",
-        price: "500.000đ",
-        image: "/doctor-portrait-male.jpg",
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSubmitted(true);
-    };
-
     const handleChange = (field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    if (isSubmitted) {
-        return <BookingSuccess bookingInfo={bookingInfo} />;
-    }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // TODO: gửi formData lên server nếu cần
+        setIsSubmitted(true);
+    };
+
+    if (isSubmitted) return <BookingSuccess bookingInfo={bookingInfo} />;
 
     return (
         <div className="bg-gray-100 min-h-screen py-8">
             <div className="container mx-auto px-4">
-                <Link to={`/home/doctordetail/${bookingInfo.doctorId}`}>
+                <Link to={`/home/doctordetail/${storedUser._id}`}>
                     <button className="flex items-center gap-2 text-gray-600 hover:text-black mb-6">
                         <ChevronLeft className="h-4 w-4" /> Quay lại
                     </button>
@@ -76,6 +98,7 @@ export function BookingContent() {
                                     <User className="h-5 w-5" /> Thông tin bệnh nhân
                                 </h3>
 
+                                {/* Họ tên & SDT */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block mb-1 font-medium">
@@ -105,6 +128,7 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
+                                {/* Email & Ngày sinh */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block mb-1 font-medium">Email</label>
@@ -150,7 +174,7 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
-                                {/* Chọn tỉnh/thành & quận/huyện */}
+                                {/* Tỉnh/Thành & Quận/Huyện */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block mb-1 font-medium">
@@ -240,7 +264,7 @@ export function BookingContent() {
                             <h3 className="font-semibold mb-4">Thông tin lịch khám</h3>
                             <div className="flex gap-4">
                                 <img
-                                    src={bookingInfo.image}
+                                    src={bookingInfo?.image}
                                     alt={bookingInfo.doctorName}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />
@@ -279,29 +303,23 @@ export function BookingContent() {
                                 </div>
                                 <div className="flex justify-between pt-4 border-t">
                                     <span className="font-semibold">Tổng cộng:</span>
-                                    <span className="text-2xl font-bold text-blue-600">
-                                        {bookingInfo.price}
-                                    </span>
+                                    <span className="text-2xl font-bold text-blue-600">{bookingInfo.price}</span>
                                 </div>
                             </div>
 
-                            {/* ✅ Phần lưu ý mới thêm */}
+                            {/* Lưu ý */}
                             <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm leading-relaxed text-gray-700">
-                                <p className="font-semibold text-yellow-800 mb-1">
-                                    Lưu ý:
-                                </p>
+                                <p className="font-semibold text-yellow-800 mb-1">Lưu ý:</p>
                                 <p>
                                     Thông tin anh/chị cung cấp sẽ được sử dụng làm hồ sơ khám bệnh.
                                     Khi điền thông tin, anh/chị vui lòng:
                                 </p>
                                 <ul className="list-disc list-inside mt-2 space-y-1">
                                     <li>
-                                        Ghi rõ họ và tên, viết hoa những chữ cái đầu tiên,
-                                        ví dụ: <strong>Trần Văn Phú</strong>.
+                                        Ghi rõ họ và tên, viết hoa những chữ cái đầu tiên, ví dụ: <strong>Trần Văn Phú</strong>.
                                     </li>
                                     <li>
-                                        Điền đầy đủ, đúng và kiểm tra lại thông tin trước khi ấn{" "}
-                                        <strong>“Xác nhận”</strong>.
+                                        Điền đầy đủ, đúng và kiểm tra lại thông tin trước khi ấn <strong>“Xác nhận”</strong>.
                                     </li>
                                 </ul>
                             </div>

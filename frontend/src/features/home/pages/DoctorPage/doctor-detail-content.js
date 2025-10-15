@@ -222,8 +222,9 @@ export function DoctorDetailContent({ doctorId }) {
 
                     {/* Sidebar Booking */}
                     <div className="lg:col-span-1">
-                        <DoctorBookingCalendar doctor={doctor} />
+                        {doctor?.data && <DoctorBookingCalendar doctor={doctor.data} />}
                     </div>
+
                 </div>
             </div>
         </div>
