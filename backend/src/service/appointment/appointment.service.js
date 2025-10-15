@@ -137,23 +137,32 @@ exports.getListAppointments = async (req) => {
         })
         .select("_id slot_id patient_id scheduled_date status created_at")
         .populate("slot_id", "start_time end_time")
-        .populate("patient_id", "full_name phone_number")
+        .populate({
+            path: "patient_id", 
+            select: "full_name phone_number",
+        })
         .lean()
         .sort({ appointment_date: -1 })
         .skip(skip)
         .limit(limitNumber);
 
     const formData = appointments.map(app => ({
-        appointment_id: app._id,
-        slot_id: app.slot_id._id,
-        patient_id: app.patient_id._id,
-        scheduled_date: app.scheduled_date,
-        status: app.status,
-        created_at: app.created_at,
-        start_time: app.slot_id.start_time,
-        end_time: app.slot_id.end_time,
-        full_name: app.patient_id.full_name,
-        phone_number: app.patient_id.phone_number
+        appointment: {
+            appointment_id: app._id,
+            scheduled_date: app.scheduled_date,
+            status: app.status,
+            created_at: app.created_at,
+        },
+        slot: {
+            slot_id: app.slot_id._id,
+            start_time: app.slot_id.start_time,
+            end_time: app.slot_id.end_time,
+        },
+        patient: {
+            patient_id: app.patient_id._id,
+            patient_phone_number: app.patient_id.phone_number,
+            patient_name: app.patient_id.full_name,
+        },
     }));
 
     // Trả về cùng định dạng bạn đang dùng
@@ -170,15 +179,15 @@ exports.getListAppointments = async (req) => {
 
 exports.getAppointmentById = async (req) => {
     try {
-        const {appointmentId} = req.params;
+        const { appointmentId } = req.params;
         const appointment = await Appointment
             .findById(appointmentId)
             .populate("slot_id", "start_time end_time")
             .populate({
                 path: "patient_id",
                 select: "patient_code user_id",
-                populate: { 
-                    path: "user_id", 
+                populate: {
+                    path: "user_id",
                     select: "full_name account_id",
                     populate: {
                         path: "account_id",

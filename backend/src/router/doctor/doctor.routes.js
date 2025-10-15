@@ -13,6 +13,10 @@ const DoctorController = require("../../controller/doctor/doctor.controler");
 // view list patient of doctor with pagination
 router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.viewListPatients);
 
+// get /doctor/patients/medical-records?page=1
+// view list medical record of all patients of doctor with pagination
+router.get("/patients/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecords);
+
 // GET /patients/:patientId
 // view information patient by patientId
 router.get("/patients/:patientId", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientById);
@@ -38,9 +42,11 @@ router.post("/patients/:patientId/medical-records/:medicalRecordId/request", aut
 router.get("/medical-records/requests/history", authRequired, roleRequired("DOCTOR"), DoctorController.viewHistoryMedicalRecordRequests);
 
 /* ========================= MEDICAL RECORDS ========================= */
+
+
 // GET /patients/:patientId/medical-records?page=1
 // view list medical record of patient with pagination
-router.get("/patients/:patientId/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecords);
+router.get("/patients/:patientId/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecordsByPatient);
 
 // GET /medical-records/:recordId
 // view detail medical record by recordId
