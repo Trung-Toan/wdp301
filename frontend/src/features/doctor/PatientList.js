@@ -319,7 +319,7 @@ const PatientList = () => {
               <button
                 onClick={() => {
                   handleCloseModal();
-                  navigate(`/doctor/medical-records/?patientId=${selectedPatient.patient_id}`);
+                  navigate(`/doctor/medical-records/?patient-code=${selectedPatient.patient_code}`);
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
               >

@@ -14,8 +14,13 @@ import {
   XCircle,
 } from "react-bootstrap-icons";
 import { useLocation } from "react-router-dom";
-import { getAllMedicalRecordsByDoctor, rejectPrescription, verifyPrescription } from "../../services/doctorService";
+import {
+  getAllMedicalRecordsByDoctor,
+  rejectPrescription,
+  verifyPrescription,
+} from "../../services/doctorService";
 import "../../styles/doctor/patient-medical-records.css";
+import { doctorApi } from "../../api/doctor/doctorApi";
 
 const PatientMedicalRecords = () => {
   const [records, setRecords] = useState([]);
@@ -27,14 +32,12 @@ const PatientMedicalRecords = () => {
   const [showModal, setShowModal] = useState(false);
   const location = useLocation();
 
-  const doctorId = "DOC001";
-
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const patientId = params.get("patientId");
+    const patient_code = params.get("patient-code");
 
-    if (patientId) {
-      setSearchTerm(patientId);
+    if (patient_code) {
+      setSearchTerm(patient_code);
     }
     fetchData();
   }, [location.search]);
@@ -47,17 +50,15 @@ const PatientMedicalRecords = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await getAllMedicalRecordsByDoctor(doctorId);
+      const res = await doctorApi.getAllMedicalRecords();
 
-      console.log("[v0] Medical records response:", response);
-
-      if (response.success) {
-        setRecords(Array.isArray(response.data) ? response.data : []);
+      if (res.data?.ok && Array.isArray(res.data.data)) {
+        setRecords(res.data.data);
       } else {
         setRecords([]);
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching records:", error);
       setRecords([]);
     } finally {
       setLoading(false);
@@ -68,19 +69,8 @@ const PatientMedicalRecords = () => {
     let filtered = [...records];
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        (record) =>
-          record.diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.patient?._id
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          record.patient?.user?.full_name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          record.symptoms?.some((s) =>
-            s.toLowerCase().includes(searchTerm.toLowerCase())
-          ) ||
-          record.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((record) =>
+        record.patient_code?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -132,39 +122,47 @@ const PatientMedicalRecords = () => {
   };
 
   const handleVerifyPrescription = async (id) => {
-  if (!id) return
-  if (!window.confirm("Bạn có chắc muốn phê duyệt đơn thuốc này không?")) return
+    if (!id) return;
+    if (!window.confirm("Bạn có chắc muốn phê duyệt đơn thuốc này không?"))
+      return;
 
-  const response = await verifyPrescription(id)
-  if (response.success) {
-    alert("✅ Đơn thuốc đã được phê duyệt!")
-    // cập nhật lại danh sách records hoặc chỉ 1 record
-    setSelectedRecord((prev) => ({
-      ...prev,
-      prescription: { ...prev.prescription, verified_at: new Date().toISOString() },
-    }))
-  } else {
-    alert("❌ " + (response.message || "Phê duyệt thất bại"))
-  }
-}
+    const response = await verifyPrescription(id);
+    if (response.success) {
+      alert("✅ Đơn thuốc đã được phê duyệt!");
+      // cập nhật lại danh sách records hoặc chỉ 1 record
+      setSelectedRecord((prev) => ({
+        ...prev,
+        prescription: {
+          ...prev.prescription,
+          verified_at: new Date().toISOString(),
+        },
+      }));
+    } else {
+      alert("❌ " + (response.message || "Phê duyệt thất bại"));
+    }
+  };
 
-const handleRejectPrescription = async (id) => {
-  if (!id) return
-  const reason = prompt("Nhập lý do yêu cầu làm lại:")
-  if (!reason) return
+  const handleRejectPrescription = async (id) => {
+    if (!id) return;
+    const reason = prompt("Nhập lý do yêu cầu làm lại:");
+    if (!reason) return;
 
-  const response = await rejectPrescription(id, reason)
-  if (response.success) {
-    alert("🚫 Đã yêu cầu bệnh nhân/chuyên viên làm lại đơn thuốc!")
-    // có thể cập nhật trạng thái prescription
-    setSelectedRecord((prev) => ({
-      ...prev,
-      prescription: { ...prev.prescription, rejected_at: new Date().toISOString(), reject_reason: reason },
-    }))
-  } else {
-    alert("❌ " + (response.message || "Yêu cầu thất bại"))
-  }
-}
+    const response = await rejectPrescription(id, reason);
+    if (response.success) {
+      alert("🚫 Đã yêu cầu bệnh nhân/chuyên viên làm lại đơn thuốc!");
+      // có thể cập nhật trạng thái prescription
+      setSelectedRecord((prev) => ({
+        ...prev,
+        prescription: {
+          ...prev.prescription,
+          rejected_at: new Date().toISOString(),
+          reject_reason: reason,
+        },
+      }));
+    } else {
+      alert("❌ " + (response.message || "Yêu cầu thất bại"));
+    }
+  };
 
   if (loading) {
     return (
@@ -253,10 +251,10 @@ const handleRejectPrescription = async (id) => {
                       <td className="patient-cell">
                         <div className="patient-info">
                           <div className="patient-name">
-                            {record.patient?.user?.full_name || "N/A"}
+                            {record.patient_name || "N/A"}
                           </div>
                           <div className="patient-email">
-                            {record.patient?.user?.email || ""}
+                            {record.patient_code || ""}
                           </div>
                         </div>
                       </td>
