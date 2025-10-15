@@ -36,28 +36,33 @@ exports.getUsersFromPatientIds = async (patientIds) => {
     return [];
   }
 
-  // Lấy danh sách bệnh nhân và user_id tương ứng
-  const patients = await Patient.find({ _id: { $in: patientIds } })
-    .select('_id patient_code user_id')
-    .populate({
-      path: 'user_id',
-      select: "_id full_name account_id",
-      populate: {
-        path: 'account_id',
-        select: '_id email email phone_number'
-      }
-    })
-    .lean();
+  try {
+    // Lấy danh sách bệnh nhân và user_id tương ứng
+    const patients = await Patient.find({ _id: { $in: patientIds } })
+      .select('_id patient_code user_id')
+      .populate({
+        path: 'user_id',
+        select: "_id full_name account_id",
+        populate: {
+          path: 'account_id',
+          select: '_id email email phone_number'
+        }
+      })
+      .lean();
 
-  const patient = patients.map(p => ({
-    patient_id: p._id,
-    user_id: p.user_id._id,
-    account_id: p.user_id.account_id._id,
-    patient_code: p.patient_code,
-    full_name: p.user_id.full_name,
-    email: p.user_id.account_id.email,
-    phone_number: p.user_id.account_id.phone_number,
-  }));
+    const patient = patients.map(p => ({
+      patient_id: p._id,
+      user_id: p.user_id._id,
+      account_id: p.user_id.account_id._id,
+      patient_code: p.patient_code,
+      full_name: p.user_id.full_name,
+      email: p.user_id.account_id.email,
+      phone_number: p.user_id.account_id.phone_number,
+    }));
 
-  return patient;
+    return patient;
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách user từ patientIds:", error);
+    return [];
+  }
 };
