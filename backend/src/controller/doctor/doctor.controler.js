@@ -52,24 +52,42 @@ exports.viewPatientById = async (req, res) => {
 /* ========================= APPOINTMENTS ========================= */
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
-  const { appointments, pagination } = await appointmentService.getListAppointments(req);
+  try {
+    const { appointments, pagination } = await appointmentService.getListAppointments(req);
 
-  return resUtils.paginatedResponse(
-    res,
-    appointments,
-    pagination,
-    "Lấy danh sách cuộc hẹn thành công."
-  );
+    return resUtils.paginatedResponse(
+      res,
+      appointments,
+      pagination,
+      "Lấy danh sách cuộc hẹn thành công."
+    );
+  } catch (error) {
+    console.error("Error in viewAppointments:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy danh sách cuộc hẹn."
+    );
+  }
 };
 
 // GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
-  const { appointment } = await appointmentService.getAppointmentById(req);
-  return resUtils.successResponse(
-    res,
-    appointment,
-    "Lấy thông tin cuộc hẹn thành công."
-  );
+  try {
+    const { appointment } = await appointmentService.getAppointmentById(req);
+    return resUtils.successResponse(
+      res,
+      appointment,
+      "Lấy thông tin cuộc hẹn thành công."
+    );
+  } catch (error) {
+    console.error("Error in viewAppointmentDetail:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy thông tin cuộc hẹn."
+    );
+  }
 };
 
 /* ========================= MEDICAL RECORD REQUESTS ========================= */
@@ -171,7 +189,7 @@ exports.viewHistoryMedicalRecordRequests = async (req, res) => {
 };
 
 /* ========================= MEDICAL RECORDS ========================= */
-// GET /doctor/patients/medical-records
+// GET /doctor/patients/medical-records?page=1&limit=10&search=
 exports.viewListMedicalRecords = async (req, res) => {
   try {
     const { records, pagination } = await medicalRecordService.getListMedicalRecords(req);
