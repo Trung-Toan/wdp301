@@ -54,7 +54,9 @@ export const setSessionStorage = (key, value) => {
     if (value === undefined || value === null) {
       sessionStorage.removeItem(key);
     } else {
-      sessionStorage.setItem(key, JSON.stringify(value));
+      // Nếu là string (ví dụ token) thì lưu nguyên, không stringify
+      const isString = typeof value === "string";
+      sessionStorage.setItem(key, isString ? value : JSON.stringify(value));
     }
     window.dispatchEvent(new Event("session-update"));
   } catch (err) {

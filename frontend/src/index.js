@@ -9,7 +9,6 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const queryClient = new QueryClient();
 const root = ReactDOM.createRoot(document.getElementById("root"));
-console.log("Google Client ID:", process.env.REACT_APP_GOOGLE_CLIENT_ID);
 
 root.render(
   <QueryClientProvider client={queryClient}>

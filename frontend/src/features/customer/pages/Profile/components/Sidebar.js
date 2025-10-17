@@ -26,12 +26,16 @@ export default function Sidebar({ activeTab, setActiveTab, formData }) {
                             <button
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${activeTab === tab.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                                aria-pressed={activeTab === tab.key}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${activeTab === tab.key
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:bg-muted"
                                     }`}
                             >
                                 <Icon className="h-4 w-4" />
                                 {tab.name}
                             </button>
+
                         )
                     })}
                 </nav>

@@ -8,11 +8,33 @@ exports.getMyProfile = async (req, res) => {
     try {
         const accountId = req.user?.sub;
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
-        const user = await User.findOne({ account_id: accountId }).lean();
+
+        const user = await User.findOne({ account_id: accountId })
+            .populate("account_id", "username email status role")
+            .lean();
+
         if (!user) return fail(res, new Error("User not found"), 404);
-        return ok(res, user);
-    } catch (err) { return fail(res, err); }
+
+        return ok(res, {
+            id: user._id,
+            full_name: user.full_name,
+            dob: user.dob,
+            gender: user.gender,
+            address: user.address,
+            avatar_url: user.avatar_url || "https://i.pravatar.cc/150?img=12", // ảnh mặc định
+            account: user.account_id,
+            notify_upcoming: user.notify_upcoming,
+            notify_results: user.notify_results,
+            notify_marketing: user.notify_marketing,
+            privacy_allow_doctor_view: user.privacy_allow_doctor_view,
+            privacy_share_with_providers: user.privacy_share_with_providers,
+        });
+    } catch (err) {
+        return fail(res, err);
+    }
 };
+
+
 
 exports.updateMyProfile = async (req, res) => {
     try {
