@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { getClinicsByFilters } = require("../../controller/clinic/filterClinic.controller");
+const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");
 const ctrl = require("../../controller/clinic/specialty.controller");
 
 /**
@@ -28,7 +29,7 @@ router.get("/specialties", ctrl.getAllSpecialties);
  * /api/clinic/search:
  *   get:
  *     tags: [Clinic]
- *     summary: Tìm phòng khám theo tỉnh/thành, phường/xã và chuyên khoa
+ *     summary: Tìm bác sĩ theo tỉnh/thành, phường/xã và chuyên khoa
  *     parameters:
  *       - in: query
  *         name: provinceCode
@@ -53,8 +54,8 @@ router.get("/specialties", ctrl.getAllSpecialties);
  *         schema: { type: string, default: "-createdAt" }
  *     responses:
  *       200:
- *         description: Danh sách phòng khám
+ *         description: Danh sách bác sĩ phù hợp (kèm thông tin phòng khám)
  */
-router.get("/search", getClinicsByFilters);
+router.get("/search", searchDoctorController);
 
 module.exports = router;
