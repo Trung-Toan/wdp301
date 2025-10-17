@@ -26,7 +26,7 @@ exports.searchDoctorController = async (req, res) => {
 
         return ok(res, result);
     } catch (err) {
-        console.error("❌ Error in searchDoctorController:", err);
+        console.error(" Error in searchDoctorController:", err);
         return fail(res, err);
     }
 };

@@ -19,10 +19,8 @@ patientSchema.pre("save", async function (next) {
   let randomCode;
 
   while (!unique) {
-    // Sinh ngẫu nhiên 8 chữ số (10000000–99999999)
     randomCode = Math.floor(10000000 + Math.random() * 90000000).toString();
 
-    // Kiểm tra trùng trong DB
     const existing = await mongoose.models.Patient.findOne({ patient_code: randomCode });
     if (!existing) unique = true;
   }

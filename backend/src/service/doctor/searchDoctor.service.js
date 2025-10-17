@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const Doctor = require("../../model/doctor/Doctor");
 
-// Tìm kiếm theo tên bác sĩ / tên phòng khám / tên chuyên khoa
-// Đồng thời chấp nhận lọc theo clinicId/specialtyId ở dạng ID hoặc tên.
 async function searchDoctors({
     q,
     clinicId,

@@ -1,4 +1,3 @@
-// src/service/doctor/topDoctor.service.js
 const Doctor = require("../../model/doctor/Doctor");
 
 async function getTopDoctors({ limit = 5 }) {

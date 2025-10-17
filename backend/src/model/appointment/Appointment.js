@@ -56,7 +56,6 @@ appointmentSchema.pre("validate", async function (next) {
   }
 });
 
-// Ngăn đặt trùng slot (1 bệnh nhân 1 ca)
 appointmentSchema.index(
   { slot_id: 1, patient_id: 1 },
   { unique: true, partialFilterExpression: { status: "SCHEDULED" } }
