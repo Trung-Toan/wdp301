@@ -21,6 +21,8 @@ const {
     buildVerifyEmailTemplate,
     buildResetPasswordTemplate,
 } = require('./email.service');
+const Patient = require('../../model/patient/Patient');
+const User = require('../../model/user/User');
 
 const SALT_ROUNDS = 12;
 const randomToken = (bytes = 48) => crypto.randomBytes(bytes).toString('hex');
@@ -33,7 +35,7 @@ const signAccessToken = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: 
 const sanitizeAccount = (acc) => { const o = acc.toObject ? acc.toObject() : { ...acc }; delete o.password; return o; };
 const fpRefresh = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
-exports.register = async ({ username, email, password, phone_number, role }) => {
+exports.registerPatients = async ({ username, email, password, phone_number, role }) => {
     const emailNorm = (email || '').trim().toLowerCase();
     const hash = await hashPassword(password);
 
@@ -63,7 +65,8 @@ exports.register = async ({ username, email, password, phone_number, role }) => 
         apiBaseUrl: APP_BASE_URL,
     });
 
-    await sendMail(acc.email, 'Verify your email', html);
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
+
     return sanitizeAccount(acc);
 };
 
@@ -118,14 +121,20 @@ exports.login = async ({ email, password, ip, user_agent }) => {
         throw new Error('Email hoặc mật khẩu sai');
     }
 
+    // Đăng nhập thành công
     await LoginAttempt.create({
-        ip, email: emailNorm, account_id: acc._id, ok: true,
+        ip,
+        email: emailNorm,
+        account_id: acc._id,
+        ok: true,
         reason: acc.email_verified ? 'ok' : 'email_not_verified_but_login_allowed'
     });
 
+    // Tạo access token
     const payload = { sub: String(acc._id), role: acc.role, email_verified: !!acc.email_verified };
     const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_EXPIRES });
 
+    // Tạo refresh token
     const refreshToken = randomToken(48);
     const refreshHash = await hashOpaque(refreshToken);
     const refreshFingerprint = fpRefresh(refreshToken);
@@ -141,9 +150,28 @@ exports.login = async ({ email, password, ip, user_agent }) => {
         user_agent,
     });
 
+    let patient = null;
+    if (acc.role === "PATIENT") {
+        // Tìm user theo account_id
+        const user = await User.findOne({ account_id: acc._id }).lean();
+
+        if (user) {
+            // Tìm patient theo user_id
+            patient = await Patient.findOne({ user_id: user._id }).lean();
+        }
+    }
+
+
+    // Trả về dữ liệu gồm cả account và patient
     return {
+        ok: true,
         account: sanitizeAccount(acc),
-        tokens: { accessToken, refreshToken, refreshExpiresAt: expiresAt },
+        patient,
+        tokens: {
+            accessToken,
+            refreshToken,
+            refreshExpiresAt: expiresAt,
+        },
         mustVerify: !acc.email_verified,
     };
 };

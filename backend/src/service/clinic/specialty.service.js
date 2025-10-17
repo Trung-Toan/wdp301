@@ -8,10 +8,18 @@ async function getAllSpecialties({ status, q } = {}) {
         filter.$or = [{ name: rx }, { description: rx }];
     }
 
-    return Specialty.find(filter)
+    const specialties = await Specialty.find(filter)
         .sort({ name: 1 })
-        .select("name description icon_url status -_id")
+        .select("_id name description icon_url status") 
         .lean();
+
+    return specialties.map((s) => ({
+        id: s._id,
+        name: s.name,
+        description: s.description,
+        icon_url: s.icon_url,
+        status: s.status,
+    }));
 }
 
 module.exports = { getAllSpecialties };

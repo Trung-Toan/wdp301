@@ -11,8 +11,10 @@ import {
   setSessionStorage,
 } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
-import { loginUser } from "../../api/LoginController";
+
 import "../../styles/Login.css";
+import { loginUser } from "../../api/auth/login/LoginController";
+
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,19 +31,50 @@ const Login = () => {
   // Gọi API đăng nhập
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
-    onSuccess: (data) => {
-      const token = data.token;
-      const user = data.user;
+    onSuccess: (response) => {
+      if (!response.ok) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi đăng nhập",
+          text: response.message || "Tên đăng nhập hoặc mật khẩu không đúng!",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
+      console.log("LOGIN RESPONSE:", response);
+      const token = response.tokens?.accessToken;
+      const user = response.account;
+      const patient = response.patient;
+      console.log("PATIENT FROM LOGIN:", patient);
+      
+      if (!token || !user) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi dữ liệu đăng nhập",
+          text: "Token hoặc user không tồn tại.",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
       setSessionStorage("token", token);
       setSessionStorage("user", user);
+      setSessionStorage("patient", patient);
+
       Swal.fire({
         icon: "success",
         title: "Đăng nhập thành công!",
         timer: 1500,
         showConfirmButton: false,
       });
-      navigate("/");
+
+      navigate("/home");
     },
+
+
     onError: (error) => {
       Swal.fire({
         icon: "error",
@@ -81,7 +114,6 @@ const Login = () => {
         style={{ maxWidth: "420px" }}
       >
         <div className="text-center mb-4">
-          <img src="#" alt="HealthyCare" width="150" className="mb-3" />
           <h3 className="fw-bold text-primary" style={{ color: "#45c3d2" }}>
             Đăng nhập hệ thống
           </h3>
