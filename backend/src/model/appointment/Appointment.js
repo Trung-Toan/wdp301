@@ -37,26 +37,9 @@ function dateOnlyUTC(d) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
-// Tự động lấy ngày & giá từ slot
-appointmentSchema.pre("validate", async function (next) {
-  try {
-    if (this.isModified("slot_id")) {
-      const Slot = mongoose.model("Slot");
-      const slot = await Slot.findById(this.slot_id).lean();
-      if (!slot) return next(new Error("Invalid slot_id"));
+// Pre-validate hook đã được loại bỏ để tránh conflict với service logic
+// Ngày và giá sẽ được set trực tiếp trong service
 
-      // Gán giá & ngày khám
-      this.fee_amount = slot.fee_amount ?? 0;
-      this.scheduled_date = dateOnlyUTC(new Date(slot.start_time));
-    }
-
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Ngăn đặt trùng slot (1 bệnh nhân 1 ca)
 appointmentSchema.index(
   { slot_id: 1, patient_id: 1 },
   { unique: true, partialFilterExpression: { status: "SCHEDULED" } }

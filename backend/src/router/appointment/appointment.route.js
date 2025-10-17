@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const ctrl = require("../../controller/appoinment/appointment.controller");
 const validateObjectId = require("../../middleware/validateObjectId");
+const { validateAppointmentBooking } = require("../../middleware/validateAppointment");
 
 /**
  * @swagger
@@ -130,7 +131,7 @@ const validateObjectId = require("../../middleware/validateObjectId");
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
-router.post("/", ctrl.create);
+router.post("/", validateAppointmentBooking, ctrl.create);
 
 /**
  * @swagger

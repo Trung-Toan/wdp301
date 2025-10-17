@@ -152,17 +152,14 @@ exports.login = async ({ email, password, ip, user_agent }) => {
 
     let patient = null;
     if (acc.role === "PATIENT") {
-        // Tìm user theo account_id
         const user = await User.findOne({ account_id: acc._id }).lean();
 
         if (user) {
-            // Tìm patient theo user_id
             patient = await Patient.findOne({ user_id: user._id }).lean();
         }
     }
 
 
-    // Trả về dữ liệu gồm cả account và patient
     return {
         ok: true,
         account: sanitizeAccount(acc),

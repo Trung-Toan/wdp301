@@ -1,8 +1,25 @@
-// src/service/doctor/topDoctor.service.js
 const Doctor = require("../../model/doctor/Doctor");
+const Clinic = require("../../model/clinic/Clinic");
 
-async function getTopDoctors({ limit }) {
-    let query = Doctor.find({ rating: { $ne: null } })
+async function getTopDoctors({ limit, provinceCode, wardCode }) {
+    const doctorFilter = { rating: { $ne: null } };
+
+    if (provinceCode || wardCode) {
+        const clinicFilter = {};
+        if (provinceCode) clinicFilter["address.province.code"] = String(provinceCode);
+        if (wardCode) clinicFilter["address.ward.code"] = String(wardCode);
+
+        const clinics = await Clinic.find(clinicFilter).select("_id").lean();
+        const clinicIds = clinics.map(c => c._id);
+
+        if (clinicIds.length === 0) {
+            return [];
+        }
+
+        doctorFilter.clinic_id = { $in: clinicIds };
+    }
+
+    let query = Doctor.find(doctorFilter)
         .sort({ rating: -1, createdAt: -1 })
         .populate({
             path: "clinic_id",
@@ -17,7 +34,6 @@ async function getTopDoctors({ limit }) {
         .select("title degree workplace rating avatar_url specialty_id clinic_id createdAt")
         .lean();
 
-    // Chỉ giới hạn nếu có limit > 0
     if (limit && Number(limit) > 0) {
         query = query.limit(Number(limit));
     }
