@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { authRequired, roleRequired } = require("./../../middleware/auth");
 const { getDoctorsBySpecialty } = require("../../controller/doctor/doctorBySpecialty.controller");
-const { getTopDoctorsController } = require("../../controller/doctor/topDoctor.controller");
+const { getTopDoctorsController, getTopDoctorsNearMeController } = require("../../controller/doctor/topDoctor.controller");
 const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");
 const { getDoctorDetailController } = require("../../controller/doctor/getDoctorDetail.controller");
 
@@ -121,11 +121,44 @@ router.get("/by-specialty", getDoctorsBySpecialty);
  *           minimum: 1
  *           maximum: 50
  *         description: Số lượng bác sĩ muốn lấy (mặc định 5)
+ *       - in: query
+ *         name: provinceCode
+ *         schema:
+ *           type: string
+ *           example: "01"
+ *         description: Mã tỉnh/thành để lọc theo địa điểm phòng khám
+ *       - in: query
+ *         name: wardCode
+ *         schema:
+ *           type: string
+ *           example: "00004"
+ *         description: Mã phường/xã để lọc theo địa điểm phòng khám
  *     responses:
  *       200:
  *         description: Danh sách bác sĩ nổi bật
  */
 router.get("/top", getTopDoctorsController);
+
+/**
+ * @openapi
+ * /api/doctor/top/near-me:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy bác sĩ nổi bật gần vị trí bệnh nhân (dựa trên province/ward đã lưu)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *     responses:
+ *       200:
+ *         description: Danh sách bác sĩ nổi bật gần tôi
+ */
+router.get("/top/near-me", authRequired, getTopDoctorsNearMeController);
 
 /**
  * @openapi

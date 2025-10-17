@@ -5,6 +5,9 @@ const patientSchema = new Schema(
   {
     patient_code: { type: String, unique: true },
     user_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    // Location preference for proximity filtering
+    province_code: { type: String, index: true },
+    ward_code: { type: String, index: true },
     blood_type: { type: String },
     allergies: [String],
     chronic_diseases: [String],

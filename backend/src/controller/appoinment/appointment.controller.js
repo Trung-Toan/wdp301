@@ -12,9 +12,25 @@ exports.create = async (req, res) => {
         return ok(res, result, 201);
     } catch (err) {
         const msg = String(err?.message || err);
-        if (/Slot is full|unavailable|not found|Patient not found/i.test(msg)) return fail(res, err, 400);
-        if (/duplicate key/i.test(msg)) return fail(res, new Error("Duplicate booking for this slot"), 409);
-        return fail(res, err);
+
+        // Business logic errors (400)
+        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id/i.test(msg)) {
+            return fail(res, err, 400);
+        }
+
+        // Duplicate booking error (409)
+        if (/duplicate key|Duplicate booking|E11000/i.test(msg)) {
+            return fail(res, new Error("Duplicate booking for this slot"), 409);
+        }
+
+        // Database connection errors (503)
+        if (/connection|timeout|network/i.test(msg)) {
+            return fail(res, new Error("Service temporarily unavailable"), 503);
+        }
+
+        // Default server error (500)
+        console.error('Appointment creation error:', err);
+        return fail(res, new Error("Internal server error"), 500);
     }
 };
 
