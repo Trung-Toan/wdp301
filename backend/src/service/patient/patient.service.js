@@ -49,7 +49,9 @@ exports.findPatientByAccountId = async (accountId) => {
     }
 }
 
-
+/**
+ * Update patient location (province_code, ward_code) by account id
+ */
 exports.updatePatientLocationByAccountId = async (accountId, { province_code, ward_code }) => {
     const user = await userService.findUserByAccountId(accountId);
     if (!user) {

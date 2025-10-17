@@ -5,6 +5,8 @@ async function searchDoctors({
     q,
     clinicId,
     specialtyId,
+    provinceCode,
+    wardCode,
     page = 1,
     limit = 20,
     sort = "-createdAt",
@@ -38,6 +40,10 @@ async function searchDoctors({
         if (sid) and.push({ specialty_id: { $in: [sid] } });
         else and.push({ "specialties.name": new RegExp(String(specialtyId).trim(), "i") });
     }
+
+    // Lọc theo địa chỉ phòng khám
+    if (provinceCode) and.push({ "clinic.address.province.code": String(provinceCode) });
+    if (wardCode) and.push({ "clinic.address.ward.code": String(wardCode) });
 
     // Tìm kiếm tổng hợp theo q
     if (q && q.trim()) {
