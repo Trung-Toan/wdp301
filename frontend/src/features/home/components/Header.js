@@ -100,12 +100,14 @@ export default function Header() {
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
                   <Dropdown.Header>
-                    Hello, {user?.fullName || "you"}!
+                    Hello, {user?.username || "you"}!
                   </Dropdown.Header>
                   <Dropdown.Divider />
                   <Dropdown.Item as={Link} to="information">
+                    <Link to={`/home/profile`}> 
                     <InfoCircle className="me-2" />
-                    View information
+                      View information
+                      </Link>
                   </Dropdown.Item>
                   <Dropdown.Item as={Link} to="list_invoice">
                     <Receipt className="me-2" />

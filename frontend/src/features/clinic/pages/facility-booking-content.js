@@ -137,7 +137,7 @@ export default function FacilityBooking() {
             <div className="max-w-6xl mx-auto grid lg:grid-cols-3 gap-8">
                 {/* Form */}
                 <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-8">
-                    {/* 🔙 Nút quay lại */}
+                    {/* Nút quay lại */}
                     <button
                         type="button"
                         onClick={() => navigate(-1)}

@@ -18,6 +18,7 @@ import SpecialtiesList from "../features/home/pages/Specialties/specialties-list
 import FacilitiesList from "../features/clinic/pages/facility-list-content";
 import FacilityDetail from "../features/clinic/pages/facility-detail-content";
 import FacilityBooking from "../features/clinic/pages/facility-booking-content";
+import ProfileContent from "../features/customer/pages/Profile/ProfilePatient";
 
 
 const RouterUser = () => {
@@ -25,6 +26,7 @@ const RouterUser = () => {
     <Routes>
       <Route path="/" element={<UserLayout />}>
         <Route path="home" element={<HomePage />} />
+        <Route path="home/profile" element={<ProfileContent />} />
 
         <Route path="home/doctordetail/:id/booking" element={<BookingContent />} />
         <Route path="home/doctorlist" element={<DoctorsListContent />} />
