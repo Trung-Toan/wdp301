@@ -7,7 +7,7 @@ import {
     Stethoscope,
     ChevronLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import Button from "../../../../components/ui/Button";
@@ -43,7 +43,7 @@ export function DoctorDetailContent({ doctorId }) {
         const fetchDoctor = async () => {
             setLoading(true);
             try {
-                const res = await doctorApi.getById(doctorId); // Gọi API backend
+                const res = await doctorApi.getById(doctorId);
                 console.log(res.data);
                 setDoctor(res.data || {}); // đảm bảo là object
             } catch (err) {
@@ -221,9 +221,18 @@ export function DoctorDetailContent({ doctorId }) {
                     </div>
 
                     {/* Sidebar Booking */}
-                    <div className="lg:col-span-1">
-                        {doctor?.data && <DoctorBookingCalendar doctor={doctor.data} />}
-                    </div>
+                    <DoctorBookingCalendar
+                        doctor={doctor.data}
+                        onSlotSelect={(slot) => {
+                            // Thêm clinicId và specialtyId
+                            const slotToSend = {
+                                ...slot,
+                                clinicId: slot.clinic?._id,
+                                specialtyId: slot.specialty?._id,
+                            };
+                            Navigate("/booking", { state: { selectedSlot: slotToSend, doctorId: doctor.data._id } });
+                        }}
+                    />
 
                 </div>
             </div>

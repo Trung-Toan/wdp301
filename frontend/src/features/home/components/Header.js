@@ -14,6 +14,8 @@ import {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useSessionStorage("user");
+  const patients = useSessionStorage("patient");
+  console.log(patients);
   console.log(user);
   const navigate = useNavigate();
 

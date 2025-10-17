@@ -43,9 +43,12 @@ const Login = () => {
         return;
       }
 
+      console.log("LOGIN RESPONSE:", response);
       const token = response.tokens?.accessToken;
       const user = response.account;
-
+      const patient = response.patient;
+      console.log("PATIENT FROM LOGIN:", patient);
+      
       if (!token || !user) {
         Swal.fire({
           icon: "error",
@@ -59,6 +62,7 @@ const Login = () => {
 
       setSessionStorage("token", token);
       setSessionStorage("user", user);
+      setSessionStorage("patient", patient);
 
       Swal.fire({
         icon: "success",

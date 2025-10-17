@@ -16,7 +16,7 @@ export function DoctorBookingCalendar({ doctor }) {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
-    // Hàm format currency an toàn
+    // Hàm format tiền tệ an toàn
     const formatCurrency = (amount, currency = "VND") => {
         if (!amount) return "Chưa có giá";
         const value = Number(amount);
@@ -49,6 +49,8 @@ export function DoctorBookingCalendar({ doctor }) {
                 })}`,
                 fee: slot.fee_amount || doctor.pricing?.minFee || 0,
                 clinicName: slot.clinic_name || doctor.clinic?.name || "Chưa có phòng khám",
+                clinicId: slot.clinic_id || doctor.clinic?._id || null,
+                specialtyId: slot.specialty_id || doctor.specialties?.[0]?._id || null,
             }))
         : [];
 
@@ -110,7 +112,9 @@ export function DoctorBookingCalendar({ doctor }) {
                                             }`}
                                     >
                                         {slot.time} <br />
-                                        <span className="text-xs text-muted-foreground">{slot.clinicName}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {slot.clinicName}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
@@ -150,6 +154,9 @@ export function DoctorBookingCalendar({ doctor }) {
                                     : "Chưa có giá",
                             time: selectedSlot?.time,
                             image: doctor.avatar_url || "/placeholder.svg",
+                            doctorId: id,
+                            clinicId: selectedSlot?.clinicId,
+                            specialtyId: selectedSlot?.specialtyId,
                         }}
                     >
                         <Button className="w-full" size="lg" disabled={!selectedSlot}>

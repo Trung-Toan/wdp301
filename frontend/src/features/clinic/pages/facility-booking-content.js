@@ -10,7 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function FacilityBooking() {
-    const navigate = useNavigate(); // 👉 Dùng để quay lại
+    const navigate = useNavigate(); // Dùng để quay lại
     const [formData, setFormData] = useState({
         fullName: "",
         phone: "",
@@ -280,45 +280,6 @@ export default function FacilityBooking() {
                                 className="w-full border rounded-lg p-3"
                             />
                         </div>
-
-                        {/* Bảo hiểm */}
-                        <div>
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.hasInsurance}
-                                    onChange={(e) =>
-                                        handleChange("hasInsurance", e.target.checked)
-                                    }
-                                />
-                                Tôi có bảo hiểm y tế
-                            </label>
-                            {formData.hasInsurance && (
-                                <input
-                                    type="text"
-                                    placeholder="Số thẻ bảo hiểm y tế"
-                                    value={formData.insuranceNumber}
-                                    onChange={(e) =>
-                                        handleChange("insuranceNumber", e.target.value)
-                                    }
-                                    className="mt-2 w-full border rounded-lg p-3"
-                                />
-                            )}
-                        </div>
-
-                        {/* Điều khoản */}
-                        <label className="flex items-start gap-2 text-sm">
-                            <input type="checkbox" required />
-                            Tôi đồng ý với{" "}
-                            <a href="/terms" className="text-blue-600 hover:underline">
-                                điều khoản
-                            </a>{" "}
-                            và{" "}
-                            <a href="/privacy" className="text-blue-600 hover:underline">
-                                chính sách
-                            </a>
-                        </label>
-
                         <button
                             type="submit"
                             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"

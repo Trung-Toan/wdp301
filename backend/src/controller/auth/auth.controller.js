@@ -5,6 +5,7 @@ const { JWT_SECRET } = require('../../config/env');
 const { verifyGoogleIdToken } = require('../../utils/verify-google');
 const { loginWithGoogle } = require('../../service/auth/google.service');
 const User = require('../../model/user/User');
+const Patient = require('../../model/patient/Patient');
 
 exports.googleLogin = async (req, res) => {
     try {
@@ -26,7 +27,6 @@ exports.googleLogin = async (req, res) => {
         res.status(400).json({ ok: false, message: 'Google login thất bại: ' + e.message });
     }
 };
-
 
 
 exports.registerPatients = async (req, res) => {
@@ -58,7 +58,7 @@ exports.registerPatients = async (req, res) => {
         });
 
         // Tạo bản ghi user liên kết với account_id
-        await User.create({
+        const user = await User.create({
             full_name: fullName,
             dob,
             gender,
@@ -66,16 +66,35 @@ exports.registerPatients = async (req, res) => {
             account_id: account._id,
         });
 
+        // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
+        const patient = new Patient({
+            user_id: user._id,
+            blood_type: null,
+            allergies: [],
+            chronic_diseases: [],
+            medications: [],
+            surgery_history: [],
+        });
+
+        // Middleware pre("save") sẽ tự sinh patient_code
+        await patient.save();
+
+        // Trả kết quả về cho FE
         res.json({
             ok: true,
             message: "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.",
-            account,
+            data: {
+                account,
+                user,
+                patient,
+            },
         });
     } catch (e) {
         console.error("Lỗi đăng ký:", e);
         res.status(400).json({ ok: false, message: e.message });
     }
 };
+
 
 exports.verifyEmail = async (req, res) => {
     try {
