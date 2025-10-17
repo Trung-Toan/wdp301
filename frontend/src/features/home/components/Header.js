@@ -9,15 +9,25 @@ import {
   InfoCircle,
 } from "react-bootstrap-icons";
 import NotificationDropdown from "./NotificationDropdown";
+import { logoutApi } from "../../../api/auth/logout/LogoutApt";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useSessionStorage("user");
   const navigate = useNavigate();
 
-  const onLogout = () => {
-    navigate("/login");
+
+  const onLogout = async () => {
+    try {
+      await logoutApi.logout(); // gọi API logout
+      localStorage.removeItem("token"); // xóa token (nếu bạn lưu token ở đây)
+      localStorage.removeItem("user");  // xóa thông tin người dùng (nếu có)
+      navigate("/login"); // điều hướng về trang đăng nhập
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+    }
   };
+
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-blue-100 shadow-sm transition-all duration-300">

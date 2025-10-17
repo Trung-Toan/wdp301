@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
     return (
@@ -23,24 +24,24 @@ export default function Footer() {
                         <h3 className="mb-4 font-semibold">Dịch vụ</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Đặt lịch khám
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Tư vấn trực tuyến
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Xét nghiệm tại nhà
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Gói khám sức khỏe
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -50,24 +51,24 @@ export default function Footer() {
                         <h3 className="mb-4 font-semibold">Hỗ trợ</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Câu hỏi thường gặp
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Hướng dẫn sử dụng
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Chính sách bảo mật
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="hover:text-primary transition-colors">
+                                <Link to="#" className="hover:text-primary transition-colors">
                                     Điều khoản sử dụng
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -82,30 +83,26 @@ export default function Footer() {
                         </ul>
 
                         <div className="mt-4 flex gap-3">
-                            <a
-                                href="#"
+                            <Link to="#"
                                 className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                             >
                                 <Facebook className="h-4 w-4" />
-                            </a>
-                            <a
-                                href="#"
+                            </Link>
+                            <Link to="#"
                                 className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                             >
                                 <Twitter className="h-4 w-4" />
-                            </a>
-                            <a
-                                href="#"
+                            </Link>
+                            <Link to="#"
                                 className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                             >
                                 <Instagram className="h-4 w-4" />
-                            </a>
-                            <a
-                                href="#"
+                            </Link>
+                            <Link to="#"
                                 className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                             >
                                 <Youtube className="h-4 w-4" />
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </div>

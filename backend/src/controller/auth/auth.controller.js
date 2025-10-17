@@ -7,6 +7,7 @@ const { loginWithGoogle } = require('../../service/auth/google.service');
 const User = require('../../model/user/User');
 const Patient = require('../../model/patient/Patient');
 
+
 exports.googleLogin = async (req, res) => {
     try {
         const { id_token } = req.body;
@@ -18,16 +19,16 @@ exports.googleLogin = async (req, res) => {
             ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
         });
 
+        // account ở đây có _id theo contract ở function trên
         res.json({
             ok: true,
             account: { id: account._id, email: account.email, role: account.role, email_verified: account.email_verified },
             tokens,
         });
     } catch (e) {
-        res.status(400).json({ ok: false, message: 'Google login thất bại: ' + e.message });
+        res.status(400).json({ ok: false, message: 'Google login thất bại' });
     }
 };
-
 
 exports.registerPatients = async (req, res) => {
     try {
@@ -161,7 +162,6 @@ exports.requestVerifyEmail = async (req, res) => {
         res.status(400).json({ ok: false, message: e.message });
     }
 };
-
 
 exports.requestPasswordReset = async (req, res) => {
     try {

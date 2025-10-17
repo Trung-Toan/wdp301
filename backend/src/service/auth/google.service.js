@@ -10,6 +10,8 @@ const Account = require('../../model/auth/Account');
 const Session = require('../../model/auth/Session');
 const LoginAttempt = require('../../model/auth/LoginAttempt');
 const AuthProviders = require('../../model/auth/AuthProviders');
+const User = require('../../model/user/User');
+const Patient = require('../../model/patient/Patient');
 
 const fp = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
@@ -38,10 +40,10 @@ async function randomHashedPassword() {
 exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
     const { sub: provider_user_id, email, email_verified, name } = googleProfile;
 
-    const emailCanon = normalizeEmail(email || '');
+    const emailCanon = normalizeEmail(email || "");
     let acc = null;
 
-    let link = await AuthProviders.findOne({ provider: 'google', provider_user_id }).lean();
+    let link = await AuthProviders.findOne({ provider: "google", provider_user_id }).lean();
     if (link) {
         acc = await Account.findById(link.account_id);
     } else {
@@ -50,19 +52,67 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
         }
 
         if (!acc) {
-            if (!emailCanon) {
-                throw new Error('Google account has no email');
+            if (!emailCanon) throw new Error("Google account has no email");
+
+            // Bọc toàn bộ quá trình tạo trong Transaction để đảm bảo đồng bộ
+            const session = await mongoose.startSession();
+            session.startTransaction();
+
+            try {
+                // Tạo account
+                acc = await Account.create(
+                    [
+                        {
+                            username: await generateUniqueUsername({ name, emailCanon }),
+                            email: emailCanon,
+                            password: await randomHashedPassword(),
+                            role: "PATIENT",
+                            status: "ACTIVE",
+                            email_verified: !!email_verified,
+                        },
+                    ],
+                    { session }
+                );
+                acc = acc[0];
+
+                // Tạo user tương ứng
+                const user = await User.create(
+                    [
+                        {
+                            full_name: name || "Chưa cập nhật",
+                            gender: "Khác",
+                            account_id: acc._id,
+                        },
+                    ],
+                    { session }
+                );
+
+                // Tạo patient tương ứng
+                await Patient.create(
+                    [
+                        {
+                            user_id: user[0]._id,
+                        },
+                    ],
+                    { session }
+                );
+
+                // Commit transaction
+                await session.commitTransaction();
+                session.endSession();
+            } catch (err) {
+                await session.abortTransaction();
+                session.endSession();
+
+                if (err.code === 11000) {
+                    acc = await Account.findOne({ email: emailCanon });
+                    if (!acc) throw err;
+                } else {
+                    throw err;
+                }
             }
-            acc = await Account.create({
-                username: await generateUniqueUsername({ name, emailCanon }),
-                email: emailCanon,
-                phone_number: undefined,
-                password: await randomHashedPassword(),
-                role: 'PATIENT',
-                status: 'ACTIVE',
-                email_verified: !!email_verified,
-            });
         } else {
+            // Nếu tài khoản có rồi, cập nhật email_verified nếu cần
             if (!acc.email_verified && email_verified) {
                 await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
                 acc.email_verified = true;
@@ -71,29 +121,35 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
 
         try {
             await AuthProviders.create({
-                provider: 'google',
+                provider: "google",
                 provider_user_id,
                 email: email || undefined,
                 account_id: acc._id,
             });
         } catch (err) {
             if (err.code === 11000) {
-                link = await AuthProviders.findOne({ provider: 'google', provider_user_id });
+                link = await AuthProviders.findOne({ provider: "google", provider_user_id });
             } else {
                 throw err;
             }
         }
     }
 
-    await LoginAttempt.create({
-        ip,
-        email: email || '',
-        ok: true,
-        reason: 'google_login',
-        account_id: acc?._id,
-        user_agent: ua || '',
-    });
+    // Ghi log đăng nhập
+    try {
+        await LoginAttempt.create({
+            ip,
+            email: email || "",
+            ok: true,
+            reason: "google_login",
+            account_id: acc?._id,
+            user_agent: ua || "",
+        });
+    } catch (e) {
+        console.error("LoginAttempt.create failed", e);
+    }
 
+    // Token
     const jti = new mongoose.Types.ObjectId().toString();
     const accessToken = signAccessToken({ sub: acc._id.toString(), role: acc.role, jti });
     const refreshToken = signRefreshToken({ sub: acc._id.toString(), jti });
@@ -101,17 +157,27 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
     const refresh_fingerprint = fp(refreshToken);
     const expiresAt = new Date(Date.now() + (REFRESH_EXPIRES_DAYS || 7) * 24 * 3600 * 1000);
 
-    await Session.create({
-        account_id: acc._id,
-        refresh_token_hash: await hashToken(refreshToken),
-        refresh_fingerprint,
-        ip,
-        user_agent: ua || '',
-        expires_at: expiresAt,
-    });
+    try {
+        await Session.create({
+            account_id: acc._id,
+            refresh_token_hash: await hashToken(refreshToken),
+            refresh_fingerprint,
+            ip,
+            user_agent: ua || "",
+            expires_at: expiresAt,
+        });
+    } catch (e) {
+        console.error("Session.create failed", e);
+        throw new Error("Không thể tạo session. Vui lòng thử lại.");
+    }
 
     return {
-        account: { id: acc._id, email: acc.email, role: acc.role, email_verified: acc.email_verified },
+        account: {
+            _id: acc._id,
+            email: acc.email,
+            role: acc.role,
+            email_verified: acc.email_verified,
+        },
         tokens: { accessToken, refreshToken, refreshExpiresAt: expiresAt },
     };
 };

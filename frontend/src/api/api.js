@@ -6,5 +6,5 @@ export const AUTHEN_API = {
   // FINDEMAIL: `${BASE_URL}/user/find_email`,
   // FORGOTPASSWORD:`${BASE_URL}/user/forgot_password`,
   // REGISTER: `${BASE_URL}/user/register`,
-  // LOGIN_BY_GOOGLE: `${BASE_URL}/user/google-login`,
+  LOGIN_BY_GOOGLE: `${BASE_URL}/auth/google`,
 };

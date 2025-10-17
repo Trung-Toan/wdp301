@@ -30,11 +30,14 @@ export const forgotPassword = async (userId, password, rePassword) => {
   }
 };
 
-export const loginByGoogleAccount = async (token) => {
+export const loginByGoogleAccount = async (idToken) => {
   try {
-    const response = await axios.post(AUTHEN_API.LOGIN_BY_GOOGLE, { token });
+    const response = await axios.post(AUTHEN_API.LOGIN_BY_GOOGLE, {
+      id_token: idToken, // phải là id_token để backend nhận đúng
+    });
+    console.log(response.data);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: "Google login failed!" };
   }
-}
+};

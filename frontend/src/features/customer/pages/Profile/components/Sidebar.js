@@ -1,5 +1,5 @@
 import React from "react"
-import { User, Shield, FileText, Clock, Lock, LogOut } from "lucide-react"
+import { User, Shield, FileText, Clock, Lock } from "lucide-react"
 
 export default function Sidebar({ activeTab, setActiveTab, formData }) {
     const tabs = [
@@ -36,10 +36,6 @@ export default function Sidebar({ activeTab, setActiveTab, formData }) {
                     })}
                 </nav>
             </div>
-            <button className="mt-auto bg-red-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Đăng xuất
-            </button>
         </div>
     )
 }
