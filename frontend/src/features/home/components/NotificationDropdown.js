@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 export default function NotificationDropdown() {
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState([
+    // const [notifications, setNotifications] = useState([
+    const [notifications] = useState([
         {
             id: 1,
             title: "Lịch khám của bạn đã được xác nhận",
