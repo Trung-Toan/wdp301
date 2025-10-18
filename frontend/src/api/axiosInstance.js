@@ -10,19 +10,6 @@ export const axiosInstance = axios.create({
     },
 });
 
-// Thêm interceptor để tự động gắn token từ sessionStorage
-axiosInstance.interceptors.request.use(
-    (config) => {
-        const token =
-            sessionStorage.getItem("token") || localStorage.getItem("token");
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (err) => Promise.reject(err)
-);
-
 axiosInstance.interceptors.request.use((config) => {
     const token = sessionStorage.getItem("token");
     if (token) {

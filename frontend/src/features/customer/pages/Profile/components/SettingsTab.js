@@ -5,6 +5,7 @@ import Input from "../../../../../components/ui/Input";
 import Button from "../../../../../components/ui/Button";
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi";
 import { changePasswordApi } from "../../../../../api/auth/ChangePassword/changePasswordApi";
+
 export default function SettingsTab() {
     /** ---------------- PASSWORD ---------------- */
     const [passwordForm, setPasswordForm] = useState({
@@ -24,17 +25,39 @@ export default function SettingsTab() {
 
     const validatePassword = () => {
         const errors = {};
-        if (!passwordForm.currentPassword) errors.currentPassword = "Vui lòng nhập mật khẩu hiện tại";
-        if (!passwordForm.newPassword) {
-            errors.newPassword = "Vui lòng nhập mật khẩu mới";
-        } else if (passwordForm.newPassword.length < 6) {
-            errors.newPassword = "Mật khẩu phải có ít nhất 6 ký tự";
+
+        const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+        if (!currentPassword) {
+            errors.currentPassword = "Vui lòng nhập mật khẩu hiện tại";
         }
-        if (passwordForm.confirmPassword !== passwordForm.newPassword) {
+
+        if (!newPassword) {
+            errors.newPassword = "Vui lòng nhập mật khẩu mới";
+        } else {
+            if (newPassword.length < 8) {
+                errors.newPassword = "Mật khẩu phải có ít nhất 8 ký tự";
+            }
+            if (!/[A-Z]/.test(newPassword)) {
+                errors.newPassword = "Mật khẩu phải có ít nhất 1 chữ hoa";
+            }
+            if (!/[a-z]/.test(newPassword)) {
+                errors.newPassword = "Mật khẩu phải có ít nhất 1 chữ thường";
+            }
+            if (!/[0-9]/.test(newPassword)) {
+                errors.newPassword = "Mật khẩu phải có ít nhất 1 chữ số";
+            }
+            if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+                errors.newPassword = "Mật khẩu phải có ít nhất 1 ký tự đặc biệt";
+            }
+        }
+        if (confirmPassword !== newPassword) {
             errors.confirmPassword = "Xác nhận mật khẩu không khớp";
         }
+
         return errors;
     };
+
 
     const handlePasswordChange = async () => {
         setPasswordSuccess(false);
@@ -110,6 +133,9 @@ export default function SettingsTab() {
         }
     };
 
+    const token = sessionStorage.getItem("token")?.replace(/^"|"$/g, "");
+    if (!token) return <p>Vui lòng đăng nhập để xem cài đặt</p>;
+
     return (
         <Card className="p-6">
             <h2 className="text-2xl font-bold mb-6">Cài đặt</h2>
@@ -121,25 +147,44 @@ export default function SettingsTab() {
                 </h3>
 
                 {passwordSuccess && (
-                    <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-green-800">Mật khẩu đã được thay đổi thành công!</span>
-                    </div>
+                    <Message type="success" text="Mật khẩu đã được thay đổi thành công!" />
                 )}
-                {passwordFail && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800">
-                        <AlertCircle className="h-5 w-5" /> {passwordFail}
-                    </div>
-                )}
+                {passwordFail && <Message type="error" text={passwordFail} />}
 
                 <div className="space-y-4">
-                    <InputField label="Mật khẩu hiện tại" name="currentPassword" type="password" value={passwordForm.currentPassword} onChange={handlePasswordInputChange} error={passwordErrors.currentPassword} />
-                    <InputField label="Mật khẩu mới" name="newPassword" type="password" value={passwordForm.newPassword} onChange={handlePasswordInputChange} error={passwordErrors.newPassword} />
-                    <InputField label="Xác nhận mật khẩu mới" name="confirmPassword" type="password" value={passwordForm.confirmPassword} onChange={handlePasswordInputChange} error={passwordErrors.confirmPassword} />
+                    <InputField
+                        label="Mật khẩu hiện tại"
+                        name="currentPassword"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={handlePasswordInputChange}
+                        error={passwordErrors.currentPassword}
+                    />
+                    <InputField
+                        label="Mật khẩu mới"
+                        name="newPassword"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={handlePasswordInputChange}
+                        error={passwordErrors.newPassword}
+                    />
+                    <InputField
+                        label="Xác nhận mật khẩu mới"
+                        name="confirmPassword"
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={handlePasswordInputChange}
+                        error={passwordErrors.confirmPassword}
+                    />
 
                     <Button
                         onClick={handlePasswordChange}
-                        disabled={isChangingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                        disabled={
+                            isChangingPassword ||
+                            !passwordForm.currentPassword ||
+                            !passwordForm.newPassword ||
+                            !passwordForm.confirmPassword
+                        }
                         className="gap-2"
                     >
                         {isChangingPassword ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
@@ -153,14 +198,32 @@ export default function SettingsTab() {
                     <Bell className="h-5 w-5" /> Thông báo
                 </h3>
                 <div className="space-y-3">
-                    <CheckboxField label="Nhận thông báo về lịch khám sắp tới" checked={settings.notify_upcoming} onChange={(e) => setSettings((prev) => ({ ...prev, notify_upcoming: e.target.checked }))} />
-                    <CheckboxField label="Nhận thông báo về kết quả khám" checked={settings.notify_results} onChange={(e) => setSettings((prev) => ({ ...prev, notify_results: e.target.checked }))} />
-                    <CheckboxField label="Nhận email quảng cáo và khuyến mãi" checked={settings.notify_marketing} onChange={(e) => setSettings((prev) => ({ ...prev, notify_marketing: e.target.checked }))} />
+                    <CheckboxField
+                        label="Nhận thông báo về lịch khám sắp tới"
+                        checked={settings.notify_upcoming}
+                        onChange={(e) =>
+                            setSettings((prev) => ({ ...prev, notify_upcoming: e.target.checked }))
+                        }
+                    />
+                    <CheckboxField
+                        label="Nhận thông báo về kết quả khám"
+                        checked={settings.notify_results}
+                        onChange={(e) =>
+                            setSettings((prev) => ({ ...prev, notify_results: e.target.checked }))
+                        }
+                    />
+                    <CheckboxField
+                        label="Nhận email quảng cáo và khuyến mãi"
+                        checked={settings.notify_marketing}
+                        onChange={(e) =>
+                            setSettings((prev) => ({ ...prev, notify_marketing: e.target.checked }))
+                        }
+                    />
 
                     <Button onClick={handleSaveNotifications} disabled={isSavingNotifications} className="mt-2 gap-2">
                         {isSavingNotifications ? "Đang lưu..." : "Lưu thông báo"}
                     </Button>
-                    {notificationsSuccess && <SuccessMessage message="Thông báo đã được cập nhật thành công!" />}
+                    {notificationsSuccess && <Message type="success" text="Thông báo đã được cập nhật thành công!" />}
                 </div>
             </div>
 
@@ -170,13 +233,25 @@ export default function SettingsTab() {
                     <Shield className="h-5 w-5" /> Quyền riêng tư
                 </h3>
                 <div className="space-y-3">
-                    <CheckboxField label="Cho phép bác sĩ xem lịch sử khám của tôi" checked={settings.privacy_allow_doctor_view} onChange={(e) => setSettings((prev) => ({ ...prev, privacy_allow_doctor_view: e.target.checked }))} />
-                    <CheckboxField label="Cho phép chia sẻ dữ liệu y tế với các cơ sở y tế khác" checked={settings.privacy_share_with_providers} onChange={(e) => setSettings((prev) => ({ ...prev, privacy_share_with_providers: e.target.checked }))} />
+                    <CheckboxField
+                        label="Cho phép bác sĩ xem lịch sử khám của tôi"
+                        checked={settings.privacy_allow_doctor_view}
+                        onChange={(e) =>
+                            setSettings((prev) => ({ ...prev, privacy_allow_doctor_view: e.target.checked }))
+                        }
+                    />
+                    <CheckboxField
+                        label="Cho phép chia sẻ dữ liệu y tế với các cơ sở y tế khác"
+                        checked={settings.privacy_share_with_providers}
+                        onChange={(e) =>
+                            setSettings((prev) => ({ ...prev, privacy_share_with_providers: e.target.checked }))
+                        }
+                    />
 
                     <Button onClick={handleSavePrivacy} disabled={isSavingPrivacy} className="mt-2 gap-2">
                         {isSavingPrivacy ? "Đang lưu..." : "Lưu quyền riêng tư"}
                     </Button>
-                    {privacySuccess && <SuccessMessage message="Quyền riêng tư đã được cập nhật thành công!" />}
+                    {privacySuccess && <Message type="success" text="Quyền riêng tư đã được cập nhật thành công!" />}
                 </div>
             </div>
         </Card>
@@ -187,7 +262,14 @@ export default function SettingsTab() {
 const InputField = ({ label, name, type = "text", value, onChange, error }) => (
     <div>
         <label className="block text-sm font-medium mb-2">{label}</label>
-        <Input type={type} name={name} value={value} onChange={onChange} placeholder={label} className={error ? "border-red-500" : ""} />
+        <Input
+            type={type}
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={label}
+            className={error ? "border-red-500" : ""}
+        />
         {error && (
             <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" /> {error}
@@ -203,8 +285,12 @@ const CheckboxField = ({ label, checked, onChange }) => (
     </label>
 );
 
-const SuccessMessage = ({ message }) => (
-    <div className="mt-2 text-green-600 flex items-center gap-2">
-        <CheckCircle className="h-4 w-4" /> {message}
-    </div>
-);
+const Message = ({ type, text }) => {
+    const bgClass = type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800";
+    const icon = type === "success" ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5" />;
+    return (
+        <div className={`mb-4 p-4 border rounded-lg flex items-center gap-2 ${bgClass}`}>
+            {icon} {text}
+        </div>
+    );
+};

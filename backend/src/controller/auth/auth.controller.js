@@ -1,11 +1,12 @@
 const svc = require('../../service/auth/auth.service');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../../config/env');
-
+const bcrypt = require('bcryptjs');
 const { verifyGoogleIdToken } = require('../../utils/verify-google');
 const { loginWithGoogle } = require('../../service/auth/google.service');
 const User = require('../../model/user/User');
 const Patient = require('../../model/patient/Patient');
+const Account = require('../../model/auth/Account');
 
 
 exports.googleLogin = async (req, res) => {
@@ -185,24 +186,22 @@ exports.resetPassword = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
     try {
-        const accountId = req.user?.sub; // user id từ JWT
+        const accountId = req.user?.sub;
         if (!accountId) return res.status(401).json({ ok: false, message: "Unauthorized" });
 
         const { currentPassword, newPassword } = req.body;
         if (!currentPassword || !newPassword)
             return res.status(400).json({ ok: false, message: "Missing fields" });
 
-        const user = await User.findById(accountId);
-        if (!user) return res.status(404).json({ ok: false, message: "User not found" });
+        const account = await Account.findById(accountId).select('+password'); // Lấy password
+        if (!account) return res.status(404).json({ ok: false, message: "Account not found" });
 
-        // check current password
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        const isMatch = await bcrypt.compare(currentPassword, account.password);
         if (!isMatch) return res.status(400).json({ ok: false, message: "Mật khẩu hiện tại không đúng" });
 
-        // hash new password
         const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        await user.save();
+        account.password = await bcrypt.hash(newPassword, salt);
+        await account.save();
 
         res.json({ ok: true, message: "Mật khẩu đã được thay đổi thành công" });
     } catch (err) {
@@ -210,3 +209,4 @@ exports.changePassword = async (req, res) => {
         res.status(500).json({ ok: false, message: "Server error" });
     }
 };
+
