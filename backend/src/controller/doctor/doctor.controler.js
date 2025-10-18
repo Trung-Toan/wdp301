@@ -36,10 +36,15 @@ exports.viewListPatients = async (req, res) => {
 exports.viewPatientById = async (req, res) => {
   try {
     const { patient } = await patientService.getPatientById(req);
+    const { records, pagination } = await medicalRecordService.getListMedicalRecordsByIdPatient(req);
 
     return resUtils.successResponse(
       res,
-      formatDataUtils.formatData(patient) || null,
+      {
+        patient: patient,
+        medical_record: records,
+        pagination_: pagination
+      },
       "Lấy thông tin bệnh nhân thành công."
     );
   } catch (error) {
@@ -189,10 +194,30 @@ exports.viewHistoryMedicalRecordRequests = async (req, res) => {
 };
 
 /* ========================= MEDICAL RECORDS ========================= */
-// GET /doctor/patients/medical-records?page=1&limit=10&search=
+// GET /doctor/medical-records?page=1&limit=10&search=
 exports.viewListMedicalRecords = async (req, res) => {
   try {
     const { records, pagination } = await medicalRecordService.getListMedicalRecords(req);
+    return resUtils.paginatedResponse(
+      res,
+      records,
+      pagination,
+      "Lấy danh sách hồ sơ bệnh án thành công."
+    );
+  } catch (error) {
+    console.error("Error in viewListMedicalRecords:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy danh sách hồ sơ bệnh án."
+    );
+  }
+};
+
+// GET /doctor/verify/medical-records?page=1&limit=10&search=
+exports.viewListMedicalRecordsVerify = async (req, res) => {
+  try {
+    const { records, pagination } = await medicalRecordService.getListMedicalRecordsVerify(req);
     return resUtils.paginatedResponse(
       res,
       records,
@@ -231,20 +256,74 @@ exports.viewListMedicalRecordsByPatient = async (req, res) => {
 
 // GET /doctor/medical-records/:recordId
 exports.viewMedicalRecordDetail = async (req, res) => {
-  res.json({
-    message: `View medical record detail with ID ${req.params.recordId}`,
-  });
+  try {
+    const medicalRecord = await medicalRecordService.getMedicalRecordById(req);
+    return resUtils.successResponse(
+      res,
+      medicalRecord,
+      "Lấy chi tiết hồ sơ bệnh án thành công."
+    );
+  } catch (error) {
+    console.error("Error in viewMedicalRecordDetail:", error);
+
+    // Nếu là lỗi không có quyền truy cập
+    if (error.message === "Bạn không có quyền truy cập bệnh án này") {
+      return resUtils.forbiddenResponse(
+        res,
+        "Bạn không có quyền truy cập bệnh án này."
+      );
+    }
+
+    // Nếu bệnh án không tồn tại
+    if (error.message === "Bệnh án không tồn tại") {
+      return resUtils.notFoundResponse(
+        res,
+        error,
+        "Bệnh án không tồn tại."
+      );
+    }
+
+    // Các lỗi khác (lỗi server)
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy chi tiết hồ sơ bệnh án."
+    );
+  }
 };
 
-// PUT /doctor/medical-records/:recordId/verify
+// PUT /doctor/verify/medical-records/:recordId
 exports.verifyMedicalRecord = async (req, res) => {
-  res.json({ message: `Verify medical record with ID ${req.params.recordId}` });
+  try {
+    const medicalRecord = await medicalRecordService.verifyMedicalRecord(req);
+    return resUtils.successResponse(
+      res,
+      medicalRecord,
+      "Xác nhận hồ sơ bệnh án thành công."
+    );
+  } catch (error) {
+    console.error("Error in verifyMedicalRecord:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi xác nhận hồ sơ bệnh án."
+    );
+  }
 };
 
 /* ========================= FEEDBACK ========================= */
 // GET /doctor/feedback
 exports.viewFeedbackList = async (req, res) => {
-  res.json({ message: "View feedback list" });
+  try {
+
+  } catch (error) {
+    console.error("Error in viewFeedbackList:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy danh sách phản hồi."
+    );
+  }
 };
 
 /* ========================= ASSISTANTS ========================= */

@@ -63,16 +63,12 @@ exports.requestViewMedicalRecord = async (req) => {
   }
 };
 
-
 exports.requestViewMedicalRecordById = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorId = doctor._id;
     const patientId = req.params.patientId;
     const medicalRecordId = req.params.medicalRecordId;
-
-    console.log("doctorId, patientId, medicalRecordId", doctorId, patientId, medicalRecordId);
-
 
     const record = await MedicalRecord.findOne({ _id: medicalRecordId, patient_id: patientId });
 
@@ -113,7 +109,6 @@ exports.requestViewMedicalRecordById = async (req) => {
     throw error;
   }
 }
-
 
 /**
  * Lấy lịch sử yêu cầu truy cập hồ sơ của một bác sĩ (đã tối ưu và sửa lỗi sắp xếp)
@@ -186,6 +181,12 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
   }
 };
 
+/**
+ * get list medical records by patient id of doctor
+ * 
+ * @param {*} req 
+ * @returns 
+ */
 exports.getListMedicalRecordsByIdPatient = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
@@ -197,26 +198,57 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
     const limitNumber = parseInt(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    // Lấy tổng số hồ sơ bệnh án của bệnh nhân
-    const totalRecords = await MedicalRecord.countDocuments({ patient_id: patientId, doctor_id: doctorId });
+    // Điều kiện truy cập
+    const accessControlMatch = {
+      $or: [
+        { doctor_id: doctorId },
+        { status: "PUBLIC" },
+        {
+          status: "PRIVATE",
+          access_requests: {
+            $elemMatch: {
+              doctor_id: doctorId,
+              status: "VERIFIED",
+            },
+          },
+        },
+      ],
+    };
+
+    // Gộp điều kiện truy xuất theo bệnh nhân và quyền truy cập
+    const query = {
+      patient_id: patientId,
+      ...accessControlMatch,
+    };
+
+    // Tổng số hồ sơ hợp lệ
+    const totalRecords = await MedicalRecord.countDocuments(query);
 
     if (totalRecords === 0) {
-      return { records: [], pagination: { totalItems: 0, totalPages: 0, currentPage: 1, limit: limitNumber } };
+      return {
+        records: [],
+        pagination: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: 1,
+          limit: limitNumber
+        }
+      };
     }
-    // Lấy danh sách hồ sơ bệnh án với phân trang
-    const records = await MedicalRecord.find({ patient_id: patientId, doctor_id: doctorId })
+
+    // Lấy danh sách hồ sơ theo quyền truy cập + phân trang
+    const records = await MedicalRecord.find(query)
       .skip(skip)
       .limit(limitNumber)
       .lean();
 
-    // Tính toán tổng số trang
     const totalPages = Math.ceil(totalRecords / limitNumber);
 
     return {
       records,
       pagination: {
         totalItems: totalRecords,
-        totalPages: totalPages,
+        totalPages,
         currentPage: pageNumber,
         limit: limitNumber
       }
@@ -225,7 +257,7 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
     console.error("Error in getListMedicalRecordsByIdPatient:", error);
     throw error;
   }
-}
+};
 
 exports.getListMedicalRecords = async (req) => {
   try {
@@ -252,7 +284,7 @@ exports.getListMedicalRecords = async (req) => {
           access_requests: {
             $elemMatch: {
               doctor_id: doctorId,
-              status: "APPROVED",
+              status: "VERIFIED",
             },
           },
         },
@@ -356,4 +388,183 @@ exports.getListMedicalRecords = async (req) => {
   }
 };
 
+exports.getListMedicalRecordsVerify = async (req) => {
+  try {
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      throw new Error("Doctor not found");
+    }
+    const doctorId = doctor._id;
 
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const pageNumber = Math.max(parseInt(page) || 1, 1);
+    const limitNumber = Math.max(parseInt(limit) || 10, 1);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Chỉ lấy bệnh án của bác sĩ hiện tại và prescription đang PENDING
+    const matchCondition = {
+      doctor_id: doctorId,
+      "prescription.status": "PENDING",
+    };
+
+    // Pipeline cơ bản
+    let pipeline = [
+      { $match: matchCondition },
+      {
+        $lookup: {
+          from: "patients",
+          localField: "patient_id",
+          foreignField: "_id",
+          as: "patientInfo",
+        },
+      },
+      { $unwind: "$patientInfo" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "patientInfo.user_id",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" },
+    ];
+
+    // Nếu có search theo tên hoặc mã BN
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "patientInfo.patient_code": { $regex: search, $options: "i" } },
+            { "userInfo.full_name": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    // Đếm tổng
+    const countPipeline = [...pipeline, { $count: "totalRecords" }];
+    const totalResult = await MedicalRecord.aggregate(countPipeline);
+    const totalRecords = totalResult.length > 0 ? totalResult[0].totalRecords : 0;
+
+    if (totalRecords === 0) {
+      return {
+        records: [],
+        pagination: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: pageNumber,
+          limit: limitNumber,
+        },
+      };
+    }
+
+    // Lấy dữ liệu phân trang
+    const dataPipeline = [
+      ...pipeline,
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limitNumber },
+      {
+        $project: {
+          _id: 0,
+          medical_record_id: "$_id",
+          createdAt: "$createdAt",
+          updatedAt: "$updatedAt",
+          prescription_status: "$prescription.status",
+          diagnosis: "$diagnosis",
+          patient_id: "$patientInfo._id",
+          doctor_id: "$doctor_id",
+          patient_code: "$patientInfo.patient_code",
+          patient_name: "$userInfo.full_name",
+        },
+      },
+    ];
+
+    const records = await MedicalRecord.aggregate(dataPipeline);
+    const totalPages = Math.ceil(totalRecords / limitNumber);
+
+    return {
+      records,
+      pagination: {
+        totalItems: totalRecords,
+        totalPages,
+        currentPage: pageNumber,
+        limit: limitNumber,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getListMedicalRecordsVerify:", error);
+    throw error;
+  }
+};
+
+exports.getMedicalRecordById = async (req) => {
+  try {
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    const doctorId = doctor._id.toString();
+
+    const { recordId } = req.params;
+    const medicalRecord = await MedicalRecord.findById(recordId);
+
+    if (!medicalRecord) {
+      throw new Error("Bệnh án không tồn tại");
+    }
+
+    // 1. Kiểm tra xem bệnh án có phải của bác sĩ hiện tại không
+    if (medicalRecord.doctor_id?.toString() === doctorId) {
+      return medicalRecord;
+    }
+
+    // 2. Nếu không phải của bác sĩ -> kiểm tra PUBLIC
+    if (medicalRecord.status === "PUBLIC") {
+      return medicalRecord;
+    }
+
+    // 3. Nếu không PUBLIC -> kiểm tra quyền trong access_requests
+    const hasApprovedAccess = (medicalRecord.access_requests || []).some(
+      (reqItem) =>
+        reqItem.doctor_id?.toString() === doctorId &&
+        reqItem.status === "APPROVED"
+    );
+
+    if (hasApprovedAccess) {
+      return medicalRecord;
+    }
+
+    // 4. Không thoả điều kiện nào -> không có quyền
+    throw new Error("Bạn không có quyền truy cập bệnh án này");
+  } catch (error) {
+    console.error("Error in getMedicalRecordById:", error);
+    throw error;
+  }
+};
+
+exports.verifyMedicalRecord = async (req) => {
+  try {
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    const doctorId = doctor._id;
+    
+    const { recordId } = req.params;
+    const { status } = req.query;
+
+    if (!["VERIFIED", "REJECTED"].includes(status)) {
+      throw new Error("Trạng thái không hợp lệ. Chỉ chấp nhận 'VERIFIED' hoặc 'REJECTED'.");
+    }
+    const record = await MedicalRecord.findOne({ _id: recordId, doctor_id: doctorId });
+
+    if (!record) {
+      throw new Error("Bệnh án không tồn tại hoặc bạn không có quyền xác nhận.");
+    }
+    if (!record.prescription || record.prescription.status !== "PENDING") {
+      throw new Error("Chỉ có thể xác nhận các đơn thuốc đang ở trạng thái PENDING.");
+    }
+    record.prescription.status = status;
+    record.prescription.verified_at = new Date();
+    await record.save();
+    return record;
+  }  catch (error) {
+    console.error("Error in verifyMedicalRecord:", error);
+    throw error;
+  }
+};
