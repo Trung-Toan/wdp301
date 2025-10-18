@@ -9,12 +9,9 @@ import {
   Clock,
   FolderOpen,
 } from "lucide-react";
-import {
-  requestMedicalRecordAccess,
-} from "../../services/doctorService.js";
+import { requestMedicalRecordAccess } from "../../services/doctorService.js";
 import { mockMedicalRecords, mockPatients } from "../../data/mockData.js";
 
-// Giả định bác sĩ hiện tại
 const doctorId = "DOC001";
 
 const MedicalRecordRequests = () => {
@@ -24,8 +21,8 @@ const MedicalRecordRequests = () => {
   const [accessRequests, setAccessRequests] = useState([]);
   const [message, setMessage] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [reason, setReason] = useState(""); // 🟢 thêm state lý do
 
-  // Lấy danh sách yêu cầu mà bác sĩ đã gửi
   useEffect(() => {
     const doctorRequests = mockMedicalRecords
       .flatMap((record) =>
@@ -40,10 +37,8 @@ const MedicalRecordRequests = () => {
     setAccessRequests(doctorRequests);
   }, []);
 
-  // Tìm bệnh nhân và bệnh án
   const handleFindPatient = (e) => {
     e.preventDefault();
-
     const patient = mockPatients.find((p) => p._id === patientCode.trim());
     if (!patient) {
       setFoundPatient(null);
@@ -51,11 +46,9 @@ const MedicalRecordRequests = () => {
       setMessage({ type: "error", text: "Không tìm thấy mã bệnh nhân này." });
       return;
     }
-
     const records = mockMedicalRecords.filter(
       (r) => r.patient_id === patient._id
     );
-
     setFoundPatient(patient);
     setPatientRecords(records);
     setMessage({
@@ -64,17 +57,24 @@ const MedicalRecordRequests = () => {
     });
   };
 
-  // Gửi yêu cầu truy cập bệnh án
   const handleSendRequest = async () => {
     if (!selectedRecord) {
-      setMessage({ type: "error", text: "Vui lòng chọn hồ sơ cần gửi yêu cầu." });
+      setMessage({
+        type: "error",
+        text: "Vui lòng chọn hồ sơ cần gửi yêu cầu.",
+      });
+      return;
+    }
+    if (!reason.trim()) {
+      setMessage({ type: "error", text: "Vui lòng nhập lý do xem hồ sơ." });
       return;
     }
 
     const res = await requestMedicalRecordAccess(
       doctorId,
       foundPatient._id,
-      selectedRecord._id
+      selectedRecord._id,
+      reason // 🟢 gửi thêm lý do
     );
 
     if (res.success) {
@@ -87,10 +87,15 @@ const MedicalRecordRequests = () => {
         patient_id: foundPatient._id,
         medical_record_id: selectedRecord._id,
         diagnosis: selectedRecord.diagnosis,
+        reason, // 🟢 lưu lý do vào danh sách yêu cầu
       };
       setAccessRequests((prev) => [newReq, ...prev]);
-      setMessage({ type: "success", text: "Đã gửi yêu cầu xem hồ sơ thành công." });
+      setMessage({
+        type: "success",
+        text: "Đã gửi yêu cầu xem hồ sơ thành công.",
+      });
       setSelectedRecord(null);
+      setReason("");
     } else {
       setMessage({ type: "error", text: "Gửi yêu cầu thất bại." });
     }
@@ -123,7 +128,7 @@ const MedicalRecordRequests = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-8 p-6 bg-gray-50 min-h-screen">
-      {/* Cột trái - Tìm và gửi yêu cầu */}
+      {/* Cột trái */}
       <div className="w-full md:w-1/3 bg-white rounded-2xl shadow p-6 space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-700">
           <UserPlus size={22} /> Tìm bệnh nhân
@@ -165,7 +170,9 @@ const MedicalRecordRequests = () => {
 
         {foundPatient && (
           <div className="mt-6 border-t pt-4">
-            <h3 className="font-semibold text-gray-700 mb-2">Thông tin bệnh nhân</h3>
+            <h3 className="font-semibold text-gray-700 mb-2">
+              Thông tin bệnh nhân
+            </h3>
             <p className="text-sm">
               <span className="font-medium">Mã:</span> {foundPatient._id}
             </p>
@@ -178,7 +185,6 @@ const MedicalRecordRequests = () => {
               {foundPatient.chronic_diseases.join(", ") || "Không có"}
             </p>
 
-            {/* Danh sách hồ sơ */}
             <div className="mt-3 space-y-2">
               <h4 className="font-semibold text-gray-700 text-sm">
                 Hồ sơ bệnh án ({patientRecords.length})
@@ -213,18 +219,34 @@ const MedicalRecordRequests = () => {
             </div>
 
             {selectedRecord && (
-              <button
-                onClick={handleSendRequest}
-                className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 font-semibold transition-all"
-              >
-                <Send size={18} /> Gửi yêu cầu truy cập hồ sơ
-              </button>
+              <>
+                {/* 🟢 Thêm input lý do */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1 text-gray-600">
+                    Lý do muốn xem hồ sơ
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Nhập lý do..."
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                  />
+                </div>
+
+                <button
+                  onClick={handleSendRequest}
+                  className="mt-3 w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 font-semibold transition-all"
+                >
+                  <Send size={18} /> Gửi yêu cầu truy cập hồ sơ
+                </button>
+              </>
             )}
           </div>
         )}
       </div>
 
-      {/* Cột phải - Danh sách yêu cầu đã gửi */}
+      {/* Cột phải */}
       <div className="w-full md:w-2/3 bg-white rounded-2xl shadow p-6">
         <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-blue-700">
           <FileText size={22} /> Danh sách yêu cầu đã gửi
@@ -242,12 +264,15 @@ const MedicalRecordRequests = () => {
                 className="p-4 border border-gray-200 rounded-xl flex justify-between items-center hover:bg-gray-50 transition"
               >
                 <div>
-                  <p className="font-semibold text-blue-700">
-                    {req.diagnosis}
-                  </p>
+                  <p className="font-semibold text-blue-700">{req.diagnosis}</p>
                   <p className="text-sm text-gray-600">
                     Mã bệnh nhân: {req.patient_id}
                   </p>
+                  {req.reason && (
+                    <p className="text-xs text-gray-500 italic mt-1">
+                      Lý do: {req.reason}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <Calendar size={14} /> Ngày gửi:{" "}
                     {new Date(req.requested_at).toLocaleDateString("vi-VN")}
