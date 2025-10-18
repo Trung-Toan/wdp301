@@ -21,6 +21,7 @@ import FacilityBooking from "../features/clinic/pages/facility-booking-content";
 import ProfileContent from "../features/customer/pages/Profile/ProfilePatient";
 import NotificationListPage from "../features/home/pages/Notifications/NotificationListPage";
 import NotificationDetailPage from "../features/home/pages/Notifications/NotificationDetailPage";
+import RecordDetail from "../features/customer/pages/Profile/components/RecordDetail";
 
 
 const RouterUser = () => {
@@ -44,6 +45,8 @@ const RouterUser = () => {
         <Route path="home/facility" element={<FacilitiesList />} />
         <Route path="home/facilities/:id" element={<FacilityDetail />} />
         <Route path="home/booking/facility" element={<FacilityBooking />} />
+
+        <Route path="/patient/records/:recordId" element={<RecordDetail />} />
 
         <Route path="login" element={<Login />} />
         <Route path="find_email" element={<FindEmail />} />

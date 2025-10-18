@@ -1,12 +1,11 @@
 import React from "react"
-import { User, Shield, FileText, Clock, Lock } from "lucide-react"
+import { User, Shield, FileText, Lock } from "lucide-react"
 
 export default function Sidebar({ activeTab, setActiveTab, formData }) {
     const tabs = [
         { name: "Thông tin cá nhân", key: "personal", icon: User },
         { name: "Lịch sử khám", key: "history", icon: Shield },
         { name: "Hồ sơ bệnh án", key: "records", icon: FileText },
-        { name: "Yêu cầu truy cập", key: "access", icon: Clock },
         { name: "Cài đặt", key: "settings", icon: Lock },
     ]
 

@@ -21,7 +21,6 @@ export default function PersonalTab() {
         const fetchProfile = async () => {
             try {
                 const res = await profilePatientApi.getInformation();
-                console.log(res);
                 if (res.data.success) {
                     const data = res.data.data;
                     setFormData({
@@ -72,7 +71,7 @@ export default function PersonalTab() {
                 toast.success("Cập nhật thông tin thành công!");
             }
         } catch (err) {
-            console.error("❌ Lỗi cập nhật thông tin:", err);
+            console.error("Lỗi cập nhật thông tin:", err);
             toast.error("Không thể cập nhật thông tin.");
         }
     };

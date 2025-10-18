@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import PersonalTab from "./components/PersonalTab";
 import HistoryTab from "./components/HistoryTab";
 import RecordsTab from "./components/RecordsTab";
-import AccessRequestsTab from "./components/AccessRequestsTab";
 import SettingsTab from "./components/SettingsTab";
 import Sidebar from "./components/Sidebar";
 import { Spinner } from "react-bootstrap";
@@ -29,8 +28,6 @@ export default function ProfilePatient() {
         fetchProfile();
     }, []);
 
-
-
     const renderTab = () => {
         switch (activeTab) {
             case "personal":
@@ -39,8 +36,6 @@ export default function ProfilePatient() {
                 return <HistoryTab />;
             case "records":
                 return <RecordsTab />;
-            case "access":
-                return <AccessRequestsTab />;
             case "settings":
                 return <SettingsTab />;
             default:
