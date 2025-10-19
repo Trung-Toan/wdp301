@@ -9,6 +9,7 @@ import {
   BellSlash,
   ChatLeftText,
   PersonBadge,
+  CheckCircle,
   List,
   X,
   BoxArrowRight,
@@ -22,44 +23,47 @@ const DoctorLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const user = JSON.parse(sessionStorage.getItem("user"));
-
   const menuItems = [
     {
       title: "Trang chủ",
       icon: <House size={20} />,
-      link: "/doctor/dashboard",
+      link: "/assistant/dashboard",
     },
     {
       title: "Bệnh nhân",
       icon: <People size={20} />,
-      link: "/doctor/patients",
+      link: "/assistant/patients",
     },
     {
-      title: "Lịch khám",
+      title: "Tạo lịch khám cho bác sĩ",
       icon: <Calendar size={20} />,
-      link: "/doctor/appointments",
+      link: "/assistant/shift-schedule",
     },
+    // {
+    //   title: "Yêu cầu bệnh án",
+    //   icon: <FileText size={20} />,
+    //   link: "/doctor/record-requests",
+    // },
     {
-      title: "Yêu cầu xem bệnh án",
-      icon: <FileText size={20} />,
-      link: "/doctor/record-requests",
-    },
-    {
-      title: "Hồ sơ bệnh án",
+      title: "Duyệt lịch khám",
       icon: <ClipboardCheck size={20} />,
-      link: "/doctor/medical-records",
+      link: "/assistant/appointments",
     },
-    {
-      title: "Feedback",
-      icon: <ChatLeftText size={20} />,
-      link: "/doctor/feedback",
-    },
-    {
-      title: "Quản lý trợ lý",
-      icon: <PersonBadge size={20} />,
-      link: "/doctor/assistants",
-    },
+    // {
+    //   title: "Duyệt đơn thuốc",
+    //   icon: <CheckCircle size={20} />,
+    //   link: "/doctor/prescriptions",
+    // },
+    // {
+    //   title: "Feedback",
+    //   icon: <ChatLeftText size={20} />,
+    //   link: "/doctor/feedback",
+    // },
+    // {
+    //   title: "Quản lý trợ lý",
+    //   icon: <PersonBadge size={20} />,
+    //   link: "/doctor/assistants",
+    // },
     {
       title: "Thông báo nghỉ",
       icon: <BellSlash size={20} />,
@@ -69,7 +73,7 @@ const DoctorLayout = () => {
 
   const handleLogout = () => {
     sessionStorage.clear();
-    navigate("/home");
+    navigate("/login");
   };
 
   return (
@@ -92,8 +96,9 @@ const DoctorLayout = () => {
             <Link
               key={index}
               to={item.link}
-              className={`nav-item ${location.pathname === item.link ? "nav-item-active" : ""
-                }`}
+              className={`nav-item ${
+                location.pathname === item.link ? "nav-item-active" : ""
+              }`}
             >
               <span className="nav-icon">{item.icon}</span>
               {sidebarOpen && <span className="nav-text">{item.title}</span>}
@@ -129,8 +134,8 @@ const DoctorLayout = () => {
             <div className="user-profile">
               <PersonCircle size={32} />
               <div className="user-info">
-                <span className="user-name">{user.username}</span>
-                <span className="user-role">Bác sĩ</span>
+                <span className="user-name">Trợ lý. Nguyễn Văn A</span>
+                <span className="user-role">Trợ lý</span>
               </div>
             </div>
           </div>
@@ -146,15 +151,15 @@ const DoctorLayout = () => {
           <div className="footer-content">
             <p className="footer-text">© 2025 MediCare. All rights reserved.</p>
             <div className="footer-links">
-              <Link to="#" className="footer-link">
+              <a href="#" className="footer-link">
                 Điều khoản
-              </Link>
-              <Link to="#" className="footer-link">
+              </a>
+              <a href="#" className="footer-link">
                 Chính sách
-              </Link>
-              <Link to="#" className="footer-link">
+              </a>
+              <a href="#" className="footer-link">
                 Hỗ trợ
-              </Link>
+              </a>
             </div>
           </div>
         </footer>

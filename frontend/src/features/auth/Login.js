@@ -15,7 +15,6 @@ import GoogleLoginButton from "./GoogleLoginButton";
 import "../../styles/Login.css";
 import { loginUser } from "../../api/auth/login/LoginController";
 
-
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -71,7 +70,11 @@ const Login = () => {
         showConfirmButton: false,
       });
 
-      navigate("/home");
+      if (user.role === "DOCTOR") {
+        navigate("/doctor/dashboard");
+      } else {
+        navigate("/home");
+      }
     },
 
 

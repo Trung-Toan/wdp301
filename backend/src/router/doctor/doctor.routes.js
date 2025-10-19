@@ -10,7 +10,7 @@ const { getDoctorDetailController } = require("../../controller/doctor/getDoctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
 
 /* ========================= PATIENTS ========================= */
-// GET /patients?page=1
+// GET /patients?page=1&limit=10&sarch=""
 // view list patient of doctor with pagination
 router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.viewListPatients);
 
@@ -18,18 +18,10 @@ router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.v
 // view information patient by patientId
 router.get("/patients/:patientId", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientById);
 
-// GET /patients/code/:patientCode
-// view information patient by code patient
-router.get("/patients/code/:patientCode", authRequired, roleRequired("DOCTOR"), DoctorController.viewPatientByCode);
-
 /* ========================= APPOINTMENTS ========================= */
-// GET /appointments?page=1
+// GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 // view list appointment of doctor with pagination
 router.get("/appointments", authRequired, roleRequired("DOCTOR"), DoctorController.viewAppointments);
-
-// GET /appointments/status/:status?page=1
-// view list appointment of doctor by status with pagination
-router.get("/appointments/status/:status", authRequired, roleRequired("DOCTOR"), DoctorController.viewAppointmentsByStatus);
 
 // GET /appointments/:appointmentId
 // view detail appointment by appointmentId
@@ -47,17 +39,24 @@ router.post("/patients/:patientId/medical-records/:medicalRecordId/request", aut
 router.get("/medical-records/requests/history", authRequired, roleRequired("DOCTOR"), DoctorController.viewHistoryMedicalRecordRequests);
 
 /* ========================= MEDICAL RECORDS ========================= */
+// get /doctor/medical-records?page=1
+// view list medical record of all patients of doctor with pagination
+router.get("/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecords);
+
 // GET /patients/:patientId/medical-records?page=1
 // view list medical record of patient with pagination
-router.get("/patients/:patientId/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecords);
+router.get("/patients/:patientId/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecordsByPatient);
 
 // GET /medical-records/:recordId
 // view detail medical record by recordId
 router.get("/medical-records/:recordId", authRequired, roleRequired("DOCTOR"), DoctorController.viewMedicalRecordDetail);
 
-// PUT /medical-records/:recordId/verify
+// GET /verify/medical-records?page=1&limit=10&status=&search=
+router.get("/verify/medical-records", authRequired, roleRequired("DOCTOR"), DoctorController.viewListMedicalRecordsVerify);
+
+// PUT /verify/medical-records/:recordId?status=
 // verify medical record 
-router.put("/medical-records/:recordId/verify", authRequired, roleRequired("DOCTOR"), DoctorController.verifyMedicalRecord);
+router.put("/verify/medical-records/:recordId", authRequired, roleRequired("DOCTOR"), DoctorController.verifyMedicalRecord);
 
 /* ========================= FEEDBACK ========================= */
 // GET /feedback?page=1

@@ -69,11 +69,11 @@ const DoctorDashboard = () => {
 
   const statCards = [
     {
-      title: "Bệnh nhân hôm nay",
+      title: "Lịch khám hôm nay",
       value: stats.todayPatients,
       icon: <Users size={32} />,
       color: "blue",
-      link: "/doctor/appointments",
+      link: "/assistant/appointments",
     },
     {
       title: "Lịch hẹn",
@@ -83,20 +83,20 @@ const DoctorDashboard = () => {
       color: "green",
       link: "/doctor/appointments",
     },
-    {
-      title: "Đơn thuốc chờ duyệt",
-      value: stats.pendingPrescriptions,
-      icon: <CheckCircle size={32} />,
-      color: "orange",
-      link: "/doctor/prescriptions",
-    },
-    {
-      title: "Yêu cầu bệnh án",
-      value: stats.pendingRequests,
-      icon: <FileText size={32} />,
-      color: "purple",
-      link: "/doctor/record-requests",
-    },
+    // {
+    //   title: "Đơn thuốc chờ duyệt",
+    //   value: stats.pendingPrescriptions,
+    //   icon: <CheckCircle size={32} />,
+    //   color: "orange",
+    //   link: "/doctor/prescriptions",
+    // },
+    // {
+    //   title: "Yêu cầu bệnh án",
+    //   value: stats.pendingRequests,
+    //   icon: <FileText size={32} />,
+    //   color: "purple",
+    //   link: "/doctor/record-requests",
+    // },
   ];
 
   const quickActions = [
@@ -107,13 +107,13 @@ const DoctorDashboard = () => {
       link: "/doctor/appointments",
       color: "blue",
     },
-    {
-      title: "Duyệt đơn thuốc",
-      description: "Xác nhận đơn thuốc chờ",
-      icon: <CheckCircle size={24} />,
-      link: "/doctor/prescriptions",
-      color: "green",
-    },
+    // {
+    //   title: "Duyệt đơn thuốc",
+    //   description: "Xác nhận đơn thuốc chờ",
+    //   icon: <CheckCircle size={24} />,
+    //   link: "/doctor/prescriptions",
+    //   color: "green",
+    // },
     {
       title: "Xem bệnh nhân",
       description: "Danh sách bệnh nhân",
@@ -121,13 +121,13 @@ const DoctorDashboard = () => {
       link: "/doctor/patients",
       color: "purple",
     },
-    {
-      title: "Hồ sơ bệnh án",
-      description: "Quản lý hồ sơ y tế",
-      icon: <FileText size={24} />,
-      link: "/doctor/medical-records",
-      color: "orange",
-    },
+    // {
+    //   title: "Hồ sơ bệnh án",
+    //   description: "Quản lý hồ sơ y tế",
+    //   icon: <FileText size={24} />,
+    //   link: "/doctor/medical-records",
+    //   color: "orange",
+    // },
   ];
 
   const formatTime = (timeString) => {
@@ -155,7 +155,9 @@ const DoctorDashboard = () => {
     <div className="doctor-dashboard-new">
       <div className="dashboard-welcome">
         <div>
-          <h1 className="welcome-title">Chào mừng trở lại, BS. Nguyễn Văn A</h1>
+          <h1 className="welcome-title">
+            Chào mừng trở lại, Trợ lý. Nguyễn Văn A
+          </h1>
           <p className="welcome-subtitle">
             Hôm nay là{" "}
             {new Date().toLocaleDateString("vi-VN", {
