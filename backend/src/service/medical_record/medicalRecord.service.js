@@ -505,7 +505,27 @@ exports.getMedicalRecordById = async (req) => {
     const doctorId = doctor._id.toString();
 
     const { recordId } = req.params;
-    const medicalRecord = await MedicalRecord.findById(recordId);
+    const medicalRecord = await MedicalRecord
+      .findById(recordId)
+      .populate({
+        path: 'patient_id',
+        select: "-__v -createdAt -updatedAt",
+        populate: {
+          path: 'user_id',
+          select: "-__v -createdAt -updatedAt -_id -account_id",
+        }
+      })
+      .lean();
+
+    const { patient_id, ...rest } = medicalRecord;
+    const {user_id, ...restPatient} = patient_id;
+    const data = {
+      medical_record: rest,
+      patient: {
+        ...restPatient, 
+        ...user_id,
+      },
+    };
 
     if (!medicalRecord) {
       throw new Error("Bệnh án không tồn tại");
@@ -513,12 +533,12 @@ exports.getMedicalRecordById = async (req) => {
 
     // 1. Kiểm tra xem bệnh án có phải của bác sĩ hiện tại không
     if (medicalRecord.doctor_id?.toString() === doctorId) {
-      return medicalRecord;
+      return data;
     }
 
     // 2. Nếu không phải của bác sĩ -> kiểm tra PUBLIC
     if (medicalRecord.status === "PUBLIC") {
-      return medicalRecord;
+      return data;
     }
 
     // 3. Nếu không PUBLIC -> kiểm tra quyền trong access_requests
@@ -529,7 +549,7 @@ exports.getMedicalRecordById = async (req) => {
     );
 
     if (hasApprovedAccess) {
-      return medicalRecord;
+      return data;
     }
 
     // 4. Không thoả điều kiện nào -> không có quyền
@@ -544,7 +564,7 @@ exports.verifyMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorId = doctor._id;
-    
+
     const { recordId } = req.params;
     const { status } = req.query;
 
@@ -563,7 +583,7 @@ exports.verifyMedicalRecord = async (req) => {
     record.prescription.verified_at = new Date();
     await record.save();
     return record;
-  }  catch (error) {
+  } catch (error) {
     console.error("Error in verifyMedicalRecord:", error);
     throw error;
   }
