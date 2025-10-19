@@ -5,6 +5,8 @@ const appointmentService = require("../../service/appointment/appointment.servic
 const formatDataUtils = require("../../utils/formatData");
 const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
 
+const assistantService = require("../../service/doctor/doctor.assistant.service");
+
 /* ========================= PATIENTS ========================= */
 // GET /patients
 exports.viewListPatients = async (req, res) => {
@@ -341,7 +343,24 @@ exports.banOrUnbanAssistant = async (req, res) => {
 
 // GET /doctor/assistants
 exports.viewListAssistants = async (req, res) => {
-  res.json({ message: "View list of assistants" });
+  try {
+    const { assistants, pagination } = await assistantService.getListAssistants(req);
+
+    return resUtils.paginatedResponse(
+      res,
+      assistants,
+      pagination,
+      "Lấy danh sách trợ lý thành công."
+    );
+  } catch (error) {
+    console.error("Error in viewListAssistants:", error);
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi lấy danh sách trợ lý."
+    );
+  }
+
 };
 
 /* ========================= PROFILE ========================= */

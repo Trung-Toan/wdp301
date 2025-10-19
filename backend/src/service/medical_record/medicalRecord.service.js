@@ -259,6 +259,12 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
   }
 };
 
+/**
+ * Get list medical records of patients for doctor with pagination and search
+ * 
+ * @param {*} req page, limit, search
+ * @returns 
+ */
 exports.getListMedicalRecords = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
