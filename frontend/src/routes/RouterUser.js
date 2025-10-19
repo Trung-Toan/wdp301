@@ -18,6 +18,10 @@ import SpecialtiesList from "../features/home/pages/Specialties/specialties-list
 import FacilitiesList from "../features/clinic/pages/facility-list-content";
 import FacilityDetail from "../features/clinic/pages/facility-detail-content";
 import FacilityBooking from "../features/clinic/pages/facility-booking-content";
+import ProfileContent from "../features/customer/pages/Profile/ProfilePatient";
+import NotificationListPage from "../features/home/pages/Notifications/NotificationListPage";
+import NotificationDetailPage from "../features/home/pages/Notifications/NotificationDetailPage";
+import RecordDetail from "../features/customer/pages/Profile/components/RecordDetail";
 
 
 const RouterUser = () => {
@@ -25,6 +29,9 @@ const RouterUser = () => {
     <Routes>
       <Route path="/" element={<UserLayout />}>
         <Route path="home" element={<HomePage />} />
+        <Route path="home/profile" element={<ProfileContent />} />
+        <Route path="home/notifications" element={<NotificationListPage />} />
+        <Route path="home/notifications/:id" element={<NotificationDetailPage />} />
 
         <Route path="home/doctordetail/:id/booking" element={<BookingContent />} />
         <Route path="home/doctorlist" element={<DoctorsListContent />} />
@@ -38,6 +45,8 @@ const RouterUser = () => {
         <Route path="home/facility" element={<FacilitiesList />} />
         <Route path="home/facilities/:id" element={<FacilityDetail />} />
         <Route path="home/booking/facility" element={<FacilityBooking />} />
+
+        <Route path="/patient/records/:recordId" element={<RecordDetail />} />
 
         <Route path="login" element={<Login />} />
         <Route path="find_email" element={<FindEmail />} />

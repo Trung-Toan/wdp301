@@ -10,21 +10,13 @@ export const axiosInstance = axios.create({
     },
 });
 
-axiosInstance.interceptors.request.use(
-  (config) => {
-    let token = sessionStorage.getItem("token");
-
-    if (token && token.startsWith('"') && token.endsWith('"')) {
-      token = token.slice(1, -1); // loại bỏ dấu ngoặc kép
-    }
-
+axiosInstance.interceptors.request.use((config) => {
+    const token = sessionStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+        config.headers.Authorization = `Bearer ${token.replace(/^"|"$/g, "")}`;
     }
     return config;
-  },
-  (error) => Promise.reject(error)
-);
+});
 
 // Bắt lỗi chung
 axiosInstance.interceptors.response.use(

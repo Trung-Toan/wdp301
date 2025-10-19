@@ -1,11 +1,6 @@
-// medicalRecord.service.js
 const doctorService = require("../doctor/doctor.service");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
 
-/**
- * Gửi yêu cầu xem tất cả hồ sơ bệnh án của 1 bệnh nhân
- * @param {Object} req - Express request (có req.user và req.params.patientId)
- */
 exports.requestViewMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
@@ -72,33 +67,33 @@ exports.requestViewMedicalRecordById = async (req) => {
 
     const record = await MedicalRecord.findOne({ _id: medicalRecordId, patient_id: patientId });
 
-    if (!record) {
-      return null;
-    }
+  if (!record) {
+    return null;
+  }
 
-    // THAY ĐỔI LOGIC NẰM Ở ĐÂY
-    const existingRequest = record.access_requests.find(
-      (r) =>
-        r.doctor_id.toString() === doctorId.toString() &&
-        ["PENDING", "APPROVED"].includes(r.status) // Kiểm tra nếu status là PENDING hoặc APPROVED
+  // THAY ĐỔI LOGIC NẰM Ở ĐÂY
+  const existingRequest = record.access_requests.find(
+    (r) =>
+      r.doctor_id.toString() === doctorId.toString() &&
+      ["PENDING", "APPROVED"].includes(r.status) // Kiểm tra nếu status là PENDING hoặc APPROVED
+  );
+  // KẾT THÚC THAY ĐỔI
+
+  // Nếu đã tồn tại yêu cầu PENDING hoặc APPROVED, bỏ qua
+  if (existingRequest) {
+    throw new Error(
+      "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
     );
-    // KẾT THÚC THAY ĐỔI
+  }
 
-    // Nếu đã tồn tại yêu cầu PENDING hoặc APPROVED, bỏ qua
-    if (existingRequest) {
-      throw new Error(
-        "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
-      );
-    }
+  const newRequest = {
+    doctor_id: doctorId,
+    status: "PENDING",
+    requested_at: new Date(),
+  };
 
-    const newRequest = {
-      doctor_id: doctorId,
-      status: "PENDING",
-      requested_at: new Date(),
-    };
-
-    record.access_requests.push(newRequest);
-    await record.save();
+  record.access_requests.push(newRequest);
+  await record.save();
 
     return {
       record_id: record._id,
@@ -118,9 +113,9 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorIdAsObjectId = doctor._id;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
     // Sử dụng Aggregation Pipeline để xử lý tất cả trong một truy vấn
     const results = await MedicalRecord.aggregate([
@@ -159,12 +154,11 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       }
     ]);
 
-    console.log("results", results);
+  console.log("results", results);
 
-    // Trích xuất kết quả từ $facet
-    const requests = results[0].data;
-    const totalItems = results[0].metadata[0] ? results[0].metadata[0].totalItems : 0;
-    const totalPages = Math.ceil(totalItems / limit);
+  const requests = results[0].data;
+  const totalItems = results[0].metadata[0] ? results[0].metadata[0].totalItems : 0;
+  const totalPages = Math.ceil(totalItems / limit);
 
     return {
       requests,

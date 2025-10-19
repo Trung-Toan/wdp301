@@ -1,10 +1,13 @@
 const svc = require('../../service/auth/auth.service');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../../config/env');
-
+const bcrypt = require('bcryptjs');
 const { verifyGoogleIdToken } = require('../../utils/verify-google');
 const { loginWithGoogle } = require('../../service/auth/google.service');
 const User = require('../../model/user/User');
+const Patient = require('../../model/patient/Patient');
+const Account = require('../../model/auth/Account');
+
 
 exports.googleLogin = async (req, res) => {
     try {
@@ -17,17 +20,16 @@ exports.googleLogin = async (req, res) => {
             ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
         });
 
+        // account ở đây có _id theo contract ở function trên
         res.json({
             ok: true,
             account: { id: account._id, email: account.email, role: account.role, email_verified: account.email_verified },
             tokens,
         });
     } catch (e) {
-        res.status(400).json({ ok: false, message: 'Google login thất bại: ' + e.message });
+        res.status(400).json({ ok: false, message: 'Google login thất bại' });
     }
 };
-
-
 
 exports.registerPatients = async (req, res) => {
     try {
@@ -58,7 +60,7 @@ exports.registerPatients = async (req, res) => {
         });
 
         // Tạo bản ghi user liên kết với account_id
-        await User.create({
+        const user = await User.create({
             full_name: fullName,
             dob,
             gender,
@@ -66,16 +68,35 @@ exports.registerPatients = async (req, res) => {
             account_id: account._id,
         });
 
+        // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
+        const patient = new Patient({
+            user_id: user._id,
+            blood_type: null,
+            allergies: [],
+            chronic_diseases: [],
+            medications: [],
+            surgery_history: [],
+        });
+
+        // Middleware pre("save") sẽ tự sinh patient_code
+        await patient.save();
+
+        // Trả kết quả về cho FE
         res.json({
             ok: true,
             message: "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.",
-            account,
+            data: {
+                account,
+                user,
+                patient,
+            },
         });
     } catch (e) {
         console.error("Lỗi đăng ký:", e);
         res.status(400).json({ ok: false, message: e.message });
     }
 };
+
 
 exports.verifyEmail = async (req, res) => {
     try {
@@ -143,7 +164,6 @@ exports.requestVerifyEmail = async (req, res) => {
     }
 };
 
-
 exports.requestPasswordReset = async (req, res) => {
     try {
         const { email } = req.body;
@@ -163,3 +183,30 @@ exports.resetPassword = async (req, res) => {
         res.status(400).json({ ok: false, message: e.message });
     }
 };
+
+exports.changePassword = async (req, res) => {
+    try {
+        const accountId = req.user?.sub;
+        if (!accountId) return res.status(401).json({ ok: false, message: "Unauthorized" });
+
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword)
+            return res.status(400).json({ ok: false, message: "Missing fields" });
+
+        const account = await Account.findById(accountId).select('+password'); // Lấy password
+        if (!account) return res.status(404).json({ ok: false, message: "Account not found" });
+
+        const isMatch = await bcrypt.compare(currentPassword, account.password);
+        if (!isMatch) return res.status(400).json({ ok: false, message: "Mật khẩu hiện tại không đúng" });
+
+        const salt = await bcrypt.genSalt(10);
+        account.password = await bcrypt.hash(newPassword, salt);
+        await account.save();
+
+        res.json({ ok: true, message: "Mật khẩu đã được thay đổi thành công" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, message: "Server error" });
+    }
+};
+

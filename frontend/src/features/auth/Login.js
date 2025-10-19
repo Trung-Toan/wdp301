@@ -30,6 +30,7 @@ const Login = () => {
   // Gọi API đăng nhập
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
+<<<<<<< HEAD
     onSuccess: (data) => {
       const refreshToken = data.tokens.refreshToken;
       const user = data.account;
@@ -37,6 +38,40 @@ const Login = () => {
       setSessionStorage("token", data.tokens.accessToken);
       setSessionStorage("refreshToken", refreshToken);
       setSessionStorage("user", user);
+=======
+    onSuccess: (response) => {
+      if (!response.ok) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi đăng nhập",
+          text: response.message || "Tên đăng nhập hoặc mật khẩu không đúng!",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
+      console.log("LOGIN RESPONSE:", response);
+      const token = response.tokens?.accessToken;
+      const user = response.account;
+      const patient = response.patient;
+      console.log("PATIENT FROM LOGIN:", patient);
+      
+      if (!token || !user) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi dữ liệu đăng nhập",
+          text: "Token hoặc user không tồn tại.",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
+      setSessionStorage("token", token);
+      setSessionStorage("user", user);
+      setSessionStorage("patient", patient);
+>>>>>>> 3947072ccd010b94e9a8e149a43ed0c6f654f875
 
       Swal.fire({
         icon: "success",
@@ -45,12 +80,18 @@ const Login = () => {
         showConfirmButton: false,
       });
 
+<<<<<<< HEAD
       if (user.role === "DOCTOR") {
         navigate("/doctor/dashboard");
       } else {
         navigate("/home");
       }
+=======
+      navigate("/home");
+>>>>>>> 3947072ccd010b94e9a8e149a43ed0c6f654f875
     },
+
+
     onError: (error) => {
       Swal.fire({
         icon: "error",
