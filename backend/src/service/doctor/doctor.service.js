@@ -1,9 +1,5 @@
-const Patient = require("../../model/patient/Patient");
-const User = require("../../model/user/User");
-const Appointment = require("../../model/appointment/Appointment");
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
-const patientService = require("../patient/patient.service");
 const appointmentService = require("../appointment/appointment.service");
 
 /**

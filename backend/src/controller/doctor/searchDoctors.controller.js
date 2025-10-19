@@ -1,19 +1,17 @@
-const { searchDoctors } = require("../../service/doctor/doctor.service");
-
+const { searchDoctors } = require("../../service/doctor/searchDoctor.service");
 
 const ok = (res, data) => res.status(200).json({ success: true, data });
 const fail = (res, err, status = 500) =>
-    res.status(status).json({
-        success: false,
-        error: err?.message || String(err),
-    });
+    res.status(status).json({ success: false, error: err?.message || String(err) });
 
-async function searchDoctorController(req, res) {
+exports.searchDoctorController = async (req, res) => {
     try {
         const {
             q,
             clinicId,
             specialtyId,
+            provinceCode,
+            wardCode,
             page = "1",
             limit = "20",
             sort = "-createdAt",
@@ -23,6 +21,8 @@ async function searchDoctorController(req, res) {
             q,
             clinicId,
             specialtyId,
+            provinceCode,
+            wardCode,
             page: Number(page),
             limit: Number(limit),
             sort,
@@ -30,11 +30,7 @@ async function searchDoctorController(req, res) {
 
         return ok(res, result);
     } catch (err) {
-        console.error("❌ Error in searchDoctorController:", err);
+        console.error(" Error in searchDoctorController:", err);
         return fail(res, err);
     }
-}
-
-module.exports = {
-    searchDoctorController,
 };

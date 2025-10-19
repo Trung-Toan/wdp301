@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, getDay } from "date-fns";
-import vi from "date-fns/locale/vi"; // tiếng Việt
+import { format } from "date-fns";
+import vi from "date-fns/locale/vi";
 import { Calendar } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
@@ -16,19 +16,49 @@ export function DoctorBookingCalendar({ doctor }) {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
-    // === Xác định các ngày bác sĩ làm việc (0 = CN, 1 = Thứ 2, … 6 = Thứ 7)
-    const workingDays = doctor.schedule.map((dayObj) => {
-        const dayMap = { "Chủ nhật": 0, "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3, "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6 };
-        return dayMap[dayObj.day];
-    });
+    // Hàm format tiền tệ an toàn
+    const formatCurrency = (amount, currency = "VND") => {
+        if (!amount) return "Chưa có giá";
+        const value = Number(amount);
+        return `${new Intl.NumberFormat("vi-VN").format(value)} ${currency}`;
+    };
 
-    // === Khi chọn ngày, xác định thứ trong tuần để lấy khung giờ tương ứng
-    const selectedDayOfWeek = selectedDate ? getDay(selectedDate) : null;
-    const availableSlots =
-        doctor.schedule.find((s) => {
-            const dayMap = { "Chủ nhật": 0, "Thứ 2": 1, "Thứ 3": 2, "Thứ 4": 3, "Thứ 5": 4, "Thứ 6": 5, "Thứ 7": 6 };
-            return dayMap[s.day] === selectedDayOfWeek;
-        })?.slots || [];
+    if (!doctor) return null;
+
+    const slots = doctor.slots || [];
+
+    // Lấy danh sách slot theo ngày
+    const availableSlots = selectedDate
+        ? slots
+            .filter((slot) => {
+                const slotDate = new Date(slot.start_time);
+                return (
+                    slotDate.getFullYear() === selectedDate.getFullYear() &&
+                    slotDate.getMonth() === selectedDate.getMonth() &&
+                    slotDate.getDate() === selectedDate.getDate()
+                );
+            })
+            .map((slot) => ({
+                id: slot._id,
+                time: `${new Date(slot.start_time).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })} - ${new Date(slot.end_time).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })}`,
+                fee: slot.fee_amount || doctor.pricing?.minFee || 0,
+                clinicName: slot.clinic_name || doctor.clinic?.name || "Chưa có phòng khám",
+                clinicId: slot.clinic_id || doctor.clinic?._id || null,
+                specialtyId: slot.specialty_id || doctor.specialties?.[0]?._id || null,
+            }))
+        : [];
+
+    // Tạo danh sách ngày có slot để highlight
+    const workingDates = slots.map((slot) => {
+        const d = new Date(slot.start_time);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    });
 
     return (
         <Card className="sticky top-24">
@@ -52,8 +82,8 @@ export function DoctorBookingCalendar({ doctor }) {
                         locale={vi}
                         minDate={new Date()}
                         dayClassName={(date) => {
-                            const day = getDay(date);
-                            return workingDays.includes(day)
+                            const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                            return workingDates.includes(key)
                                 ? "bg-green-100 text-green-700 font-medium rounded-full"
                                 : "text-gray-400";
                         }}
@@ -74,20 +104,23 @@ export function DoctorBookingCalendar({ doctor }) {
                             <div className="grid grid-cols-3 gap-2">
                                 {availableSlots.map((slot) => (
                                     <button
-                                        key={slot}
+                                        key={slot.id}
                                         onClick={() => setSelectedSlot(slot)}
-                                        className={`px-3 py-2 rounded-lg border text-sm transition-colors ${selectedSlot === slot
-                                            ? "border-primary bg-primary text-white"
-                                            : "border-border hover:border-primary/50"
+                                        className={`px-3 py-2 rounded-lg border text-sm transition-colors ${selectedSlot?.id === slot.id
+                                                ? "border-primary bg-primary text-white"
+                                                : "border-border hover:border-primary/50"
                                             }`}
                                     >
-                                        {slot}
+                                        {slot.time} <br />
+                                        <span className="text-xs text-muted-foreground">
+                                            {slot.clinicName}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
                         ) : (
                             <p className="text-muted-foreground text-sm">
-                                Bác sĩ không làm việc ngày này.
+                                Bác sĩ không có lịch khám ngày này.
                             </p>
                         )}
                     </div>
@@ -97,20 +130,36 @@ export function DoctorBookingCalendar({ doctor }) {
                 <div className="pt-4 border-t">
                     <div className="flex justify-between mb-4">
                         <span className="text-muted-foreground">Giá khám:</span>
-                        <span className="text-xl font-bold text-primary">{doctor.price}</span>
+                        <span className="text-xl font-bold text-primary">
+                            {selectedSlot?.fee
+                                ? formatCurrency(selectedSlot.fee, doctor.pricing?.currency)
+                                : doctor.pricing?.minFee
+                                    ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
+                                    : "Chưa có giá"}
+                        </span>
                     </div>
+
                     <Link
                         to={`/home/doctordetail/${id}/booking`}
                         state={{
-                            date: selectedDate ? format(selectedDate, "dd/MM/yyyy") : null,
-                            time: selectedSlot,
+                            selectedDate: selectedDate ? format(selectedDate, "dd/MM/yyyy") : null,
+                            selectedSlot,
+                            doctorName: doctor.name,
+                            specialty: doctor.specialties?.[0]?.name || "Chưa có chuyên khoa",
+                            hospital: selectedSlot?.clinicName || doctor.workplace,
+                            price: selectedSlot?.fee
+                                ? formatCurrency(selectedSlot.fee, doctor.pricing?.currency)
+                                : doctor.pricing?.minFee
+                                    ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
+                                    : "Chưa có giá",
+                            time: selectedSlot?.time,
+                            image: doctor.avatar_url || "/placeholder.svg",
+                            doctorId: id,
+                            clinicId: selectedSlot?.clinicId,
+                            specialtyId: selectedSlot?.specialtyId,
                         }}
                     >
-                        <Button
-                            className="w-full"
-                            size="lg"
-                            disabled={!selectedSlot || !doctor.available}
-                        >
+                        <Button className="w-full" size="lg" disabled={!selectedSlot}>
                             {selectedSlot ? "Xác nhận đặt lịch" : "Chọn giờ khám"}
                         </Button>
                     </Link>

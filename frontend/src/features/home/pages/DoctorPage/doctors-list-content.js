@@ -16,7 +16,7 @@ export function DoctorsListContent() {
     const [specialties, setSpecialties] = useState(["Tất cả"]);
     const [provinces, setProvinces] = useState([]);
 
-    // 🧠 Lấy danh sách chuyên khoa
+    // Lấy danh sách chuyên khoa
     useEffect(() => {
         async function fetchSpecialties() {
             try {
@@ -30,7 +30,7 @@ export function DoctorsListContent() {
         fetchSpecialties();
     }, []);
 
-    // 🧠 Lấy danh sách tỉnh
+    // Lấy danh sách tỉnh
     useEffect(() => {
         async function fetchProvinces() {
             try {
@@ -43,7 +43,7 @@ export function DoctorsListContent() {
         fetchProvinces();
     }, []);
 
-    // 🧠 Lấy danh sách bác sĩ
+    //  Lấy danh sách bác sĩ
     useEffect(() => {
         async function fetchDoctors() {
             try {
@@ -80,7 +80,7 @@ export function DoctorsListContent() {
                         reviews: 0,
                     };
                 });
-
+                console.log(mapped);
                 setDoctors(mapped);
             } catch (err) {
                 console.error("Lỗi khi lấy danh sách bác sĩ:", err);
@@ -142,8 +142,8 @@ export function DoctorsListContent() {
                                                 key={specialty}
                                                 onClick={() => setSelectedSpecialty(specialty)}
                                                 className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedSpecialty === specialty
-                                                        ? "bg-primary text-primary-foreground"
-                                                        : "hover:bg-muted text-foreground"
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "hover:bg-muted text-foreground"
                                                     }`}
                                             >
                                                 {specialty}

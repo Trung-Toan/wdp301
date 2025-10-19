@@ -5,9 +5,9 @@ export const doctorApi = {
   getDoctorTop: (limit) =>
     axiosInstance.get("/doctor/top", { params: { limit } }),
 
-  // Lấy bác sĩ theo chuyên khoa
-  getBySpecialty: (specialtyId) =>
-    axiosInstance.get("/doctor/by-specialty", { params: { specialtyId } }),
+    // Lấy bác sĩ theo chuyên khoa
+    getBySpecialty: (specialtyId) =>
+        axiosInstance.get("/doctor/by-specialty", { params: { specialtyId } }),
 
   //lay danh sach benh nhan
   getAllPatient: (page, limit, search) => {
@@ -73,4 +73,9 @@ export const doctorApi = {
   //xóa trợ lý
   deleteAssistant: (assistantId) =>
     axiosInstance.delete(`/doctor/assistants/${assistantId}`),
+
+  // Lấy bác sĩ theo ID
+    getById: (id) =>
+        axiosInstance.get(`/doctor/${id}`),
 };
+

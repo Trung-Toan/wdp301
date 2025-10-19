@@ -1,16 +1,16 @@
-// medicalRecord.service.js
 const doctorService = require("../doctor/doctor.service");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
 
-/**
- * Gửi yêu cầu xem tất cả hồ sơ bệnh án của 1 bệnh nhân
- * @param {Object} req - Express request (có req.user và req.params.patientId)
- */
 exports.requestViewMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorId = doctor._id;
-    const patientId = req.params.patientId;
+    const { patientId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim() === "") {
+      throw new Error("Lý do yêu cầu không được để trống.");
+    }
 
     const records = await MedicalRecord.find({ patient_id: patientId });
 
@@ -36,6 +36,7 @@ exports.requestViewMedicalRecord = async (req) => {
         doctor_id: doctorId,
         status: "PENDING",
         requested_at: new Date(),
+        reason: reason,
       };
 
       record.access_requests.push(newRequest);
@@ -69,6 +70,11 @@ exports.requestViewMedicalRecordById = async (req) => {
     const doctorId = doctor._id;
     const patientId = req.params.patientId;
     const medicalRecordId = req.params.medicalRecordId;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim() === "") {
+      throw new Error("Lý do yêu cầu không được để trống.");
+    }
 
     const record = await MedicalRecord.findOne({ _id: medicalRecordId, patient_id: patientId });
 
@@ -95,6 +101,7 @@ exports.requestViewMedicalRecordById = async (req) => {
       doctor_id: doctorId,
       status: "PENDING",
       requested_at: new Date(),
+      reason: reason,
     };
 
     record.access_requests.push(newRequest);
@@ -111,7 +118,8 @@ exports.requestViewMedicalRecordById = async (req) => {
 }
 
 /**
- * Lấy lịch sử yêu cầu truy cập hồ sơ của một bác sĩ (đã tối ưu và sửa lỗi sắp xếp)
+ * Lấy lịch sử yêu cầu truy cập hồ sơ của bác sĩ
+ * (dùng aggregate + populate sau)
  */
 exports.getHistoryMedicalRecordRequests = async (req) => {
   try {
@@ -122,49 +130,52 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Sử dụng Aggregation Pipeline để xử lý tất cả trong một truy vấn
     const results = await MedicalRecord.aggregate([
-      // Giai đoạn 1: Tách các yêu cầu trong mảng ra
+      // 1. Tách từng phần tử trong access_requests
       { $unwind: "$access_requests" },
 
-      // Giai đoạn 2: Lọc các yêu cầu của đúng bác sĩ
+      // 2. Lọc theo đúng bác sĩ
       { $match: { "access_requests.doctor_id": doctorIdAsObjectId } },
 
-      // Giai đoạn 3: Dùng $facet để chạy 2 pipeline con: 1 để đếm, 1 để lấy data
+      // 3. Tách pipeline: 1 để đếm tổng, 1 để lấy dữ liệu phân trang
       {
         $facet: {
-          // Pipeline con 1: Lấy metadata (tổng số mục)
           metadata: [{ $count: "totalItems" }],
-          // Pipeline con 2: Lấy dữ liệu đã được sắp xếp và phân trang
           data: [
-            // Sắp xếp các yêu cầu theo ngày (mới nhất trước)
             { $sort: { "access_requests.requested_at": -1 } },
-            // Phân trang
             { $skip: skip },
             { $limit: limit },
-            // Định dạng lại output cho giống yêu cầu
             {
               $project: {
-                _id: 0, // Bỏ trường _id của MedicalRecord
-                record_id: "$_id",
-                patient_id: "$patient_id",
+                _id: 0,
+                medical_record: "$_id",
+                patient: "$patient_id",
                 status: "$access_requests.status",
                 requested_at: "$access_requests.requested_at",
-                reviewed_at: { $ifNull: ["$access_requests.reviewed_at", null] },
-                reviewed_by: { $ifNull: ["$access_requests.reviewed_by", null] },
-              }
-            }
-          ]
-        }
-      }
+                reviewed_at: {
+                  $ifNull: ["$access_requests.reviewed_at", null],
+                },
+                reviewed_by: {
+                  $ifNull: ["$access_requests.reviewed_by", null],
+                },
+              },
+            },
+          ],
+        },
+      },
     ]);
 
-    console.log("results", results);
-
-    // Trích xuất kết quả từ $facet
     const requests = results[0].data;
-    const totalItems = results[0].metadata[0] ? results[0].metadata[0].totalItems : 0;
+    const totalItems = results[0].metadata[0]
+      ? results[0].metadata[0].totalItems
+      : 0;
     const totalPages = Math.ceil(totalItems / limit);
+
+    // ✅ Populate sau khi aggregate
+    await MedicalRecord.populate(requests, [
+      { path: "patient", model: "Patient" },
+      { path: "medical_record", model: "MedicalRecord" }
+    ]);
 
     return {
       requests,
@@ -180,6 +191,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     throw error;
   }
 };
+
 
 /**
  * get list medical records by patient id of doctor
@@ -259,6 +271,12 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
   }
 };
 
+/**
+ * Get list medical records of patients for doctor with pagination and search
+ * 
+ * @param {*} req page, limit, search
+ * @returns 
+ */
 exports.getListMedicalRecords = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
@@ -505,7 +523,27 @@ exports.getMedicalRecordById = async (req) => {
     const doctorId = doctor._id.toString();
 
     const { recordId } = req.params;
-    const medicalRecord = await MedicalRecord.findById(recordId);
+    const medicalRecord = await MedicalRecord
+      .findById(recordId)
+      .populate({
+        path: 'patient_id',
+        select: "-__v -createdAt -updatedAt",
+        populate: {
+          path: 'user_id',
+          select: "-__v -createdAt -updatedAt -_id -account_id",
+        }
+      })
+      .lean();
+
+    const { patient_id, ...rest } = medicalRecord;
+    const { user_id, ...restPatient } = patient_id;
+    const data = {
+      medical_record: rest,
+      patient: {
+        ...restPatient,
+        ...user_id,
+      },
+    };
 
     if (!medicalRecord) {
       throw new Error("Bệnh án không tồn tại");
@@ -513,12 +551,12 @@ exports.getMedicalRecordById = async (req) => {
 
     // 1. Kiểm tra xem bệnh án có phải của bác sĩ hiện tại không
     if (medicalRecord.doctor_id?.toString() === doctorId) {
-      return medicalRecord;
+      return data;
     }
 
     // 2. Nếu không phải của bác sĩ -> kiểm tra PUBLIC
     if (medicalRecord.status === "PUBLIC") {
-      return medicalRecord;
+      return data;
     }
 
     // 3. Nếu không PUBLIC -> kiểm tra quyền trong access_requests
@@ -529,7 +567,7 @@ exports.getMedicalRecordById = async (req) => {
     );
 
     if (hasApprovedAccess) {
-      return medicalRecord;
+      return data;
     }
 
     // 4. Không thoả điều kiện nào -> không có quyền
@@ -544,9 +582,10 @@ exports.verifyMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorId = doctor._id;
-    
+
     const { recordId } = req.params;
     const { status } = req.query;
+    const { reason } = req.body;
 
     if (!["VERIFIED", "REJECTED"].includes(status)) {
       throw new Error("Trạng thái không hợp lệ. Chỉ chấp nhận 'VERIFIED' hoặc 'REJECTED'.");
@@ -561,9 +600,10 @@ exports.verifyMedicalRecord = async (req) => {
     }
     record.prescription.status = status;
     record.prescription.verified_at = new Date();
+    record.prescription.reason = reason || "";
     await record.save();
     return record;
-  }  catch (error) {
+  } catch (error) {
     console.error("Error in verifyMedicalRecord:", error);
     throw error;
   }

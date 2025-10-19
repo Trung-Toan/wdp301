@@ -1,11 +1,7 @@
 const Patient = require('../../model/patient/Patient');
 const userService = require("../user/user.service");
 
-/**
- * get patient by id
- * @param {*} req 
- * @returns 
- */
+
 exports.getPatientById = async (req) => {
     try {
         const patientId = req.params.patientId;
@@ -83,6 +79,28 @@ exports.findPatientByAccountId = async (accountId) => {
         console.error("Lỗi khi tìm user bằng accountId:", error);
         return null;
     }
+}
+
+/**
+ * Update patient location (province_code, ward_code) by account id
+ */
+exports.updatePatientLocationByAccountId = async (accountId, { province_code, ward_code }) => {
+    const user = await userService.findUserByAccountId(accountId);
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    const patient = await Patient.findOneAndUpdate(
+        { user_id: user._id },
+        { $set: { province_code, ward_code } },
+        { new: true }
+    ).lean();
+
+    if (!patient) {
+        throw new Error('Patient not found');
+    }
+
+    return patient;
 }
 
 

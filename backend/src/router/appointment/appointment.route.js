@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const ctrl = require("../../controller/appoinment/appointment.controller");
+const validateObjectId = require("../../middleware/validateObjectId");
+const { validateAppointmentBooking } = require("../../middleware/validateAppointment");
 
 /**
  * @swagger
@@ -129,7 +131,7 @@ const ctrl = require("../../controller/appoinment/appointment.controller");
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
-router.post("/", ctrl.create);
+router.post("/", validateAppointmentBooking, ctrl.create);
 
 /**
  * @swagger
@@ -156,5 +158,67 @@ router.post("/", ctrl.create);
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
 router.get("/:id", ctrl.getById);
+
+/**
+ * @swagger
+ * /api/appointments/patient/{patientId}:
+ *   get:
+ *     summary: Danh sách lịch đã đặt của 1 bệnh nhân (tối giản)
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema: { type: string, example: "67144f55cf4c1a122eb89e1a" }
+ *         description: MongoDB ObjectId của bệnh nhân
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [SCHEDULED, COMPLETED, CANCELLED, NO_SHOW]
+ *         description: Lọc theo trạng thái (tuỳ chọn)
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+ *     responses:
+ *       200:
+ *         description: Danh sách appointment (tối giản) có phân trang
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total: { type: integer, example: 2 }
+ *                     page: { type: integer, example: 1 }
+ *                     limit: { type: integer, example: 10 }
+ *                     totalPages: { type: integer, example: 1 }
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:            { type: string, example: "671c1b87c4b1c0a2a4d8f27e" }
+ *                           status:         { type: string, enum: [SCHEDULED, COMPLETED, CANCELLED, NO_SHOW], example: "SCHEDULED" }
+ *                           booked_at:      { type: string, format: date-time, example: "2025-10-13T08:32:00.000Z" }
+ *                           scheduled_date: { type: string, format: date-time, example: "2025-10-20T00:00:00.000Z" }
+ *                           fee_amount:     { type: number, example: 300000 }
+ *                           booking_code:   { type: string, example: "BK123456" }
+ *                           slot_id:
+ *                             type: object
+ *                             properties:
+ *                               _id:        { type: string, example: "671c1b87c4b1c0a2a4d8f200" }
+ *                               start_time: { type: string, format: date-time, example: "2025-10-20T08:00:00.000Z" }
+ *                               end_time:   { type: string, format: date-time, example: "2025-10-20T08:30:00.000Z" }
+ *       500:
+ *         description: Lỗi server
+ */
+router.get("/patient/:patientId", validateObjectId("patientId"), ctrl.getByPatient);
 
 module.exports = router;

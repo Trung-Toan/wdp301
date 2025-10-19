@@ -6,39 +6,44 @@ import { useNavigate } from "react-router-dom";
 import { setSessionStorage } from "../../hooks/useSessionStorage";
 import { loginByGoogleAccount } from "../../api/auth/login/LoginController";
 
-
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
 
-  // Mutation cho login bằng Google
+  // Mutation: gọi API login Google
   const googleLoginMutation = useMutation({
-    mutationFn: (token) => loginByGoogleAccount(token),
+    mutationFn: (idToken) => loginByGoogleAccount(idToken),
     onSuccess: (data) => {
-      setSessionStorage("token", data?.token);
-      setSessionStorage("user", data?.user);
-      Swal.fire("Success", "Login with Google success!", "success");
-      navigate("/");
+      if (data?.ok) {
+        // Lưu thông tin user & tokens vào sessionStorage
+        setSessionStorage("accessToken", data.tokens.accessToken);
+        setSessionStorage("refreshToken", data.tokens.refreshToken);
+        setSessionStorage("user", data.account);
+
+        Swal.fire("Thành công", "Đăng nhập bằng Google thành công!", "success");
+        navigate("/");
+      } else {
+        Swal.fire("Lỗi", data?.message || "Đăng nhập thất bại!", "error");
+      }
     },
     onError: (error) => {
-      Swal.fire("Error", error.message || "Google login failed!", "error");
+      Swal.fire("Lỗi", error.message || "Google login failed!", "error");
     },
   });
 
-  // Callback khi login thành công
+  // Khi Google trả credential thành công
   const handleGoogleLogin = (credentialResponse) => {
-    if (!credentialResponse?.credential) {
-      Swal.fire("Error", "No credential received from Google", "error");
+    const idToken = credentialResponse?.credential;
+    if (!idToken) {
+      Swal.fire("Lỗi", "Không nhận được thông tin từ Google", "error");
       return;
     }
-    googleLoginMutation.mutate(credentialResponse.credential);
+    googleLoginMutation.mutate(idToken);
   };
 
   return (
     <GoogleLogin
       onSuccess={handleGoogleLogin}
-      onError={() =>
-        Swal.fire("Error", "Google login failed", "error")
-      }
+      onError={() => Swal.fire("Lỗi", "Google login thất bại", "error")}
     />
   );
 };

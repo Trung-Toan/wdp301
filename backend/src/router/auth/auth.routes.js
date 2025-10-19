@@ -250,4 +250,7 @@ router.post('/request-password-reset', ctrl.requestPasswordReset);
  */
 router.post('/reset-password', ctrl.resetPassword);
 
+
+router.put('/change-password', authRequired, ctrl.changePassword);
+
 module.exports = router;

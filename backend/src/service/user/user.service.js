@@ -25,12 +25,6 @@ exports.findUserByAccountId = async (accountId) => {
   }
 }
 
-/**
- * Từ danh sách ID bệnh nhân, truy vấn và trả về danh sách document User tương ứng.
- * Mỗi document User sẽ được bổ sung thêm trường `patient_id`.
- * @param {Array<mongoose.Types.ObjectId>} patientIds Mảng chứa ID của các bệnh nhân.
- * @returns {Promise<Array<User>>} Mảng chứa các document User đã được bổ sung.
- */
 exports.getUsersFromPatientIds = async (patientIds) => {
   if (!patientIds || patientIds.length === 0) {
     return [];

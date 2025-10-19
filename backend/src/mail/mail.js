@@ -1,10 +1,15 @@
 const nodemailer = require("nodemailer");
 const config = require("../config/env");
 
+// Chuẩn hoá kiểu dữ liệu cho SMTP
+const SMTP_PORT = Number(config.SMTP_PORT || 587);
+const SMTP_SECURE =
+    String(config.SMTP_SECURE || "").toLowerCase() === "true" || SMTP_PORT === 465;
+
 const transporter = nodemailer.createTransport({
     host: config.SMTP_HOST,
-    port: config.SMTP_PORT,
-    secure: !!config.SMTP_SECURE,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
     auth: {
         user: config.SMTP_USER,
         pass: config.SMTP_PASS,
@@ -21,42 +26,66 @@ async function verifyMailer() {
 }
 verifyMailer().catch(() => { });
 
+// ---- Helpers ----
 function formatVND(n) {
-    try { return new Intl.NumberFormat("vi-VN").format(Number(n || 0)) + "₫"; }
-    catch { return `${n}₫`; }
+    try {
+        return new Intl.NumberFormat("vi-VN").format(Number(n || 0)) + "₫";
+    } catch {
+        return `${n}₫`;
+    }
 }
 
 function formatDateTimeRangeVN(start, end) {
-    const fmt = new Intl.DateTimeFormat("vi-VN", {
-        hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric"
+    if (!start || !end) return "";
+    const fmtDate = new Intl.DateTimeFormat("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
     });
-    const s = fmt.format(new Date(start));
-    const e = new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(new Date(end));
+    const fmtTime = new Intl.DateTimeFormat("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+    const s = fmtDate.format(new Date(start));
+    const e = fmtTime.format(new Date(end));
     return `${s} – ${e}`;
 }
 
 function bookingHtml({ booking, doctor, clinic, specialty, slot }) {
     const timeRange = slot ? formatDateTimeRangeVN(slot.start_time, slot.end_time) : "";
-    const fee = formatVND(booking.fee_amount);
+    const fee = formatVND(booking?.fee_amount);
     const appUrl = config.APP_BASE_URL || "http://localhost:3000";
+
+    // Lấy patientId an toàn từ booking
+    const patientId =
+        booking?.patient_id?._id || // trường hợp populate
+        booking?.patient_id ||      // trường hợp chỉ có ObjectId dạng string
+        "";
+
+    // (Optional) Nếu bạn thực chất muốn link tới chi tiết lịch khám theo id cuộc hẹn:
+    // const bookingDetailUrl = `${appUrl}#/appointments/${booking?._id}`;
+    // Ở đây giữ nguyên ý định của bạn với route /patient/:id
+    const patientUrl = `${appUrl}#/patient/${patientId}`;
 
     return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:auto;">
     <h2>✅ Xác nhận đặt lịch khám thành công</h2>
-    <p>Xin chào <b>${booking.full_name}</b>,</p>
+    <p>Xin chào <b>${booking?.full_name || ""}</b>,</p>
     <p>Bạn đã đặt lịch khám thành công. Thông tin chi tiết:</p>
     <table style="border-collapse:collapse;width:100%;">
-      <tr><td style="padding:6px 0;">Mã đặt lịch</td><td><b>${booking.booking_code}</b></td></tr>
+      <tr><td style="padding:6px 0;">Mã đặt lịch</td><td><b>${booking?.booking_code || ""}</b></td></tr>
       <tr><td style="padding:6px 0;">Bác sĩ</td><td>${doctor?.title || ""} ${doctor?.user_id?.full_name || ""}</td></tr>
       <tr><td style="padding:6px 0;">Chuyên khoa</td><td>${specialty?.name || ""}</td></tr>
       <tr><td style="padding:6px 0;">Cơ sở</td><td>${clinic?.name || ""}</td></tr>
       <tr><td style="padding:6px 0;">Thời gian</td><td>${timeRange}</td></tr>
       <tr><td style="padding:6px 0;">Phí khám</td><td><b>${fee}</b></td></tr>
-      <tr><td style="padding:6px 0;">Lý do khám</td><td>${booking.reason || "-"}</td></tr>
+      <tr><td style="padding:6px 0;">Lý do khám</td><td>${booking?.reason || "-"}</td></tr>
     </table>
     <p>Vui lòng đến trước <b>10–15 phút</b> để làm thủ tục.</p>
     <p>
-      <a href="${appUrl}#/bookings/${booking._id}" 
+      <a href="${patientUrl}"
          style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;display:inline-block">
         Xem chi tiết lịch khám
       </a>
@@ -68,12 +97,17 @@ function bookingHtml({ booking, doctor, clinic, specialty, slot }) {
 
 async function sendBookingEmail({ to, subject, booking, doctor, clinic, specialty, slot }) {
     const html = bookingHtml({ booking, doctor, clinic, specialty, slot });
+
+    const fromName = config.MAIL_FROM_NAME || "Clinic";
+    const fromEmail = config.MAIL_FROM || config.EMAIL_FROM || config.SMTP_USER;
+
     const info = await transporter.sendMail({
-        from: config.MAIL_FROM || config.EMAIL_FROM || config.SMTP_USER,
+        from: `"${fromName}" <${fromEmail}>`,
         to,
         subject,
         html,
     });
+
     return info?.messageId;
 }
 

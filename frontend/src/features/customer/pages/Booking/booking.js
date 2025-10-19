@@ -1,9 +1,17 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Calendar, Clock, MapPin, User, FileText, ChevronLeft } from "lucide-react";
 import BookingSuccess from "./bookingSuccess";
+import { patientsApi } from "../../../../api/patients/patientsApi";
 
 export function BookingContent() {
+    const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
+    const location = useLocation();
+    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId } = location.state || {};
+
+    console.log("storedUserL: ", storedUser);
+    console.log("Selected Slot", selectedSlot);
+
     const [formData, setFormData] = useState({
         fullName: "",
         phone: "",
@@ -17,8 +25,25 @@ export function BookingContent() {
     });
 
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [bookingInfo, setBookingInfo] = useState(null);
 
-    // Danh sách tỉnh/thành và quận/huyện mẫu
+    useEffect(() => {
+        if (storedUser) {
+            setFormData(prev => ({
+                ...prev,
+                fullName: storedUser.username || "",
+                phone: storedUser.phone_number || "",
+                email: storedUser.email || "",
+                dateOfBirth: storedUser.dateOfBirth || "",
+                gender: storedUser.gender || "male",
+            }));
+        }
+    }, [storedUser]);
+
+    if (!selectedSlot) return <p className="p-4">Vui lòng chọn lịch khám trước</p>;
+
+    console.log("selectedSlot: ", selectedSlot);
+
     const provinces = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng"];
     const districts = {
         "Hà Nội": ["Ba Đình", "Hoàn Kiếm", "Cầu Giấy", "Đống Đa", "Tây Hồ"],
@@ -26,36 +51,65 @@ export function BookingContent() {
         "Đà Nẵng": ["Hải Châu", "Thanh Khê", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu"],
     };
 
-    // Mock data
-    const bookingInfo = {
-        doctorId: 1,
-        doctorName: "BS. Nguyễn Văn An",
-        specialty: "Tim mạch",
-        hospital: "Bệnh viện Đa khoa Trung ương",
-        location: "Hà Nội",
-        date: "Thứ 2, 20/01/2025",
-        time: "09:00",
-        price: "500.000đ",
+    const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedSlot) return alert("Vui lòng chọn lịch khám");
+
+        // Validate các trường bắt buộc
+        if (!formData.dateOfBirth) return alert("Vui lòng nhập ngày sinh");
+        if (!formData.province) return alert("Vui lòng chọn Tỉnh/Thành phố");
+        if (!formData.district) return alert("Vui lòng chọn Quận/Huyện");
+
+        try {
+            const payload = {
+                slot_id: selectedSlot.id,
+                doctor_id: doctorId,
+                patient_id: storedUser._id,
+                specialty_id: selectedSlot.specialtyId,
+                clinic_id: selectedSlot.clinicId,
+                full_name: formData.fullName,
+                phone: formData.phone,
+                email: formData.email,
+                dob: formData.dateOfBirth,
+                gender: formData.gender,
+                province_code: formData.province,
+                ward_code: formData.district,
+                address_text: formData.address,
+                reason: formData.reason,
+            };
+
+
+            console.log("Payload gửi lên API:", payload);
+
+            const response = await patientsApi.createAppointment(payload);
+            setBookingInfo(response.data);
+            setIsSubmitted(true);
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || err.message || "Đặt lịch thất bại");
+        }
+    };
+
+
+    if (isSubmitted && bookingInfo) return <BookingSuccess bookingInfo={bookingInfo} />;
+
+    const sidebarInfo = {
+        doctorName: doctorName || "Chưa có tên bác sĩ",
+        specialty: specialty || "Chưa có chuyên khoa",
+        hospital: hospital || "Chưa có phòng khám",
+        location: hospital || "Chưa có phòng khám",
+        date: selectedDate || "Chưa chọn ngày",
+        time: selectedSlot?.time || "Chưa chọn giờ",
+        price: price || "Chưa có giá",
         image: "/doctor-portrait-male.jpg",
     };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSubmitted(true);
-    };
-
-    const handleChange = (field, value) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
-    if (isSubmitted) {
-        return <BookingSuccess bookingInfo={bookingInfo} />;
-    }
 
     return (
         <div className="bg-gray-100 min-h-screen py-8">
             <div className="container mx-auto px-4">
-                <Link to={`/home/doctordetail/${bookingInfo.doctorId}`}>
+                <Link to={`/home/doctordetail/${doctorId}`}>
                     <button className="flex items-center gap-2 text-gray-600 hover:text-black mb-6">
                         <ChevronLeft className="h-4 w-4" /> Quay lại
                     </button>
@@ -65,9 +119,7 @@ export function BookingContent() {
                     {/* Form */}
                     <div className="lg:col-span-2 bg-white rounded-xl shadow p-6">
                         <h2 className="text-2xl font-bold mb-2">Thông tin đặt lịch khám</h2>
-                        <p className="text-gray-500 mb-6">
-                            Vui lòng điền đầy đủ thông tin để hoàn tất đặt lịch
-                        </p>
+                        <p className="text-gray-500 mb-6">Vui lòng điền đầy đủ thông tin để hoàn tất đặt lịch</p>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Thông tin cá nhân */}
@@ -75,31 +127,24 @@ export function BookingContent() {
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
                                     <User className="h-5 w-5" /> Thông tin bệnh nhân
                                 </h3>
-
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block mb-1 font-medium">
-                                            Họ và tên <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block mb-1 font-medium">Họ và tên <span className="text-red-500">*</span></label>
                                         <input
                                             type="text"
                                             className="w-full border rounded-lg p-2"
-                                            placeholder="Nguyễn Văn A"
                                             value={formData.fullName}
-                                            onChange={(e) => handleChange("fullName", e.target.value)}
+                                            onChange={e => handleChange("fullName", e.target.value)}
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block mb-1 font-medium">
-                                            Số điện thoại <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block mb-1 font-medium">Số điện thoại <span className="text-red-500">*</span></label>
                                         <input
                                             type="tel"
                                             className="w-full border rounded-lg p-2"
-                                            placeholder="0912345678"
                                             value={formData.phone}
-                                            onChange={(e) => handleChange("phone", e.target.value)}
+                                            onChange={e => handleChange("phone", e.target.value)}
                                             required
                                         />
                                     </div>
@@ -111,38 +156,32 @@ export function BookingContent() {
                                         <input
                                             type="email"
                                             className="w-full border rounded-lg p-2"
-                                            placeholder="email@example.com"
                                             value={formData.email}
-                                            onChange={(e) => handleChange("email", e.target.value)}
+                                            onChange={e => handleChange("email", e.target.value)}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block mb-1 font-medium">
-                                            Ngày sinh <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block mb-1 font-medium">Ngày sinh <span className="text-red-500">*</span></label>
                                         <input
                                             type="date"
                                             className="w-full border rounded-lg p-2"
                                             value={formData.dateOfBirth}
-                                            onChange={(e) => handleChange("dateOfBirth", e.target.value)}
+                                            onChange={e => handleChange("dateOfBirth", e.target.value)}
                                             required
                                         />
                                     </div>
                                 </div>
 
-                                {/* Giới tính */}
                                 <div>
-                                    <label className="block mb-2 font-medium">
-                                        Giới tính <span className="text-red-500">*</span>
-                                    </label>
+                                    <label className="block mb-2 font-medium">Giới tính <span className="text-red-500">*</span></label>
                                     <div className="flex gap-6">
-                                        {["male", "female", "other"].map((g) => (
+                                        {["male", "female", "other"].map(g => (
                                             <label key={g} className="flex items-center gap-2">
                                                 <input
                                                     type="radio"
                                                     value={g}
                                                     checked={formData.gender === g}
-                                                    onChange={(e) => handleChange("gender", e.target.value)}
+                                                    onChange={e => handleChange("gender", e.target.value)}
                                                 />
                                                 {g === "male" ? "Nam" : g === "female" ? "Nữ" : "Khác"}
                                             </label>
@@ -150,65 +189,45 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
-                                {/* Chọn tỉnh/thành & quận/huyện */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block mb-1 font-medium">
-                                            Tỉnh/Thành phố <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block mb-1 font-medium">Tỉnh/Thành phố <span className="text-red-500">*</span></label>
                                         <select
                                             className="w-full border rounded-lg p-2"
                                             value={formData.province}
-                                            onChange={(e) => {
-                                                handleChange("province", e.target.value);
-                                                handleChange("district", "");
-                                            }}
+                                            onChange={e => { handleChange("province", e.target.value); handleChange("district", ""); }}
                                             required
                                         >
                                             <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                                            {provinces.map((p) => (
-                                                <option key={p} value={p}>
-                                                    {p}
-                                                </option>
-                                            ))}
+                                            {provinces.map(p => <option key={p} value={p}>{p}</option>)}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block mb-1 font-medium">
-                                            Quận/Huyện <span className="text-red-500">*</span>
-                                        </label>
+                                        <label className="block mb-1 font-medium">Quận/Huyện <span className="text-red-500">*</span></label>
                                         <select
                                             className="w-full border rounded-lg p-2"
                                             value={formData.district}
-                                            onChange={(e) => handleChange("district", e.target.value)}
+                                            onChange={e => handleChange("district", e.target.value)}
                                             required
                                             disabled={!formData.province}
                                         >
                                             <option value="">-- Chọn Quận/Huyện --</option>
-                                            {formData.province &&
-                                                districts[formData.province].map((d) => (
-                                                    <option key={d} value={d}>
-                                                        {d}
-                                                    </option>
-                                                ))}
+                                            {formData.province && districts[formData.province].map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </div>
                                 </div>
 
-                                {/* Địa chỉ cụ thể */}
                                 <div>
                                     <label className="block mb-1 font-medium">Địa chỉ cụ thể</label>
                                     <input
                                         type="text"
                                         className="w-full border rounded-lg p-2"
-                                        placeholder="Số nhà, đường, phường/xã..."
                                         value={formData.address}
-                                        onChange={(e) => handleChange("address", e.target.value)}
+                                        onChange={e => handleChange("address", e.target.value)}
                                     />
                                 </div>
                             </div>
 
-                            {/* Lý do khám */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
                                     <FileText className="h-5 w-5" /> Thông tin khám bệnh
@@ -218,9 +237,8 @@ export function BookingContent() {
                                     <textarea
                                         rows={4}
                                         className="w-full border rounded-lg p-2"
-                                        placeholder="Mô tả triệu chứng..."
                                         value={formData.reason}
-                                        onChange={(e) => handleChange("reason", e.target.value)}
+                                        onChange={e => handleChange("reason", e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -240,13 +258,13 @@ export function BookingContent() {
                             <h3 className="font-semibold mb-4">Thông tin lịch khám</h3>
                             <div className="flex gap-4">
                                 <img
-                                    src={bookingInfo.image}
-                                    alt={bookingInfo.doctorName}
+                                    src={sidebarInfo?.image}
+                                    alt={sidebarInfo.doctorName}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />
                                 <div>
-                                    <h4 className="font-semibold">{bookingInfo.doctorName}</h4>
-                                    <p className="text-sm text-gray-500">{bookingInfo.specialty}</p>
+                                    <h4 className="font-semibold">{sidebarInfo.doctorName}</h4>
+                                    <p className="text-sm text-gray-500">{sidebarInfo.specialty}</p>
                                 </div>
                             </div>
 
@@ -254,24 +272,24 @@ export function BookingContent() {
                                 <div className="flex gap-3 text-sm">
                                     <MapPin className="h-5 w-5 text-blue-600" />
                                     <div>
-                                        <div>{bookingInfo.hospital}</div>
-                                        <div className="text-gray-500">{bookingInfo.location}</div>
+                                        <div>{sidebarInfo.hospital}</div>
+                                        <div className="text-gray-500">{sidebarInfo.location}</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm">
                                     <Calendar className="h-5 w-5 text-blue-600" />
-                                    {bookingInfo.date}
+                                    {sidebarInfo.date}
                                 </div>
                                 <div className="flex items-center gap-3 text-sm">
                                     <Clock className="h-5 w-5 text-blue-600" />
-                                    {bookingInfo.time}
+                                    {sidebarInfo.time}
                                 </div>
                             </div>
 
                             <div className="pt-4 border-t">
                                 <div className="flex justify-between mb-2">
                                     <span className="text-gray-500">Phí khám:</span>
-                                    <span className="font-semibold">{bookingInfo.price}</span>
+                                    <span className="font-semibold">{sidebarInfo.price}</span>
                                 </div>
                                 <div className="flex justify-between mb-4">
                                     <span className="text-gray-500">Phí dịch vụ:</span>
@@ -279,31 +297,8 @@ export function BookingContent() {
                                 </div>
                                 <div className="flex justify-between pt-4 border-t">
                                     <span className="font-semibold">Tổng cộng:</span>
-                                    <span className="text-2xl font-bold text-blue-600">
-                                        {bookingInfo.price}
-                                    </span>
+                                    <span className="text-2xl font-bold text-blue-600">{sidebarInfo.price}</span>
                                 </div>
-                            </div>
-
-                            {/* ✅ Phần lưu ý mới thêm */}
-                            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm leading-relaxed text-gray-700">
-                                <p className="font-semibold text-yellow-800 mb-1">
-                                    Lưu ý:
-                                </p>
-                                <p>
-                                    Thông tin anh/chị cung cấp sẽ được sử dụng làm hồ sơ khám bệnh.
-                                    Khi điền thông tin, anh/chị vui lòng:
-                                </p>
-                                <ul className="list-disc list-inside mt-2 space-y-1">
-                                    <li>
-                                        Ghi rõ họ và tên, viết hoa những chữ cái đầu tiên,
-                                        ví dụ: <strong>Trần Văn Phú</strong>.
-                                    </li>
-                                    <li>
-                                        Điền đầy đủ, đúng và kiểm tra lại thông tin trước khi ấn{" "}
-                                        <strong>“Xác nhận”</strong>.
-                                    </li>
-                                </ul>
                             </div>
                         </div>
                     </div>

@@ -4,9 +4,11 @@ const AccessRequestSchema = new mongoose.Schema(
   {
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
     status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"], default: "PENDING" },
+    reason: { type: String, required: true },
     requested_at: { type: Date, default: Date.now },
     approved_at: { type: Date },
     date_expired: { type: Date },
+    
   },
   { _id: false }
 );
@@ -27,6 +29,7 @@ const PrescriptionSchema = new mongoose.Schema(
     medicines: [MedicineSchema],
     instruction: { type: String },
     verified_at: { type: Date },
+    reason: { type: String, default: "" },
     status: { type: String, enum: ["PENDING", "VERIFIED", "REJECTED"], default: "PENDING" },
     created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
   },

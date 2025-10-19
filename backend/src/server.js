@@ -9,6 +9,9 @@ const authRoutes = require('./router/auth/auth.routes');
 const locationRoutes = require('./router/address/location.routes');
 const clinicRoutes = require('./router/clinic/clinic.route');
 const appointmentRoutes = require('./router/appointment/appointment.route');
+const patientRoutes = require('./router/patient/patient.routes');
+const medicalRecordRoutes = require('./router/patient/medicalRecord.routes');
+const userRoutes = require('./router/user/user.routes');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
@@ -38,6 +41,9 @@ app.use('/api/assistant', require('./router/assistance/assistance.routes'));
 app.use('/api/locations', locationRoutes);
 app.use('/api/clinic', clinicRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/patient', patientRoutes);
+app.use('/api/patient', medicalRecordRoutes);
+app.use('/api/user', userRoutes);
 
 app.get('/', (_req, res) => res.json({ message: 'Welcome to WDP301!' }));
 
