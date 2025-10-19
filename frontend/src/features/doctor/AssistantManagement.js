@@ -12,13 +12,40 @@ const AssistantManagement = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
 
-  // Lấy danh sách trợ lý
-  const fetchAssistants = async () => {
+  // Lấy danh sách trợ lý (có tìm kiếm + phân trang)
+  const fetchAssistants = async (page = 1, search = "") => {
     try {
       setLoading(true);
-      const res = await doctorApi.getAssistants();
-      if (res.data?.ok) setAssistants(res.data.data || []);
+      const res = await doctorApi.getAssistants(search, page);
+      if (res.data?.ok) {
+        // API trả về dạng { data: [ { assistant: {...} } ] }
+        const parsed = res.data.data.map((item) => {
+          const a = item.assistant;
+          const user = a.user || {};
+          const account = user.account || {};
+          return {
+            _id: a._id,
+            name: user.full_name || account.username || "Chưa có tên",
+            email: account.email || "Không có email",
+            status: account.status || "INACTIVE",
+            createdAt: a.createdAt,
+          };
+        });
+        setAssistants(parsed);
+        setPagination({
+          page: res.data.pagination?.page || 1,
+          limit: res.data.pagination?.limit || 10,
+          totalPages: res.data.pagination?.totalPages || 1,
+        });
+      } else {
+        setAssistants([]);
+      }
     } catch (error) {
       console.error(error);
       setMessage({ type: "error", text: "Không thể tải danh sách trợ lý." });
@@ -30,6 +57,14 @@ const AssistantManagement = () => {
   useEffect(() => {
     fetchAssistants();
   }, []);
+
+  // Gọi lại API khi tìm kiếm thay đổi
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchAssistants(1, searchTerm);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
   // Thêm trợ lý mới
   const handleAddAssistant = async (e) => {
@@ -62,7 +97,7 @@ const AssistantManagement = () => {
       const res = await doctorApi.deleteAssistant(id);
       if (res.data?.ok) {
         setMessage({ type: "success", text: "Đã xóa trợ lý thành công!" });
-        setAssistants((prev) => prev.filter((a) => a._id !== id));
+        fetchAssistants(pagination.page, searchTerm);
       } else {
         setMessage({
           type: "error",
@@ -74,12 +109,11 @@ const AssistantManagement = () => {
     }
   };
 
-
-  const filteredAssistants = assistants.filter(
-    (a) =>
-      a?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Điều hướng phân trang
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    fetchAssistants(newPage, searchTerm);
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-6">
@@ -165,55 +199,78 @@ const AssistantManagement = () => {
       <div className="bg-white rounded-2xl shadow p-5">
         {loading ? (
           <p className="text-gray-500 text-sm italic">Đang tải dữ liệu...</p>
-        ) : filteredAssistants.length === 0 ? (
+        ) : assistants.length === 0 ? (
           <p className="text-gray-500 text-sm italic">
             Không có tài khoản trợ lý nào.
           </p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-blue-50 text-blue-700 font-semibold text-left">
-                <th className="p-3">Họ và tên</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Trạng thái</th>
-                <th className="p-3">Ngày tạo</th>
-                <th className="p-3 text-center">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAssistants.map((a) => (
-                <tr
-                  key={a._id}
-                  className="border-b hover:bg-gray-50 transition"
-                >
-                  <td className="p-3 font-medium text-gray-800">{a.name}</td>
-                  <td className="p-3 text-gray-600">{a.email}</td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        a.status === "ACTIVE"
-                          ? "bg-green-50 text-green-700"
-                          : "bg-red-50 text-red-700"
-                      }`}
-                    >
-                      {a.status === "ACTIVE" ? "Hoạt động" : "Khóa"}
-                    </span>
-                  </td>
-                  <td className="p-3 text-gray-500">
-                    {new Date(a.createdAt).toLocaleDateString("vi-VN")}
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => handleDelete(a._id)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
+          <>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-blue-50 text-blue-700 font-semibold text-left">
+                  <th className="p-3">Họ và tên</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3">Trạng thái</th>
+                  <th className="p-3">Ngày tạo</th>
+                  <th className="p-3 text-center">Hành động</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {assistants.map((a) => (
+                  <tr
+                    key={a._id}
+                    className="border-b hover:bg-gray-50 transition"
+                  >
+                    <td className="p-3 font-medium text-gray-800">{a.name}</td>
+                    <td className="p-3 text-gray-600">{a.email}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          a.status === "ACTIVE"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {a.status === "ACTIVE" ? "Hoạt động" : "Khóa"}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-500">
+                      {new Date(a.createdAt).toLocaleDateString("vi-VN")}
+                    </td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => handleDelete(a._id)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Phân trang */}
+            <div className="flex justify-center items-center gap-3 mt-4">
+              <button
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Trước
+              </button>
+              <span className="text-sm text-gray-700">
+                {pagination.page} / {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page === pagination.totalPages}
+                className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Sau
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
