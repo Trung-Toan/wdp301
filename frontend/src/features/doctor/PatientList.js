@@ -51,9 +51,10 @@ const PatientList = () => {
     try {
       setLoading(true);
       const res = await doctorApi.getPatientById(patientId);
-      const data = await res.data;
+      const data = await res.data; 
+      
       if (data.ok) {
-        setSelectedPatient(data.data);
+        setSelectedPatient(data.data.patient);
         setShowModal(true);
       }
     } catch (error) {
@@ -151,15 +152,15 @@ const PatientList = () => {
                 </tr>
               ) : (
                 patients.map((patient, index) => (
-                  <tr key={patient.patient_id || index}>
+                  <tr key={patient?.patient_id || index}>
                     <td className="patient-id">#{patient.patient_code}</td>
                     <td>
                       <div className="patient-avatar-wrapper">
                         <div className="patient-avatar">
-                          {patient.full_name.charAt(0).toUpperCase()}
+                          {patient?.full_name?.charAt(0).toUpperCase()}
                         </div>
                         <span className="patient-name">
-                          {patient.full_name}
+                          {patient?.full_name}
                         </span>
                       </div>
                     </td>
@@ -244,7 +245,7 @@ const PatientList = () => {
               {/* Avatar + tên */}
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 flex items-center justify-center bg-blue-100 text-blue-600 text-xl font-bold rounded-full">
-                  {selectedPatient.full_name.charAt(0).toUpperCase()}
+                  {selectedPatient?.full_name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">
