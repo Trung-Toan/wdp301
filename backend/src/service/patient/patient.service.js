@@ -35,7 +35,7 @@ exports.getPatientById = async (req) => {
             chronic_diseases: patients.chronic_diseases,
             medications: patients.medications,
             surgery_history: patients.surgery_history,
-        }: null;
+        } : null;
         return { patient };
     } catch (error) {
         console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
