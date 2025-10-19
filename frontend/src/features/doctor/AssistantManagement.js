@@ -13,7 +13,7 @@ const AssistantManagement = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // 🟢 Lấy danh sách trợ lý
+  // Lấy danh sách trợ lý
   const fetchAssistants = async () => {
     try {
       setLoading(true);
@@ -31,7 +31,7 @@ const AssistantManagement = () => {
     fetchAssistants();
   }, []);
 
-  // 🟢 Thêm trợ lý mới
+  // Thêm trợ lý mới
   const handleAddAssistant = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.password) {
@@ -55,7 +55,7 @@ const AssistantManagement = () => {
     }
   };
 
-  // 🟢 Xóa trợ lý
+  // Xóa trợ lý
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa tài khoản trợ lý này?")) return;
     try {
@@ -74,11 +74,11 @@ const AssistantManagement = () => {
     }
   };
 
-  // Lọc danh sách theo từ khóa tìm kiếm
+
   const filteredAssistants = assistants.filter(
     (a) =>
-      a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.email.toLowerCase().includes(searchTerm.toLowerCase())
+      a?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a?.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

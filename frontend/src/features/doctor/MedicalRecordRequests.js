@@ -256,10 +256,10 @@ const MedicalRecordRequests = () => {
               >
                 <div>
                   <p className="font-semibold text-blue-700">
-                    Hồ sơ: {req.record_id}
+                    Hồ sơ: {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
                   </p>
                   <p className="text-sm text-gray-600">
-                    Mã bệnh nhân: {req.patient_id}
+                    Mã bệnh nhân: {req?.patient?.patient_code || "N/A"}
                   </p>
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <Calendar size={14} /> Ngày gửi:{" "}
