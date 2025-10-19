@@ -6,7 +6,7 @@ import PatientList from "../features/doctor/PatientList";
 import AppointmentSchedule from "../features/doctor/AppointmentSchedule";
 import PatientMedicalRecords from "../features/doctor/PatientMedicalRecords";
 import FeedbackView from "../features/doctor/FeedbackView";
-// import AssistantManagement from "../features/doctor/AssistantManagement";
+import AssistantManagement from "../features/doctor/AssistantManagement";
 // import DoctorRegistration from "../features/doctor/DoctorRegistration";
 import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
 // import AbsenceNotification from "../features/doctor/AbsenceNotification";
@@ -20,15 +20,12 @@ const RouterDoctor = () => {
         <Route path="appointments" element={<AppointmentSchedule />} />
         <Route path="patients" element={<PatientList />} />
         <Route path="feedback" element={<FeedbackView />} />
-        <Route
-          path="medical-records"
-          element={<PatientMedicalRecords />}
-        />
+        <Route path="medical-records" element={<PatientMedicalRecords />} />
         <Route path="record-requests" element={<MedicalRecordRequests />} />
+        <Route path="assistants" element={<AssistantManagement />} />
         {/* <Route path="register" element={<DoctorRegistration />} />
         
-        <Route path="absence" element={<AbsenceNotification />} />
-        <Route path="assistants" element={<AssistantManagement />} /> */}
+        <Route path="absence" element={<AbsenceNotification />} /> */}
       </Route>
     </Routes>
   );

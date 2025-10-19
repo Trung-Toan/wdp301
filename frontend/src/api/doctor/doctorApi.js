@@ -63,4 +63,14 @@ export const doctorApi = {
       `/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,
       { reason }
     ),
+
+  //lấy danh sách trợ lý
+  getAssistants: () => axiosInstance.get("/doctor/assistants"),
+
+  //thêm trợ lý
+  addAssistant: (data) => axiosInstance.post("/doctor/assistants", data),
+
+  //xóa trợ lý
+  deleteAssistant: (assistantId) =>
+    axiosInstance.delete(`/doctor/assistants/${assistantId}`),
 };
