@@ -9,10 +9,7 @@ import {
   Clock,
   FolderOpen,
 } from "lucide-react";
-import { requestMedicalRecordAccess } from "../../services/doctorService.js";
-import { mockMedicalRecords, mockPatients } from "../../data/mockData.js";
-
-const doctorId = "DOC001";
+import { doctorApi } from "../../api/doctor/doctorApi";
 
 const MedicalRecordRequests = () => {
   const [patientCode, setPatientCode] = useState("");
@@ -21,40 +18,57 @@ const MedicalRecordRequests = () => {
   const [accessRequests, setAccessRequests] = useState([]);
   const [message, setMessage] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [reason, setReason] = useState(""); // 🟢 thêm state lý do
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
-    const doctorRequests = mockMedicalRecords
-      .flatMap((record) =>
-        record.access_requests.map((req) => ({
-          ...req,
-          medical_record_id: record._id,
-          patient_id: record.patient_id,
-          diagnosis: record.diagnosis,
-        }))
-      )
-      .filter((req) => req.doctor_id === doctorId);
-    setAccessRequests(doctorRequests);
+    const fetchHistory = async () => {
+      try {
+        const res = await doctorApi.getMedicalRecordRequestHistory();
+        if (res.data?.ok) {
+          setAccessRequests(res.data.data.history_request || []);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải lịch sử yêu cầu:", error);
+      }
+    };
+    fetchHistory();
   }, []);
 
-  const handleFindPatient = (e) => {
+  const handleFindPatient = async (e) => {
     e.preventDefault();
-    const patient = mockPatients.find((p) => p._id === patientCode.trim());
-    if (!patient) {
-      setFoundPatient(null);
-      setPatientRecords([]);
-      setMessage({ type: "error", text: "Không tìm thấy mã bệnh nhân này." });
-      return;
+    if (!patientCode.trim()) return;
+
+    try {
+      const res = await doctorApi.searchMedicalRecords(patientCode.trim());
+      const records = res.data?.data || [];
+
+      if (records.length === 0) {
+        setFoundPatient(null);
+        setPatientRecords([]);
+        setMessage({
+          type: "error",
+          text: "Không tìm thấy hồ sơ bệnh án nào cho mã bệnh nhân này.",
+        });
+        return;
+      }
+
+      console.log("thông tin", records);
+
+      const patientInfo = {
+        _id: records[0].patient_id,
+        name: records[0].patient_name,
+      };
+
+      setFoundPatient(patientInfo);
+      setPatientRecords(records);
+      setMessage({
+        type: "success",
+        text: `Đã tìm thấy ${records.length} hồ sơ bệnh án của bệnh nhân ${patientInfo.name}.`,
+      });
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: "error", text: "Lỗi khi tìm hồ sơ bệnh án." });
     }
-    const records = mockMedicalRecords.filter(
-      (r) => r.patient_id === patient._id
-    );
-    setFoundPatient(patient);
-    setPatientRecords(records);
-    setMessage({
-      type: "success",
-      text: `Đã tìm thấy ${records.length} hồ sơ bệnh án của bệnh nhân ${patient._id}.`,
-    });
   };
 
   const handleSendRequest = async () => {
@@ -70,34 +84,32 @@ const MedicalRecordRequests = () => {
       return;
     }
 
-    const res = await requestMedicalRecordAccess(
-      doctorId,
-      foundPatient._id,
-      selectedRecord._id,
-      reason // 🟢 gửi thêm lý do
-    );
+    try {
+      const res = await doctorApi.requestMedicalRecordAccess(
+        foundPatient._id,
+        selectedRecord._id,
+        reason
+      );
 
-    if (res.success) {
-      const newReq = {
-        doctor_id: doctorId,
-        status: "PENDING",
-        requested_at: new Date(),
-        approved_at: null,
-        date_expired: null,
-        patient_id: foundPatient._id,
-        medical_record_id: selectedRecord._id,
-        diagnosis: selectedRecord.diagnosis,
-        reason, // 🟢 lưu lý do vào danh sách yêu cầu
-      };
-      setAccessRequests((prev) => [newReq, ...prev]);
-      setMessage({
-        type: "success",
-        text: "Đã gửi yêu cầu xem hồ sơ thành công.",
-      });
-      setSelectedRecord(null);
-      setReason("");
-    } else {
-      setMessage({ type: "error", text: "Gửi yêu cầu thất bại." });
+      if (res.data?.ok) {
+        setMessage({
+          type: "success",
+          text: "Đã gửi yêu cầu truy cập hồ sơ thành công.",
+        });
+
+        const historyRes = await doctorApi.getMedicalRecordRequestHistory();
+        setAccessRequests(historyRes.data?.data?.history_request || []);
+        setSelectedRecord(null);
+        setReason("");
+      } else {
+        setMessage({
+          type: "error",
+          text: res.data?.message || "Gửi yêu cầu thất bại.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: "error", text: "Có lỗi xảy ra khi gửi yêu cầu." });
     }
   };
 
@@ -155,7 +167,7 @@ const MedicalRecordRequests = () => {
               type="text"
               value={patientCode}
               onChange={(e) => setPatientCode(e.target.value)}
-              placeholder="Nhập mã bệnh nhân (VD: PAT001)"
+              placeholder="Nhập mã bệnh nhân..."
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -171,56 +183,35 @@ const MedicalRecordRequests = () => {
         {foundPatient && (
           <div className="mt-6 border-t pt-4">
             <h3 className="font-semibold text-gray-700 mb-2">
-              Thông tin bệnh nhân
+              Hồ sơ bệnh án ({patientRecords.length})
             </h3>
-            <p className="text-sm">
-              <span className="font-medium">Mã:</span> {foundPatient._id}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Nhóm máu:</span>{" "}
-              {foundPatient.blood_type}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Bệnh mãn tính:</span>{" "}
-              {foundPatient.chronic_diseases.join(", ") || "Không có"}
-            </p>
 
-            <div className="mt-3 space-y-2">
-              <h4 className="font-semibold text-gray-700 text-sm">
-                Hồ sơ bệnh án ({patientRecords.length})
-              </h4>
-              {patientRecords.length === 0 ? (
-                <p className="text-gray-500 text-sm italic">
-                  Không có hồ sơ nào.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {patientRecords.map((rec) => (
-                    <li
-                      key={rec._id}
-                      onClick={() => setSelectedRecord(rec)}
-                      className={`p-2 rounded-lg border cursor-pointer transition ${
-                        selectedRecord?._id === rec._id
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-gray-800">
-                        {rec.diagnosis}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Ngày tạo:{" "}
-                        {new Date(rec.createdAt).toLocaleDateString("vi-VN")}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            {patientRecords.length === 0 ? (
+              <p className="text-gray-500 text-sm italic">
+                Không có hồ sơ nào.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {patientRecords.map((rec) => (
+                  <li
+                    key={rec._id}
+                    onClick={() => setSelectedRecord(rec)}
+                    className={`p-2 rounded-lg border cursor-pointer transition ${
+                      selectedRecord?._id === rec._id
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-gray-800">
+                      {rec.diagnosis || "Không có chẩn đoán"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             {selectedRecord && (
               <>
-                {/* 🟢 Thêm input lý do */}
                 <div className="mt-4">
                   <label className="block text-sm font-medium mb-1 text-gray-600">
                     Lý do muốn xem hồ sơ
@@ -264,15 +255,12 @@ const MedicalRecordRequests = () => {
                 className="p-4 border border-gray-200 rounded-xl flex justify-between items-center hover:bg-gray-50 transition"
               >
                 <div>
-                  <p className="font-semibold text-blue-700">{req.diagnosis}</p>
+                  <p className="font-semibold text-blue-700">
+                    Hồ sơ: {req.record_id}
+                  </p>
                   <p className="text-sm text-gray-600">
                     Mã bệnh nhân: {req.patient_id}
                   </p>
-                  {req.reason && (
-                    <p className="text-xs text-gray-500 italic mt-1">
-                      Lý do: {req.reason}
-                    </p>
-                  )}
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <Calendar size={14} /> Ngày gửi:{" "}
                     {new Date(req.requested_at).toLocaleDateString("vi-VN")}

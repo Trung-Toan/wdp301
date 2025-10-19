@@ -59,7 +59,7 @@ const AppointmentSchedule = () => {
           selectedDate,
           filterStatus
         );
-        
+
         if (res.data.ok) {
           setAppointments(res.data.data || []);
         } else {
@@ -96,7 +96,10 @@ const AppointmentSchedule = () => {
 
   const filteredAppointments = Array.isArray(appointments)
     ? appointments.filter((apt) => {
-        if (filterStatus !== "ALL" && apt.status !== filterStatus) {
+        if (
+          filterStatus !== "ALL" &&
+          apt?.appointment.status !== filterStatus
+        ) {
           return false;
         }
         if (selectedSlot && apt.slot_id !== selectedSlot) {
@@ -111,10 +114,7 @@ const AppointmentSchedule = () => {
   };
 
   const getPatientPhone = (appointment) => {
-    return (
-      appointment?.patient?.phone_number ||
-      "Chưa có thông tin"
-    );
+    return appointment?.patient?.phone_number || "Chưa có thông tin";
   };
 
   // const getSpecialtyName = (appointment) => {
@@ -147,6 +147,7 @@ const AppointmentSchedule = () => {
       return new Date(timeString).toLocaleTimeString("vi-VN", {
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "UTC",
       });
     } catch {
       return "N/A";
@@ -351,7 +352,9 @@ const AppointmentSchedule = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredAppointments.map((appointment, index) => {
-              const statusInfo = getStatusBadge(appointment?.appointment?.status);
+              const statusInfo = getStatusBadge(
+                appointment?.appointment?.status
+              );
               const StatusIcon = statusInfo.icon;
 
               return (
@@ -368,18 +371,18 @@ const AppointmentSchedule = () => {
                       <div className="flex items-center gap-2 text-gray-700">
                         <Clock size={18} />
                         <span className="font-semibold">
-                          {formatTime(appointment.slot?.start_time)} -{" "}
-                          {formatTime(appointment.slot?.end_time)}
+                          {formatTime(appointment?.slot?.start_time)} -{" "}
+                          {formatTime(appointment?.slot?.end_time)}
                         </span>
                       </div>
                     </div>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                        appointment.status === "SCHEDULED"
+                        appointment?.appointment?.status === "SCHEDULED"
                           ? "bg-blue-100 text-blue-700"
-                          : appointment.status === "COMPLETED"
+                          : appointment?.appointment?.status === "COMPLETED"
                           ? "bg-green-100 text-green-700"
-                          : appointment.status === "CANCELLED"
+                          : appointment?.appointment?.status === "CANCELLED"
                           ? "bg-red-100 text-red-700"
                           : "bg-gray-100 text-gray-700"
                       }`}
@@ -417,7 +420,8 @@ const AppointmentSchedule = () => {
                     {/* Booking Date */}
                     {appointment.createdAt && (
                       <p className="text-xs text-gray-500">
-                        Đặt lịch: {formatDate(appointment?.appointment?.scheduled_date)}
+                        Đặt lịch:{" "}
+                        {formatDate(appointment?.appointment?.scheduled_date)}
                       </p>
                     )}
                   </div>

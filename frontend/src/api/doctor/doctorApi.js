@@ -36,5 +36,31 @@ export const doctorApi = {
     axiosInstance.get(`/doctor/appointments/${appointmentId}`),
 
   //lấy danh sách hồ sơ bệnh án
-  getAllMedicalRecords: () => axiosInstance.get("/doctor/patients/medical-records"),
+  getAllMedicalRecords: () => axiosInstance.get("/doctor/medical-records"),
+
+  //lấy chi tiết hồ sơ bệnh án
+  getMedicalRecordById: (recordId) =>
+    axiosInstance.get(`/doctor/medical-records/${recordId}`),
+
+  //duyệt đơn thuốc
+  verifyMedicalRecord: (id, status, data = {}) =>
+    axiosInstance.put(
+      `/doctor/verify/medical-records/${id}?status=${status}`,
+      data
+    ),
+
+  //tìm hồ sơ bệnh án theo mã bệnh nhân
+  searchMedicalRecords: (search) =>
+    axiosInstance.get(`/doctor/medical-records?search=${search}`),
+
+  //lịch sử yêu cầu truy cập hồ sơ
+  getMedicalRecordRequestHistory: () =>
+    axiosInstance.get("/doctor/medical-records/requests/history"),
+
+  //gửi yêu cầu truy cập hồ sơ
+  requestMedicalRecordAccess: (patientId, medicalRecordId, reason) =>
+    axiosInstance.post(
+      `/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,
+      { reason }
+    ),
 };
