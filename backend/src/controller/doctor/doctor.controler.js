@@ -122,7 +122,7 @@ exports.requestViewMedicalRecord = async (req, res) => {
     console.error("Error in requestViewMedicalRecord:", error);
 
     // TH1: Lỗi do đã gửi yêu cầu rồi (service throw message cụ thể)
-    if ( error.message === "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này." ) {
+    if (error.message === "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này.") {
       return resUtils.badRequestResponse(res, error.message);
     }
 
@@ -332,15 +332,63 @@ exports.viewFeedbackList = async (req, res) => {
 /* ========================= ASSISTANTS ========================= */
 // POST /doctor/assistants
 exports.createAssistant = async (req, res) => {
-  res.json({ message: "Create assistant account" });
+  try {
+    const { assistant } = await assistantService.createAccountForAssistant(req);
+    return resUtils.successResponse(
+      res,
+      assistant,
+      "Tạo tài khoản trợ lý thành công."
+    );
+  } catch (error) {
+    console.error("Error in createAssistant:", error);
+
+    // ✅ Phân loại lỗi chi tiết hơn
+    if (
+      error.message.includes("Vui lòng cung cấp") ||
+      error.message.includes("không hợp lệ") ||
+      error.message.includes("đã tồn tại") ||
+      error.message.includes("Truy cập bị từ chối")
+    ) {
+      return resUtils.badRequestResponse(res, error.message);
+    }
+
+    // ✅ Nếu là lỗi khác (DB, server, ...), trả về lỗi 500
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi tạo tài khoản trợ lý."
+    );
+  }
 };
+
 
 // PUT /doctor/assistants/:assistantId/ban
 exports.banOrUnbanAssistant = async (req, res) => {
-  res.json({
-    message: `Ban or Unban assistant with ID ${req.params.assistantId}`,
-  });
+  try {
+    const { message } = await assistantService.banAccountAssistant(req);
+    return resUtils.successResponse(res, { message }, message);
+  } catch (error) {
+    console.error("Error in banOrUnbanAssistant:", error);
+
+    // ✅ Phân biệt lỗi người dùng và lỗi hệ thống
+    if (
+      error.message.includes("Thiếu assistantId") ||
+      error.message.includes("Trạng thái không hợp lệ") ||
+      error.message.includes("Không tìm thấy") ||
+      error.message.includes("Không thể cập nhật")
+    ) {
+      return resUtils.badRequestResponse(res, error.message);
+    }
+
+    // ✅ Nếu lỗi hệ thống, trả về 500
+    return resUtils.serverErrorResponse(
+      res,
+      error,
+      "Có lỗi xảy ra khi cập nhật trạng thái trợ lý."
+    );
+  }
 };
+
 
 // GET /doctor/assistants
 exports.viewListAssistants = async (req, res) => {

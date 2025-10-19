@@ -118,7 +118,8 @@ exports.requestViewMedicalRecordById = async (req) => {
 }
 
 /**
- * Lấy lịch sử yêu cầu truy cập hồ sơ của một bác sĩ (đã tối ưu và sửa lỗi sắp xếp)
+ * Lấy lịch sử yêu cầu truy cập hồ sơ của bác sĩ
+ * (dùng aggregate + populate sau)
  */
 exports.getHistoryMedicalRecordRequests = async (req) => {
   try {
@@ -129,48 +130,52 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Sử dụng Aggregation Pipeline để xử lý tất cả trong một truy vấn
     const results = await MedicalRecord.aggregate([
-      // Giai đoạn 1: Tách các yêu cầu trong mảng ra
+      // 1. Tách từng phần tử trong access_requests
       { $unwind: "$access_requests" },
 
-      // Giai đoạn 2: Lọc các yêu cầu của đúng bác sĩ
+      // 2. Lọc theo đúng bác sĩ
       { $match: { "access_requests.doctor_id": doctorIdAsObjectId } },
 
-      // Giai đoạn 3: Dùng $facet để chạy 2 pipeline con: 1 để đếm, 1 để lấy data
+      // 3. Tách pipeline: 1 để đếm tổng, 1 để lấy dữ liệu phân trang
       {
         $facet: {
-          // Pipeline con 1: Lấy metadata (tổng số mục)
           metadata: [{ $count: "totalItems" }],
-          // Pipeline con 2: Lấy dữ liệu đã được sắp xếp và phân trang
           data: [
-            // Sắp xếp các yêu cầu theo ngày (mới nhất trước)
             { $sort: { "access_requests.requested_at": -1 } },
-            // Phân trang
             { $skip: skip },
             { $limit: limit },
-            // Định dạng lại output cho giống yêu cầu
             {
               $project: {
-                _id: 0, // Bỏ trường _id của MedicalRecord
-                record_id: "$_id",
-                patient_id: "$patient_id",
+                _id: 0,
+                medical_record: "$_id",
+                patient: "$patient_id",
                 status: "$access_requests.status",
                 requested_at: "$access_requests.requested_at",
-                reviewed_at: { $ifNull: ["$access_requests.reviewed_at", null] },
-                reviewed_by: { $ifNull: ["$access_requests.reviewed_by", null] },
-              }
-            }
-          ]
-        }
-      }
+                reviewed_at: {
+                  $ifNull: ["$access_requests.reviewed_at", null],
+                },
+                reviewed_by: {
+                  $ifNull: ["$access_requests.reviewed_by", null],
+                },
+              },
+            },
+          ],
+        },
+      },
     ]);
 
-    console.log("results", results);
-
     const requests = results[0].data;
-    const totalItems = results[0].metadata[0] ? results[0].metadata[0].totalItems : 0;
+    const totalItems = results[0].metadata[0]
+      ? results[0].metadata[0].totalItems
+      : 0;
     const totalPages = Math.ceil(totalItems / limit);
+
+    // ✅ Populate sau khi aggregate
+    await MedicalRecord.populate(requests, [
+      { path: "patient", model: "Patient" },
+      { path: "medical_record", model: "MedicalRecord" }
+    ]);
 
     return {
       requests,
@@ -186,6 +191,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     throw error;
   }
 };
+
 
 /**
  * get list medical records by patient id of doctor
