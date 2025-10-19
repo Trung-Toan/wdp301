@@ -1,109 +1,118 @@
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import RouterUser from "./routes/RouterUser.js";
-import { useEffect } from "react";
-import { useSessionStorage } from "./hooks/useSessionStorage.js";
-import RouterOwner from "./routes/RouterOwner.js";
-import RouterDoctor from "./routes/RouterDoctor.js";
-import DoctorLayout from "./layouts/DoctorLayout.js";
-import AssistantRoutes from "./routes/RouterAssistant.js";
-import AssistantLayout from "./layouts/AssistantLayout.js";
+import AllRouter from "./routes";
+
 
 function App() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Hàm lấy thông tin user từ sessionStorage
-  const user = useSessionStorage("user");
-
-  // Ánh xạ role với đường dẫn hợp lệ
-  const roleRedirects = {
-    customer: "/",
-    owner: "/owner",
-    doctor: "/doctor",
-    assistant: "/assistant",
-  };
-
-  const checkLogin = () => {
-    if (location.pathname === "/doctor-dashboard-test") {
-      return;
-    }
-
-    if (
-      location.pathname === "/doctor/dashboard" ||
-      location.pathname === "/doctor/appointments" ||
-      location.pathname === "/doctor/patients" ||
-      location.pathname === "/doctor/feedback" ||
-      location.pathname === "/doctor/medical-records" ||
-      location.pathname === "/doctor/prescriptions" ||
-      location.pathname === "/doctor/record-requests" ||
-      location.pathname === "/doctor/assistants" ||
-      location.pathname === "/doctor/absence" ||
-      location.pathname === "/assistant/dashboard" ||
-      location.pathname === "/assistant/patients" ||
-      location.pathname === "/assistant/shiftschedule" ||
-      location.pathname === "/assistant/appointments" ||
-      location.pathname === "/doctor/absence"
-    ) {
-      return;
-    }
-
-    if (!user) {
-      // Chưa đăng nhập
-      if (
-        location.pathname !== "/" &&
-        location.pathname !== "/login" &&
-        location.pathname !== "/find_email" &&
-        location.pathname !== "/register" &&
-        location.pathname !== "/forgot_password"
-      ) {
-        navigate("/login");
-      }
-    } else {
-      // Đã đăng nhập
-      const validPath = roleRedirects[user.role];
-      if (!validPath) {
-        // Role không hợp lệ, có thể logout hoặc redirect về trang mặc định
-        navigate("/login");
-        sessionStorage.removeItem("user");
-        return;
-      }
-
-      // Kiểm tra đường dẫn hiện tại có phù hợp với role không
-      if (
-        !location.pathname.startsWith(validPath) &&
-        location.pathname !== validPath
-      ) {
-        navigate(validPath);
-      }
-    }
-  };
-
-  useEffect(() => {
-    // checkLogin();
-
-    // Lắng nghe sự kiện thay đổi sessionStorage (nếu cần)
-    const handleStorageChange = () => checkLogin();
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]); // Chỉ chạy khi pathname thay đổi
-
-  return (
-    <Routes>
-      <Route path="/*" element={<RouterUser />} />
-      <Route path="/owner/*" element={<RouterOwner />} />
-      <Route path="/doctor/*" element={<RouterDoctor />} />
-      <Route path="/assistant/*" element={<AssistantRoutes />} />
-
-      {/* render trực tiếp các Route cho assistant */}
-
-      <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
-      <Route path="/assistant-dashboard" element={<AssistantLayout />} />
-    </Routes>
-  );
+  return <AllRouter />;
 }
 
 export default App;
+
+// import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+// import RouterUser from "./routes/RouterUser.js";
+// import { useEffect } from "react";
+// import { useSessionStorage } from "./hooks/useSessionStorage.js";
+// import RouterOwner from "./routes/RouterOwner.js";
+// import RouterDoctor from "./routes/RouterDoctor.js";
+// import DoctorLayout from "./layouts/DoctorLayout.js";
+// import AssistantRoutes from "./routes/RouterAssistant.js";
+// import AssistantLayout from "./layouts/AssistantLayout.js";
+
+// function App() {
+//   const navigate = useNavigate();
+//   const location = useLocation();
+
+//   // Hàm lấy thông tin user từ sessionStorage
+//   const user = useSessionStorage("user");
+
+//   // Ánh xạ role với đường dẫn hợp lệ
+//   const roleRedirects = {
+//     customer: "/",
+//     owner: "/owner",
+//     doctor: "/doctor",
+//     assistant: "/assistant",
+//   };
+
+//   const checkLogin = () => {
+//     if (location.pathname === "/doctor-dashboard-test") {
+//       return;
+//     }
+
+//     if (
+//       location.pathname === "/doctor/dashboard" ||
+//       location.pathname === "/doctor/appointments" ||
+//       location.pathname === "/doctor/patients" ||
+//       location.pathname === "/doctor/feedback" ||
+//       location.pathname === "/doctor/medical-records" ||
+//       location.pathname === "/doctor/prescriptions" ||
+//       location.pathname === "/doctor/record-requests" ||
+//       location.pathname === "/doctor/assistants" ||
+//       location.pathname === "/doctor/absence" ||
+//       location.pathname === "/assistant/dashboard" ||
+//       location.pathname === "/assistant/patients" ||
+//       location.pathname === "/assistant/shiftschedule" ||
+//       location.pathname === "/assistant/appointments" ||
+//       location.pathname === "/doctor/absence"
+//     ) {
+//       return;
+//     }
+
+//     if (!user) {
+//       // Chưa đăng nhập
+//       if (
+//         location.pathname !== "/" &&
+//         location.pathname !== "/login" &&
+//         location.pathname !== "/find_email" &&
+//         location.pathname !== "/register" &&
+//         location.pathname !== "/forgot_password"
+//       ) {
+//         navigate("/login");
+//       }
+//     } else {
+//       // Đã đăng nhập
+//       const validPath = roleRedirects[user.role];
+//       if (!validPath) {
+//         // Role không hợp lệ, có thể logout hoặc redirect về trang mặc định
+//         navigate("/login");
+//         sessionStorage.removeItem("user");
+//         return;
+//       }
+
+//       // Kiểm tra đường dẫn hiện tại có phù hợp với role không
+//       if (
+//         !location.pathname.startsWith(validPath) &&
+//         location.pathname !== validPath
+//       ) {
+//         navigate(validPath);
+//       }
+//     }
+//   };
+
+//   useEffect(() => {
+//     // checkLogin();
+
+//     // Lắng nghe sự kiện thay đổi sessionStorage (nếu cần)
+//     const handleStorageChange = () => checkLogin();
+//     window.addEventListener("storage", handleStorageChange);
+
+//     return () => {
+//       window.removeEventListener("storage", handleStorageChange);
+//     };
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [location.pathname]); // Chỉ chạy khi pathname thay đổi
+
+//   return (
+//     <Routes>
+//       <Route path="/*" element={<RouterUser />} />
+//       <Route path="/owner/*" element={<RouterOwner />} />
+//       <Route path="/doctor/*" element={<RouterDoctor />} />
+//       <Route path="/assistant/*" element={<AssistantRoutes />} />
+
+//       {/* render trực tiếp các Route cho assistant */}
+
+//       <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
+//       <Route path="/assistant-dashboard" element={<AssistantLayout />} />
+//     </Routes>
+//   );
+// }
+
+// export default App;
