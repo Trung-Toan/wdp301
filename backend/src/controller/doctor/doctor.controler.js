@@ -103,7 +103,7 @@ exports.requestViewMedicalRecord = async (req, res) => {
   try {
     const requests = await medicalRecordService.requestViewMedicalRecord(req);
 
-    // Không có hồ sơ nào
+    // Service trả về null → Không có hồ sơ nào
     if (!requests) {
       return resUtils.notFoundResponse(
         res,
@@ -111,15 +111,8 @@ exports.requestViewMedicalRecord = async (req, res) => {
       );
     }
 
-    // Nếu service ném lỗi (đã gửi hết hoặc lỗi nghiệp vụ)
-    if (Array.isArray(requests) && requests.length === 0) {
-      return resUtils.badRequestResponse(
-        res,
-        "Tất cả hồ sơ bệnh án của bệnh nhân này đã được gửi yêu cầu trước đó."
-      );
-    }
-
-    // Thành công
+    // Service lọc hết vì tất cả đều có yêu cầu PENDING/APPROVED
+    // (Lúc này updatedRequests = [], service đã throw Error → nhảy vào catch)
     return resUtils.successResponse(
       res,
       { requests },
@@ -127,6 +120,13 @@ exports.requestViewMedicalRecord = async (req, res) => {
     );
   } catch (error) {
     console.error("Error in requestViewMedicalRecord:", error);
+
+    // TH1: Lỗi do đã gửi yêu cầu rồi (service throw message cụ thể)
+    if ( error.message === "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này." ) {
+      return resUtils.badRequestResponse(res, error.message);
+    }
+
+    // TH2: Các lỗi khác
     return resUtils.serverErrorResponse(
       res,
       error,
@@ -134,6 +134,7 @@ exports.requestViewMedicalRecord = async (req, res) => {
     );
   }
 };
+
 
 // POST /doctor/patients/:patientId/medical-records/:medicalRecordsId/request
 exports.requestViewMedicalRecordById = async (req, res) => {

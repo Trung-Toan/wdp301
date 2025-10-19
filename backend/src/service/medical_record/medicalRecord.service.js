@@ -5,7 +5,12 @@ exports.requestViewMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorId = doctor._id;
-    const patientId = req.params.patientId;
+    const { patientId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim() === "") {
+      throw new Error("Lý do yêu cầu không được để trống.");
+    }
 
     const records = await MedicalRecord.find({ patient_id: patientId });
 
@@ -31,6 +36,7 @@ exports.requestViewMedicalRecord = async (req) => {
         doctor_id: doctorId,
         status: "PENDING",
         requested_at: new Date(),
+        reason: reason,
       };
 
       record.access_requests.push(newRequest);
@@ -64,36 +70,42 @@ exports.requestViewMedicalRecordById = async (req) => {
     const doctorId = doctor._id;
     const patientId = req.params.patientId;
     const medicalRecordId = req.params.medicalRecordId;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim() === "") {
+      throw new Error("Lý do yêu cầu không được để trống.");
+    }
 
     const record = await MedicalRecord.findOne({ _id: medicalRecordId, patient_id: patientId });
 
-  if (!record) {
-    return null;
-  }
+    if (!record) {
+      return null;
+    }
 
-  // THAY ĐỔI LOGIC NẰM Ở ĐÂY
-  const existingRequest = record.access_requests.find(
-    (r) =>
-      r.doctor_id.toString() === doctorId.toString() &&
-      ["PENDING", "APPROVED"].includes(r.status) // Kiểm tra nếu status là PENDING hoặc APPROVED
-  );
-  // KẾT THÚC THAY ĐỔI
-
-  // Nếu đã tồn tại yêu cầu PENDING hoặc APPROVED, bỏ qua
-  if (existingRequest) {
-    throw new Error(
-      "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
+    // THAY ĐỔI LOGIC NẰM Ở ĐÂY
+    const existingRequest = record.access_requests.find(
+      (r) =>
+        r.doctor_id.toString() === doctorId.toString() &&
+        ["PENDING", "APPROVED"].includes(r.status) // Kiểm tra nếu status là PENDING hoặc APPROVED
     );
-  }
+    // KẾT THÚC THAY ĐỔI
 
-  const newRequest = {
-    doctor_id: doctorId,
-    status: "PENDING",
-    requested_at: new Date(),
-  };
+    // Nếu đã tồn tại yêu cầu PENDING hoặc APPROVED, bỏ qua
+    if (existingRequest) {
+      throw new Error(
+        "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
+      );
+    }
 
-  record.access_requests.push(newRequest);
-  await record.save();
+    const newRequest = {
+      doctor_id: doctorId,
+      status: "PENDING",
+      requested_at: new Date(),
+      reason: reason,
+    };
+
+    record.access_requests.push(newRequest);
+    await record.save();
 
     return {
       record_id: record._id,
@@ -113,9 +125,9 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     const doctorIdAsObjectId = doctor._id;
 
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
     // Sử dụng Aggregation Pipeline để xử lý tất cả trong một truy vấn
     const results = await MedicalRecord.aggregate([
@@ -154,11 +166,11 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       }
     ]);
 
-  console.log("results", results);
+    console.log("results", results);
 
-  const requests = results[0].data;
-  const totalItems = results[0].metadata[0] ? results[0].metadata[0].totalItems : 0;
-  const totalPages = Math.ceil(totalItems / limit);
+    const requests = results[0].data;
+    const totalItems = results[0].metadata[0] ? results[0].metadata[0].totalItems : 0;
+    const totalPages = Math.ceil(totalItems / limit);
 
     return {
       requests,
@@ -518,11 +530,11 @@ exports.getMedicalRecordById = async (req) => {
       .lean();
 
     const { patient_id, ...rest } = medicalRecord;
-    const {user_id, ...restPatient} = patient_id;
+    const { user_id, ...restPatient } = patient_id;
     const data = {
       medical_record: rest,
       patient: {
-        ...restPatient, 
+        ...restPatient,
         ...user_id,
       },
     };
@@ -567,6 +579,7 @@ exports.verifyMedicalRecord = async (req) => {
 
     const { recordId } = req.params;
     const { status } = req.query;
+    const { reason } = req.body;
 
     if (!["VERIFIED", "REJECTED"].includes(status)) {
       throw new Error("Trạng thái không hợp lệ. Chỉ chấp nhận 'VERIFIED' hoặc 'REJECTED'.");
@@ -581,6 +594,7 @@ exports.verifyMedicalRecord = async (req) => {
     }
     record.prescription.status = status;
     record.prescription.verified_at = new Date();
+    record.prescription.reason = reason || "";
     await record.save();
     return record;
   } catch (error) {

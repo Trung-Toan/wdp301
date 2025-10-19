@@ -6,6 +6,7 @@ const doctorService = require("../doctor/doctor.service");
 
 exports.getListAssistants = async (req) => {
     const { page = 1, limit = 10, search = "" } = req.query;
+
     const limitNum = parseInt(limit);
     const pageNum = parseInt(page);
     const skip = (pageNum - 1) * limitNum;
