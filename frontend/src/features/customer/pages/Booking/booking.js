@@ -3,15 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import { Calendar, Clock, MapPin, User, FileText, ChevronLeft } from "lucide-react";
 import BookingSuccess from "./bookingSuccess";
 import { patientsApi } from "../../../../api/patients/patientsApi";
+import { provinceApi } from "../../../../api/address/provinceApi";
+import { wardApi } from "../../../../api/address/wardApi";
 
 export function BookingContent() {
-    const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId } = location.state || {};
 
-    console.log("storedUserL: ", storedUser);
-    console.log("Selected Slot", selectedSlot);
-
+    console.log("kết quả: ", selectedSlot);
     const [formData, setFormData] = useState({
         fullName: "",
         phone: "",
@@ -19,7 +18,7 @@ export function BookingContent() {
         dateOfBirth: "",
         gender: "male",
         province: "",
-        district: "",
+        ward: "",
         address: "",
         reason: "",
     });
@@ -27,6 +26,46 @@ export function BookingContent() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [bookingInfo, setBookingInfo] = useState(null);
 
+    const [provinces, setProvinces] = useState([]);
+    const [wards, setWards] = useState([]);
+
+    const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
+    const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "{}"));
+
+
+    // 🔹 Load danh sách tỉnh
+    useEffect(() => {
+        async function fetchProvinces() {
+            try {
+                const res = await provinceApi.getProvinces();
+                const data = res.data?.options || [];
+                setProvinces(data);
+            } catch (err) {
+                console.error("Lỗi khi tải tỉnh:", err);
+            }
+        }
+        fetchProvinces();
+    }, []);
+
+    // 🔹 Load danh sách phường theo tỉnh
+    useEffect(() => {
+        if (!formData.province) {
+            setWards([]);
+            return;
+        }
+        async function fetchWards() {
+            try {
+                const res = await wardApi.getWardsByProvince(formData.province);
+                const data = res.data?.options || [];
+                setWards(data);
+            } catch (err) {
+                console.error("Lỗi khi tải phường:", err);
+            }
+        }
+        fetchWards();
+    }, [formData.province]);
+
+    // 🔹 Gán dữ liệu user vào form
     useEffect(() => {
         if (storedUser) {
             setFormData(prev => ({
@@ -39,59 +78,55 @@ export function BookingContent() {
             }));
         }
     }, [storedUser]);
+    console.log("formData:", formData);
 
-    if (!selectedSlot) return <p className="p-4">Vui lòng chọn lịch khám trước</p>;
-
-    console.log("selectedSlot: ", selectedSlot);
-
-    const provinces = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng"];
-    const districts = {
-        "Hà Nội": ["Ba Đình", "Hoàn Kiếm", "Cầu Giấy", "Đống Đa", "Tây Hồ"],
-        "TP. Hồ Chí Minh": ["Quận 1", "Quận 3", "Quận 7", "Thủ Đức", "Bình Thạnh"],
-        "Đà Nẵng": ["Hải Châu", "Thanh Khê", "Sơn Trà", "Ngũ Hành Sơn", "Liên Chiểu"],
-    };
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
+    // 🔹 Xử lý gửi form
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedSlot) return alert("Vui lòng chọn lịch khám");
 
-        // Validate các trường bắt buộc
         if (!formData.dateOfBirth) return alert("Vui lòng nhập ngày sinh");
         if (!formData.province) return alert("Vui lòng chọn Tỉnh/Thành phố");
-        if (!formData.district) return alert("Vui lòng chọn Quận/Huyện");
+        if (!formData.ward) return alert("Vui lòng chọn Phường/Xã");
 
         try {
             const payload = {
                 slot_id: selectedSlot.id,
                 doctor_id: doctorId,
-                patient_id: storedUser._id,
-                specialty_id: selectedSlot.specialtyId,
+                patient_id: storedPatient._id, // Dùng patient._id thay vì user._id
+                specialty_id: selectedSlot.specialtyId?.id || selectedSlot.specialtyId,
                 clinic_id: selectedSlot.clinicId,
                 full_name: formData.fullName,
                 phone: formData.phone,
                 email: formData.email,
                 dob: formData.dateOfBirth,
-                gender: formData.gender,
+                gender: formData.gender.toUpperCase(),
                 province_code: formData.province,
-                ward_code: formData.district,
+                ward_code: formData.ward,
                 address_text: formData.address,
                 reason: formData.reason,
             };
 
 
             console.log("Payload gửi lên API:", payload);
-
             const response = await patientsApi.createAppointment(payload);
+            console.log("Phản hồi từ API:", response);
             setBookingInfo(response.data);
             setIsSubmitted(true);
         } catch (err) {
-            console.error(err);
-            alert(err.response?.data?.message || err.message || "Đặt lịch thất bại");
+            console.error("❌ Lỗi khi đặt lịch:", err);
+            if (err.response) {
+                console.error("🔍 Chi tiết lỗi từ API:", err.response.data);
+                alert(`Lỗi: ${JSON.stringify(err.response.data, null, 2)}`);
+            } else {
+                alert(err.message || "Đặt lịch thất bại");
+            }
         }
-    };
 
+    };
 
     if (isSubmitted && bookingInfo) return <BookingSuccess bookingInfo={bookingInfo} />;
 
@@ -105,6 +140,8 @@ export function BookingContent() {
         price: price || "Chưa có giá",
         image: "/doctor-portrait-male.jpg",
     };
+
+    if (!selectedSlot) return <p className="p-4">Vui lòng chọn lịch khám trước</p>;
 
     return (
         <div className="bg-gray-100 min-h-screen py-8">
@@ -127,6 +164,8 @@ export function BookingContent() {
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
                                     <User className="h-5 w-5" /> Thông tin bệnh nhân
                                 </h3>
+
+                                {/* Họ tên và SĐT */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block mb-1 font-medium">Họ và tên <span className="text-red-500">*</span></label>
@@ -150,6 +189,7 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
+                                {/* Email và Ngày sinh */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block mb-1 font-medium">Email</label>
@@ -172,6 +212,7 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
+                                {/* Giới tính */}
                                 <div>
                                     <label className="block mb-2 font-medium">Giới tính <span className="text-red-500">*</span></label>
                                     <div className="flex gap-6">
@@ -189,34 +230,40 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
+                                {/* Tỉnh và Phường */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block mb-1 font-medium">Tỉnh/Thành phố <span className="text-red-500">*</span></label>
                                         <select
                                             className="w-full border rounded-lg p-2"
                                             value={formData.province}
-                                            onChange={e => { handleChange("province", e.target.value); handleChange("district", ""); }}
+                                            onChange={e => handleChange("province", e.target.value)}
                                             required
                                         >
-                                            <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                                            {provinces.map(p => <option key={p} value={p}>{p}</option>)}
+                                            <option value="">-- Chọn Tỉnh --</option>
+                                            {provinces.map((p) => (
+                                                <option key={p.value} value={p.value}>{p.label}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block mb-1 font-medium">Quận/Huyện <span className="text-red-500">*</span></label>
+                                        <label className="block mb-1 font-medium">Phường/Xã <span className="text-red-500">*</span></label>
                                         <select
                                             className="w-full border rounded-lg p-2"
-                                            value={formData.district}
-                                            onChange={e => handleChange("district", e.target.value)}
+                                            value={formData.ward}
+                                            onChange={e => handleChange("ward", e.target.value)}
                                             required
-                                            disabled={!formData.province}
+                                            disabled={!wards.length}
                                         >
-                                            <option value="">-- Chọn Quận/Huyện --</option>
-                                            {formData.province && districts[formData.province].map(d => <option key={d} value={d}>{d}</option>)}
+                                            <option value="">-- Chọn Phường/Xã --</option>
+                                            {wards.map((w) => (
+                                                <option key={w.value} value={w.value}>{w.label}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
 
+                                {/* Địa chỉ cụ thể */}
                                 <div>
                                     <label className="block mb-1 font-medium">Địa chỉ cụ thể</label>
                                     <input
@@ -228,6 +275,7 @@ export function BookingContent() {
                                 </div>
                             </div>
 
+                            {/* Lý do khám */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
                                     <FileText className="h-5 w-5" /> Thông tin khám bệnh
@@ -258,7 +306,7 @@ export function BookingContent() {
                             <h3 className="font-semibold mb-4">Thông tin lịch khám</h3>
                             <div className="flex gap-4">
                                 <img
-                                    src={sidebarInfo?.image}
+                                    src={sidebarInfo.image}
                                     alt={sidebarInfo.doctorName}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />

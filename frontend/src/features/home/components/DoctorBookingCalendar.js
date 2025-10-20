@@ -16,7 +16,6 @@ export function DoctorBookingCalendar({ doctor }) {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
 
-    // Hàm format tiền tệ an toàn
     const formatCurrency = (amount, currency = "VND") => {
         if (!amount) return "Chưa có giá";
         const value = Number(amount);
@@ -25,9 +24,20 @@ export function DoctorBookingCalendar({ doctor }) {
 
     if (!doctor) return null;
 
+    // 🧩 DEBUG cấu trúc dữ liệu của doctor và specialties
+    console.log("%c[DOCTOR DATA]", "color:#4CAF50;font-weight:bold;", doctor);
+    console.log("%c[DEBUG DOCTOR SPECIALTIES]", "color:#00bcd4;font-weight:bold;", doctor.specialties);
+
+    // ✅ Xử lý specialtyId an toàn (cho mọi kiểu dữ liệu trả về)
+    const resolvedSpecialtyId =
+        (Array.isArray(doctor.specialties)
+            ? doctor.specialties[0]?._id || doctor.specialties[0]
+            : doctor.specialties?._id) || null;
+
+    console.log("%c[SPECIALTY ID EXTRACTED]", "color:#f50057;font-weight:bold;", resolvedSpecialtyId);
+
     const slots = doctor.slots || [];
 
-    // Lấy danh sách slot theo ngày
     const availableSlots = selectedDate
         ? slots
             .filter((slot) => {
@@ -38,38 +48,47 @@ export function DoctorBookingCalendar({ doctor }) {
                     slotDate.getDate() === selectedDate.getDate()
                 );
             })
-            .map((slot) => ({
-                id: slot._id,
-                time: `${new Date(slot.start_time).toLocaleTimeString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })} - ${new Date(slot.end_time).toLocaleTimeString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })}`,
-                fee: slot.fee_amount || doctor.pricing?.minFee || 0,
-                clinicName: slot.clinic_name || doctor.clinic?.name || "Chưa có phòng khám",
-                clinicId: slot.clinic_id || doctor.clinic?._id || null,
-                specialtyId: slot.specialty_id || doctor.specialties?.[0]?._id || null,
-            }))
+            .map((slot) => {
+                const mappedSlot = {
+                    id: slot._id,
+                    time: `${new Date(slot.start_time).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })} - ${new Date(slot.end_time).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })}`,
+                    fee: slot.fee_amount || doctor.pricing?.minFee || 0,
+                    clinicName: slot.clinic_name || doctor.clinic?.name || "Chưa có phòng khám",
+                    clinicId: slot.clinic_id || doctor.clinic?._id || null,
+                    // ✅ Lấy specialtyId từ doctor
+                    specialtyId: resolvedSpecialtyId,
+                };
+
+                console.log("%c[SLOT DEBUG]", "color:#1e90ff;font-weight:bold;", mappedSlot);
+                return mappedSlot;
+            })
         : [];
 
-    // Tạo danh sách ngày có slot để highlight
     const workingDates = slots.map((slot) => {
         const d = new Date(slot.start_time);
         return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     });
 
+    console.log("%c[AVAILABLE SLOTS]", "color:#9C27B0;font-weight:bold;", availableSlots);
+    console.log("%c[SELECTED DATE]", "color:#FF9800;font-weight:bold;", selectedDate);
+    console.log("%c[SELECTED SLOT]", "color:#E91E63;font-weight:bold;", selectedSlot);
+
     return (
         <Card className="sticky top-24">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" /> Đặt lịch khám
+                    <Calendar className="h-5 w-5" /> Đặt lịch khám (Debug Mode)
                 </CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
-                {/* Calendar Picker */}
+                {/* ----------------- CHỌN NGÀY ----------------- */}
                 <div>
                     <h4 className="font-semibold mb-3">Chọn ngày khám</h4>
                     <DatePicker
@@ -87,14 +106,10 @@ export function DoctorBookingCalendar({ doctor }) {
                                 ? "bg-green-100 text-green-700 font-medium rounded-full"
                                 : "text-gray-400";
                         }}
-                        calendarStartDay={1}
-                        placeholderText="Chọn ngày"
-                        dateFormat="dd/MM/yyyy"
-                        popperPlacement="bottom-start"
                     />
                 </div>
 
-                {/* Time Slots */}
+                {/* ----------------- CHỌN GIỜ ----------------- */}
                 {selectedDate && (
                     <div>
                         <h4 className="font-semibold mb-3">
@@ -105,7 +120,10 @@ export function DoctorBookingCalendar({ doctor }) {
                                 {availableSlots.map((slot) => (
                                     <button
                                         key={slot.id}
-                                        onClick={() => setSelectedSlot(slot)}
+                                        onClick={() => {
+                                            console.log("%c[SLOT SELECTED]", "color:#2196F3;font-weight:bold;", slot);
+                                            setSelectedSlot(slot);
+                                        }}
                                         className={`px-3 py-2 rounded-lg border text-sm transition-colors ${selectedSlot?.id === slot.id
                                                 ? "border-primary bg-primary text-white"
                                                 : "border-border hover:border-primary/50"
@@ -126,7 +144,7 @@ export function DoctorBookingCalendar({ doctor }) {
                     </div>
                 )}
 
-                {/* Booking Summary */}
+                {/* ----------------- XÁC NHẬN ĐẶT LỊCH ----------------- */}
                 <div className="pt-4 border-t">
                     <div className="flex justify-between mb-4">
                         <span className="text-muted-foreground">Giá khám:</span>
@@ -147,20 +165,57 @@ export function DoctorBookingCalendar({ doctor }) {
                             doctorName: doctor.name,
                             specialty: doctor.specialties?.[0]?.name || "Chưa có chuyên khoa",
                             hospital: selectedSlot?.clinicName || doctor.workplace,
-                            price: selectedSlot?.fee
-                                ? formatCurrency(selectedSlot.fee, doctor.pricing?.currency)
-                                : doctor.pricing?.minFee
-                                    ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
-                                    : "Chưa có giá",
+                            price:
+                                selectedSlot?.fee
+                                    ? formatCurrency(selectedSlot.fee, doctor.pricing?.currency)
+                                    : doctor.pricing?.minFee
+                                        ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
+                                        : "Chưa có giá",
                             time: selectedSlot?.time,
                             image: doctor.avatar_url || "/placeholder.svg",
                             doctorId: id,
                             clinicId: selectedSlot?.clinicId,
-                            specialtyId: selectedSlot?.specialtyId,
+                            specialtyId: selectedSlot?.specialtyId.id,
+                        }}
+                        onClick={() => {
+                            console.log(
+                                "%c[BOOKING STATE SENT]",
+                                "color:#FF5722;font-weight:bold;",
+                                {
+                                    selectedDate: selectedDate
+                                        ? format(selectedDate, "dd/MM/yyyy")
+                                        : null,
+                                    selectedSlot,
+                                    doctorName: doctor.name,
+                                    specialty:
+                                        doctor.specialties?.[0]?.name || "Chưa có chuyên khoa",
+                                    hospital:
+                                        selectedSlot?.clinicName || doctor.workplace,
+                                    price:
+                                        selectedSlot?.fee
+                                            ? formatCurrency(
+                                                selectedSlot.fee,
+                                                doctor.pricing?.currency
+                                            )
+                                            : doctor.pricing?.minFee
+                                                ? formatCurrency(
+                                                    doctor.pricing.minFee,
+                                                    doctor.pricing.currency
+                                                )
+                                                : "Chưa có giá",
+                                    time: selectedSlot?.time,
+                                    image: doctor.avatar_url || "/placeholder.svg",
+                                    doctorId: id,
+                                    clinicId: selectedSlot?.clinicId,
+                                    specialtyId: selectedSlot?.specialtyId.id,
+                                }
+                            );
                         }}
                     >
                         <Button className="w-full" size="lg" disabled={!selectedSlot}>
-                            {selectedSlot ? "Xác nhận đặt lịch" : "Chọn giờ khám"}
+                            {selectedSlot
+                                ? "Xác nhận đặt lịch (Debug)"
+                                : "Chọn giờ khám"}
                         </Button>
                     </Link>
                 </div>
