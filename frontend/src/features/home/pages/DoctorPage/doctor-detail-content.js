@@ -44,7 +44,7 @@ export function DoctorDetailContent({ doctorId }) {
             setLoading(true);
             try {
                 const res = await doctorApi.getById(doctorId);
-                console.log(res.data);
+                console.log("Doctor in Doctor Details:", res.data);
                 setDoctor(res.data || {}); // đảm bảo là object
             } catch (err) {
                 setError(err.response?.data?.message || err.message || "Lỗi khi tải bác sĩ");
