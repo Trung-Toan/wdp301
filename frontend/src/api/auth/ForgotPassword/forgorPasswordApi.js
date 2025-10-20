@@ -2,7 +2,7 @@ import axios from "axios";
 import { AUTHEN_API } from "../../api";
 
 // Tìm email để reset password
-export const findEmail = async (email) => {
+export const findEmailAndResetPassword = async (email) => {
     const response = await axios.post(AUTHEN_API.FINDEMAIL, { email });
     return response.data;
 };

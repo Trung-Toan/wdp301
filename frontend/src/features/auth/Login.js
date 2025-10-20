@@ -217,7 +217,7 @@ const Login = () => {
           </Link>
           <br />
           Quên mật khẩu?{" "}
-          <Link to="/find_email" className="text-primary fw-semibold">
+          <Link to="/forgot_password" className="text-primary fw-semibold">
             Khôi phục tài khoản
           </Link>
         </p>

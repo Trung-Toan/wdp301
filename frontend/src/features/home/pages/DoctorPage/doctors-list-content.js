@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, MapPin, Star, Clock, Hospital, Award } from "lucide-react";
+import { Search, MapPin, Star, Hospital, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import Input from "../../../../components/ui/Input";
 import Card from "../../../../components/ui/Card";

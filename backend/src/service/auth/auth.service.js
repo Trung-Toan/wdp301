@@ -14,6 +14,7 @@ const {
     REFRESH_EXPIRES_DAYS,
     REQUIRE_EMAIL_VERIFICATION,
     APP_BASE_URL,
+    FRONTEND_ORIGIN,
 } = require('../../config/env');
 
 const {
@@ -282,34 +283,41 @@ exports.requestPasswordReset = async ({ email }) => {
         account_id: acc._id,
     });
 
-    const html = buildResetPasswordTemplate(token, APP_BASE_URL);
+    const html = buildResetPasswordTemplate(token, acc._id, FRONTEND_ORIGIN);
     await sendMail(acc.email, 'Reset your password', html);
 
     return { ok: true };
 };
 
-exports.resetPassword = async ({ token, newPassword }) => {
+exports.resetPassword = async ({ token, newPassword, accountId }) => {
     if (!token) throw new Error('Missing token');
+    if (!accountId) throw new Error('Missing accountId');
 
-    const rec = await PasswordReset.findOne({ used: false }).sort({ created_at: -1 });
-    if (!rec) throw new Error('Reset request not found');
+    // tìm tất cả record chưa dùng cho account này
+    const recs = await PasswordReset.find({ account_id: accountId, used: false }).sort({ created_at: -1 });
+    if (!recs.length) throw new Error('Reset request not found');
 
-    const ok = await compareOpaque(token, rec.token_hash);
-    if (!ok) throw new Error('Invalid token');
-    if (rec.expires_at <= new Date()) throw new Error('Token expired');
+    let matched = null;
+    for (const r of recs) {
+        const ok = await compareOpaque(token, r.token_hash);
+        if (ok) { matched = r; break; }
+    }
+    if (!matched) throw new Error('Invalid token');
+    if (matched.expires_at <= new Date()) throw new Error('Token expired');
 
     const newHash = await hashPassword(newPassword);
-    await Account.findByIdAndUpdate(rec.account_id, { $set: { password: newHash } });
+    await Account.findByIdAndUpdate(matched.account_id, { $set: { password: newHash } });
 
     await Session.updateMany(
-        { account_id: rec.account_id, revoked_at: { $exists: false } },
+        { account_id: matched.account_id, revoked_at: { $exists: false } },
         { $set: { revoked_at: new Date(), revoked_reason: 'password_reset' } }
     );
 
-    rec.used = true;
-    rec.used_at = new Date();
-    await rec.save();
+    matched.used = true;
+    matched.used_at = new Date();
+    await matched.save();
 
     return { ok: true };
 };
+
 

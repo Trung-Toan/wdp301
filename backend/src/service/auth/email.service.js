@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const { APP_BASE_URL, EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = require('../../config/env');
+const { FRONTEND_ORIGIN, APP_BASE_URL, EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = require('../../config/env');
 
 const transporter = nodemailer.createTransport({
     host: SMTP_HOST || 'smtp.gmail.com',
@@ -31,10 +31,16 @@ function buildVerifyEmailTemplate({ accountId, token, apiBaseUrl = APP_BASE_URL 
     return `<p>Click to verify your email:</p><p><a href="${url}">${url}</a></p>`;
 }
 
-function buildResetPasswordTemplate(token, baseUrl = APP_BASE_URL) {
+function buildResetPasswordTemplate(token, accountId, baseUrl = FRONTEND_ORIGIN) {
     if (!token) throw new Error('buildResetPasswordTemplate missing token');
-    const url = `${baseUrl}/auth/reset-password?token=${encodeURIComponent(token)}`;
+    if (!accountId) throw new Error('buildResetPasswordTemplate missing accountId');
+
+    const url = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}&accountId=${encodeURIComponent(accountId)}`;
+    console.log("🔍 url =", url);
+
     return `<p>Click to reset your password:</p><p><a href="${url}">${url}</a></p>`;
 }
+
+
 
 module.exports = { sendMail, buildVerifyEmailTemplate, buildResetPasswordTemplate };
