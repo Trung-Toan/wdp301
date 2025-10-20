@@ -10,7 +10,6 @@ export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId } = location.state || {};
 
-    console.log("kết quả: ", selectedSlot);
     const [formData, setFormData] = useState({
         fullName: "",
         phone: "",
@@ -33,7 +32,7 @@ export function BookingContent() {
     const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "{}"));
 
 
-    // 🔹 Load danh sách tỉnh
+    // Load danh sách tỉnh
     useEffect(() => {
         async function fetchProvinces() {
             try {
@@ -47,7 +46,7 @@ export function BookingContent() {
         fetchProvinces();
     }, []);
 
-    // 🔹 Load danh sách phường theo tỉnh
+    // Load danh sách phường theo tỉnh
     useEffect(() => {
         if (!formData.province) {
             setWards([]);
@@ -65,7 +64,7 @@ export function BookingContent() {
         fetchWards();
     }, [formData.province]);
 
-    // 🔹 Gán dữ liệu user vào form
+    // Gán dữ liệu user vào form
     useEffect(() => {
         if (storedUser) {
             setFormData(prev => ({
@@ -83,7 +82,7 @@ export function BookingContent() {
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
-    // 🔹 Xử lý gửi form
+    // Xử lý gửi form
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedSlot) return alert("Vui lòng chọn lịch khám");
@@ -128,6 +127,7 @@ export function BookingContent() {
 
     };
 
+    console.log("bookingInfo:", bookingInfo);
     if (isSubmitted && bookingInfo) return <BookingSuccess bookingInfo={bookingInfo} />;
 
     const sidebarInfo = {
