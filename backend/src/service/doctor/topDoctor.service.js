@@ -2,7 +2,7 @@ const Doctor = require("../../model/doctor/Doctor");
 const Clinic = require("../../model/clinic/Clinic");
 
 async function getTopDoctors({ limit, provinceCode, wardCode }) {
-    const doctorFilter = { rating: { $ne: null } };
+    const doctorFilter = {};
 
     if (provinceCode || wardCode) {
         const clinicFilter = {};
@@ -20,7 +20,7 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
     }
 
     let query = Doctor.find(doctorFilter)
-        .sort({ rating: -1, createdAt: -1 })
+        .sort({ createdAt: -1 })
         .populate({
             path: "clinic_id",
             select: "name address",
@@ -31,7 +31,7 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
             select: "name",
             model: "Specialty",
         })
-        .select("title degree workplace rating avatar_url specialty_id clinic_id createdAt")
+        .select("title degree description experience specialty_id clinic_id user_id createdAt")
         .lean();
 
     if (limit && Number(limit) > 0) {
@@ -44,9 +44,8 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         _id: d._id,
         title: d.title,
         degree: d.degree,
-        workplace: d.workplace,
-        rating: d.rating,
-        avatar_url: d.avatar_url,
+        description: d.description,
+        experience: d.experience,
         specialties: d.specialty_id
             ? d.specialty_id.map(s => ({ _id: s._id, name: s.name }))
             : [],

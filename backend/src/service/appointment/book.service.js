@@ -182,7 +182,7 @@ async function createAsync(payload) {
             const populated = await Appointment.findById(appt._id)
                 .populate({
                     path: "doctor_id",
-                    select: "title degree avatar_url user_id",
+                    select: "title degree description experience user_id",
                     populate: { path: "user_id", select: "full_name" },
                 })
                 .populate("specialty_id", "name")
@@ -236,7 +236,7 @@ async function getByIdAsync(id) {
     const data = await Appointment.findById(id)
         .populate({
             path: "doctor_id",
-            select: "title degree avatar_url user_id",
+            select: "title degree description experience user_id",
             populate: { path: "user_id", select: "full_name" },
         })
         .populate("specialty_id", "name")

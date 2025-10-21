@@ -348,9 +348,6 @@ async function getDoctorPerformance(clinicId, { startDate, endDate, limit = 20, 
         case 'completionRate':
             sortField = { completionRate: -1 };
             break;
-        case 'rating':
-            sortField = { rating: -1 };
-            break;
         case 'totalBookings':
         default:
             sortField = { totalBookings: -1 };
@@ -403,9 +400,8 @@ async function getDoctorPerformance(clinicId, { startDate, endDate, limit = 20, 
                     _id: "$doctorInfo._id",
                     title: "$doctorInfo.title",
                     degree: "$doctorInfo.degree",
-                    avatar_url: "$doctorInfo.avatar_url",
-                    workplace: "$doctorInfo.workplace",
-                    rating: "$doctorInfo.rating",
+                    description: "$doctorInfo.description",
+                    experience: "$doctorInfo.experience",
                     full_name: "$userInfo.full_name"
                 },
                 specialties: {
@@ -469,8 +465,7 @@ async function getDoctorPerformance(clinicId, { startDate, endDate, limit = 20, 
                             ]
                         }
                     ]
-                },
-                rating: "$doctorInfo.rating"
+                }
             }
         },
         { $sort: sortField },
@@ -570,9 +565,8 @@ async function getDoctorDetailedPerformance(clinicId, doctorId, { startDate, end
             _id: doctor._id,
             title: doctor.title,
             degree: doctor.degree,
-            avatar_url: doctor.avatar_url,
-            workplace: doctor.workplace,
-            rating: doctor.rating,
+            description: doctor.description,
+            experience: doctor.experience,
             full_name: doctor.user_id?.full_name
         },
         specialties: Array.isArray(doctor.specialty_id)
