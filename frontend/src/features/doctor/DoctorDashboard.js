@@ -29,6 +29,8 @@ const DoctorDashboard = () => {
   const [recentAppointments, setRecentAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const user = JSON.parse(sessionStorage.getItem("user"));
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -155,7 +157,9 @@ const DoctorDashboard = () => {
     <div className="doctor-dashboard-new">
       <div className="dashboard-welcome">
         <div>
-          <h1 className="welcome-title">Chào mừng trở lại, BS. Nguyễn Văn A</h1>
+          <h1 className="welcome-title">
+            Chào mừng trở lại, BS. {user.username}
+          </h1>
           <p className="welcome-subtitle">
             Hôm nay là{" "}
             {new Date().toLocaleDateString("vi-VN", {
