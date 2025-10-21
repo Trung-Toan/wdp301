@@ -24,6 +24,10 @@ const RouterDoctor = () => {
         <Route path="patients" element={<PatientList />} />
         <Route path="feedback" element={<FeedbackView />} />
         <Route path="medical-records" element={<PatientMedicalRecords />} />
+<<<<<<< HEAD
+        {/* <Route path="register" element={<DoctorRegistration />} />
+=======
+>>>>>>> main
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="assistants" element={<AssistantManagement />} />
         <Route path="change-password" element={<DoctorChangePassword />} />
