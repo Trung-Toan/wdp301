@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "react-bootstrap";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -26,6 +26,8 @@ const DoctorProfile = () => {
     },
   });
 
+  const navigate = useNavigate();
+
   const handleChange = (section, field, value) => {
     setDoctorProfile((prev) => ({
       ...prev,
@@ -47,7 +49,7 @@ const DoctorProfile = () => {
               {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
             </Button>
             <Button
-              onClick={() => Navigate("/doctor/change-password")}
+              onClick={() => navigate("/doctor/change-password")}
               className="bg-blue-500 hover:bg-blue-600 text-white"
             >
               Đổi mật khẩu

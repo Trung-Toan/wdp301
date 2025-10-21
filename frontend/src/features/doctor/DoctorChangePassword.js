@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { memo, useState } from "react";
+import { Button } from "react-bootstrap";
 
 const DoctorChangePassword = () => {
   const [passwords, setPasswords] = useState({
@@ -90,4 +90,4 @@ const DoctorChangePassword = () => {
   );
 };
 
-export default DoctorChangePassword;
+export default memo(DoctorChangePassword);

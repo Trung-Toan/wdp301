@@ -10,6 +10,7 @@ import AssistantManagement from "../features/doctor/AssistantManagement";
 // import DoctorRegistration from "../features/doctor/DoctorRegistration";
 import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
 import DoctorProfile from "../features/doctor/DoctorProfile";
+import DoctorChangePassword from "../features/doctor/DoctorChangePassword";
 // import AbsenceNotification from "../features/doctor/AbsenceNotification";
 
 const RouterDoctor = () => {
@@ -25,6 +26,7 @@ const RouterDoctor = () => {
         <Route path="medical-records" element={<PatientMedicalRecords />} />
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="assistants" element={<AssistantManagement />} />
+        <Route path="change-password" element={<DoctorChangePassword />} />
         {/* <Route path="register" element={<DoctorRegistration />} />
         
         <Route path="absence" element={<AbsenceNotification />} /> */}
