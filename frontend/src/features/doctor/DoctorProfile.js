@@ -14,9 +14,7 @@ const DoctorProfile = () => {
   const [doctor, setDoctor] = useState({
     title: "Bác sĩ chuyên khoa II",
     degree: "Thạc sĩ - Bác sĩ",
-    avatar_url: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
     workplace: "Bệnh viện Trung Ương Huế",
-    rating: 4.8,
     description:
       "Bác sĩ có hơn 10 năm kinh nghiệm trong lĩnh vực nội khoa và điều trị bệnh mãn tính.",
     experience: "10 năm công tác tại Bệnh viện Trung Ương Huế.",
@@ -89,7 +87,7 @@ const DoctorProfile = () => {
         {/* Avatar */}
         <div className="flex flex-col items-center mb-8">
           <img
-            src={doctor.avatar_url}
+            src={doctor}
             alt="Doctor Avatar"
             className="w-36 h-36 rounded-full border-4 border-blue-100 object-cover shadow-md"
           />
@@ -146,13 +144,6 @@ const DoctorProfile = () => {
                 specialties: e.target.value.split(",").map((s) => s.trim()),
               })
             }
-          />
-          <ProfileField
-            label="Đánh giá"
-            name="rating"
-            value={tempDoctor.rating}
-            isEditing={isEditing}
-            onChange={handleChange}
           />
 
           {/* Description */}
