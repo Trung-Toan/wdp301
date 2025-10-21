@@ -9,8 +9,20 @@ const doctorSchema = new Schema(
     workplace: { type: String },
     rating: { type: Number },
     clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
-    specialty_id: [{ type: mongoose.Schema.Types.ObjectId, ref: "Specialty", required: true }],
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    specialty_id: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Specialty",
+        required: true,
+      },
+    ],
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    description: { type: String },
+    experience: { type: String },
   },
   { timestamps: true }
 );
@@ -19,7 +31,6 @@ doctorSchema.index({ clinic_id: 1 });
 doctorSchema.index({ specialty_id: 1 });
 doctorSchema.index({ user_id: 1 });
 doctorSchema.index({ rating: -1 });
-
 
 const Doctor = mongoose.model("Doctor", doctorSchema, "doctors");
 
