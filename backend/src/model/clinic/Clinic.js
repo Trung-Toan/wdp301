@@ -24,6 +24,13 @@ const clinicSchema = new Schema(
       required: true,
     },
 
+    option: {
+      type: String,
+      enum: ["PUBLIC", "PRIVATE", "GOVERNMENT", "COMMUNITY"],
+      default: "PUBLIC",
+      required: true,
+    },
+
     created_by: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AdminClinic",

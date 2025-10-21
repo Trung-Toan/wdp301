@@ -55,7 +55,8 @@ async function searchDoctors({
                 { "specialties.name": rx }, // tên chuyên khoa
                 { title: rx },
                 { degree: rx },
-                { workplace: rx },
+                { description: rx },
+                { experience: rx },
             ],
         });
     }
@@ -66,8 +67,6 @@ async function searchDoctors({
     const sortMap = {
         createdAt: { createdAt: 1 },
         "-createdAt": { createdAt: -1 },
-        rating: { rating: 1 },
-        "-rating": { rating: -1 },
         full_name: { "user.full_name": 1 },
         "-full_name": { "user.full_name": -1 },
     };
@@ -88,9 +87,8 @@ async function searchDoctors({
                         _id: 1,
                         title: 1,
                         degree: 1,
-                        avatar_url: 1,
-                        workplace: 1,
-                        rating: 1,
+                        description: 1,
+                        experience: 1,
                         clinic_id: 1,
                         specialty_id: 1,
                         createdAt: 1,
