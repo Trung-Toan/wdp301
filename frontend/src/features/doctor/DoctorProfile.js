@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
@@ -193,4 +193,4 @@ const DoctorProfile = () => {
   );
 };
 
-export default DoctorProfile;
+export default memo(DoctorProfile);
