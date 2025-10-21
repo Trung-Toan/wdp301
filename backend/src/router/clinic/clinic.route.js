@@ -2,6 +2,8 @@ const router = require("express").Router();
 const { getClinicsByFilters } = require("../../controller/clinic/filterClinic.controller");
 const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");
 const ctrl = require("../../controller/clinic/specialty.controller");
+const statisticsCtrl = require("../../controller/clinic/statistics.controller");
+
 
 /**
  * @swagger
@@ -57,5 +59,62 @@ router.get("/specialties", ctrl.getAllSpecialties);
  *         description: Danh sách bác sĩ phù hợp (kèm thông tin phòng khám)
  */
 router.get("/search", searchDoctorController);
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/statistics/bookings:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy thống kê số lượng đặt lịch theo clinic
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của clinic
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Thống kê đặt lịch thành công
+ */
+router.get("/:clinicId/statistics/bookings", statisticsCtrl.getBookingStatistics);
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/statistics/bookings/trends:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy xu hướng đặt lịch theo thời gian
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của clinic
+ *       - in: query
+ *         name: period
+ *         schema: { type: string, enum: [day, week, month], default: day }
+ *         description: Khoảng thời gian thống kê
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Xu hướng đặt lịch thành công
+ */
+router.get("/:clinicId/statistics/bookings/trends", statisticsCtrl.getBookingTrends);
+
 
 module.exports = router;
