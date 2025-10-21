@@ -1,13 +1,11 @@
 import { memo } from "react";
-import { Card, Button } from "react-bootstrap";
 import { ArrowLeftCircle } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import "../../styles/doctor/DoctorProfile.css";
 
 const DoctorProfile = () => {
   const navigate = useNavigate();
 
-  // DỮ LIỆU TĨNH MÔ PHỎNG TỪ SCHEMA
+  // Dữ liệu tĩnh
   const doctor = {
     title: "Bác sĩ chuyên khoa II",
     degree: "Thạc sĩ - Bác sĩ",
@@ -21,38 +19,66 @@ const DoctorProfile = () => {
   };
 
   return (
-    <div className="doctor-profile-container">
-      <div className="profile-header">
-        <Button variant="light" onClick={() => navigate(-1)}>
-          <ArrowLeftCircle size={20} /> Quay lại
-        </Button>
-        <h2>Hồ sơ bác sĩ</h2>
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition"
+        >
+          <ArrowLeftCircle size={22} />
+          <span>Quay lại</span>
+        </button>
+        <h2 className="text-2xl font-semibold text-gray-800">Hồ sơ bác sĩ</h2>
       </div>
 
-      <Card className="doctor-profile-card">
-        <div className="profile-avatar">
-          <img src={doctor.avatar_url} alt="Doctor Avatar" />
+      {/* Card Profile */}
+      <div className="bg-white rounded-2xl shadow-md p-6 md:flex gap-8 items-start">
+        {/* Avatar */}
+        <div className="flex flex-col items-center md:w-1/4 mb-6 md:mb-0">
+          <img
+            src={doctor.avatar_url}
+            alt="Doctor Avatar"
+            className="w-40 h-40 rounded-full border-4 border-gray-200 object-cover shadow-sm"
+          />
+          <p className="mt-3 text-sm text-gray-500 italic">{doctor.degree}</p>
         </div>
-        <div className="profile-info">
-          <h3>{doctor.title}</h3>
-          <p className="degree">{doctor.degree}</p>
-          <p>
-            <strong>Nơi làm việc:</strong> {doctor.workplace}
-          </p>
-          <p>
-            <strong>Kinh nghiệm:</strong> {doctor.experience}
-          </p>
-          <p>
-            <strong>Chuyên khoa:</strong> {doctor.specialties.join(", ")}
-          </p>
-          <p>
-            <strong>Giới thiệu:</strong> {doctor.description}
-          </p>
-          <p>
-            <strong>Đánh giá:</strong> ⭐ {doctor.rating}
-          </p>
+
+        {/* Info */}
+        <div className="flex-1 space-y-3">
+          <h3 className="text-xl font-semibold text-gray-800">
+            {doctor.title}
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2">
+            <p>
+              <span className="font-medium text-gray-700">
+                🏥 Nơi làm việc:
+              </span>{" "}
+              {doctor.workplace}
+            </p>
+            <p>
+              <span className="font-medium text-gray-700">⭐ Đánh giá:</span>{" "}
+              {doctor.rating}
+            </p>
+            <p>
+              <span className="font-medium text-gray-700">🧠 Kinh nghiệm:</span>{" "}
+              {doctor.experience}
+            </p>
+            <p>
+              <span className="font-medium text-gray-700">👨‍⚕️ Chuyên khoa:</span>{" "}
+              {doctor.specialties.join(", ")}
+            </p>
+          </div>
+
+          <div>
+            <p className="font-medium text-gray-700 mb-1">🩺 Giới thiệu:</p>
+            <p className="text-gray-600 leading-relaxed">
+              {doctor.description}
+            </p>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
