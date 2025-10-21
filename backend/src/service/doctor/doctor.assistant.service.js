@@ -35,10 +35,12 @@ exports.getListAssistants = async (req) => {
 
     const doctorId = doctor._id;
     const searchRegex = search ? new RegExp(search, "i") : null;
+
     // --- Aggregation Pipeline ---
     const pipeline = [
       // 1. Lọc Trợ lý theo doctor_id
       { $match: { doctor_id: doctorId } },
+
       // 2. Lookup (Join) với Collection 'User'
       {
         $lookup: {
@@ -107,6 +109,8 @@ exports.getListAssistants = async (req) => {
         }
       }
     }));
+
+
     return {
       assistants: assistantsWithAccount,
       pagination: {
