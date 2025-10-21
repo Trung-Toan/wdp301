@@ -4,8 +4,6 @@ exports.getSlotAtNowByDocterId = async (doctor_id) => {
   try {
     const now = new Date();
     let nowMinutes = now.getHours() * 60 + now.getMinutes();
-    nowMinutes = 8 * 60 + 10;
-    // nowMinutes = 490; // testing 8:10 AM
     const slots = await Slot.find({
       doctor_id,
       status: "AVAILABLE",

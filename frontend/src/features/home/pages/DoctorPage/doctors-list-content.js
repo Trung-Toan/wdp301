@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, MapPin, Star, Clock } from "lucide-react";
+import { Search, MapPin, Star, Clock, Hospital, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import Input from "../../../../components/ui/Input";
 import Card from "../../../../components/ui/Card";
@@ -49,7 +49,7 @@ export function DoctorsListContent() {
             try {
                 const res = await doctorApi.getDoctorTop({ limit: 0 });
                 const apiDoctors = res.data?.data || [];
-
+                console.log("apiDoctors: ", apiDoctors);
                 const mapped = apiDoctors.map((d) => {
                     const addr = d.clinic?.address;
                     let location = "Chưa rõ địa chỉ";
@@ -67,7 +67,8 @@ export function DoctorsListContent() {
 
                     return {
                         id: d._id,
-                        name: d.title || "Chưa cập nhật",
+                        title: d.title || "Chưa cập nhật",
+                        fullname: d.full_name || "Không có tên",
                         specialty: d.specialties?.[0]?.name || "Không có chuyên khoa",
                         hospital: d.clinic?.name || "Không có phòng khám",
                         location,
@@ -80,7 +81,7 @@ export function DoctorsListContent() {
                         reviews: 0,
                     };
                 });
-                console.log(mapped);
+                console.log("dữ liệu về bác sĩ : ", mapped);
                 setDoctors(mapped);
             } catch (err) {
                 console.error("Lỗi khi lấy danh sách bác sĩ:", err);
@@ -92,7 +93,7 @@ export function DoctorsListContent() {
     // Lọc bác sĩ
     const filteredDoctors = doctors.filter((doctor) => {
         const matchesSearch =
-            doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            doctor.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
             doctor.hospital.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -197,19 +198,30 @@ export function DoctorsListContent() {
 
                                             <div className="flex-1">
                                                 <h3 className="text-xl font-bold text-foreground mb-2">
-                                                    {doctor.name}
+                                                    {doctor.title} - {doctor.fullname}
                                                 </h3>
+
                                                 <div className="flex items-center gap-2 text-sm mb-2">
                                                     <Badge variant="secondary">{doctor.specialty}</Badge>
                                                     <Badge className="bg-green-500 hover:bg-green-600">Còn lịch</Badge>
                                                 </div>
+
+                                                {/* Hospital & Location tách 2 dòng */}
+                                                <div className="text-sm text-muted-foreground space-y-1 mb-1">
+                                                    <p className="flex items-center gap-1">
+                                                        <Hospital className="h-4 w-4" />
+                                                        <span>{doctor.hospital || "Chưa có phòng khám"}</span>
+                                                    </p>
+                                                    <p className="flex items-center gap-1">
+                                                        <MapPin className="h-4 w-4" />
+                                                        <span>{doctor.location || "Chưa có địa chỉ"}</span>
+                                                    </p>
+                                                </div>
+
                                                 <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                                                    <MapPin className="h-4 w-4" />
-                                                    {doctor.hospital} - {doctor.location}
+                                                    <Award className="h-4 w-4" /> {doctor.experience}
                                                 </p>
-                                                <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                                                    <Clock className="h-4 w-4" /> {doctor.experience}
-                                                </p>
+
                                                 <div className="flex items-center gap-2">
                                                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                                                     <span className="font-semibold">{doctor.rating}</span>
@@ -219,11 +231,8 @@ export function DoctorsListContent() {
                                                 </div>
                                             </div>
 
+
                                             <div className="flex flex-col items-end justify-between">
-                                                <div className="text-right">
-                                                    <p className="text-sm text-muted-foreground">Giá khám</p>
-                                                    <p className="text-xl font-bold text-primary">{doctor.price}</p>
-                                                </div>
                                                 <Link to={`/home/doctordetail/${doctor.id}`}>
                                                     <Button>Đặt lịch khám</Button>
                                                 </Link>

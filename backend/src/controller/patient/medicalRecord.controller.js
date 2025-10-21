@@ -4,6 +4,11 @@ const patientService = require("../../service/patient/patient.service");
 const ok = (res, data) => res.status(200).json({ success: true, data });
 const fail = (res, err, status = 500) => res.status(status).json({ success: false, error: err?.message || String(err) });
 
+function pickDoctorName(doc) {
+    if (!doc) return undefined;
+    return doc.full_name || doc?.user_id?.full_name;
+}
+
 exports.listMyRecords = async (req, res) => {
     try {
         let patientId = req.params.patientId;
@@ -13,18 +18,44 @@ exports.listMyRecords = async (req, res) => {
             patientId = patient?._id;
         }
         if (!patientId) {
-            return fail(res, new Error("Patient not found for current account"), 404);
+            return res.status(404).json({ success: false, error: "Patient not found for current account" });
         }
+
         const { page = 1, limit = 20 } = req.query;
         const skip = (Number(page) - 1) * Number(limit);
 
-        const [items, total] = await Promise.all([
-            MedicalRecord.find({ patient_id: patientId }).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
-            MedicalRecord.countDocuments({ patient_id: patientId })
+        const [rawItems, total] = await Promise.all([
+            MedicalRecord.find({ patient_id: patientId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit))
+                .populate({
+                    path: "doctor_id",
+                    select: "full_name user_id",
+                    populate: { path: "user_id", select: "full_name" },
+                })
+                .lean(),
+            MedicalRecord.countDocuments({ patient_id: patientId }),
         ]);
 
-        return ok(res, { items, page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) || 1 });
-    } catch (err) { return fail(res, err); }
+        const items = rawItems.map(r => ({
+            ...r,
+            doctor_name: pickDoctorName(r.doctor_id),
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                items,
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                totalPages: Math.ceil(total / Number(limit)) || 1,
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err?.message || String(err) });
+    }
 };
 
 exports.getRecordDetail = async (req, res) => {

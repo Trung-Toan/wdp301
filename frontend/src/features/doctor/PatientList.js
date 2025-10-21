@@ -51,9 +51,10 @@ const PatientList = () => {
     try {
       setLoading(true);
       const res = await doctorApi.getPatientById(patientId);
-      const data = await res.data;
+      const data = await res.data; 
+      
       if (data.ok) {
-        setSelectedPatient(data.data);
+        setSelectedPatient(data.data.patient);
         setShowModal(true);
       }
     } catch (error) {
@@ -151,14 +152,16 @@ const PatientList = () => {
                 </tr>
               ) : (
                 patients.map((patient, index) => (
-                  <tr key={patient.patient_id || index}>
+                  <tr key={patient?.patient_id || index}>
                     <td className="patient-id">#{patient.patient_code}</td>
                     <td>
                       <div className="patient-avatar-wrapper">
                         <div className="patient-avatar">
-                          {patient.full_name.charAt(0).toUpperCase()}
+                          {patient?.full_name?.charAt(0).toUpperCase()}
                         </div>
-                        <span className="patient-name">{patient.full_name}</span>
+                        <span className="patient-name">
+                          {patient?.full_name}
+                        </span>
                       </div>
                     </td>
                     <td>{patient.email || "N/A"}</td>
@@ -180,7 +183,7 @@ const PatientList = () => {
         </div>
 
         {/* Pagination */}
-        <div className="pagination-controls">
+        <div className="flex justify-center items-center gap-3 mt-1">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
@@ -188,9 +191,22 @@ const PatientList = () => {
           >
             Trang trước
           </button>
-          <span className="pagination-info">
-            Trang {page}/{totalPages}
-          </span>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              max={totalPages}
+              value={page}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (value >= 1 && value <= totalPages) setPage(value);
+              }}
+              className="w-16 text-center border border-gray-300 rounded-md p-1 focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            <span>/ {totalPages}</span>
+          </div>
+
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
@@ -229,7 +245,7 @@ const PatientList = () => {
               {/* Avatar + tên */}
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 flex items-center justify-center bg-blue-100 text-blue-600 text-xl font-bold rounded-full">
-                  {selectedPatient.full_name.charAt(0).toUpperCase()}
+                  {selectedPatient?.full_name?.charAt(0)?.toUpperCase()}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">
@@ -319,7 +335,9 @@ const PatientList = () => {
               <button
                 onClick={() => {
                   handleCloseModal();
-                  navigate(`/doctor/medical-records/?patient-code=${selectedPatient.patient_code}`);
+                  navigate(
+                    `/doctor/medical-records/?patient-code=${selectedPatient.patient_code}`
+                  );
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
               >

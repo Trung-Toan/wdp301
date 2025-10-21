@@ -15,7 +15,6 @@ import {
 } from "react-bootstrap-icons";
 import { useLocation } from "react-router-dom";
 import {
-  getAllMedicalRecordsByDoctor,
   rejectPrescription,
   verifyPrescription,
 } from "../../services/doctorService";
@@ -30,6 +29,7 @@ const PatientMedicalRecords = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loadingRecord, setLoadingRecord] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -99,21 +99,50 @@ const PatientMedicalRecords = () => {
     return badges[status] || badges.PRIVATE;
   };
 
-  const getPrescriptionStatus = (prescription) => {
-    if (!prescription) return null;
-    if (prescription.verified_at) {
-      return {
-        icon: <CheckCircle size={14} />,
-        text: "Đã duyệt",
-        class: "verified",
-      };
+  const getPrescriptionStatus = (status) => {
+    switch (status) {
+      case "VERIFIED":
+        return {
+          class: "prescription-verified",
+          text: "Đã xác nhận",
+          icon: <CheckCircle size={14} className="text-green-600" />,
+        };
+      case "PENDING":
+        return {
+          class: "prescription-pending",
+          text: "Chờ xác nhận",
+          icon: <Clock size={14} className="text-yellow-500" />,
+        };
+      case "REJECTED":
+        return {
+          class: "prescription-rejected",
+          text: "Bị từ chối",
+          icon: <XCircle size={14} className="text-red-500" />,
+        };
+      default:
+        return null;
     }
-    return { icon: <Clock size={14} />, text: "Chờ duyệt", class: "pending" };
   };
 
-  const handleViewRecord = (record) => {
-    setSelectedRecord(record);
-    setShowModal(true);
+  const handleViewRecord = async (record) => {
+    try {
+      setLoadingRecord(true);
+      setShowModal(true);
+
+      const res = await doctorApi.getMedicalRecordById(
+        record.medical_record_id
+      );
+
+      if (res.data?.ok) {
+        setSelectedRecord(res.data.data);
+      } else {
+        console.error("Không lấy được chi tiết hồ sơ:", res.data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi gọi API chi tiết hồ sơ:", error);
+    } finally {
+      setLoadingRecord(false);
+    }
   };
 
   const handleCloseModal = () => {
@@ -121,24 +150,30 @@ const PatientMedicalRecords = () => {
     setSelectedRecord(null);
   };
 
-  const handleVerifyPrescription = async (id) => {
-    if (!id) return;
+  const handleVerifyPrescription = async (recordId) => {
+    if (!recordId) return;
     if (!window.confirm("Bạn có chắc muốn phê duyệt đơn thuốc này không?"))
       return;
 
-    const response = await verifyPrescription(id);
-    if (response.success) {
-      alert("✅ Đơn thuốc đã được phê duyệt!");
-      // cập nhật lại danh sách records hoặc chỉ 1 record
-      setSelectedRecord((prev) => ({
-        ...prev,
-        prescription: {
-          ...prev.prescription,
-          verified_at: new Date().toISOString(),
-        },
-      }));
-    } else {
-      alert("❌ " + (response.message || "Phê duyệt thất bại"));
+    try {
+      const res = await doctorApi.verifyMedicalRecord(recordId, "VERIFIED");
+
+      if (res.data?.ok) {
+        alert("Đơn thuốc đã được phê duyệt!");
+        setSelectedRecord((prev) => ({
+          ...prev,
+          prescription: {
+            ...prev.prescription,
+            status: "VERIFIED",
+            verified_at: new Date().toISOString(),
+          },
+        }));
+      } else {
+        alert(res.data?.message || "Phê duyệt thất bại");
+      }
+    } catch (error) {
+      console.error("Lỗi phê duyệt:", error);
+      alert("Phê duyệt thất bại, vui lòng thử lại sau!");
     }
   };
 
@@ -149,8 +184,7 @@ const PatientMedicalRecords = () => {
 
     const response = await rejectPrescription(id, reason);
     if (response.success) {
-      alert("🚫 Đã yêu cầu bệnh nhân/chuyên viên làm lại đơn thuốc!");
-      // có thể cập nhật trạng thái prescription
+      alert("Đã yêu cầu bệnh nhân/chuyên viên làm lại đơn thuốc!");
       setSelectedRecord((prev) => ({
         ...prev,
         prescription: {
@@ -160,7 +194,7 @@ const PatientMedicalRecords = () => {
         },
       }));
     } else {
-      alert("❌ " + (response.message || "Yêu cầu thất bại"));
+      alert(response.message || "Yêu cầu thất bại");
     }
   };
 
@@ -239,7 +273,7 @@ const PatientMedicalRecords = () => {
                 {filteredRecords.map((record) => {
                   const statusBadge = getStatusBadge(record.status);
                   const prescriptionStatus = getPrescriptionStatus(
-                    record.prescription
+                    record.prescription_status
                   );
 
                   return (
@@ -524,13 +558,11 @@ const PatientMedicalRecords = () => {
                     </div>
                   )}
 
-                  {!selectedRecord.prescription.verified_at && (
+                  {selectedRecord.prescription?.status !== "VERIFIED" && (
                     <div className="mt-6 flex justify-end gap-3">
                       <button
                         onClick={() =>
-                          handleVerifyPrescription(
-                            selectedRecord.prescription._id
-                          )
+                          handleVerifyPrescription(selectedRecord._id)
                         }
                         className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                       >
@@ -540,9 +572,7 @@ const PatientMedicalRecords = () => {
 
                       <button
                         onClick={() =>
-                          handleRejectPrescription(
-                            selectedRecord.prescription._id
-                          )
+                          handleRejectPrescription(selectedRecord._id)
                         }
                         className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                       >
@@ -580,15 +610,6 @@ const PatientMedicalRecords = () => {
                   </p>
                 </div>
               )}
-            </div>
-
-            <div className="bg-white border-t border-gray-200 px-8 py-5 flex justify-end gap-3">
-              <button
-                className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200"
-                onClick={handleCloseModal}
-              >
-                Đóng
-              </button>
             </div>
           </div>
         </div>
