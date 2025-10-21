@@ -1,6 +1,6 @@
 const Appointment = require("../../model/appointment/Appointment");
 const doctorService = require("./../doctor/doctor.service");
-const slotService = require("../slot/slot.service");
+const Slot = require("../../model/appointment/Slot");
 const { now } = require("mongoose");
 
 /**
@@ -105,9 +105,20 @@ exports.getListAppointments = async (req) => {
         page = 1,
         limit = 10,
         status = null,
-        slot = (await slotService.getSlotAtNowByDocterId(doctor._id))._id,
+        slot = null,
         date = new Date()
     } = req.query;
+
+    // Nếu không có slot được chỉ định, lấy slot hiện tại của bác sĩ
+    let slotId = slot;
+    if (!slotId) {
+        const currentSlot = await Slot.findOne({
+            doctor_id: doctor._id,
+            start_time: { $lte: new Date() },
+            end_time: { $gte: new Date() }
+        }).sort({ start_time: 1 });
+        slotId = currentSlot ? currentSlot._id : null;
+    }
 
     // Ép kiểu số nguyên
     const currentPage = parseInt(page, 10);
@@ -120,7 +131,7 @@ exports.getListAppointments = async (req) => {
     const totalAppointments = await Appointment.countDocuments({
         doctor_id: doctor._id,
         ...(status ? { status } : {}),
-        slot_id: slot,
+        ...(slotId ? { slot_id: slotId } : {}),
         scheduled_date: date
     });
 
@@ -132,13 +143,13 @@ exports.getListAppointments = async (req) => {
         .find({
             doctor_id: doctor._id,
             ...(status ? { status } : {}),
-            slot_id: slot,
+            ...(slotId ? { slot_id: slotId } : {}),
             scheduled_date: date
         })
         .select("_id slot_id patient_id scheduled_date status created_at phone full_name")
         .populate("slot_id", "start_time end_time")
         .populate({
-            path: "patient_id", 
+            path: "patient_id",
             select: "patient_code",
         })
         .lean()

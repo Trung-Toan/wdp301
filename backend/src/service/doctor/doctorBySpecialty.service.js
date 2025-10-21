@@ -25,7 +25,7 @@ async function searchDoctorsBySpecialty({
     const filter = { specialty_id: specObjId };
     if (q && q.trim()) {
         const rx = new RegExp(q.trim(), "i");
-        filter.$or = [{ title: rx }, { degree: rx }, { workplace: rx }];
+        filter.$or = [{ title: rx }, { degree: rx }, { description: rx }, { experience: rx }];
     }
 
     const [items, total] = await Promise.all([
@@ -38,7 +38,7 @@ async function searchDoctorsBySpecialty({
                 select: "name address",
                 model: "Clinic",
             })
-            .select("title degree workplace rating user_id clinic_id specialty_id createdAt avatar_url") // ✅ thêm avatar_url
+            .select("title degree description experience user_id clinic_id specialty_id createdAt")
             .lean(),
         Doctor.countDocuments(filter),
     ]);
@@ -53,10 +53,9 @@ async function searchDoctorsBySpecialty({
         items: items.map(d => ({
             _id: d._id,
             title: d.title,
-            avatar_url: d.avatar_url,
             degree: d.degree,
-            workplace: d.workplace,
-            rating: d.rating,
+            description: d.description,
+            experience: d.experience,
             specialty_id: d.specialty_id,
             user_id: d.user_id,
             clinic: d.clinic_id
