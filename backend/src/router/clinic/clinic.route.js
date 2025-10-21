@@ -116,5 +116,67 @@ router.get("/:clinicId/statistics/bookings", statisticsCtrl.getBookingStatistics
  */
 router.get("/:clinicId/statistics/bookings/trends", statisticsCtrl.getBookingTrends);
 
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/statistics/specialties/top:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy top specialties (chuyên khoa phổ biến nhất)
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của clinic
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *         description: Số lượng specialties trả về
+ *     responses:
+ *       200:
+ *         description: Lấy top specialties thành công
+ */
+router.get("/:clinicId/statistics/specialties/top", statisticsCtrl.getTopSpecialties);
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/statistics/specialties/{specialtyId}:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy chi tiết thống kê của một specialty
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của clinic
+ *       - in: path
+ *         name: specialtyId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của specialty
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Lấy chi tiết specialty thành công
+ */
+router.get("/:clinicId/statistics/specialties/:specialtyId", statisticsCtrl.getSpecialtyDetails);
+
+
 
 module.exports = router;

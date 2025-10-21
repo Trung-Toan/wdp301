@@ -43,3 +43,48 @@ exports.getBookingTrends = async (req, res) => {
         return errorResponse(res, error.message, 500);
     }
 };
+
+/**
+ * Controller để lấy top specialties (chuyên khoa phổ biến)
+ * GET /api/clinics/:clinicId/statistics/specialties/top
+ */
+exports.getTopSpecialties = async (req, res) => {
+    try {
+        const { clinicId } = req.params;
+        const { startDate, endDate, limit } = req.query;
+
+        const topSpecialties = await statisticsService.getTopSpecialties(clinicId, {
+            startDate,
+            endDate,
+            limit: limit ? parseInt(limit) : 10
+        });
+
+        return successResponse(res, topSpecialties, "Lấy top specialties thành công");
+    } catch (error) {
+        console.error("Error in getTopSpecialties:", error);
+        return errorResponse(res, error.message, 500);
+    }
+};
+
+/**
+ * Controller để lấy chi tiết thống kê của một specialty
+ * GET /api/clinics/:clinicId/statistics/specialties/:specialtyId
+ */
+exports.getSpecialtyDetails = async (req, res) => {
+    try {
+        const { clinicId, specialtyId } = req.params;
+        const { startDate, endDate } = req.query;
+
+        const details = await statisticsService.getSpecialtyDetails(clinicId, specialtyId, {
+            startDate,
+            endDate
+        });
+
+        return successResponse(res, details, "Lấy chi tiết specialty thành công");
+    } catch (error) {
+        console.error("Error in getSpecialtyDetails:", error);
+        return errorResponse(res, error.message, 500);
+    }
+};
+
+
