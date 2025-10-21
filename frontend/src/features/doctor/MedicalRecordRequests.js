@@ -192,21 +192,52 @@ const MedicalRecordRequests = () => {
               </p>
             ) : (
               <ul className="space-y-2">
-                {patientRecords.map((rec) => (
-                  <li
-                    key={rec._id}
-                    onClick={() => setSelectedRecord(rec)}
-                    className={`p-2 rounded-lg border cursor-pointer transition ${
-                      selectedRecord?._id === rec._id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-gray-800">
-                      {rec.diagnosis || "Không có chẩn đoán"}
-                    </p>
-                  </li>
-                ))}
+                {patientRecords.map((rec) => {
+                  // Đảm bảo _id luôn là string để so sánh chính xác
+                  const isSelected =
+                    selectedRecord &&
+                    String(selectedRecord._id) === String(rec._id);
+
+                  return (
+                    <li
+                      key={rec._id}
+                      onClick={() => setSelectedRecord(rec)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      {/* Vòng tròn radio */}
+                      <span
+                        className={`w-5 h-5 flex items-center justify-center rounded-full border-2 ${
+                          isSelected
+                            ? "border-green-600 bg-green-600"
+                            : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {isSelected && (
+                          <span className="w-2 h-2 bg-white rounded-full"></span>
+                        )}
+                      </span>
+
+                      {/* Thông tin hồ sơ */}
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium text-gray-800">
+                          {rec.diagnosis || "Không có chẩn đoán"}
+                        </p>
+                        {rec.createdAt && (
+                          <p className="text-xs text-gray-500">
+                            Ngày tạo:{" "}
+                            {new Date(rec.createdAt).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
 
@@ -256,7 +287,8 @@ const MedicalRecordRequests = () => {
               >
                 <div>
                   <p className="font-semibold text-blue-700">
-                    Hồ sơ: {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
+                    Hồ sơ:{" "}
+                    {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
                   </p>
                   <p className="text-sm text-gray-600">
                     Mã bệnh nhân: {req?.patient?.patient_code || "N/A"}

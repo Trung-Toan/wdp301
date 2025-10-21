@@ -183,11 +183,11 @@ const PatientList = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-center items-center gap-3 mt-1">
+        <div className="flex justify-center items-center gap-3 mt-1 mb-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="pagination-btn"
+            className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
           >
             Trang trước
           </button>
@@ -210,7 +210,7 @@ const PatientList = () => {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="pagination-btn"
+            className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
           >
             Trang sau
           </button>

@@ -38,21 +38,26 @@ exports.viewListPatients = async (req, res) => {
 exports.viewPatientById = async (req, res) => {
   try {
     const { patient } = await patientService.getPatientById(req);
-    const { records, pagination } = await medicalRecordService.getListMedicalRecordsByIdPatient(req);
+    const { records, pagination } =
+      await medicalRecordService.getListMedicalRecordsByIdPatient(req);
 
     return resUtils.successResponse(
       res,
       {
         patient: patient,
         medical_record: records,
-        pagination_: pagination
+        pagination_: pagination,
       },
       "Lấy thông tin bệnh nhân thành công."
     );
   } catch (error) {
     // Xử lý lỗi nếu có
     console.error("Error in viewListPatients:", error);
-    return resUtils.serverErrorResponse(res, error.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      error.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
 
@@ -60,11 +65,12 @@ exports.viewPatientById = async (req, res) => {
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
   try {
-    const { appointments, pagination } = await appointmentService.getListAppointments(req);
+    const { appointments, slot, pagination } =
+      await appointmentService.getListAppointments(req);
 
     return resUtils.paginatedResponse(
       res,
-      appointments,
+      { appointments, slot},
       pagination,
       "Lấy danh sách cuộc hẹn thành công."
     );
@@ -122,7 +128,10 @@ exports.requestViewMedicalRecord = async (req, res) => {
     console.error("Error in requestViewMedicalRecord:", error);
 
     // TH1: Lỗi do đã gửi yêu cầu rồi (service throw message cụ thể)
-    if (error.message === "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này.") {
+    if (
+      error.message ===
+      "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
+    ) {
       return resUtils.badRequestResponse(res, error.message);
     }
 
@@ -134,7 +143,6 @@ exports.requestViewMedicalRecord = async (req, res) => {
     );
   }
 };
-
 
 // POST /doctor/patients/:patientId/medical-records/:medicalRecordsId/request
 exports.requestViewMedicalRecordById = async (req, res) => {
@@ -200,7 +208,8 @@ exports.viewHistoryMedicalRecordRequests = async (req, res) => {
 // GET /doctor/medical-records?page=1&limit=10&search=
 exports.viewListMedicalRecords = async (req, res) => {
   try {
-    const { records, pagination } = await medicalRecordService.getListMedicalRecords(req);
+    const { records, pagination } =
+      await medicalRecordService.getListMedicalRecords(req);
     return resUtils.paginatedResponse(
       res,
       records,
@@ -220,7 +229,8 @@ exports.viewListMedicalRecords = async (req, res) => {
 // GET /doctor/verify/medical-records?page=1&limit=10&search=
 exports.viewListMedicalRecordsVerify = async (req, res) => {
   try {
-    const { records, pagination } = await medicalRecordService.getListMedicalRecordsVerify(req);
+    const { records, pagination } =
+      await medicalRecordService.getListMedicalRecordsVerify(req);
     return resUtils.paginatedResponse(
       res,
       records,
@@ -240,7 +250,8 @@ exports.viewListMedicalRecordsVerify = async (req, res) => {
 // GET /doctor/patients/:patientId/medical-records
 exports.viewListMedicalRecordsByPatient = async (req, res) => {
   try {
-    const { records, pagination } = await medicalRecordService.getListMedicalRecords(req);
+    const { records, pagination } =
+      await medicalRecordService.getListMedicalRecords(req);
     return resUtils.paginatedResponse(
       res,
       { records: records.map((r) => formatDataUtils.formatData(r)) || [] },
@@ -279,11 +290,7 @@ exports.viewMedicalRecordDetail = async (req, res) => {
 
     // Nếu bệnh án không tồn tại
     if (error.message === "Bệnh án không tồn tại") {
-      return resUtils.notFoundResponse(
-        res,
-        error,
-        "Bệnh án không tồn tại."
-      );
+      return resUtils.notFoundResponse(res, error, "Bệnh án không tồn tại.");
     }
 
     // Các lỗi khác (lỗi server)
@@ -318,7 +325,6 @@ exports.verifyMedicalRecord = async (req, res) => {
 // GET /doctor/feedback
 exports.viewFeedbackList = async (req, res) => {
   try {
-
   } catch (error) {
     console.error("Error in viewFeedbackList:", error);
     return resUtils.serverErrorResponse(
@@ -361,7 +367,6 @@ exports.createAssistant = async (req, res) => {
   }
 };
 
-
 // PUT /doctor/assistants/:assistantId/ban
 exports.banOrUnbanAssistant = async (req, res) => {
   try {
@@ -389,11 +394,12 @@ exports.banOrUnbanAssistant = async (req, res) => {
   }
 };
 
-
 // GET /doctor/assistants
 exports.viewListAssistants = async (req, res) => {
   try {
-    const { assistants, pagination } = await assistantService.getListAssistants(req);
+    const { assistants, pagination } = await assistantService.getListAssistants(
+      req
+    );
 
     return resUtils.paginatedResponse(
       res,
@@ -409,7 +415,6 @@ exports.viewListAssistants = async (req, res) => {
       "Có lỗi xảy ra khi lấy danh sách trợ lý."
     );
   }
-
 };
 
 /* ========================= PROFILE ========================= */
