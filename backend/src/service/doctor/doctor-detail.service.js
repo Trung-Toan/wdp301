@@ -12,18 +12,14 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
     const pipeline = [
         { $match: { _id } },
 
-        // Thông tin user (tên, avatar)
         { $lookup: { from: "users", localField: "user_id", foreignField: "_id", as: "user" } },
         { $unwind: "$user" },
 
-        // Phòng khám
         { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
         { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
 
-        // Chuyên khoa
         { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } },
 
-        // Lấy slot liên quan
         {
             $lookup: {
                 from: "slots",
@@ -67,16 +63,12 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
                 as: "slots",
             },
         },
-
-        // Tính giá min/max
         {
             $addFields: {
                 minFee: { $min: "$slots.fee_amount" },
                 maxFee: { $max: "$slots.fee_amount" },
             },
         },
-
-        // Lọc thông tin
         {
             $project: {
                 _id: 1,
@@ -96,7 +88,6 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
 
     const [doc] = await Doctor.aggregate(pipeline).allowDiskUse(true);
     if (!doc) return null;
-
     return {
         id: String(doc._id),
         name: doc.user?.full_name ?? "",
