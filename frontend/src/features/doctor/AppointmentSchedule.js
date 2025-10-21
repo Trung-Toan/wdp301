@@ -215,8 +215,8 @@ const AppointmentSchedule = () => {
                       <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">
                         #{index + 1}
                       </div>
-                      <div className="text-gray-700">
-                        <Clock size={18} />{" "}
+                      <div className="text-gray-700 flex items-center gap-2">
+                        <Clock size={18} />
                         {formatDate(appointment.scheduled_date)}
                       </div>
                     </div>
