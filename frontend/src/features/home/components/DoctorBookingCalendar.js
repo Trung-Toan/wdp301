@@ -157,7 +157,7 @@ export function DoctorBookingCalendar({ doctor }) {
                 )}
 
                 <div className="pt-4 border-t">
-                    <div className="flex justify-between mb-4">
+                    {/* <div className="flex justify-between mb-4">
                         <span className="text-muted-foreground">Giá khám:</span>
                         <span className="text-xl font-bold text-primary">
                             {selectedSlot?.fee
@@ -166,7 +166,7 @@ export function DoctorBookingCalendar({ doctor }) {
                                     ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
                                     : "Chưa có giá"}
                         </span>
-                    </div>
+                    </div> */}
 
                     <Button
                         className="w-full"

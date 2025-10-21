@@ -11,10 +11,6 @@ const doctorSchema = new Schema(
     clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
     specialty_id: [{ type: mongoose.Schema.Types.ObjectId, ref: "Specialty", required: true }],
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    description: { type: String, trim: true },
-    education: [{ type: String, trim: true }],
-    certifications: [{ type: String, trim: true }],
-    experience: { type: String, trim: true },
   },
   { timestamps: true }
 );

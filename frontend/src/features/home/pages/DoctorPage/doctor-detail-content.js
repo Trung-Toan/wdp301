@@ -1,7 +1,5 @@
 import {
     Star,
-    MapPin,
-    Clock,
     Award,
     GraduationCap,
     Stethoscope,
@@ -23,6 +21,7 @@ import TabsContent from "../../../../components/ui/TabsContent";
 
 import { DoctorBookingCalendar } from "../../components/DoctorBookingCalendar";
 import { doctorApi } from "../../../../api";
+import { Hospital } from "react-bootstrap-icons";
 
 // ====== Mock Reviews (tạm thời nếu backend chưa trả reviews) ======
 const mockReviews = [
@@ -35,9 +34,6 @@ export function DoctorDetailContent({ doctorId }) {
     const [doctor, setDoctor] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const formatCurrency = (amount, currency = 'VND') => {
-        return `${new Intl.NumberFormat('vi-VN').format(amount)} ${currency}`;
-    };
 
     useEffect(() => {
         const fetchDoctor = async () => {
@@ -81,28 +77,31 @@ export function DoctorDetailContent({ doctorId }) {
                                     className="w-40 h-40 rounded-lg object-cover"
                                 />
                                 <div className="flex-1">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div>
-                                            <h1 className="text-3xl font-bold mb-2">{doctor.data.name || "Không có tên"}</h1>
-                                            <Badge variant="secondary" className="mb-3">
-                                                {doctor.data.specialties?.[0]?.name || "Chưa có chuyên khoa"}
-                                            </Badge>
-                                        </div>
-                                        {doctor.data.slots?.length > 0 && <Badge className="bg-green-500">Còn lịch</Badge>}
+                                    <div>
+                                        <h1 className="text-3xl font-bold mb-2">
+                                            {doctor.data.title} - {doctor.data.name || "Không có tên"}
+                                        </h1>
+
+                                        <Badge variant="secondary" className="mb-3 flex items-center gap-1">
+                                            <Stethoscope className="w-4 h-4 text-blue-600" /> {/* Icon chuyên khoa */}
+                                            <strong>Chuyên Khoa: </strong>
+                                            <span>{doctor.data.specialties?.[0]?.name || "Chưa có chuyên khoa"}</span>
+                                        </Badge>
                                     </div>
 
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-2 text-muted-foreground">
-                                            <MapPin className="h-5 w-5" /> {doctor.data.workplace || "Chưa có bệnh viện"}
+                                            <Hospital className="h-4 w-4" />{doctor.data.workplace || "Chưa có bệnh viện"}
                                         </div>
                                         <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Clock className="h-5 w-5" /> {doctor.data.degree || "Chưa có kinh nghiệm"}
+                                            <GraduationCap className="h-5 w-5 text-blue-600" />
+                                            {doctor.data.degree || "Chưa có học vị"}
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                                             <span className="font-bold text-lg">{doctor.data.rating || 0}</span>
                                         </div>
-                                        <div className="pt-2">
+                                        {/* <div className="pt-2">
                                             <span className="text-sm text-muted-foreground">Giá khám: </span>
                                             <span className="text-xl font-bold text-primary">
                                                 {doctor.data.pricing?.minFee
@@ -110,7 +109,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                     : "Chưa có giá"}
                                             </span>
 
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             </CardContent>
