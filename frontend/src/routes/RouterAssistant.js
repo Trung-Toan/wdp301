@@ -12,13 +12,14 @@ const AssistantRoutes = () => {
       <Route path="/" element={<AssistantLayout />}>
         <Route index element={<AssistantDashboard />} />
         <Route path="dashboard" element={<AssistantDashboard />} />
-        {/* thêm các route con khác ở đây */}
         <Route path="shift-schedule" element={<ShiftSchedule />} />
         <Route path="appointments" element={<ApproveAppointment />} />
-        <Route path="patients/*" element={<PatientList />} />
+        <Route path="patients" element={<PatientList />} />
       </Route>
     </Routes>
   );
 };
 
 export default memo(AssistantRoutes);
+
+
