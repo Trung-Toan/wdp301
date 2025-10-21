@@ -65,7 +65,7 @@ export const doctorApi = {
     ),
 
   //lấy danh sách trợ lý
-  getAssistants: () => axiosInstance.get("/doctor/assistants"),
+  getAssistants: (params) => axiosInstance.get("/doctor/assistants", { params }),
 
   //thêm trợ lý
   addAssistant: (data) => axiosInstance.post("/doctor/assistants", data),
