@@ -24,7 +24,6 @@ const AssistantManagement = () => {
       setLoading(true);
       const res = await doctorApi.getAssistants(search, page);
       if (res.data?.ok) {
-        // API trả về dạng { data: [ { assistant: {...} } ] }
         const parsed = res.data.data.map((item) => {
           const a = item.assistant;
           const user = a.user || {};

@@ -134,7 +134,7 @@ const PatientMedicalRecords = () => {
       );
 
       if (res.data?.ok) {
-        setSelectedRecord(res.data.data);
+        setSelectedRecord(res?.data?.data);
       } else {
         console.error("Không lấy được chi tiết hồ sơ:", res.data);
       }
@@ -383,7 +383,7 @@ const PatientMedicalRecords = () => {
                       Họ và tên
                     </span>
                     <span className="text-base font-semibold text-gray-900">
-                      {selectedRecord.patient?.user?.full_name}
+                      {selectedRecord?.patient?.full_name}
                     </span>
                   </div>
                   <div className="flex flex-col">
@@ -443,11 +443,11 @@ const PatientMedicalRecords = () => {
                   </h3>
                 </div>
                 <p className="text-base text-gray-700 leading-relaxed bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                  {selectedRecord.diagnosis}
+                  {selectedRecord?.medical_record?.diagnosis}
                 </p>
               </div>
 
-              {selectedRecord.symptoms?.length > 0 && (
+              {selectedRecord?.medical_record?.symptoms?.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="bg-orange-100 p-2.5 rounded-lg">
@@ -458,7 +458,7 @@ const PatientMedicalRecords = () => {
                     </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {selectedRecord.symptoms.map((symptom, idx) => (
+                    {selectedRecord?.medical_record?.symptoms.map((symptom, idx) => (
                       <span
                         key={idx}
                         className="inline-flex items-center px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-200"
@@ -470,7 +470,7 @@ const PatientMedicalRecords = () => {
                 </div>
               )}
 
-              {selectedRecord.prescription && (
+              {selectedRecord?.medical_record?.prescription && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
                     <div className="flex items-center gap-3">
@@ -481,29 +481,29 @@ const PatientMedicalRecords = () => {
                         Đơn thuốc
                       </h3>
                     </div>
-                    {getPrescriptionStatus(selectedRecord.prescription) && (
+                    {getPrescriptionStatus(selectedRecord?.medical_record?.prescription) && (
                       <span
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${
-                          selectedRecord.prescription.verified_at
+                          selectedRecord?.medical_record?.prescription.verified_at
                             ? "bg-green-100 text-green-700 border border-green-300"
                             : "bg-yellow-100 text-yellow-700 border border-yellow-300"
                         }`}
                       >
                         {
-                          getPrescriptionStatus(selectedRecord.prescription)
+                          getPrescriptionStatus(selectedRecord?.medical_record?.prescription)
                             .icon
                         }
                         {
-                          getPrescriptionStatus(selectedRecord.prescription)
+                          getPrescriptionStatus(selectedRecord?.medical_record?.prescription)
                             .text
                         }
                       </span>
                     )}
                   </div>
 
-                  {selectedRecord.prescription.medicines?.length > 0 && (
+                  {selectedRecord?.medical_record?.prescription.medicines?.length > 0 && (
                     <div className="space-y-4">
-                      {selectedRecord.prescription.medicines.map(
+                      {selectedRecord?.medical_record?.prescription.medicines.map(
                         (medicine, idx) => (
                           <div
                             key={idx}
@@ -558,11 +558,11 @@ const PatientMedicalRecords = () => {
                     </div>
                   )}
 
-                  {selectedRecord.prescription?.status !== "VERIFIED" && (
+                  {selectedRecord?.medical_record?.prescription?.status !== "VERIFIED" && (
                     <div className="mt-6 flex justify-end gap-3">
                       <button
                         onClick={() =>
-                          handleVerifyPrescription(selectedRecord._id)
+                          handleVerifyPrescription(selectedRecord?.medical_record?._id)
                         }
                         className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                       >
@@ -572,7 +572,7 @@ const PatientMedicalRecords = () => {
 
                       <button
                         onClick={() =>
-                          handleRejectPrescription(selectedRecord._id)
+                          handleRejectPrescription(selectedRecord?.medical_record?._id)
                         }
                         className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                       >
@@ -582,20 +582,20 @@ const PatientMedicalRecords = () => {
                     </div>
                   )}
 
-                  {selectedRecord.prescription.instruction && (
+                  {selectedRecord?.medical_record?.prescription.instruction && (
                     <div className="mt-5 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                       <p className="text-sm font-semibold text-blue-900 mb-1">
                         Hướng dẫn sử dụng:
                       </p>
                       <p className="text-sm text-blue-800">
-                        {selectedRecord.prescription.instruction}
+                        {selectedRecord?.medical_record?.prescription.instruction}
                       </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {selectedRecord.notes && (
+              {selectedRecord?.medical_record?.notes && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="bg-gray-100 p-2.5 rounded-lg">
@@ -606,7 +606,7 @@ const PatientMedicalRecords = () => {
                     </h3>
                   </div>
                   <p className="text-base text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
-                    {selectedRecord.notes}
+                    {selectedRecord?.medical_record?.notes}
                   </p>
                 </div>
               )}
