@@ -51,3 +51,13 @@ exports.getListSlotsByDoctorId = async (doctor_id) => {
         return [];
     }
 };
+
+exports.getSlotById = async (slot_id) => {
+    try {
+        const slot = await Slot.findById(slot_id).lean();
+        return slot || null;
+    } catch (error) {
+        console.error("Error in getSlotById:", error);
+        return null;
+    }
+};

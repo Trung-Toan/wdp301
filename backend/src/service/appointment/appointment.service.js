@@ -103,16 +103,19 @@ exports.getListAppointments = async (req) => {
     throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
   }
 
+  const slotObj =
+    (await slotService.getSlotAtNowByDocterId(doctor._id)) ||
+    (await slotService.getFirtAvailableSlotByDoctorId(doctor._id));
+
   const {
     page = 1,
     limit = 10,
     status = null,
-    slot = (await slotService.getSlotAtNowByDocterId(doctor._id)) || (await slotService.getFirtAvailableSlotByDoctorId(doctor._id)),
+    slot = slotObj?._id,
     date = new Date(),
   } = req.query;
 
-  console.log("slot: ", slot);
-  
+  const slotNow = await slotService.getSlotById(slot);
 
   // Ép kiểu số nguyên
   const currentPage = parseInt(page, 10);
@@ -136,13 +139,12 @@ exports.getListAppointments = async (req) => {
   const appointments = await Appointment.find({
     doctor_id: doctor._id,
     ...(status ? { status } : {}),
-    slot_id: slot?._id,
+    slot_id: slot,
     scheduled_date: date,
   })
     .select(
       "_id slot_id patient_id scheduled_date status created_at phone full_name"
     )
-    .populate("slot_id", "start_time end_time")
     .populate({
       path: "patient_id",
       select: "patient_code",
@@ -152,8 +154,7 @@ exports.getListAppointments = async (req) => {
     .skip(skip)
     .limit(limitNumber);
 
-    const slotList = await slotService.getListSlotsByDoctorId(doctor._id);
-
+  // Định dạng dữ liệu trả về
   const formData = appointments.map((app) => ({
     appointment: {
       appointment_id: app._id,
@@ -161,14 +162,7 @@ exports.getListAppointments = async (req) => {
       status: app.status,
       created_at: app.created_at,
     },
-    slot: {
-      slot_select: {
-        slot_id: app.slot_id._id,
-        start_time: app.slot_id.start_time,
-        end_time: app.slot_id.end_time,
-      },
-      slot_list: slotList || [],
-    },
+
     patient: {
       patient_id: app.patient_id._id,
       patient_code: app.patient_id.patient_code,
@@ -177,9 +171,19 @@ exports.getListAppointments = async (req) => {
     },
   }));
 
+  console.log("app: ", formData);
+
   // Trả về cùng định dạng bạn đang dùng
   return {
     appointments: formData,
+    slot: {
+      slot_select: {
+        slot_id: slotNow?._id,
+        start_time: slotNow?.start_time,
+        end_time: slotNow?.end_time,
+      },
+      slot_list: (await slotService.getListSlotsByDoctorId(doctor._id)) || [],
+    },
     pagination: {
       totalItems: totalAppointments,
       totalPages: totalPages,
