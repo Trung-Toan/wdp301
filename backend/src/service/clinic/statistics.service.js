@@ -325,10 +325,295 @@ async function getSpecialtyDetails(clinicId, specialtyId, { startDate, endDate }
 }
 
 
+
+/**
+ * Lấy thống kê hiệu suất của các bác sĩ trong clinic
+ */
+async function getDoctorPerformance(clinicId, { startDate, endDate, limit = 20, sortBy = 'totalBookings' } = {}) {
+    if (!mongoose.Types.ObjectId.isValid(clinicId)) {
+        throw new Error("Invalid clinic ID");
+    }
+
+    const matchFilter = { clinic_id: new mongoose.Types.ObjectId(clinicId) };
+
+    if (startDate || endDate) {
+        matchFilter.booked_at = {};
+        if (startDate) matchFilter.booked_at.$gte = new Date(startDate);
+        if (endDate) matchFilter.booked_at.$lte = new Date(endDate);
+    }
+
+    // Xác định field để sort
+    let sortField = {};
+    switch (sortBy) {
+        case 'completionRate':
+            sortField = { completionRate: -1 };
+            break;
+        case 'rating':
+            sortField = { rating: -1 };
+            break;
+        case 'totalBookings':
+        default:
+            sortField = { totalBookings: -1 };
+            break;
+    }
+
+    const pipeline = [
+        { $match: matchFilter },
+        {
+            $group: {
+                _id: "$doctor_id",
+                totalBookings: { $sum: 1 },
+                totalRevenue: { $sum: "$fee_amount" },
+                scheduled: { $sum: { $cond: [{ $eq: ["$status", "SCHEDULED"] }, 1, 0] } },
+                completed: { $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] } },
+                cancelled: { $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] } },
+                noShow: { $sum: { $cond: [{ $eq: ["$status", "NO_SHOW"] }, 1, 0] } }
+            }
+        },
+        {
+            $lookup: {
+                from: "doctors",
+                localField: "_id",
+                foreignField: "_id",
+                as: "doctorInfo"
+            }
+        },
+        { $unwind: "$doctorInfo" },
+        {
+            $lookup: {
+                from: "users",
+                localField: "doctorInfo.user_id",
+                foreignField: "_id",
+                as: "userInfo"
+            }
+        },
+        { $unwind: "$userInfo" },
+        {
+            $lookup: {
+                from: "specialties",
+                localField: "doctorInfo.specialty_id",
+                foreignField: "_id",
+                as: "specialties"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                doctor: {
+                    _id: "$doctorInfo._id",
+                    title: "$doctorInfo.title",
+                    degree: "$doctorInfo.degree",
+                    avatar_url: "$doctorInfo.avatar_url",
+                    workplace: "$doctorInfo.workplace",
+                    rating: "$doctorInfo.rating",
+                    full_name: "$userInfo.full_name"
+                },
+                specialties: {
+                    $map: {
+                        input: "$specialties",
+                        as: "spec",
+                        in: {
+                            _id: "$$spec._id",
+                            name: "$$spec.name"
+                        }
+                    }
+                },
+                statistics: {
+                    totalBookings: "$totalBookings",
+                    totalRevenue: "$totalRevenue",
+                    scheduled: "$scheduled",
+                    completed: "$completed",
+                    cancelled: "$cancelled",
+                    noShow: "$noShow",
+                    completionRate: {
+                        $cond: [
+                            { $eq: ["$totalBookings", 0] },
+                            0,
+                            {
+                                $multiply: [
+                                    { $divide: ["$completed", "$totalBookings"] },
+                                    100
+                                ]
+                            }
+                        ]
+                    },
+                    cancellationRate: {
+                        $cond: [
+                            { $eq: ["$totalBookings", 0] },
+                            0,
+                            {
+                                $multiply: [
+                                    { $divide: ["$cancelled", "$totalBookings"] },
+                                    100
+                                ]
+                            }
+                        ]
+                    },
+                    averageRevenuePerBooking: {
+                        $cond: [
+                            { $eq: ["$totalBookings", 0] },
+                            0,
+                            { $divide: ["$totalRevenue", "$totalBookings"] }
+                        ]
+                    }
+                },
+                totalBookings: "$totalBookings",
+                completionRate: {
+                    $cond: [
+                        { $eq: ["$totalBookings", 0] },
+                        0,
+                        {
+                            $multiply: [
+                                { $divide: ["$completed", "$totalBookings"] },
+                                100
+                            ]
+                        }
+                    ]
+                },
+                rating: "$doctorInfo.rating"
+            }
+        },
+        { $sort: sortField },
+        { $limit: Number(limit) }
+    ];
+
+    const results = await Appointment.aggregate(pipeline);
+
+    return results.map(item => ({
+        doctor: item.doctor,
+        specialties: item.specialties,
+        statistics: {
+            ...item.statistics,
+            completionRate: parseFloat(item.statistics.completionRate.toFixed(2)),
+            cancellationRate: parseFloat(item.statistics.cancellationRate.toFixed(2)),
+            averageRevenuePerBooking: Math.round(item.statistics.averageRevenuePerBooking)
+        }
+    }));
+}
+
+/**
+ * Lấy thống kê chi tiết của một bác sĩ cụ thể
+ */
+async function getDoctorDetailedPerformance(clinicId, doctorId, { startDate, endDate } = {}) {
+    if (!mongoose.Types.ObjectId.isValid(clinicId) || !mongoose.Types.ObjectId.isValid(doctorId)) {
+        throw new Error("Invalid clinic or doctor ID");
+    }
+
+    const matchFilter = {
+        clinic_id: new mongoose.Types.ObjectId(clinicId),
+        doctor_id: new mongoose.Types.ObjectId(doctorId)
+    };
+
+    if (startDate || endDate) {
+        matchFilter.booked_at = {};
+        if (startDate) matchFilter.booked_at.$gte = new Date(startDate);
+        if (endDate) matchFilter.booked_at.$lte = new Date(endDate);
+    }
+
+    // Lấy thông tin bác sĩ và statistics
+    const [stats, doctor] = await Promise.all([
+        Appointment.aggregate([
+            { $match: matchFilter },
+            {
+                $group: {
+                    _id: null,
+                    totalBookings: { $sum: 1 },
+                    totalRevenue: { $sum: "$fee_amount" },
+                    scheduled: { $sum: { $cond: [{ $eq: ["$status", "SCHEDULED"] }, 1, 0] } },
+                    completed: { $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] } },
+                    cancelled: { $sum: { $cond: [{ $eq: ["$status", "CANCELLED"] }, 1, 0] } },
+                    noShow: { $sum: { $cond: [{ $eq: ["$status", "NO_SHOW"] }, 1, 0] } }
+                }
+            }
+        ]),
+        Doctor.findById(doctorId)
+            .populate('user_id', 'full_name')
+            .populate('specialty_id', 'name')
+            .lean()
+    ]);
+
+    if (!doctor) {
+        throw new Error("Doctor not found");
+    }
+
+    const result = stats[0] || {
+        totalBookings: 0,
+        totalRevenue: 0,
+        scheduled: 0,
+        completed: 0,
+        cancelled: 0,
+        noShow: 0
+    };
+
+    // Lấy xu hướng theo thời gian (theo ngày)
+    const trendsPipeline = [
+        { $match: matchFilter },
+        {
+            $group: {
+                _id: {
+                    year: { $year: "$booked_at" },
+                    month: { $month: "$booked_at" },
+                    day: { $dayOfMonth: "$booked_at" }
+                },
+                count: { $sum: 1 },
+                completed: { $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] } }
+            }
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
+        { $limit: 30 } // Lấy 30 ngày gần nhất
+    ];
+
+    const trends = await Appointment.aggregate(trendsPipeline);
+
+    return {
+        doctor: {
+            _id: doctor._id,
+            title: doctor.title,
+            degree: doctor.degree,
+            avatar_url: doctor.avatar_url,
+            workplace: doctor.workplace,
+            rating: doctor.rating,
+            full_name: doctor.user_id?.full_name
+        },
+        specialties: Array.isArray(doctor.specialty_id)
+            ? doctor.specialty_id.map(s => ({ _id: s._id, name: s.name }))
+            : [],
+        statistics: {
+            totalBookings: result.totalBookings,
+            totalRevenue: result.totalRevenue,
+            averageRevenuePerBooking: result.totalBookings > 0
+                ? Math.round(result.totalRevenue / result.totalBookings)
+                : 0,
+            statusBreakdown: {
+                scheduled: result.scheduled,
+                completed: result.completed,
+                cancelled: result.cancelled,
+                noShow: result.noShow
+            },
+            completionRate: result.totalBookings > 0
+                ? parseFloat(((result.completed / result.totalBookings) * 100).toFixed(2))
+                : 0,
+            cancellationRate: result.totalBookings > 0
+                ? parseFloat(((result.cancelled / result.totalBookings) * 100).toFixed(2))
+                : 0,
+            noShowRate: result.totalBookings > 0
+                ? parseFloat(((result.noShow / result.totalBookings) * 100).toFixed(2))
+                : 0
+        },
+        trends: trends.map(t => ({
+            date: t._id,
+            totalBookings: t.count,
+            completedBookings: t.completed
+        }))
+    };
+}
+
 module.exports = {
     getBookingStatistics,
     getBookingTrends,
     getTopSpecialties,
     getSpecialtyDetails,
+    getDoctorPerformance,
+    getDoctorDetailedPerformance
 };
 

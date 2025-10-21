@@ -87,4 +87,47 @@ exports.getSpecialtyDetails = async (req, res) => {
     }
 };
 
+/**
+ * Controller để lấy thống kê hiệu suất bác sĩ
+ * GET /api/clinics/:clinicId/statistics/doctors/performance
+ */
+exports.getDoctorPerformance = async (req, res) => {
+    try {
+        const { clinicId } = req.params;
+        const { startDate, endDate, limit, sortBy } = req.query;
+
+        const performance = await statisticsService.getDoctorPerformance(clinicId, {
+            startDate,
+            endDate,
+            limit: limit ? parseInt(limit) : 20,
+            sortBy: sortBy || 'totalBookings'
+        });
+
+        return successResponse(res, performance, "Lấy hiệu suất bác sĩ thành công");
+    } catch (error) {
+        console.error("Error in getDoctorPerformance:", error);
+        return errorResponse(res, error.message, 500);
+    }
+};
+
+/**
+ * Controller để lấy thống kê chi tiết hiệu suất của một bác sĩ
+ * GET /api/clinics/:clinicId/statistics/doctors/:doctorId
+ */
+exports.getDoctorDetailedPerformance = async (req, res) => {
+    try {
+        const { clinicId, doctorId } = req.params;
+        const { startDate, endDate } = req.query;
+
+        const details = await statisticsService.getDoctorDetailedPerformance(clinicId, doctorId, {
+            startDate,
+            endDate
+        });
+
+        return successResponse(res, details, "Lấy chi tiết hiệu suất bác sĩ thành công");
+    } catch (error) {
+        console.error("Error in getDoctorDetailedPerformance:", error);
+        return errorResponse(res, error.message, 500);
+    }
+};
 

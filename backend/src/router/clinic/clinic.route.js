@@ -179,4 +179,71 @@ router.get("/:clinicId/statistics/specialties/:specialtyId", statisticsCtrl.getS
 
 
 
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/statistics/doctors/performance:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy thống kê hiệu suất của các bác sĩ
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của clinic
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *         description: Số lượng bác sĩ trả về
+ *       - in: query
+ *         name: sortBy
+ *         schema: { type: string, enum: [totalBookings, completionRate, rating], default: totalBookings }
+ *         description: Sắp xếp theo
+ *     responses:
+ *       200:
+ *         description: Lấy hiệu suất bác sĩ thành công
+ */
+router.get("/:clinicId/statistics/doctors/performance", statisticsCtrl.getDoctorPerformance);
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/statistics/doctors/{doctorId}:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy thống kê chi tiết hiệu suất của một bác sĩ
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của clinic
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID của bác sĩ
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date }
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Lấy chi tiết hiệu suất bác sĩ thành công
+ */
+router.get("/:clinicId/statistics/doctors/:doctorId", statisticsCtrl.getDoctorDetailedPerformance);
+
+
+
 module.exports = router;
