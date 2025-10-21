@@ -25,7 +25,6 @@ const AppointmentSchedule = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  // 🔹 Fetch appointments theo API mới
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
