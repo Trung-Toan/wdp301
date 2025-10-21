@@ -205,3 +205,29 @@
     @apply w-full;
   }
 }
+/* ========== Modal Slide-in Panel ========== */
+.appointment-modal-overlay {
+  @apply fixed inset-0 z-50 flex justify-end;
+}
+
+.appointment-modal-backdrop {
+  @apply absolute inset-0 bg-black/40 backdrop-blur-sm;
+}
+
+.appointment-modal-panel {
+  @apply relative z-[60] w-full sm:w-[420px] h-full bg-white shadow-2xl overflow-y-auto
+         transform translate-x-0 transition-transform duration-300;
+}
+
+.appointment-modal-header {
+  @apply flex items-center justify-between p-5 border-b border-gray-200;
+}
+
+.appointment-modal-content {
+  @apply p-5 space-y-4;
+}
+
+/* Khi modal đóng (nếu muốn animation trượt) */
+.appointment-modal-panel.hidden {
+  @apply translate-x-full;
+}

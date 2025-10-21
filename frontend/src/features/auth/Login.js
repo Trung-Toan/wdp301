@@ -1,14 +1,19 @@
 import { memo, useEffect, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Button, Container, Form, InputGroup } from "react-bootstrap";
+import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { clearSessionStorage, setSessionStorage } from "../../hooks/useSessionStorage";
+import {
+  clearSessionStorage,
+  setSessionStorage,
+} from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
-import { loginUser } from "../../api/LoginController";
+
+import "../../styles/Login.css";
+import { loginUser } from "../../api/auth/login/LoginController";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,30 +25,71 @@ const Login = () => {
 
   useEffect(() => {
     clearSessionStorage();
-  }, [])
+  }, []);
 
-  // Sử dụng useMutation để gọi loginUser
+  // Gọi API đăng nhập
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
-    onSuccess: (data) => {
-      const token = data.token;
-      setSessionStorage("token", token);
+    onSuccess: (response) => {
+      if (!response.ok) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi đăng nhập",
+          text: response.message || "Tên đăng nhập hoặc mật khẩu không đúng!",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
 
-      const user = data.user;
+      console.log("LOGIN RESPONSE:", response);
+      const token = response.tokens?.accessToken;
+      const user = response.account;
+      const patient = response.patient;
+      console.log("PATIENT FROM LOGIN:", patient);
+      
+      if (!token || !user) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi dữ liệu đăng nhập",
+          text: "Token hoặc user không tồn tại.",
+          timer: 3000,
+          showConfirmButton: true,
+        });
+        return;
+      }
+
+      setSessionStorage("token", token);
       setSessionStorage("user", user);
-      navigate("/");
+      setSessionStorage("patient", patient);
+
+      Swal.fire({
+        icon: "success",
+        title: "Đăng nhập thành công!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      if (user.role === "DOCTOR") {
+        navigate("/doctor/dashboard");
+      } else {
+        navigate("/home");
+      }
     },
+
+
     onError: (error) => {
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: error.message || "Login failed!",
+        title: "Lỗi đăng nhập",
+        text: error.message || "Tên đăng nhập hoặc mật khẩu không đúng!",
         timer: 3000,
         showConfirmButton: true,
       });
     },
   });
 
+  // Formik
   const formik = useFormik({
     initialValues: {
       username: "",
@@ -51,13 +97,13 @@ const Login = () => {
     },
     validationSchema: Yup.object({
       username: Yup.string()
-        .required("Username or email cannot be blank")
-        .min(3, "Username or email must be between 3 and 255 characters")
-        .max(255, "Username or email must be between 3 and 255 characters"),
+        .required("Vui lòng nhập email hoặc tên đăng nhập")
+        .min(3, "Tối thiểu 3 ký tự")
+        .max(255, "Tối đa 255 ký tự"),
       password: Yup.string()
-        .required("Password cannot be blank")
-        .min(6, "Password must be between 6 and 100 characters")
-        .max(100, "Password must be between 6 and 100 characters"),
+        .required("Vui lòng nhập mật khẩu")
+        .min(6, "Tối thiểu 6 ký tự")
+        .max(100, "Tối đa 100 ký tự"),
     }),
     onSubmit: (values) => {
       mutation.mutate(values);
@@ -65,75 +111,118 @@ const Login = () => {
   });
 
   return (
-    <Container
-      className="p-4 bg-white rounded shadow"
-      style={{ maxWidth: "400px" }}
-    >
-      <h2 className="text-center mb-4">Login</h2>
-      <Form onSubmit={formik.handleSubmit}>
-        {/* Tên đăng nhập */}
-        <Form.Group className="mb-3" controlId="formUsername">
-          <Form.Label className="fw-bold">Email</Form.Label>
-          <Form.Control
-            type="text"
-            name="username"
-            placeholder="Enter email"
-            value={formik.values.username}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            isInvalid={!!formik.errors.username && formik.touched.username}
-          />
-          <Form.Control.Feedback type="invalid">
-            {formik.errors.username}
-          </Form.Control.Feedback>
-        </Form.Group>
+    <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100 bg-light">
+      <Container
+        className="p-4 bg-white rounded-4 shadow-lg"
+        style={{ maxWidth: "420px" }}
+      >
+        <div className="text-center mb-4">
+          <h3 className="fw-bold text-primary" style={{ color: "#45c3d2" }}>
+            Đăng nhập hệ thống
+          </h3>
+          <p className="text-muted" style={{ fontSize: "14px" }}>
+            Đặt lịch khám nhanh chóng và thuận tiện
+          </p>
+        </div>
 
-        {/* Mật khẩu */}
-        <Form.Group className="mb-3" controlId="formPassword">
-          <Form.Label className="fw-bold">Password</Form.Label>
-          <InputGroup>
+        <Form onSubmit={formik.handleSubmit}>
+          {/* Email / Username */}
+          <Form.Group className="mb-3" controlId="formUsername">
+            <Form.Label className="fw-semibold text-secondary">
+              Email hoặc Tên đăng nhập
+            </Form.Label>
             <Form.Control
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Enter password"
-              value={formik.values.password}
+              type="text"
+              name="username"
+              placeholder="Nhập email hoặc username"
+              value={formik.values.username}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
-              isInvalid={!!formik.errors.password && formik.touched.password}
+              isInvalid={!!formik.errors.username && formik.touched.username}
             />
-            <Button
-              variant="outline-secondary"
-              onClick={togglePasswordVisibility}
-              className="border-left-0"
-            >
-              {showPassword ? <EyeSlash /> : <Eye />}
-            </Button>
             <Form.Control.Feedback type="invalid">
-              {formik.errors.password}
+              {formik.errors.username}
             </Form.Control.Feedback>
-          </InputGroup>
-        </Form.Group>
+          </Form.Group>
 
-        {/* Nút đăng nhập */}
-        <Button variant="warning" type="submit" className="w-100">
-          Submit
-        </Button>
-      </Form>
+          {/* Password */}
+          <Form.Group className="mb-3" controlId="formPassword">
+            <Form.Label className="fw-semibold text-secondary">
+              Mật khẩu
+            </Form.Label>
+            <InputGroup>
+              <Form.Control
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Nhập mật khẩu"
+                value={formik.values.password}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                isInvalid={!!formik.errors.password && formik.touched.password}
+              />
+              <Button
+                variant="outline-secondary"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <EyeSlash /> : <Eye />}
+              </Button>
+              <Form.Control.Feedback type="invalid">
+                {formik.errors.password}
+              </Form.Control.Feedback>
+            </InputGroup>
+          </Form.Group>
 
-      <p className="text-center mt-3" style={{ fontSize: "12px" }}>
-        Do you have account?{" "}
-        <Link to="/register" className="text-warning">
-          Register account
-        </Link>
-        <br />
-        Forget password ?{" "}
-        <Link to="/find_email" className="text-warning">
-          Find account
-        </Link>
-      </p>
+          {/* Nút đăng nhập */}
+          <div className="d-grid mt-4">
+            <Button
+              type="submit"
+              disabled={mutation.isLoading}
+              style={{
+                backgroundColor: "#45c3d2",
+                border: "none",
+                fontWeight: "bold",
+              }}
+              className="py-2"
+            >
+              {mutation.isLoading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    className="me-2"
+                  />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                "Đăng nhập"
+              )}
+            </Button>
+          </div>
+        </Form>
 
-      <GoogleLoginButton />
-    </Container>
+        {/* Google login */}
+        <div className="mt-4">
+          <GoogleLoginButton />
+        </div>
+
+        {/* Links */}
+        <p
+          className="text-center mt-4 mb-0 text-secondary"
+          style={{ fontSize: "13px" }}
+        >
+          Chưa có tài khoản?{" "}
+          <Link to="/register" className="text-primary fw-semibold">
+            Đăng ký ngay
+          </Link>
+          <br />
+          Quên mật khẩu?{" "}
+          <Link to="/find_email" className="text-primary fw-semibold">
+            Khôi phục tài khoản
+          </Link>
+        </p>
+      </Container>
+    </div>
   );
 };
 

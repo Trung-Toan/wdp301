@@ -9,7 +9,6 @@ import {
   BellSlash,
   ChatLeftText,
   PersonBadge,
-  CheckCircle,
   List,
   X,
   BoxArrowRight,
@@ -22,6 +21,8 @@ const DoctorLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const user = JSON.parse(sessionStorage.getItem("user"));
 
   const menuItems = [
     {
@@ -40,7 +41,7 @@ const DoctorLayout = () => {
       link: "/doctor/appointments",
     },
     {
-      title: "Yêu cầu bệnh án",
+      title: "Yêu cầu xem bệnh án",
       icon: <FileText size={20} />,
       link: "/doctor/record-requests",
     },
@@ -48,11 +49,6 @@ const DoctorLayout = () => {
       title: "Hồ sơ bệnh án",
       icon: <ClipboardCheck size={20} />,
       link: "/doctor/medical-records",
-    },
-    {
-      title: "Duyệt đơn thuốc",
-      icon: <CheckCircle size={20} />,
-      link: "/doctor/prescriptions",
     },
     {
       title: "Feedback",
@@ -73,7 +69,7 @@ const DoctorLayout = () => {
 
   const handleLogout = () => {
     sessionStorage.clear();
-    navigate("/login");
+    navigate("/home");
   };
 
   return (
@@ -96,9 +92,8 @@ const DoctorLayout = () => {
             <Link
               key={index}
               to={item.link}
-              className={`nav-item ${
-                location.pathname === item.link ? "nav-item-active" : ""
-              }`}
+              className={`nav-item ${location.pathname === item.link ? "nav-item-active" : ""
+                }`}
             >
               <span className="nav-icon">{item.icon}</span>
               {sidebarOpen && <span className="nav-text">{item.title}</span>}
@@ -134,7 +129,7 @@ const DoctorLayout = () => {
             <div className="user-profile">
               <PersonCircle size={32} />
               <div className="user-info">
-                <span className="user-name">BS. Nguyễn Văn A</span>
+                <span className="user-name">{user.username}</span>
                 <span className="user-role">Bác sĩ</span>
               </div>
             </div>
@@ -151,15 +146,15 @@ const DoctorLayout = () => {
           <div className="footer-content">
             <p className="footer-text">© 2025 MediCare. All rights reserved.</p>
             <div className="footer-links">
-              <a href="#" className="footer-link">
+              <Link to="#" className="footer-link">
                 Điều khoản
-              </a>
-              <a href="#" className="footer-link">
+              </Link>
+              <Link to="#" className="footer-link">
                 Chính sách
-              </a>
-              <a href="#" className="footer-link">
+              </Link>
+              <Link to="#" className="footer-link">
                 Hỗ trợ
-              </a>
+              </Link>
             </div>
           </div>
         </footer>

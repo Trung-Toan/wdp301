@@ -1,0 +1,16 @@
+.login-wrapper {
+  background: linear-gradient(135deg, #e0f7fa, #ffffff);
+}
+
+button.btn-outline-secondary {
+  border-color: #ddd;
+}
+
+button.btn-outline-secondary:hover {
+  background-color: #f2f2f2;
+}
+
+.form-control:focus {
+  border-color: #45c3d2 !important;
+  box-shadow: 0 0 0 0.15rem rgba(69, 195, 210, 0.25) !important;
+}
