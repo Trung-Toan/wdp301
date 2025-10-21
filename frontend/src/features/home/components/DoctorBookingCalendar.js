@@ -70,7 +70,11 @@ export function DoctorBookingCalendar({ doctor }) {
         // key lưu login
         if (!user) {
             toast.error("Vui lòng đăng nhập để đặt lịch!");
-            navigate("/login"); // <-- chuyển sang trang login
+            setTimeout(() => {
+                navigate("/login", {
+                    state: { from: window.location.pathname + window.location.search }, // lưu đường dẫn hiện tại
+                });
+            }, 500);
             return;
         }
         // Nếu đã đăng nhập, chuyển sang booking page

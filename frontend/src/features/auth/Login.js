@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
   clearSessionStorage,
@@ -18,6 +18,8 @@ import { loginUser } from "../../api/auth/login/LoginController";
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from || "/home";
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -47,7 +49,7 @@ const Login = () => {
       const user = response.account;
       const patient = response.patient;
       console.log("PATIENT FROM LOGIN:", patient);
-      
+
       if (!token || !user) {
         Swal.fire({
           icon: "error",
@@ -73,7 +75,7 @@ const Login = () => {
       if (user.role === "DOCTOR") {
         navigate("/doctor/dashboard");
       } else {
-        navigate("/home");
+        navigate(redirectTo, { replace: true });
       }
     },
 
