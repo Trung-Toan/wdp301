@@ -1,6 +1,6 @@
 const Appointment = require("../../model/appointment/Appointment");
 const doctorService = require("./../doctor/doctor.service");
-const slotService = require("../slot/slot.service");
+const Slot = require("../../model/appointment/Slot");
 const { now } = require("mongoose");
 
 /**
@@ -103,19 +103,24 @@ exports.getListAppointments = async (req) => {
     throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
   }
 
-  const slotObj =
-    (await slotService.getSlotAtNowByDocterId(doctor._id)) ||
-    (await slotService.getFirtAvailableSlotByDoctorId(doctor._id));
+    const {
+        page = 1,
+        limit = 10,
+        status = null,
+        slot = null,
+        date = new Date()
+    } = req.query;
 
-  const {
-    page = 1,
-    limit = 10,
-    status = null,
-    slot = slotObj?._id,
-    date = new Date(),
-  } = req.query;
-
-  const slotNow = await slotService.getSlotById(slot);
+    // Nếu không có slot được chỉ định, lấy slot hiện tại của bác sĩ
+    let slotId = slot;
+    if (!slotId) {
+        const currentSlot = await Slot.findOne({
+            doctor_id: doctor._id,
+            start_time: { $lte: new Date() },
+            end_time: { $gte: new Date() }
+        }).sort({ start_time: 1 });
+        slotId = currentSlot ? currentSlot._id : null;
+    }
 
   // Ép kiểu số nguyên
   const currentPage = parseInt(page, 10);
@@ -124,35 +129,35 @@ exports.getListAppointments = async (req) => {
   // Tính toán skip
   const skip = (currentPage - 1) * limitNumber;
 
-  // Đếm tổng số lịch hẹn
-  const totalAppointments = await Appointment.countDocuments({
-    doctor_id: doctor._id,
-    ...(status ? { status } : {}),
-    slot_id: slot,
-    scheduled_date: date,
-  });
+    // Đếm tổng số lịch hẹn
+    const totalAppointments = await Appointment.countDocuments({
+        doctor_id: doctor._id,
+        ...(status ? { status } : {}),
+        ...(slotId ? { slot_id: slotId } : {}),
+        scheduled_date: date
+    });
 
   // Tính tổng số trang
   const totalPages = Math.ceil(totalAppointments / limitNumber);
 
-  // Lấy danh sách lịch hẹn có phân trang
-  const appointments = await Appointment.find({
-    doctor_id: doctor._id,
-    ...(status ? { status } : {}),
-    slot_id: slot,
-    scheduled_date: date,
-  })
-    .select(
-      "_id slot_id patient_id scheduled_date status created_at phone full_name"
-    )
-    .populate({
-      path: "patient_id",
-      select: "patient_code",
-    })
-    .lean()
-    .sort({ appointment_date: -1 })
-    .skip(skip)
-    .limit(limitNumber);
+    // Lấy danh sách lịch hẹn có phân trang
+    const appointments = await Appointment
+        .find({
+            doctor_id: doctor._id,
+            ...(status ? { status } : {}),
+            ...(slotId ? { slot_id: slotId } : {}),
+            scheduled_date: date
+        })
+        .select("_id slot_id patient_id scheduled_date status created_at phone full_name")
+        .populate("slot_id", "start_time end_time")
+        .populate({
+            path: "patient_id",
+            select: "patient_code",
+        })
+        .lean()
+        .sort({ appointment_date: -1 })
+        .skip(skip)
+        .limit(limitNumber);
 
   // Định dạng dữ liệu trả về
   const formData = appointments.map((app) => ({

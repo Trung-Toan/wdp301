@@ -41,7 +41,7 @@ function dateOnlyUTC(d) {
 // Ngày và giá sẽ được set trực tiếp trong service
 
 appointmentSchema.index(
-  { slot_id: 1, patient_id: 1 },
+  { slot_id: 1, patient_id: 1, scheduled_date: 1 },
   { unique: true, partialFilterExpression: { status: "SCHEDULED" } }
 );
 
