@@ -9,6 +9,7 @@ import FeedbackView from "../features/doctor/FeedbackView";
 import AssistantManagement from "../features/doctor/AssistantManagement";
 // import DoctorRegistration from "../features/doctor/DoctorRegistration";
 import MedicalRecordRequests from "../features/doctor/MedicalRecordRequests";
+import DoctorProfile from "../features/doctor/DoctorProfile";
 // import AbsenceNotification from "../features/doctor/AbsenceNotification";
 
 const RouterDoctor = () => {
@@ -17,6 +18,7 @@ const RouterDoctor = () => {
       <Route path="/" element={<DoctorLayout />}>
         <Route index element={<DoctorDashboard />} />
         <Route path="dashboard" element={<DoctorDashboard />} />
+        <Route path="profile" element={<DoctorProfile />} />
         <Route path="appointments" element={<AppointmentSchedule />} />
         <Route path="patients" element={<PatientList />} />
         <Route path="feedback" element={<FeedbackView />} />
