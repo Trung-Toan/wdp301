@@ -17,9 +17,7 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
 
         { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
         { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
-
         { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } },
-
         {
             $lookup: {
                 from: "slots",
