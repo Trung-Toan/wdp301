@@ -325,13 +325,13 @@ exports.getListMedicalRecords = async (req) => {
       // Liên kết với collection 'users' để lấy full_name
       {
         $lookup: {
-          from: "users", // Tên collection của User, thường là số nhiều
-          localField: "patientInfo.user_id",
+          from: "appointments", // Tên collection của User, thường là số nhiều
+          localField: "appointment_id",
           foreignField: "_id",
-          as: "userInfo",
+          as: "appointmentInfo",
         },
       },
-      { $unwind: "$userInfo" },
+      { $unwind: "$appointmentInfo" },
     ];
 
     // 3. Thêm điều kiện $match cho tìm kiếm nếu có `search` query
@@ -340,7 +340,7 @@ exports.getListMedicalRecords = async (req) => {
         $match: {
           $or: [
             { "patientInfo.patient_code": { $regex: search, $options: "i" } },
-            { "userInfo.full_name": { $regex: search, $options: "i" } },
+            { "appointmentInfo.full_name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -383,7 +383,7 @@ exports.getListMedicalRecords = async (req) => {
           patient_id: "$patientInfo._id",
           doctor_id: "$doctor_id",
           patient_code: "$patientInfo.patient_code",
-          patient_name: "$userInfo.full_name",
+          patient_name: "$appointmentInfo.full_name",
         },
       },
     ];
