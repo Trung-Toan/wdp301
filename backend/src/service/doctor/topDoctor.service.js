@@ -31,7 +31,12 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
             select: "name",
             model: "Specialty",
         })
-        .select("title degree workplace rating avatar_url specialty_id clinic_id createdAt")
+        .populate({
+            path: "user_id",
+            select: "full_name",
+            model: "User",
+        })
+        .select("title degree workplace rating avatar_url specialty_id clinic_id user_id createdAt")
         .lean();
 
     if (limit && Number(limit) > 0) {
@@ -42,6 +47,7 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
 
     return doctors.map(d => ({
         _id: d._id,
+        full_name: d.user_id ? d.user_id.full_name : null, // thêm full_name
         title: d.title,
         degree: d.degree,
         workplace: d.workplace,
@@ -60,5 +66,4 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         createdAt: d.createdAt,
     }));
 }
-
 module.exports = { getTopDoctors };

@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { Route, Routes } from "react-router-dom";
 import Login from "../features/auth/Login";
-import FindEmail from "../features/auth/FindEmail";
 import ForgetPassword from "../features/auth/ForgetPassword";
 import Register from "../features/auth/RegisterTypeSelection";
 import RegistePatients from "../features/auth/RegisterType/PatientRegisterForm";
@@ -49,7 +48,6 @@ const RouterUser = () => {
         <Route path="/patient/records/:recordId" element={<RecordDetail />} />
 
         <Route path="login" element={<Login />} />
-        <Route path="find_email" element={<FindEmail />} />
         <Route path="forgot_password" element={<ForgetPassword />} />
         <Route path="register" element={<Register />} />
         <Route path="register/patient" element={<RegistePatients />} />
