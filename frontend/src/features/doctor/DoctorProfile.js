@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "react-bootstrap";
+import { Navigate } from "react-router-dom";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -32,23 +33,26 @@ const DoctorProfile = () => {
     }));
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    console.log("Dữ liệu đã lưu:", doctorProfile);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
       <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8 border border-blue-100">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-blue-700">Hồ sơ bác sĩ</h2>
-          <Button
-            onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
-          </Button>
+          <div className="space-x-3">
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
+            </Button>
+            <Button
+              onClick={() => Navigate("/doctor/change-password")}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              Đổi mật khẩu
+            </Button>
+          </div>
         </div>
 
         {/* Avatar */}
