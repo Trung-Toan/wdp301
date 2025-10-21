@@ -23,32 +23,28 @@ const DoctorProfile = () => {
     specialties: ["Nội tổng quát", "Tim mạch", "Hô hấp"],
   });
 
-  // State cho chế độ chỉnh sửa
   const [isEditing, setIsEditing] = useState(false);
   const [tempDoctor, setTempDoctor] = useState(doctor);
 
-  // Hàm xử lý thay đổi input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setTempDoctor({ ...tempDoctor, [name]: value });
   };
 
-  // Lưu thay đổi
   const handleSave = () => {
     setDoctor(tempDoctor);
     setIsEditing(false);
   };
 
-  // Hủy thay đổi
   const handleCancel = () => {
     setTempDoctor(doctor);
     setIsEditing(false);
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -63,23 +59,23 @@ const DoctorProfile = () => {
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg transition font-medium shadow"
           >
             <PencilSquare size={18} />
             Chỉnh sửa
           </button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg transition font-medium shadow"
             >
               <Check2 size={18} />
               Lưu
             </button>
             <button
               onClick={handleCancel}
-              className="flex items-center gap-2 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition"
+              className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg transition font-medium shadow"
             >
               <XCircle size={18} />
               Hủy
@@ -88,14 +84,14 @@ const DoctorProfile = () => {
         )}
       </div>
 
-      {/* Card Profile */}
-      <div className="bg-white rounded-2xl shadow-md p-6 md:flex gap-8 items-start">
+      {/* Profile Card */}
+      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-8">
         {/* Avatar */}
-        <div className="flex flex-col items-center md:w-1/4 mb-6 md:mb-0">
+        <div className="flex flex-col items-center mb-8">
           <img
             src={doctor.avatar_url}
             alt="Doctor Avatar"
-            className="w-40 h-40 rounded-full border-4 border-gray-200 object-cover shadow-sm"
+            className="w-36 h-36 rounded-full border-4 border-blue-100 object-cover shadow-md"
           />
           {isEditing && (
             <input
@@ -104,87 +100,76 @@ const DoctorProfile = () => {
               value={tempDoctor.avatar_url}
               onChange={handleChange}
               placeholder="Link ảnh đại diện"
-              className="mt-3 w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
+              className="mt-3 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:outline-none"
             />
           )}
         </div>
 
-        {/* Info */}
-        <div className="flex-1 space-y-3">
-          {isEditing ? (
-            <>
-              <input
-                type="text"
-                name="title"
-                value={tempDoctor.title}
-                onChange={handleChange}
-                className="text-xl font-semibold text-gray-800 border-b border-gray-300 w-full focus:outline-none"
-              />
-              <input
-                type="text"
-                name="degree"
-                value={tempDoctor.degree}
-                onChange={handleChange}
-                className="italic text-gray-600 border-b border-gray-300 w-full focus:outline-none"
-              />
-            </>
-          ) : (
-            <>
-              <h3 className="text-xl font-semibold text-gray-800">
-                {doctor.title}
-              </h3>
-              <p className="italic text-gray-600">{doctor.degree}</p>
-            </>
-          )}
+        {/* Thông tin */}
+        <div className="space-y-5">
+          <ProfileField
+            label="Chức danh"
+            name="title"
+            value={tempDoctor.title}
+            isEditing={isEditing}
+            onChange={handleChange}
+          />
+          <ProfileField
+            label="Học vị"
+            name="degree"
+            value={tempDoctor.degree}
+            isEditing={isEditing}
+            onChange={handleChange}
+          />
+          <ProfileField
+            label="Nơi làm việc"
+            name="workplace"
+            value={tempDoctor.workplace}
+            isEditing={isEditing}
+            onChange={handleChange}
+          />
+          <ProfileField
+            label="Kinh nghiệm"
+            name="experience"
+            value={tempDoctor.experience}
+            isEditing={isEditing}
+            onChange={handleChange}
+          />
+          <ProfileField
+            label="Chuyên khoa"
+            name="specialties"
+            value={tempDoctor.specialties.join(", ")}
+            isEditing={isEditing}
+            onChange={(e) =>
+              setTempDoctor({
+                ...tempDoctor,
+                specialties: e.target.value.split(",").map((s) => s.trim()),
+              })
+            }
+          />
+          <ProfileField
+            label="Đánh giá"
+            name="rating"
+            value={tempDoctor.rating}
+            isEditing={isEditing}
+            onChange={handleChange}
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2">
-            <ProfileField
-              label="🏥 Nơi làm việc"
-              name="workplace"
-              value={tempDoctor.workplace}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <ProfileField
-              label="⭐ Đánh giá"
-              name="rating"
-              value={tempDoctor.rating}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <ProfileField
-              label="🧠 Kinh nghiệm"
-              name="experience"
-              value={tempDoctor.experience}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <ProfileField
-              label="👨‍⚕️ Chuyên khoa"
-              name="specialties"
-              value={tempDoctor.specialties.join(", ")}
-              isEditing={isEditing}
-              onChange={(e) =>
-                setTempDoctor({
-                  ...tempDoctor,
-                  specialties: e.target.value.split(",").map((s) => s.trim()),
-                })
-              }
-            />
-          </div>
-
+          {/* Description */}
           <div>
-            <p className="font-medium text-gray-700 mb-1">🩺 Giới thiệu:</p>
+            <label className="block text-gray-700 font-medium mb-1">
+              Giới thiệu
+            </label>
             {isEditing ? (
               <textarea
                 name="description"
                 value={tempDoctor.description}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md p-2 text-gray-700 focus:ring focus:ring-blue-200"
                 rows={4}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               />
             ) : (
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed bg-gray-50 border border-gray-100 rounded-md p-3">
                 {doctor.description}
               </p>
             )}
@@ -195,21 +180,23 @@ const DoctorProfile = () => {
   );
 };
 
-// Component con cho các field đơn giản
+// Component con cho từng trường
 const ProfileField = ({ label, name, value, isEditing, onChange }) => {
   return (
     <div>
-      <span className="font-medium text-gray-700">{label}:</span>{" "}
+      <label className="block text-gray-700 font-medium mb-1">{label}</label>
       {isEditing ? (
         <input
           type="text"
           name={name}
           value={value}
           onChange={onChange}
-          className="border-b border-gray-300 focus:outline-none w-full"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-gray-700 focus:ring-2 focus:ring-blue-200 focus:outline-none"
         />
       ) : (
-        <span>{value}</span>
+        <p className="text-gray-700 bg-gray-50 border border-gray-100 rounded-md px-3 py-2">
+          {value}
+        </p>
       )}
     </div>
   );
