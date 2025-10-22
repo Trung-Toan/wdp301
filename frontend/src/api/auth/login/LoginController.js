@@ -47,7 +47,6 @@ export const forgotPassword = async (userId, password, rePassword) => {
   }
 };
 
-
 export const loginByGoogleAccount = async (idToken) => {
   try {
     const response = await axios.post(AUTHEN_API.LOGIN_BY_GOOGLE, {

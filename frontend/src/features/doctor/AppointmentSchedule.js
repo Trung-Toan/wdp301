@@ -9,13 +9,7 @@ import {
   Eye,
   ClockHistory,
   X,
-  Activity,
 } from "react-bootstrap-icons";
-import {
-  updateAppointmentStatus,
-  getAppointments,
-  getSlotsByDate,
-} from "../../services/doctorService";
 import "../../styles/doctor/appointment-schedule.css";
 import { doctorApi } from "../../api/doctor/doctorApi";
 
@@ -32,38 +26,24 @@ const AppointmentSchedule = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   useEffect(() => {
-    const fetchSlots = async () => {
-      try {
-        const res = await getSlotsByDate("DOC001", selectedDate);
-        if (res.success) {
-          setSlots(res.data || []);
-        } else {
-          setSlots([]);
-        }
-      } catch (error) {
-        console.error("Error fetching slots:", error);
-        setSlots([]);
-      }
-    };
-
-    fetchSlots();
-  }, [selectedDate]);
-
-  useEffect(() => {
     const fetchAppointments = async () => {
       try {
         setLoading(true);
-        const res = await doctorApi.getAppointments(
-          1,
-          10,
-          selectedDate,
-          filterStatus
-        );
+        const res = await doctorApi.getAppointments({
+          page: 1,
+          limit: 10,
+          status: filterStatus === "ALL" ? "" : filterStatus,
+          date: selectedDate,
+          slot: selectedSlot,
+        });
 
         if (res.data.ok) {
-          setAppointments(res.data.data || []);
+          const { appointments, slot } = res.data.data || {};
+          setAppointments(appointments || []);
+          setSlots(slot?.slot_list || []);
         } else {
           setAppointments([]);
+          setSlots([]);
         }
       } catch (error) {
         console.error("Error fetching appointments:", error);
@@ -74,72 +54,18 @@ const AppointmentSchedule = () => {
     };
 
     fetchAppointments();
-  }, [selectedDate, filterStatus]);
+  }, [selectedDate, filterStatus, selectedSlot]);
 
+  // 🔹 Định nghĩa status hiển thị
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      SCHEDULED: {
-        label: "Đã lên lịch",
-        class: "status-scheduled",
-        icon: ClockHistory,
-      },
-      COMPLETED: {
-        label: "Hoàn thành",
-        class: "status-completed",
-        icon: CheckCircle,
-      },
+    const config = {
+      SCHEDULED: { label: "Đã lên lịch", class: "status-scheduled", icon: ClockHistory },
+      COMPLETED: { label: "Hoàn thành", class: "status-completed", icon: CheckCircle },
       CANCELLED: { label: "Đã hủy", class: "status-cancelled", icon: XCircle },
       NO_SHOW: { label: "Không đến", class: "status-no-show", icon: XCircle },
     };
-    return statusConfig[status] || statusConfig.SCHEDULED;
+    return config[status] || config.SCHEDULED;
   };
-
-  const filteredAppointments = Array.isArray(appointments)
-    ? appointments.filter((apt) => {
-        if (
-          filterStatus !== "ALL" &&
-          apt?.appointment.status !== filterStatus
-        ) {
-          return false;
-        }
-        if (selectedSlot && apt.slot_id !== selectedSlot) {
-          return false;
-        }
-        return true;
-      })
-    : [];
-
-  const getPatientName = (appointment) => {
-    return appointment?.patient?.patient_name || "Chưa có thông tin";
-  };
-
-  const getPatientPhone = (appointment) => {
-    return appointment?.patient?.phone_number || "Chưa có thông tin";
-  };
-
-  // const getSpecialtyName = (appointment) => {
-  //   return appointment?.specialty?.name || "Chưa có thông tin";
-  // };
-
-  const calculateAge = (dob) => {
-    if (!dob) return "N/A";
-    try {
-      const birthDate = new Date(dob);
-      const ageDifMs = Date.now() - birthDate.getTime();
-      const ageDate = new Date(ageDifMs);
-      return Math.abs(ageDate.getUTCFullYear() - 1970);
-    } catch {
-      return "N/A";
-    }
-  };
-
-  // const getPatientDob = (appointment) => {
-  //   return (
-  //     appointment?.patient?.user?.dob ||
-  //     appointment?.patient?.dob ||
-  //     "Chưa có thông tin"
-  //   );
-  // };
 
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
@@ -147,7 +73,6 @@ const AppointmentSchedule = () => {
       return new Date(timeString).toLocaleTimeString("vi-VN", {
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "UTC",
       });
     } catch {
       return "N/A";
@@ -157,47 +82,15 @@ const AppointmentSchedule = () => {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
-      return new Date(dateString).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      return new Date(dateString).toLocaleDateString("vi-VN");
     } catch {
       return "N/A";
     }
   };
 
-  const handleUpdateStatus = async (appointmentId, newStatus) => {
-    try {
-      const res = await updateAppointmentStatus(appointmentId, newStatus);
-      if (res.success) {
-        const updatedRes = await getAppointments("DOC001", {
-          date: selectedDate,
-        });
-        if (updatedRes.success) {
-          setAppointments(updatedRes.data || []);
-        }
-      }
-    } catch (error) {
-      console.error("Error updating appointment status:", error);
-    }
-  };
-
-  const handleViewDetails = async (appointment) => {
-    try {
-      setLoading(true);
-      const res = await doctorApi.getAppointmentById(
-        appointment?.appointment.appointment_id
-      );
-      if (res.data.ok) {
-        setSelectedAppointment(res.data.data);
-        setShowModal(true);
-      }
-    } catch (error) {
-      console.error("Error fetching appointment details:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleViewDetails = (appointment) => {
+    setSelectedAppointment(appointment);
+    setShowModal(true);
   };
 
   const handleCloseModal = () => {
@@ -215,17 +108,13 @@ const AppointmentSchedule = () => {
               <Calendar className="text-white" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                Lịch khám bệnh
-              </h1>
-              <p className="text-gray-500 mt-1">
-                Quản lý và theo dõi lịch hẹn của bạn
-              </p>
+              <h1 className="text-3xl font-bold text-gray-800">Lịch khám bệnh</h1>
+              <p className="text-gray-500 mt-1">Quản lý và theo dõi lịch hẹn của bạn</p>
             </div>
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Bộ lọc */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -237,18 +126,15 @@ const AppointmentSchedule = () => {
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setSelectedSlot(null);
-                  }}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="SCHEDULED">Đã lên lịch</option>
@@ -261,179 +147,113 @@ const AppointmentSchedule = () => {
             <div className="px-4 py-2 bg-blue-50 rounded-lg">
               <span className="text-blue-700 font-semibold">
                 Tổng số:{" "}
-                <strong className="text-blue-900">
-                  {filteredAppointments.length}
-                </strong>{" "}
+                <strong className="text-blue-900">{appointments.length}</strong>{" "}
                 lịch hẹn
               </span>
             </div>
           </div>
 
+          {/* Slots */}
           {slots.length > 0 && (
             <div className="mt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Clock size={16} />
-                Lọc theo khung giờ:
+                <Clock size={16} /> Lọc theo khung giờ:
               </h3>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedSlot(null)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg font-medium ${
                     selectedSlot === null
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
                   }`}
                 >
                   Tất cả
                 </button>
-                {slots.map((slot) => {
-                  const appointmentCount = appointments.filter(
-                    (apt) => apt.slot_id === slot._id
-                  ).length;
 
-                  return (
-                    <button
-                      key={slot._id}
-                      onClick={() => setSelectedSlot(slot._id)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all relative ${
-                        selectedSlot === slot._id
-                          ? "bg-blue-600 text-white shadow-md"
-                          : slot.status === "BOOKED"
-                          ? "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                          : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} />
-                        <span>
-                          {formatTime(slot.start_time)} -{" "}
-                          {formatTime(slot.end_time)}
-                        </span>
-                      </div>
-                      {appointmentCount > 0 && (
-                        <span
-                          className={`absolute -top-2 -right-2 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${
-                            selectedSlot === slot._id
-                              ? "bg-white text-blue-600"
-                              : "bg-blue-600 text-white"
-                          }`}
-                        >
-                          {appointmentCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                {slots.map((slot) => (
+                  <button
+                    key={slot._id}
+                    onClick={() => setSelectedSlot(slot._id)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      selectedSlot === slot._id
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-50 hover:bg-gray-100"
+                    }`}
+                  >
+                    {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Content */}
+        {/* Danh sách lịch hẹn */}
         {loading ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600 font-medium">Đang tải lịch hẹn...</p>
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-600">
+            Đang tải dữ liệu...
           </div>
-        ) : filteredAppointments.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
-            <div className="p-6 bg-gray-100 rounded-full mb-4">
-              <Calendar className="text-gray-400" size={48} />
-            </div>
-            <p className="text-xl font-semibold text-gray-700 mb-2">
-              Không có lịch hẹn nào
-            </p>
-            <p className="text-gray-500">
-              {selectedSlot
-                ? "Không có lịch hẹn trong khung giờ này"
-                : "Chọn ngày khác để xem lịch hẹn"}
-            </p>
+        ) : appointments.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
+            Không có lịch hẹn nào trong ngày này.
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredAppointments.map((appointment, index) => {
-              const statusInfo = getStatusBadge(
-                appointment?.appointment?.status
-              );
+            {appointments.map((item, index) => {
+              const { appointment, patient } = item;
+              const statusInfo = getStatusBadge(appointment.status);
               const StatusIcon = statusInfo.icon;
 
               return (
                 <div
-                  key={appointment._id || index}
+                  key={appointment.appointment_id}
                   className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
                 >
-                  {/* Card Header */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 flex items-center justify-between border-b border-gray-100">
                     <div className="flex items-center gap-3">
                       <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">
                         #{index + 1}
                       </div>
-                      <div className="flex items-center gap-2 text-gray-700">
+                      <div className="text-gray-700 flex items-center gap-2">
                         <Clock size={18} />
-                        <span className="font-semibold">
-                          {formatTime(appointment?.slot?.start_time)} -{" "}
-                          {formatTime(appointment?.slot?.end_time)}
-                        </span>
+                        {formatDate(appointment.scheduled_date)}
                       </div>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                        appointment?.appointment?.status === "SCHEDULED"
-                          ? "bg-blue-100 text-blue-700"
-                          : appointment?.appointment?.status === "COMPLETED"
-                          ? "bg-green-100 text-green-700"
-                          : appointment?.appointment?.status === "CANCELLED"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusInfo.class}`}
                     >
                       <StatusIcon size={14} />
                       {statusInfo.label}
                     </span>
                   </div>
 
-                  {/* Card Body */}
                   <div className="p-6">
-                    {/* Patient Info */}
                     <div className="space-y-3 mb-4">
                       <div className="flex items-start gap-3">
                         <Person className="text-blue-600 mt-1" size={20} />
-                        <div className="flex-1">
+                        <div>
                           <p className="font-semibold text-gray-800 text-lg">
-                            {getPatientName(appointment)}
+                            {patient.patient_name}
                           </p>
-                          <p className="text-xs text-gray-500">Bệnh nhân</p>
+                          <p className="text-xs text-gray-500">
+                            Mã BN: {patient.patient_code}
+                          </p>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-3">
                         <Telephone className="text-green-600" size={20} />
-                        <div className="flex-1">
-                          <p className="text-gray-700">
-                            {getPatientPhone(appointment)}
-                          </p>
-                          <p className="text-xs text-gray-500">Số điện thoại</p>
-                        </div>
+                        <span>{patient.phone_number}</span>
                       </div>
                     </div>
-
-                    {/* Booking Date */}
-                    {appointment.createdAt && (
-                      <p className="text-xs text-gray-500">
-                        Đặt lịch:{" "}
-                        {formatDate(appointment?.appointment?.scheduled_date)}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Card Actions */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-2">
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
                     <button
-                      onClick={() => handleViewDetails(appointment)}
-                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                      onClick={() => handleViewDetails(item)}
+                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
                     >
-                      <Eye size={16} />
-                      Chi tiết
+                      <Eye size={16} /> Chi tiết
                     </button>
                   </div>
                 </div>
@@ -443,149 +263,36 @@ const AppointmentSchedule = () => {
         )}
       </div>
 
+      {/* Modal Chi tiết */}
       {showModal && selectedAppointment && (
         <div className="appointment-modal-overlay">
-          {/* Backdrop */}
-          <div
-            className="appointment-modal-backdrop"
-            onClick={handleCloseModal}
-          ></div>
-
-          {/* Slide-in panel */}
+          <div className="appointment-modal-backdrop" onClick={handleCloseModal}></div>
           <div className="appointment-modal-panel">
             <div className="appointment-modal-header">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <Calendar className="text-blue-600" size={20} />
-                Chi tiết lịch khám
+                <Calendar className="text-blue-600" size={20} /> Chi tiết lịch khám
               </h2>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
+              <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
                 <X size={24} />
               </button>
             </div>
 
             <div className="appointment-modal-content">
-              {/* Patient Info */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Person className="text-blue-600" size={20} /> Thông tin bệnh
-                  nhân
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p>
-                    <span className="font-medium">Mã BN: </span>
-                    {selectedAppointment.patient?.patient_code || "Không có"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Tên: </span>
-                    {selectedAppointment.patient?.full_name || "Không có"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Tuổi: </span>
-                    {selectedAppointment.patient?.dob
-                      ? calculateAge(selectedAppointment.patient.dob)
-                      : "Chưa cập nhật"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Số điện thoại: </span>
-                    {selectedAppointment.patient?.phone_number || "Không có"}
-                  </p>
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold mb-2">Bệnh nhân</h3>
+              <p><b>Tên:</b> {selectedAppointment.patient?.patient_name}</p>
+              <p><b>Mã BN:</b> {selectedAppointment.patient?.patient_code}</p>
+              <p><b>SĐT:</b> {selectedAppointment.patient?.phone_number}</p>
 
-              {/* Appointment Info */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Clock className="text-blue-600" size={20} /> Thông tin lịch
-                  khám
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p>
-                    <span className="font-medium">Ngày khám: </span>
-                    {formatDate(
-                      selectedAppointment.appointment?.scheduled_date
-                    )}
-                  </p>
-                  <p>
-                    <span className="font-medium">Thời gian: </span>
-                    {formatTime(
-                      selectedAppointment.appointment?.slot?.start_time
-                    )}{" "}
-                    -{" "}
-                    {formatTime(
-                      selectedAppointment.appointment?.slot?.end_time
-                    )}
-                  </p>
-                  <p>
-                    <span className="font-medium">Chuyên khoa: </span>
-                    {selectedAppointment.appointment?.specialty?.name ||
-                      "Chưa cập nhật"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Lý do khám: </span>
-                    {selectedAppointment.appointment?.reason ||
-                      "Không có ghi chú"}
-                  </p>
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold mt-4 mb-2">Thông tin lịch hẹn</h3>
+              <p><b>Ngày:</b> {formatDate(selectedAppointment.appointment?.scheduled_date)}</p>
+              <p><b>Trạng thái:</b> {selectedAppointment.appointment?.status}</p>
 
-              {/* Status */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Activity className="text-blue-600" size={20} /> Trạng thái
-                </h3>
-                <span
-                  className={`status-badge ${
-                    selectedAppointment.appointment?.status === "SCHEDULED"
-                      ? "status-scheduled"
-                      : selectedAppointment.appointment?.status === "COMPLETED"
-                      ? "status-completed"
-                      : selectedAppointment.appointment?.status === "CANCELLED"
-                      ? "status-cancelled"
-                      : "status-no-show"
-                  }`}
-                >
-                  {selectedAppointment.appointment?.status}
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 mt-6">
-                {selectedAppointment.appointment?.status === "SCHEDULED" && (
-                  <>
-                    <button
-                      onClick={() =>
-                        handleUpdateStatus(
-                          selectedAppointment.appointment?.id,
-                          "COMPLETED"
-                        )
-                      }
-                      className="btn-complete rounded-lg flex-1 flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle size={18} /> Hoàn thành
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleUpdateStatus(
-                          selectedAppointment.appointment?.id,
-                          "CANCELLED"
-                        )
-                      }
-                      className="btn-cancel rounded-lg flex-1 flex items-center justify-center gap-2"
-                    >
-                      <XCircle size={18} /> Hủy
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={handleCloseModal}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg px-4 py-2 font-semibold transition-all"
-                >
-                  Đóng
-                </button>
-              </div>
+              <button
+                onClick={handleCloseModal}
+                className="mt-6 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg px-4 py-2 font-semibold"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>

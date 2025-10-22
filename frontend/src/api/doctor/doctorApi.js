@@ -21,15 +21,8 @@ export const doctorApi = {
     axiosInstance.get(`/doctor/patients/${patientId}`),
 
   //Lấy danh sách lịch hẹn
-  getAppointments: (page, limit, date, status) => {
-    const params = new URLSearchParams();
-    if (page) params.append("page", page);
-    if (limit) params.append("limit", limit);
-    if (date) params.append("date", date);
-    if (status && status !== "ALL") params.append("status", status);
-
-    return axiosInstance.get(`/doctor/appointments?${params.toString()}`);
-  },
+  getAppointments: (params) =>
+  axiosInstance.get("/doctor/appointments", { params }),
 
   //Lấy chi tiết lịch hẹn
   getAppointmentById: (appointmentId) =>
@@ -65,7 +58,7 @@ export const doctorApi = {
     ),
 
   //lấy danh sách trợ lý
-  getAssistants: () => axiosInstance.get("/doctor/assistants"),
+  getAssistants: (params) => axiosInstance.get("/doctor/assistants", { params }),
 
   //thêm trợ lý
   addAssistant: (data) => axiosInstance.post("/doctor/assistants", data),

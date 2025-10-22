@@ -253,7 +253,6 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
       .skip(skip)
       .limit(limitNumber)
       .lean();
-
     const totalPages = Math.ceil(totalRecords / limitNumber);
 
     return {
@@ -325,13 +324,13 @@ exports.getListMedicalRecords = async (req) => {
       // Liên kết với collection 'users' để lấy full_name
       {
         $lookup: {
-          from: "users", // Tên collection của User, thường là số nhiều
-          localField: "patientInfo.user_id",
+          from: "appointments", // Tên collection của User, thường là số nhiều
+          localField: "appointment_id",
           foreignField: "_id",
-          as: "userInfo",
+          as: "appointmentInfo",
         },
       },
-      { $unwind: "$userInfo" },
+      { $unwind: "$appointmentInfo" },
     ];
 
     // 3. Thêm điều kiện $match cho tìm kiếm nếu có `search` query
@@ -340,7 +339,7 @@ exports.getListMedicalRecords = async (req) => {
         $match: {
           $or: [
             { "patientInfo.patient_code": { $regex: search, $options: "i" } },
-            { "userInfo.full_name": { $regex: search, $options: "i" } },
+            { "appointmentInfo.full_name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -383,7 +382,7 @@ exports.getListMedicalRecords = async (req) => {
           patient_id: "$patientInfo._id",
           doctor_id: "$doctor_id",
           patient_code: "$patientInfo.patient_code",
-          patient_name: "$userInfo.full_name",
+          patient_name: "$appointmentInfo.full_name",
         },
       },
     ];
@@ -439,13 +438,13 @@ exports.getListMedicalRecordsVerify = async (req) => {
       { $unwind: "$patientInfo" },
       {
         $lookup: {
-          from: "users",
-          localField: "patientInfo.user_id",
+          from: "appointments", // Tên collection của User, thường là số nhiều
+          localField: "appointment_id",
           foreignField: "_id",
-          as: "userInfo",
+          as: "appointmentInfo",
         },
       },
-      { $unwind: "$userInfo" },
+      { $unwind: "$appointmentInfo" },
     ];
 
     // Nếu có search theo tên hoặc mã BN
@@ -454,7 +453,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
         $match: {
           $or: [
             { "patientInfo.patient_code": { $regex: search, $options: "i" } },
-            { "userInfo.full_name": { $regex: search, $options: "i" } },
+            { "appointmentInfo.full_name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -494,7 +493,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
           patient_id: "$patientInfo._id",
           doctor_id: "$doctor_id",
           patient_code: "$patientInfo.patient_code",
-          patient_name: "$userInfo.full_name",
+          patient_name: "$appointmentInfo.full_name",
         },
       },
     ];
@@ -517,6 +516,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
   }
 };
 
+// change 
 exports.getMedicalRecordById = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
@@ -526,22 +526,37 @@ exports.getMedicalRecordById = async (req) => {
     const medicalRecord = await MedicalRecord
       .findById(recordId)
       .populate({
+        path: 'appointment_id',
+        select: "full_name phone email dob gender",
+      })
+      .populate({
         path: 'patient_id',
         select: "-__v -createdAt -updatedAt",
-        populate: {
-          path: 'user_id',
-          select: "-__v -createdAt -updatedAt -_id -account_id",
-        }
       })
+      .select("-__v -createdAt -updatedAt -appointment_id")
       .lean();
 
     const { patient_id, ...rest } = medicalRecord;
-    const { user_id, ...restPatient } = patient_id;
+    const { appointment_id } = rest;
+
     const data = {
-      medical_record: rest,
+      medical_record: {
+        _id: rest._id,
+        doctor_id: rest.doctor_id,
+        diagnosis: rest.diagnosis,
+        symptoms: rest.symptoms,
+        prescription: rest.prescription,
+        access_requests: rest.access_requests,
+        attachments: rest.attachments,
+        notes: rest.notes,
+        status: rest.status,
+      },
       patient: {
-        ...restPatient,
-        ...user_id,
+        full_name: appointment_id.full_name,
+        phone: appointment_id.phone,
+        email: appointment_id.email,
+        dob: appointment_id.dob,
+        gender: appointment_id.gender
       },
     };
 
