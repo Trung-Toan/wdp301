@@ -17,7 +17,7 @@ export function FeaturedDoctorsSection() {
             setLoading(true);
             try {
                 const res = await doctorApi.getDoctorTop(4);
-                console.log("doctor: ", res.data);
+                console.log("doctor list: ", res.data);
                 setDoctors(res.data.data || []);
             } catch (err) {
                 console.error("Lỗi khi lấy bác sĩ top:", err);

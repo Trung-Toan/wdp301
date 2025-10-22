@@ -1,16 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, ArrowLeft, HeartPulse } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { registerPatientsApi } from "../../../api/auth/register/registerPatientsApi";
-import Toast from "../../../components/ui/Toast";
+import { registerPatientsApi } from "../../api/auth/register/registerPatientsApi";
+import Toast from "../../components/ui/Toast";
+import { provinceApi, wardApi } from "../../api";
 
-export default function PatientRegisterForm() {
+export default function RegisterForm() {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [notification, setNotification] = useState({ type: "", message: "" });
     const [errors, setErrors] = useState({});
+
+    // --- Thêm state cho province & ward ---
+    const [provinces, setProvinces] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [loadingWards, setLoadingWards] = useState(false);
+
     const [formData, setFormData] = useState({
+        accountType: "patient",
         username: "",
         email: "",
         phone: "",
@@ -19,10 +27,50 @@ export default function PatientRegisterForm() {
         fullName: "",
         dob: "",
         gender: "",
-        address: "",
+        province: "",
+        ward: "",
+        addressDetail: "",
     });
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+    const handleChange = (e) =>
+        setFormData({ ...formData, [e.target.id || e.target.name]: e.target.value });
+
+    // --- Gọi API lấy danh sách tỉnh khi mở trang ---
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const res = await provinceApi.getProvinces();
+                console.log("Provinces API:", res.data);
+                setProvinces(res.data.options || []); // đúng cấu trúc
+            } catch (err) {
+                console.error("Lỗi lấy danh sách tỉnh:", err);
+                setProvinces([]);
+            }
+        };
+        fetchProvinces();
+    }, []);
+
+
+    // --- Khi chọn tỉnh, tự động gọi API lấy danh sách phường ---
+    const handleProvinceChange = async (e) => {
+        const provinceCode = e.target.value;
+        setFormData({ ...formData, province: provinceCode, ward: "" }); // reset ward khi đổi tỉnh
+
+        if (!provinceCode) {
+            setWards([]);
+            return;
+        }
+
+        try {
+            const res = await wardApi.getWardsByProvince(provinceCode);
+            console.log("Wards API:", res.data); // xem cấu trúc thật
+            setWards(res.data.options || []); // đúng cấu trúc
+        } catch (err) {
+            console.error("Lỗi lấy danh sách phường:", err);
+            setWards([]);
+        }
+    };
+
 
     const validateForm = (data) => {
         const newErrors = {};
@@ -44,7 +92,10 @@ export default function PatientRegisterForm() {
         if (!data.fullName.trim()) newErrors.fullName = "Họ tên không được để trống";
         if (!data.dob.trim()) newErrors.dob = "Ngày sinh không được để trống";
         if (!data.gender.trim()) newErrors.gender = "Chọn giới tính";
-        if (!data.address.trim()) newErrors.address = "Địa chỉ không được để trống";
+        if (!data.province.trim()) newErrors.province = "Chọn tỉnh/thành phố";
+        if (!data.ward.trim()) newErrors.ward = "Chọn phường/xã";
+        if (!data.addressDetail.trim())
+            newErrors.addressDetail = "Vui lòng nhập địa chỉ chi tiết";
         return newErrors;
     };
 
@@ -57,8 +108,18 @@ export default function PatientRegisterForm() {
             return;
         }
         try {
-            await registerPatientsApi.register(formData);
-            setNotification({ type: "success", message: "Đăng ký thành công! Chuyển đến đăng nhập..." });
+            // Gộp địa chỉ hoàn chỉnh
+            const fullAddress = `${formData.addressDetail}, ${wards.find(w => w.code === formData.ward)?.name || ""}, ${provinces.find(p => p.code === formData.province)?.name || ""}`;
+
+            await registerPatientsApi.register({
+                ...formData,
+                address: fullAddress,
+            });
+
+            setNotification({
+                type: "success",
+                message: "Đăng ký thành công! Chuyển đến đăng nhập...",
+            });
             setTimeout(() => navigate("/login"), 2000);
         } catch (err) {
             setNotification({
@@ -71,7 +132,6 @@ export default function PatientRegisterForm() {
     return (
         <main className="flex min-h-screen bg-gradient-to-br from-blue-50 to-white">
             <div className="flex w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-xl bg-white">
-                {/* LEFT - FORM */}
                 <div className="w-full md:w-1/2 p-10">
                     <button
                         onClick={() => navigate(-1)}
@@ -83,14 +143,40 @@ export default function PatientRegisterForm() {
 
                     <div className="flex items-center gap-2 mt-6 mb-8">
                         <HeartPulse className="text-blue-600 h-6 w-6" />
-                        <h1 className="text-2xl font-bold text-gray-800">Đăng ký tài khoản bệnh nhân</h1>
+                        <h1 className="text-2xl font-bold text-gray-800">Đăng ký tài khoản</h1>
                     </div>
 
-                    <p className="text-gray-500 mb-6 text-sm">
-                        Hãy tạo tài khoản để đặt lịch khám, lưu hồ sơ và theo dõi sức khỏe của bạn.
-                    </p>
+                    {/* Loại tài khoản */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Loại tài khoản *
+                        </label>
+                        <div className="flex items-center gap-6">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="radio"
+                                    name="accountType"
+                                    value="patient"
+                                    checked={formData.accountType === "patient"}
+                                    onChange={handleChange}
+                                />
+                                <span>Bệnh nhân</span>
+                            </label>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="radio"
+                                    name="accountType"
+                                    value="clinic_owner"
+                                    checked={formData.accountType === "clinic_owner"}
+                                    onChange={handleChange}
+                                />
+                                <span>Chủ phòng khám</span>
+                            </label>
+                        </div>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Các input cơ bản */}
                         {[
                             { id: "username", label: "Tên đăng nhập", type: "text", placeholder: "Nhập tên đăng nhập" },
                             { id: "email", label: "Email", type: "email", placeholder: "example@gmail.com" },
@@ -107,8 +193,7 @@ export default function PatientRegisterForm() {
                                     value={formData[input.id]}
                                     onChange={handleChange}
                                     placeholder={input.placeholder}
-                                    className={`w-full rounded-lg border p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors[input.id] ? "border-red-500" : "border-gray-300"
-                                        }`}
+                                    className={`w-full rounded-lg border p-2.5 focus:ring-2 focus:ring-blue-500 ${errors[input.id] ? "border-red-500" : "border-gray-300"}`}
                                 />
                                 {errors[input.id] && (
                                     <p className="text-red-500 text-xs mt-1">{errors[input.id]}</p>
@@ -116,7 +201,7 @@ export default function PatientRegisterForm() {
                             </div>
                         ))}
 
-                        {/* Password */}
+                        {/* Mật khẩu */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu *</label>
                             <div className="relative">
@@ -126,8 +211,7 @@ export default function PatientRegisterForm() {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Nhập mật khẩu"
-                                    className={`w-full rounded-lg border p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 ${errors.password ? "border-red-500" : "border-gray-300"
-                                        }`}
+                                    className={`w-full rounded-lg border p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 ${errors.password ? "border-red-500" : "border-gray-300"}`}
                                 />
                                 <button
                                     type="button"
@@ -140,11 +224,9 @@ export default function PatientRegisterForm() {
                             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                         </div>
 
-                        {/* Confirm Password */}
+                        {/* Xác nhận mật khẩu */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Xác nhận mật khẩu *
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu *</label>
                             <div className="relative">
                                 <input
                                     id="confirmPassword"
@@ -152,8 +234,7 @@ export default function PatientRegisterForm() {
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="Nhập lại mật khẩu"
-                                    className={`w-full rounded-lg border p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? "border-red-500" : "border-gray-300"
-                                        }`}
+                                    className={`w-full rounded-lg border p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
                                 />
                                 <button
                                     type="button"
@@ -168,7 +249,7 @@ export default function PatientRegisterForm() {
                             )}
                         </div>
 
-                        {/* DOB & Gender */}
+                        {/* Ngày sinh + Giới tính */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh *</label>
@@ -177,8 +258,7 @@ export default function PatientRegisterForm() {
                                     type="date"
                                     value={formData.dob}
                                     onChange={handleChange}
-                                    className={`w-full rounded-lg border p-2.5 focus:ring-2 focus:ring-blue-500 ${errors.dob ? "border-red-500" : "border-gray-300"
-                                        }`}
+                                    className={`w-full rounded-lg border p-2.5 ${errors.dob ? "border-red-500" : "border-gray-300"}`}
                                 />
                             </div>
                             <div>
@@ -187,8 +267,7 @@ export default function PatientRegisterForm() {
                                     id="gender"
                                     value={formData.gender}
                                     onChange={handleChange}
-                                    className={`w-full rounded-lg border p-2.5 bg-white focus:ring-2 focus:ring-blue-500 ${errors.gender ? "border-red-500" : "border-gray-300"
-                                        }`}
+                                    className={`w-full rounded-lg border p-2.5 bg-white ${errors.gender ? "border-red-500" : "border-gray-300"}`}
                                 >
                                     <option value="">-- Chọn giới tính --</option>
                                     <option value="male">Nam</option>
@@ -198,21 +277,68 @@ export default function PatientRegisterForm() {
                             </div>
                         </div>
 
-                        {/* Address */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ *</label>
-                            <input
-                                id="address"
-                                type="text"
-                                value={formData.address}
-                                onChange={handleChange}
-                                placeholder="Số nhà, đường, phường, quận..."
-                                className={`w-full rounded-lg border p-2.5 focus:ring-2 focus:ring-blue-500 ${errors.address ? "border-red-500" : "border-gray-300"
-                                    }`}
-                            />
+                        {/* Địa chỉ */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tỉnh / Thành phố *</label>
+                                <select
+                                    id="province"
+                                    value={formData.province}
+                                    onChange={handleProvinceChange}
+                                    className="w-full rounded-lg border p-2.5 bg-white focus:ring-2 focus:ring-blue-500 border-gray-300"
+                                >
+                                    <option value="">-- Chọn tỉnh/thành phố --</option>
+                                    {provinces.map((p) => (
+                                        <option key={p.value} value={p.value}>
+                                            {p.label}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {errors.province && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.province}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phường / Xã *</label>
+                                <select
+                                    id="ward"
+                                    value={formData.ward}
+                                    onChange={handleChange}
+                                    className="w-full rounded-lg border p-2.5 bg-white focus:ring-2 focus:ring-blue-500 border-gray-300"
+                                >
+                                    <option value="">-- Chọn phường/xã --</option>
+                                    {Array.isArray(wards) &&
+                                        wards.map((w) => (
+                                            <option key={w.value} value={w.value}>
+                                                {w.label}
+                                            </option>
+                                        ))}
+                                </select>
+
+                                {errors.ward && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.ward}</p>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Submit */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Địa chỉ chi tiết *
+                            </label>
+                            <input
+                                id="addressDetail"
+                                type="text"
+                                value={formData.addressDetail}
+                                onChange={handleChange}
+                                placeholder="Số nhà, đường, khu phố..."
+                                className={`w-full rounded-lg border p-2.5 ${errors.addressDetail ? "border-red-500" : "border-gray-300"}`}
+                            />
+                            {errors.addressDetail && (
+                                <p className="text-red-500 text-xs mt-1">{errors.addressDetail}</p>
+                            )}
+                        </div>
+
                         <button
                             type="submit"
                             className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium rounded-lg py-2.5 mt-4 hover:opacity-90 transition"
@@ -220,16 +346,9 @@ export default function PatientRegisterForm() {
                             Đăng ký ngay
                         </button>
                     </form>
-
-                    <p className="text-center text-sm text-gray-600 mt-5">
-                        Đã có tài khoản?{" "}
-                        <a href="/login" className="text-blue-600 hover:underline">
-                            Đăng nhập
-                        </a>
-                    </p>
                 </div>
 
-                {/* RIGHT - IMAGE */}
+                {/* IMAGE */}
                 <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 to-blue-400 items-center justify-center p-10 text-white">
                     <div className="text-center space-y-4">
                         <img

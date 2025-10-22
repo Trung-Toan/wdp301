@@ -26,8 +26,7 @@ const clinicSchema = new Schema(
 
     option: {
       type: String,
-      enum: ["PUBLIC", "PRIVATE", "GOVERNMENT", "COMMUNITY"],
-      default: "PUBLIC",
+      enum: ["SINGLE_DOCTOR", "MULTIPLE_DOCTOR"],
       required: true,
     },
 

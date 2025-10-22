@@ -1,10 +1,7 @@
 import { memo } from "react";
 import { Route, Routes } from "react-router-dom";
 import Login from "../features/auth/Login";
-import Register from "../features/auth/RegisterTypeSelection";
-import RegistePatients from "../features/auth/RegisterType/PatientRegisterForm";
-import RegisteDoctor from "../features/auth/RegisterType/DoctorRegisterForm";
-import RegisteClinic from "../features/auth/RegisterType/ClinicRegisterForm";
+import Register from "../features/auth/RegisterForm";
 import UserLayout from "../layouts/UserLayout";
 import HomePage from "../features/home/pages/HomePage";
 import { DoctorsListContent } from "../features/home/pages/DoctorPage/doctors-list-content";
@@ -52,9 +49,6 @@ const RouterUser = () => {
         <Route path="forgot_password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="register" element={<Register />} />
-        <Route path="register/patient" element={<RegistePatients />} />
-        <Route path="register/doctor" element={<RegisteDoctor />} />
-        <Route path="register/clinic" element={<RegisteClinic />} />
       </Route>
     </Routes>
   );
