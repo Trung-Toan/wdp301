@@ -8,6 +8,7 @@ const { successResponse, errorResponse } = require("../../utils/responseUtils");
 exports.getBookingStatistics = async (req, res) => {
     try {
         const { clinicId } = req.params;
+
         const { startDate, endDate } = req.query;
 
         const statistics = await statisticsService.getBookingStatistics(clinicId, {
@@ -29,6 +30,7 @@ exports.getBookingStatistics = async (req, res) => {
 exports.getBookingTrends = async (req, res) => {
     try {
         const { clinicId } = req.params;
+
         const { period, startDate, endDate } = req.query;
 
         const trends = await statisticsService.getBookingTrends(clinicId, {
@@ -51,6 +53,7 @@ exports.getBookingTrends = async (req, res) => {
 exports.getTopSpecialties = async (req, res) => {
     try {
         const { clinicId } = req.params;
+
         const { startDate, endDate, limit } = req.query;
 
         const topSpecialties = await statisticsService.getTopSpecialties(clinicId, {
@@ -73,6 +76,7 @@ exports.getTopSpecialties = async (req, res) => {
 exports.getSpecialtyDetails = async (req, res) => {
     try {
         const { clinicId, specialtyId } = req.params;
+
         const { startDate, endDate } = req.query;
 
         const details = await statisticsService.getSpecialtyDetails(clinicId, specialtyId, {
@@ -94,6 +98,7 @@ exports.getSpecialtyDetails = async (req, res) => {
 exports.getDoctorPerformance = async (req, res) => {
     try {
         const { clinicId } = req.params;
+
         const { startDate, endDate, limit, sortBy } = req.query;
 
         const performance = await statisticsService.getDoctorPerformance(clinicId, {
@@ -117,6 +122,7 @@ exports.getDoctorPerformance = async (req, res) => {
 exports.getDoctorDetailedPerformance = async (req, res) => {
     try {
         const { clinicId, doctorId } = req.params;
+
         const { startDate, endDate } = req.query;
 
         const details = await statisticsService.getDoctorDetailedPerformance(clinicId, doctorId, {

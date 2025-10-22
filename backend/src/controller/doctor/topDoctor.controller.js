@@ -4,6 +4,7 @@ const patientService = require("../../service/patient/patient.service");
 async function getTopDoctorsController(req, res) {
     try {
         const { limit, provinceCode, wardCode } = req.query;
+
         const data = await getTopDoctors({ limit, provinceCode, wardCode });
         return res.json({
             success: true,
@@ -18,11 +19,12 @@ async function getTopDoctorsController(req, res) {
 
 module.exports = { getTopDoctorsController };
 
-// New: get top doctors near current patient (by saved location)
 async function getTopDoctorsNearMeController(req, res) {
     try {
         const { limit } = req.query;
+
         const accountId = req.user?.sub;
+
         if (!accountId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
         const patient = await patientService.findPatientByAccountId(accountId);

@@ -5,6 +5,7 @@ const userService = require("../user/user.service");
 exports.getPatientById = async (req) => {
     try {
         const patientId = req.params.patientId;
+
         const patients = await Patient.findById(patientId)
             .select('-__v -createdAt -updatedAt')
             .populate({
@@ -43,8 +44,6 @@ exports.getPatientById = async (req) => {
 
 /**
  * get patient by code
- * @param {*} req 
- * @returns 
  */
 exports.getPatientByCode = async (req) => {
     try {
@@ -99,7 +98,6 @@ exports.updatePatientLocationByAccountId = async (accountId, { province_code, wa
     if (!patient) {
         throw new Error('Patient not found');
     }
-
     return patient;
 }
 
