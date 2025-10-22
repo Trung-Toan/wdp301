@@ -1,0 +1,29 @@
+// src/routes/modules/doctor.routes.jsx
+import { Route } from "react-router-dom";
+import DoctorLayout from "../../layouts/DoctorLayout";
+import DoctorDashboard from "../../features/doctor/DoctorDashboard";
+import AppointmentSchedule from "../../features/doctor/AppointmentSchedule";
+import PatientList from "../../features/doctor/PatientList";
+import PatientMedicalRecords from "../../features/doctor/PatientMedicalRecords";
+import FeedbackView from "../../features/doctor/FeedbackView";
+import AssistantManagement from "../../features/doctor/AssistantManagement";
+// import DoctorRegistration from "../../features/doctor/DoctorRegistration";
+import MedicalRecordRequests from "../../features/doctor/MedicalRecordRequests";
+// import AbsenceNotification from "../../features/doctor/AbsenceNotification";
+
+
+export const doctorRoutes = (
+    <Route path="/doctor" element={<DoctorLayout />}>
+        <Route index element={<DoctorDashboard />} />
+        <Route path="dashboard" element={<DoctorDashboard />} />
+        <Route path="appointments" element={<AppointmentSchedule />} />
+        <Route path="patients" element={<PatientList />} />
+        <Route path="feedback" element={<FeedbackView />} />
+        <Route path="medical-records" element={<PatientMedicalRecords />} />
+        <Route path="record-requests" element={<MedicalRecordRequests />} />
+        <Route path="assistants" element={<AssistantManagement />} />
+        {/* <Route path="register" element={<DoctorRegistration />} />
+                
+                <Route path="absence" element={<AbsenceNotification />} /> */}
+    </Route>
+);
