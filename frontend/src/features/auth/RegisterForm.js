@@ -15,7 +15,6 @@ export default function RegisterForm() {
     // --- Thêm state cho province & ward ---
     const [provinces, setProvinces] = useState([]);
     const [wards, setWards] = useState([]);
-    const [loadingWards, setLoadingWards] = useState(false);
 
     const [formData, setFormData] = useState({
         accountType: "patient",
