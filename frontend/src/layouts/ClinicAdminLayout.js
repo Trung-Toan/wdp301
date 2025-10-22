@@ -2,7 +2,6 @@ import { memo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
-  People,
   UserPlus,
   MessageSquare,
   Ban,
@@ -10,9 +9,8 @@ import {
   X,
   List,
   Bell,
-  PersonCircle,
-  BoxArrowRight,
 } from "lucide-react";
+import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
 import "../styles/clinic-admin/ClinicAdminLayout.css";
 
 const ClinicAdminLayout = () => {
