@@ -11,12 +11,12 @@ function randomBookingCode() {
 }
 
 /**
- * Kiểm tra slot availability theo ngày cụ thể
- * @param {String} slotId - ID của slot
- * @param {Date} targetDate - Ngày cần kiểm tra
+ * Kiểm tra slot availability theo ngày cụ thể 
  */
 async function checkSlotAvailability(slotId, targetDate) {
+
     const slot = await Slot.findById(slotId).lean();
+
     if (!slot) {
         throw new Error("Slot not found");
     }
@@ -30,9 +30,11 @@ async function checkSlotAvailability(slotId, targetDate) {
 
     // Tính booked_count cho ngày cụ thể
     const startOfDay = new Date(targetDate);
+
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(targetDate);
+
     endOfDay.setHours(23, 59, 59, 999);
 
     const bookedCount = await Appointment.countDocuments({
@@ -57,11 +59,10 @@ async function checkSlotAvailability(slotId, targetDate) {
 
 /**
  * Lấy slots available của bác sĩ trong ngày
- * @param {String} doctorId - ID của bác sĩ
- * @param {Date} targetDate - Ngày cần lấy slots
  */
 async function getAvailableSlotsForDoctor(doctorId, targetDate) {
     const startOfDay = new Date(targetDate);
+
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(targetDate);
@@ -109,9 +110,13 @@ async function createAsync(payload) {
 
     // Validate ObjectIds
     if (!Types.ObjectId.isValid(slot_id)) throw new Error("Invalid slot_id");
+
     if (!Types.ObjectId.isValid(doctor_id)) throw new Error("Invalid doctor_id");
+
     if (!Types.ObjectId.isValid(patient_id)) throw new Error("Invalid patient_id");
+
     if (!Types.ObjectId.isValid(specialty_id)) throw new Error("Invalid specialty_id");
+
     if (clinic_id && !Types.ObjectId.isValid(clinic_id)) throw new Error("Invalid clinic_id");
 
     const session = await mongoose.startSession();
@@ -121,6 +126,7 @@ async function createAsync(payload) {
         await session.withTransaction(async () => {
             // 1) Kiểm tra slot availability theo ngày
             const targetDate = scheduled_date ? new Date(scheduled_date) : new Date();
+
             const slotAvailability = await checkSlotAvailability(slot_id, targetDate);
 
             if (!slotAvailability.isAvailable) {
@@ -129,14 +135,18 @@ async function createAsync(payload) {
 
             // 2) Kiểm tra slot cơ bản
             const slot = await Slot.findById(slot_id).session(session).lean();
+
             if (!slot) throw new Error("Slot not found");
+
             if (slot.status !== "AVAILABLE") throw new Error("Slot is unavailable");
 
             // 3) Kiểm tra bệnh nhân đã có lịch trong slot này CÙNG NGÀY chưa
             const startOfDay = new Date(targetDate);
+
             startOfDay.setHours(0, 0, 0, 0);
 
             const endOfDay = new Date(targetDate);
+
             endOfDay.setHours(23, 59, 59, 999);
 
             const existingAppointment = await Appointment.findOne({
@@ -224,8 +234,8 @@ async function createAsync(payload) {
 
         return result;
     } catch (error) {
-        console.log('🔍 Service error:', error.message);
-        console.log('🔍 Service error stack:', error.stack);
+        // console.log('🔍 Service error:', error.message);
+        // console.log('🔍 Service error stack:', error.stack);
         throw error;
     } finally {
         await session.endSession();
