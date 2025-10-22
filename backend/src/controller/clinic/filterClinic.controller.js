@@ -1,4 +1,3 @@
-// controller/clinic/filterClinic.controller.js
 const { searchClinics } = require("../../service/clinic/filterClinic.service");
 
 async function getClinicsByFilters(req, res) {
