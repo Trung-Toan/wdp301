@@ -12,7 +12,7 @@ const Account = require('../../model/auth/Account');
 exports.googleLogin = async (req, res) => {
     try {
         const { id_token } = req.body;
-        
+
         // Log để debug
         console.log('Google Login Debug:', {
             hasIdToken: !!id_token,
@@ -46,8 +46,8 @@ exports.googleLogin = async (req, res) => {
             stack: e.stack,
             name: e.name
         });
-        res.status(400).json({ 
-            ok: false, 
+        res.status(400).json({
+            ok: false,
             message: 'Google login thất bại',
             error: process.env.NODE_ENV === 'development' ? e.message : undefined
         });
@@ -61,7 +61,8 @@ exports.registerPatients = async (req, res) => {
             email,
             password,
             confirmPassword,
-            phone,
+            phone_number,
+            role,
             fullName,
             dob,
             gender,
@@ -78,8 +79,8 @@ exports.registerPatients = async (req, res) => {
             username,
             email,
             password,
-            phone_number: phone,
-            role: "PATIENT",
+            phone_number,
+            role: role || "PATIENT",
         });
 
         // Tạo bản ghi user liên kết với account_id
