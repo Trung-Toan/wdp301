@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import "../styles/ManageLicenses.css"
+import "../../styles/admin-system/ManageLicenses.css"
 import ViewModal from "./ViewModal"
 import ConfirmModal from "./ConfirmModal"
 

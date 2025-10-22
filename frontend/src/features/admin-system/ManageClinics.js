@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import "../styles/ManageClinics.css";
+import "../../styles/admin-system/ManageClinics.css";
 import ViewModal from "./ViewModal";
 import ConfirmModal from "./ConfirmModal";
 import EditClinicModal from "./EditClinicModal";

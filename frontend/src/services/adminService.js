@@ -24,25 +24,25 @@ export const adminService = {
             doctors: 8,
             rating: 4.5,
           },
-        ]);
-      }, 500);
-    });
+        ])
+      }, 500)
+    })
   },
 
   updateClinic: async (id, data) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: true, data });
-      }, 500);
-    });
+        resolve({ success: true, data })
+      }, 500)
+    })
   },
 
   deleteClinic: async (id) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: true });
-      }, 500);
-    });
+        resolve({ success: true })
+      }, 500)
+    })
   },
 
   // Accounts
@@ -66,25 +66,25 @@ export const adminService = {
             status: "active",
             joinDate: "2024-02-20",
           },
-        ]);
-      }, 500);
-    });
+        ])
+      }, 500)
+    })
   },
 
   banAccount: async (id) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: true });
-      }, 500);
-    });
+        resolve({ success: true })
+      }, 500)
+    })
   },
 
   unbanAccount: async (id) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: true });
-      }, 500);
-    });
+        resolve({ success: true })
+      }, 500)
+    })
   },
 
   // Licenses
@@ -100,9 +100,9 @@ export const adminService = {
             expiryDate: "2025-12-31",
             status: "active",
           },
-        ]);
-      }, 500);
-    });
+        ])
+      }, 500)
+    })
   },
 
   // Complaints
@@ -119,17 +119,17 @@ export const adminService = {
             status: "pending",
             date: "2024-06-15",
           },
-        ]);
-      }, 500);
-    });
+        ])
+      }, 500)
+    })
   },
 
   resolveComplaint: async (id) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: true });
-      }, 500);
-    });
+        resolve({ success: true })
+      }, 500)
+    })
   },
 
   // Dashboard
@@ -141,8 +141,8 @@ export const adminService = {
           totalClinics: 45,
           totalAppointments: 3890,
           complaints: 12,
-        });
-      }, 500);
-    });
+        })
+      }, 500)
+    })
   },
-};
+}

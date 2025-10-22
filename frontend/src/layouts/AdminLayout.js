@@ -1,136 +1,104 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { useState } from "react"
+import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import {
   Menu,
   X,
-  Bell,
-  User,
-  LogOut,
+  LayoutDashboard,
   Building2,
   Users,
   FileText,
   AlertCircle,
   Ban,
   Shield,
-  BarChart3,
-} from "lucide-react";
-import "./styles/AdminLayout.css";
+  Bell,
+  LogOut,
+  User,
+} from "lucide-react"
 
-const AdminLayout = ({ children, currentPage }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+const AdminLayout = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const menuItems = [
-    {
-      id: "dashboard",
-      label: "System Dashboard",
-      icon: BarChart3,
-      path: "/admin/dashboard",
-    },
-    {
-      id: "clinics",
-      label: "Manage Clinics",
-      icon: Building2,
-      path: "/admin/clinics",
-    },
-    {
-      id: "accounts",
-      label: "Manage Accounts",
-      icon: Users,
-      path: "/admin/accounts",
-    },
-    {
-      id: "licenses",
-      label: "Manage Licenses",
-      icon: FileText,
-      path: "/admin/licenses",
-    },
-    {
-      id: "complaints",
-      label: "Review Complaints",
-      icon: AlertCircle,
-      path: "/admin/complaints",
-    },
-    {
-      id: "banned",
-      label: "Banned Accounts",
-      icon: Ban,
-      path: "/admin/banned-accounts",
-    },
-    {
-      id: "blacklist",
-      label: "Manage Blacklist",
-      icon: Shield,
-      path: "/admin/blacklist",
-    },
-  ];
+    { id: "dashboard", label: "Tổng quan hệ thống", icon: LayoutDashboard, path: "/admin/dashboard" },
+    { id: "clinics", label: "Quản lý phòng khám", icon: Building2, path: "/admin/clinics" },
+    { id: "accounts", label: "Quản lý tài khoản", icon: Users, path: "/admin/accounts" },
+    { id: "licenses", label: "Quản lý giấy phép", icon: FileText, path: "/admin/licenses" },
+    { id: "complaints", label: "Xem khiếu nại", icon: AlertCircle, path: "/admin/complaints" },
+    { id: "banned", label: "Tài khoản bị khóa", icon: Ban, path: "/admin/banned" },
+    { id: "blacklist", label: "Danh sách đen", icon: Shield, path: "/admin/blacklist" },
+  ]
+
+  const isActive = (path) => location.pathname === path
 
   return (
-    <div className="admin-layout">
-      <aside className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
-        <div className="sidebar-header">
-          <h2>Admin Panel</h2>
-          <button
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+    <div className="flex min-h-screen bg-gray-50 text-gray-800">
+      {/* Sidebar */}
+      <aside
+        className={`${
+          sidebarOpen ? "w-64" : "w-20"
+        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
+      >
+        <div className="flex items-center justify-between px-4 py-4 border-b">
+          <h2 className={`font-bold text-blue-600 text-xl ${!sidebarOpen && "hidden"}`}>MediCare</h2>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="flex flex-col gap-1 px-2 mt-3">
           {menuItems.map((item) => (
-            <a
+            <button
               key={item.id}
-              href={item.path}
-              className={`nav-item ${currentPage === item.id ? "active" : ""}`}
+              onClick={() => navigate(item.path)}
+              className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all ${
+                isActive(item.path)
+                  ? "bg-blue-100 text-blue-600 font-semibold"
+                  : "hover:bg-gray-100 text-gray-700"
+              }`}
             >
               <item.icon size={20} />
               {sidebarOpen && <span>{item.label}</span>}
-            </a>
+            </button>
           ))}
         </nav>
+
+        <div className="mt-auto border-t p-4">
+          <button className="flex items-center gap-2 text-red-600 hover:text-red-700">
+            <LogOut size={18} />
+            {sidebarOpen && <span>Đăng xuất</span>}
+          </button>
+        </div>
       </aside>
 
-      <div className="admin-main">
-        <header className="admin-header">
-          <button
-            className="menu-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <Menu size={24} />
-          </button>
-
-          <div className="header-content">
-            <h1>Clinic Management System</h1>
-          </div>
-
-          <div className="header-actions">
-            <button className="notification-btn">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="flex items-center justify-between bg-white border-b border-gray-200 px-6 py-3">
+          <h1 className="text-lg font-semibold text-gray-800">Hệ thống quản trị MediCare</h1>
+          <div className="flex items-center gap-5">
+            <button className="relative">
               <Bell size={20} />
-              <span className="notification-badge">3</span>
+              <span className="absolute -top-1 -right-2 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <div className="user-menu">
-              <button className="user-btn">
-                <User size={20} />
-                <span>Admin</span>
-              </button>
-              <div className="dropdown-menu">
-                <a href="#profile">Profile</a>
-                <a href="#settings">Settings</a>
-                <a href="#logout">
-                  <LogOut size={16} />
-                  Logout
-                </a>
-              </div>
+
+            <div className="flex items-center gap-2">
+              <User size={20} className="text-gray-600" />
+              <span className="font-medium text-gray-700">Admin</span>
             </div>
           </div>
         </header>
 
-        <main className="admin-content">{children}</main>
+        {/* Dashboard Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
+        </main>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AdminLayout;
+export default AdminLayout

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import "../styles/ManageComplaints.css"
+import "../../styles/admin-system/ManageComplaints.css"
 import ViewModal from "./ViewModal"
 import ConfirmModal from "./ConfirmModal"
 

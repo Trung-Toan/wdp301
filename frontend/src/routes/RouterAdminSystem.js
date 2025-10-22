@@ -1,35 +1,28 @@
-import AdminLayout from "../features/admin-system/AdminLayout"
-import Dashboard from "../features/admin-system/pages/Dashboard"
-import ManageClinics from "../features/admin-system/pages/ManageClinics"
-import ManageAccounts from "../features/admin-system/pages/ManageAccounts"
-import ManageLicenses from "../features/admin-system/pages/ManageLicenses"
-import ManageComplaints from "../features/admin-system/pages/ManageComplaints"
-import ManageBannedAccounts from "../features/admin-system/pages/ManageBannedAccounts"
-import ManageBlacklist from "../features/admin-system/pages/ManageBlacklist"
+import { Routes, Route } from "react-router-dom"
+import AdminLayout from "../layouts/AdminLayout"
+import Dashboard from "../features/admin-system/Dashboard"
+import ManageClinics from "../features/admin-system/ManageClinics"
+import ManageAccounts from "../features/admin-system/ManageAccounts"
+import ManageLicenses from "../features/admin-system/ManageLicenses"
+import ManageComplaints from "../features/admin-system/ManageComplaints"
+import ManageBannedAccounts from "../features/admin-system/ManageBannedAccounts"
+import ManageBlacklist from "../features/admin-system/ManageBlacklist"
 
-const RouterAdmin = ({ currentPage }) => {
-  const renderPage = () => {
-    switch (currentPage) {
-      case "dashboard":
-        return <Dashboard />
-      case "clinics":
-        return <ManageClinics />
-      case "accounts":
-        return <ManageAccounts />
-      case "licenses":
-        return <ManageLicenses />
-      case "complaints":
-        return <ManageComplaints />
-      case "banned":
-        return <ManageBannedAccounts />
-      case "blacklist":
-        return <ManageBlacklist />
-      default:
-        return <Dashboard />
-    }
-  }
-
-  return <AdminLayout currentPage={currentPage}>{renderPage()}</AdminLayout>
+const RouterAdminSystem = () => {
+  return (
+    <Routes>
+      <Route element={<AdminLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/clinics" element={<ManageClinics />} />
+        <Route path="/accounts" element={<ManageAccounts />} />
+        <Route path="/licenses" element={<ManageLicenses />} />
+        <Route path="/complaints" element={<ManageComplaints />} />
+        <Route path="/banned-accounts" element={<ManageBannedAccounts />} />
+        <Route path="/blacklist" element={<ManageBlacklist />} />
+        <Route path="/" element={<Dashboard />} />
+      </Route>
+    </Routes>
+  )
 }
 
-export default RouterAdmin
+export default RouterAdminSystem

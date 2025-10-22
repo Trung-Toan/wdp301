@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import "../styles/ManageAccounts.css";
+import "../../styles/admin-system/ManageAccounts.css";
 import ViewModal from "./ViewModal";
 import ConfirmModal from "./ConfirmModal";
 

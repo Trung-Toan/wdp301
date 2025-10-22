@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import "../styles/ManageBannedAccounts.css";
+import "../../styles/admin-system/ManageBannedAccounts.css";
 import ViewModal from "./ViewModal";
 import ConfirmModal from "./ConfirmModal";
 
