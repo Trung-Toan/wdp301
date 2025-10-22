@@ -8,17 +8,13 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         const clinicFilter = {};
         if (provinceCode) clinicFilter["address.province.code"] = String(provinceCode);
         if (wardCode) clinicFilter["address.ward.code"] = String(wardCode);
-
         const clinics = await Clinic.find(clinicFilter).select("_id").lean();
         const clinicIds = clinics.map(c => c._id);
-
         if (clinicIds.length === 0) {
             return [];
         }
-
         doctorFilter.clinic_id = { $in: clinicIds };
     }
-
     let query = Doctor.find(doctorFilter)
         .sort({ createdAt: -1 })
         .populate({
@@ -37,9 +33,7 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
     if (limit && Number(limit) > 0) {
         query = query.limit(Number(limit));
     }
-
     const doctors = await query;
-
     return doctors.map(d => ({
         _id: d._id,
         title: d.title,
