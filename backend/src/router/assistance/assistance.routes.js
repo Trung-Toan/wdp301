@@ -14,9 +14,6 @@ router.get("/patients", authRequired, roleRequired("ASSISTANT"), AssistanceContr
 // view information patient by patientId
 router.get("/patients/:patientId", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewPatientById);
 
-// GET /patients/code/:patientCode
-// view information patient by code patient
-router.get("/patients/code/:patientCode", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewPatientByCode);
 
 /* ========================= APPOINTMENTS ========================= */
 // GET /appointments?page=1

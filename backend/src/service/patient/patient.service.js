@@ -1,6 +1,6 @@
 const Patient = require('../../model/patient/Patient');
 const userService = require("../user/user.service");
-
+const appointmentService = require("../appointment/appointment.service");
 
 exports.getPatientById = async (req) => {
     try {
@@ -38,8 +38,6 @@ exports.getPatientById = async (req) => {
         return null;
     }
 };
-
-
 
 /**
  * get patient by code
@@ -103,5 +101,40 @@ exports.updatePatientLocationByAccountId = async (accountId, { province_code, wa
     return patient;
 }
 
+/**
+ * Thực hiện phân trang trên một mảng ID.
+ */
+const getPaginatedIds = (allIds, { page, limit }) => {
+    const skip = (page - 1) * limit;
+    return allIds.slice(skip, skip + limit);
+};
 
+exports.getPatientAvailableOfDoctor = async (doctor_id, page = 1, limit = 10, search = "" ) => {
+    const allPatientIds = await appointmentService.uniquePatientIdsWithAppointmentIsCompleted(doctor_id, search);
+    const totalPatients = allPatientIds.length;
+
+    if (totalPatients === 0) {
+        return { patients: [], pagination: { totalItems: 0, totalPages: 0, currentPage: 1, limit: parseInt(limit) } };
+    }
+
+    // Bước 3: Lấy ra các ID cho trang hiện tại
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const paginatedPatientIds = getPaginatedIds(allPatientIds, { page: pageNumber, limit: limitNumber });
+
+    // Bước 4: Lấy thông tin user từ các ID đã phân trang
+    const userDocs = await userService.getUsersFromPatientIds(paginatedPatientIds);
+
+    // Bước 5: Tạo đối tượng trả về
+    const totalPages = Math.ceil(totalPatients / limitNumber);
+    return {
+        patients: userDocs,
+        pagination: {
+            totalItems: totalPatients,
+            totalPages: totalPages,
+            currentPage: pageNumber,
+            limit: limitNumber
+        }
+    };
+};
 

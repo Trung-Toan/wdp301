@@ -94,18 +94,10 @@ exports.uniquePatientIdsWithAppointmentIsCompleted = async (
   return results.map((item) => item.patient_id);
 };
 
-exports.getListAppointments = async (req) => {
-  const accountId = req.user.sub;
-
-  // Tìm bác sĩ theo account_id
-  const doctor = await doctorService.findDoctorByAccountId(accountId);
-  if (!doctor) {
-    throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
-  }
-
+exports.getListAppointments = async (req, doctorId) => {
   const slotObj =
-    (await slotService.getSlotAtNowByDocterId(doctor._id)) ||
-    (await slotService.getFirtAvailableSlotByDoctorId(doctor._id));
+    (await slotService.getSlotAtNowByDocterId(doctorId)) ||
+    (await slotService.getFirtAvailableSlotByDoctorId(doctorId));
 
   const {
     page = 1,
@@ -126,7 +118,7 @@ exports.getListAppointments = async (req) => {
 
   // Đếm tổng số lịch hẹn
   const totalAppointments = await Appointment.countDocuments({
-    doctor_id: doctor._id,
+    doctor_id: doctorId,
     ...(status ? { status } : {}),
     slot_id: slot,
     scheduled_date: date,
@@ -137,7 +129,7 @@ exports.getListAppointments = async (req) => {
 
   // Lấy danh sách lịch hẹn có phân trang
   const appointments = await Appointment.find({
-    doctor_id: doctor._id,
+    doctor_id: doctorId,
     ...(status ? { status } : {}),
     slot_id: slot,
     scheduled_date: date,
@@ -171,7 +163,6 @@ exports.getListAppointments = async (req) => {
     },
   }));
 
-  console.log("app: ", formData);
 
   // Trả về cùng định dạng bạn đang dùng
   return {
@@ -182,7 +173,7 @@ exports.getListAppointments = async (req) => {
         start_time: slotNow?.start_time,
         end_time: slotNow?.end_time,
       },
-      slot_list: (await slotService.getListSlotsByDoctorId(doctor._id)) || [],
+      slot_list: (await slotService.getListSlotsByDoctorId(doctorId)) || [],
     },
     pagination: {
       totalItems: totalAppointments,

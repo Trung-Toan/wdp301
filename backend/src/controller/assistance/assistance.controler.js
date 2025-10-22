@@ -1,20 +1,24 @@
-
+const assistantService = require("../../service/assistant/assistant.service");
+const formatDataUtils = require("../../utils/formatData");
+const patientService = require("../../service/patient/patient.service");
+const resUtils = require("../../utils/responseUtils");
+const patientService = require("../../service/patient/patient.service");
+const appointmentService = require("../../service/appointment/appointment.service");
+const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
 /* ========================= PATIENTS ========================= */
 // GET /patients
 exports.viewListPatients = async (req, res) => {
     try {
-        // 1. Lấy dữ liệu từ service, bao gồm cả 'patients' và 'pagination'
-        // Truyền req.query vào để service có thể lấy page và limit (ví dụ: /patients?page=1&limit=10)
-
-        const { patients, pagination } = await doctorService.getListPatients(req);
+        const { patients, pagination } = await assistantService.getListPatients(req);
 
         // 2. Dùng .map() để tạo một mảng mới với định dạng mong muốn
-        const formattedPatients = patients.map(patient => formatDataUtils.formatData(patient)) || [];
+        const formattedPatients =
+            patients.map((patient) => formatDataUtils.formatData(patient)) || [];
 
         // 3. Trả về response thành công với dữ liệu đã được định dạng
         return resUtils.paginatedResponse(
             res,
-            { patients: formattedPatients },
+            formattedPatients,
             pagination,
             "Lấy danh sách bệnh nhân thành công."
         );
@@ -29,50 +33,69 @@ exports.viewListPatients = async (req, res) => {
 exports.viewPatientById = async (req, res) => {
     try {
         const { patient } = await patientService.getPatientById(req);
+        const { records, pagination } =
+            await medicalRecordService.getListMedicalRecordsByIdPatient(req);
 
         return resUtils.successResponse(
             res,
             {
-                patients: formatDataUtils.formatData(patient) || null,
+                patient: patient,
+                medical_record: records,
+                pagination_: pagination,
             },
             "Lấy thông tin bệnh nhân thành công."
         );
     } catch (error) {
         // Xử lý lỗi nếu có
         console.error("Error in viewListPatients:", error);
-        return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
-    }
-};
-
-// GET /patients/code/:patientCode
-exports.viewPatientByCode = async (req, res) => {
-    try {
-        const { patient } = await patientService.getPatientByCode(req);
-
-        return resUtils.successResponse(
+        return resUtils.serverErrorResponse(
             res,
-            {
-                patient: formatDataUtils.formatData(patient) || null,
-            },
-            "Lấy thông tin bệnh nhân thành công."
+            error.message || "Có lỗi xảy ra",
+            500
         );
-    } catch (error) {
-        // Xử lý lỗi nếu có
-        console.error("Error in viewListPatients:", error);
-        return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
     }
 };
-
 
 /* ========================= APPOINTMENTS ========================= */
-// GET /appointments
+// GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
-    res.json({ message: "View list of appointments" });
+    try {
+        const { appointments, slot, pagination } =
+            await appointmentService.getListAppointments(req);
+
+        return resUtils.paginatedResponse(
+            res,
+            { appointments, slot },
+            pagination,
+            "Lấy danh sách cuộc hẹn thành công."
+        );
+    } catch (error) {
+        console.error("Error in viewAppointments:", error);
+        return resUtils.serverErrorResponse(
+            res,
+            error,
+            "Có lỗi xảy ra khi lấy danh sách cuộc hẹn."
+        );
+    }
 };
 
 // GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
-    res.json({ message: `View appointment detail with ID ${req.params.appointmentId}` });
+    try {
+        const { appointment } = await appointmentService.getAppointmentById(req);
+        return resUtils.successResponse(
+            res,
+            appointment,
+            "Lấy thông tin cuộc hẹn thành công."
+        );
+    } catch (error) {
+        console.error("Error in viewAppointmentDetail:", error);
+        return resUtils.serverErrorResponse(
+            res,
+            error,
+            "Có lỗi xảy ra khi lấy thông tin cuộc hẹn."
+        );
+    }
 };
 
 // PUT /appointments/:appointmentId/verify
@@ -110,7 +133,7 @@ exports.updateMedicalRecord = async (req, res) => {
 
 //POST /medical-records/:recordId
 exports.createMedicalRecord = async (req, res) => {
-    res.json({ message: `Create medical record with ID ${req.params.recordId}` });  
+    res.json({ message: `Create medical record with ID ${req.params.recordId}` });
 };
 
 /* ========================= PROFILE ========================= */

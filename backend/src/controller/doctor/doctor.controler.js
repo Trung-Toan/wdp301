@@ -65,12 +65,15 @@ exports.viewPatientById = async (req, res) => {
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
   try {
-    const { appointments, slot, pagination } =
-      await appointmentService.getListAppointments(req);
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return resUtils.forbiddenResponse("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
+    }
+    const { appointments, slot, pagination } = await appointmentService.getListAppointments(req, doctor._id);
 
     return resUtils.paginatedResponse(
       res,
-      { appointments, slot},
+      { appointments, slot },
       pagination,
       "Lấy danh sách cuộc hẹn thành công."
     );
