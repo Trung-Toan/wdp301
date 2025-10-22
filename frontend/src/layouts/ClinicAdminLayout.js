@@ -12,7 +12,7 @@ import {
   Bell,
   PersonCircle,
   BoxArrowRight,
-} from "react-bootstrap-icons";
+} from "lucide-react";
 import "../styles/clinic-admin/ClinicAdminLayout.css";
 
 const ClinicAdminLayout = () => {
