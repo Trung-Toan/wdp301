@@ -234,8 +234,8 @@ async function createAsync(payload) {
 
         return result;
     } catch (error) {
-        // console.log('🔍 Service error:', error.message);
-        // console.log('🔍 Service error stack:', error.stack);
+        console.log('Service error:', error.message);
+        console.log('Service error stack:', error.stack);
         throw error;
     } finally {
         await session.endSession();

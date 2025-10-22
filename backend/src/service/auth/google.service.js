@@ -43,17 +43,46 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
     const emailCanon = normalizeEmail(email || "");
     let acc = null;
 
+    console.log('Starting Google login process:', {
+        provider_user_id,
+        email,
+        emailCanon,
+        name
+    });
+
     let link = await AuthProviders.findOne({ provider: "google", provider_user_id }).lean();
+    console.log('AuthProviders lookup result:', link);
+
     if (link) {
         acc = await Account.findById(link.account_id);
+        console.log('Found existing account via AuthProviders:', acc ? acc._id : 'null');
+
+        // If AuthProviders exists but Account doesn't, clean up the orphaned record
+        if (!acc) {
+            console.log('Orphaned AuthProviders record found, cleaning up...');
+            await AuthProviders.deleteOne({ _id: link._id });
+            link = null; // Reset link so we can proceed with normal account creation
+        }
+    }
+
+    if (link && acc) {
+        // Use existing account
+        console.log('Using existing account:', acc._id);
+        // Nếu tài khoản có rồi, cập nhật email_verified nếu cần
+        if (!acc.email_verified && email_verified) {
+            await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
+            acc.email_verified = true;
+        }
     } else {
         if (emailCanon) {
             acc = await Account.findOne({ email: emailCanon });
+            console.log('Account lookup by email result:', acc ? acc._id : 'null');
         }
 
         if (!acc) {
             if (!emailCanon) throw new Error("Google account has no email");
 
+            console.log('Creating new account for email:', emailCanon);
             // Bọc toàn bộ quá trình tạo trong Transaction để đảm bảo đồng bộ
             const session = await mongoose.startSession();
             session.startTransaction();
@@ -74,6 +103,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     { session }
                 );
                 acc = acc[0];
+                console.log('Account created successfully:', acc._id);
 
                 // Tạo user tương ứng
                 const user = await User.create(
@@ -86,6 +116,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     ],
                     { session }
                 );
+                console.log('User created successfully:', user[0]._id);
 
                 // Tạo patient tương ứng
                 await Patient.create(
@@ -96,11 +127,13 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     ],
                     { session }
                 );
+                console.log('Patient created successfully');
 
                 // Commit transaction
                 await session.commitTransaction();
                 session.endSession();
             } catch (err) {
+                console.error('Error during account creation:', err);
                 await session.abortTransaction();
                 session.endSession();
 
@@ -112,6 +145,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                 }
             }
         } else {
+            console.log('Using existing account:', acc._id);
             // Nếu tài khoản có rồi, cập nhật email_verified nếu cần
             if (!acc.email_verified && email_verified) {
                 await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
@@ -119,20 +153,36 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
             }
         }
 
-        try {
-            await AuthProviders.create({
-                provider: "google",
-                provider_user_id,
-                email: email || undefined,
-                account_id: acc._id,
-            });
-        } catch (err) {
-            if (err.code === 11000) {
-                link = await AuthProviders.findOne({ provider: "google", provider_user_id });
-            } else {
-                throw err;
+        // Only create AuthProviders record if we don't already have one
+        if (!link) {
+            try {
+                await AuthProviders.create({
+                    provider: "google",
+                    provider_user_id,
+                    email: email || undefined,
+                    account_id: acc._id,
+                });
+                console.log('AuthProviders record created successfully');
+            } catch (err) {
+                console.error('Error creating AuthProviders record:', err);
+                if (err.code === 11000) {
+                    link = await AuthProviders.findOne({ provider: "google", provider_user_id });
+                    console.log('Duplicate AuthProviders record found:', link);
+                } else {
+                    throw err;
+                }
             }
         }
+    }
+
+    console.log('Final account state before token generation:', {
+        accountExists: !!acc,
+        accountId: acc?._id,
+        accountRole: acc?.role
+    });
+
+    if (!acc) {
+        throw new Error('Account is null after processing. This should not happen.');
     }
 
     // Ghi log đăng nhập
@@ -145,6 +195,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
             account_id: acc?._id,
             user_agent: ua || "",
         });
+        console.log('LoginAttempt record created successfully');
     } catch (e) {
         console.error("LoginAttempt.create failed", e);
     }
