@@ -1,9 +1,14 @@
 // src/routes/modules/routeConfig.js
-export const ROUTE_PATHS = {
-  HOME: "/home",
-  LOGIN: "/login",
-  REGISTER: "/register",
-  DOCTOR_DASHBOARD: "/doctor/dashboard",
-  ASSISTANT_DASHBOARD: "/assistant/dashboard",
-  OWNER_HOME: "/owner",
-};
+import UserRoutes from "./user.routes";
+import DoctorRoutes from "./doctor.routes";
+import AssistantRoutes from "./assistant.routes";
+import OwnerRoutes from "./owner.routes";
+import PatientsRoutes from "./patients.routes";
+
+export const routeConfig = [
+  { path: "/*", element: <UserRoutes />, isPublic: true },
+  { path: "/patient/*", element: <PatientsRoutes />, roles: ["PATIENT"] },
+  { path: "/doctor/*", element: <DoctorRoutes />, roles: ["DOCTOR"] },
+  { path: "/assistant/*", element: <AssistantRoutes />, roles: ["ASSISTANT"] },
+  { path: "/owner/*", element: <OwnerRoutes />, roles: ["OWNER"] },
+];

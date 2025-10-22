@@ -1,20 +1,31 @@
-// src/routes/AllRouter.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
-import { userRoutes } from "./modules/user.routes";
-import { doctorRoutes } from "./modules/doctor.routes";
-import { assistantRoutes } from "./modules/assistant.routes";
-import { ownerRoutes } from "./modules/owner.routes";
-import { patientsRoutes } from "./modules/patients.routes";
+import ProtectedRoute from "./ProtectedRoute";
+import { routeConfig } from "./modules/routeConfig";
+import UnauthorizedPage from "../components/UnauthorizedPage";
 
 export default function AllRouter() {
     return (
         <Routes>
+            {/* Điều hướng mặc định */}
             <Route path="/" element={<Navigate to="/home" replace />} />
-            {patientsRoutes}
-            {userRoutes}
-            {doctorRoutes}
-            {assistantRoutes}
-            {ownerRoutes}
+
+            {/* Duyệt qua cấu hình */}
+            {routeConfig.map((route, index) => {
+                if (route.isPublic) {
+                    return <Route key={index} path={route.path} element={route.element} />;
+                }
+
+                return (
+                    <Route
+                        key={index}
+                        path={route.path}
+                        element={
+                            <ProtectedRoute element={route.element} roles={route.roles} />
+                        }
+                    />
+                );
+            })}
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
     );

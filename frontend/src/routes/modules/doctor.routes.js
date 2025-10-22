@@ -1,5 +1,5 @@
 // src/routes/modules/doctor.routes.jsx
-import { Route } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import DoctorLayout from "../../layouts/DoctorLayout";
 import DoctorDashboard from "../../features/doctor/DoctorDashboard";
 import AppointmentSchedule from "../../features/doctor/AppointmentSchedule";
@@ -12,18 +12,25 @@ import MedicalRecordRequests from "../../features/doctor/MedicalRecordRequests";
 // import AbsenceNotification from "../../features/doctor/AbsenceNotification";
 
 
-export const doctorRoutes = (
-    <Route path="/doctor" element={<DoctorLayout />}>
-        <Route index element={<DoctorDashboard />} />
-        <Route path="dashboard" element={<DoctorDashboard />} />
-        <Route path="appointments" element={<AppointmentSchedule />} />
-        <Route path="patients" element={<PatientList />} />
-        <Route path="feedback" element={<FeedbackView />} />
-        <Route path="medical-records" element={<PatientMedicalRecords />} />
-        <Route path="record-requests" element={<MedicalRecordRequests />} />
-        <Route path="assistants" element={<AssistantManagement />} />
-        {/* <Route path="register" element={<DoctorRegistration />} />
+export default function doctorRoutes() {
+    return (
+        <Routes>
+            <Route path="/doctor" element={<DoctorLayout />}>
+                <Route index element={<DoctorDashboard />} />
+                <Route path="dashboard" element={<DoctorDashboard />} />
+                <Route path="appointments" element={<AppointmentSchedule />} />
+                <Route path="patients" element={<PatientList />} />
+                <Route path="feedback" element={<FeedbackView />} />
+                <Route path="medical-records" element={<PatientMedicalRecords />} />
+                <Route path="record-requests" element={<MedicalRecordRequests />} />
+                <Route path="assistants" element={<AssistantManagement />} />
+                {/* <Route path="register" element={<DoctorRegistration />} />
                 
                 <Route path="absence" element={<AbsenceNotification />} /> */}
-    </Route>
-);
+            </Route>
+        </Routes>
+
+    );
+}
+
+
