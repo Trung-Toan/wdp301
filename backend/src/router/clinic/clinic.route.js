@@ -177,8 +177,6 @@ router.get("/:clinicId/statistics/specialties/top", statisticsCtrl.getTopSpecial
  */
 router.get("/:clinicId/statistics/specialties/:specialtyId", statisticsCtrl.getSpecialtyDetails);
 
-
-
 /**
  * @swagger
  * /api/clinic/{clinicId}/statistics/doctors/performance:
