@@ -108,7 +108,7 @@ export function DoctorsListContent() {
 
     return (
         <div className="bg-muted/30">
-            {/* 🔍 Thanh tìm kiếm */}
+            {/* Thanh tìm kiếm */}
             <div className="bg-gradient-to-br from-blue-600 to-purple-600 py-12">
                 <div className="container mx-auto px-4">
                     <h1 className="text-3xl font-bold text-white mb-6 text-center">
@@ -127,7 +127,7 @@ export function DoctorsListContent() {
                 </div>
             </div>
 
-            {/* ⚙️ Bộ lọc và kết quả */}
+            {/* Bộ lọc và kết quả */}
             <div className="container mx-auto px-4 py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar bộ lọc */}
@@ -198,7 +198,9 @@ export function DoctorsListContent() {
 
                                             <div className="flex-1">
                                                 <h3 className="text-xl font-bold text-foreground mb-2">
-                                                    {doctor.title} - {doctor.fullname}
+                                                    <Link to={`/home/doctordetail/${doctor.id}`}>
+                                                        {doctor.title} - {doctor.fullname}
+                                                    </Link>
                                                 </h3>
 
                                                 <div className="flex items-center gap-2 text-sm mb-2">
