@@ -9,11 +9,6 @@ import {
   CheckCircle,
   XCircle,
 } from "react-bootstrap-icons";
-import {
-  getShifts,
-  getAppointments,
-  updateAppointmentStatus,
-} from "../../services/assistantService";
 import "../../styles/assistant/appointment-schedule.css";
 
 const ApproveAppointment = () => {
@@ -28,37 +23,75 @@ const ApproveAppointment = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      try {
-        const shiftRes = await getShifts(doctorId, selectedDate);
-        setShifts(shiftRes.success ? shiftRes.data : []);
 
-        const aptRes = await getAppointments({ doctorId, date: selectedDate });
-        setAppointments(aptRes.success ? aptRes.data : []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      // 👉 fake data
+      await new Promise((r) => setTimeout(r, 1000)); // delay cho giống API call
+
+      const fakeShifts = [
+        {
+          _id: "SHIFT1",
+          start_time: "08:00",
+          end_time: "10:00",
+          patientsCount: 2,
+          maxPatients: 5,
+        },
+        {
+          _id: "SHIFT2",
+          start_time: "10:30",
+          end_time: "12:00",
+          patientsCount: 1,
+          maxPatients: 5,
+        },
+        {
+          _id: "SHIFT3",
+          start_time: "13:30",
+          end_time: "15:30",
+          patientsCount: 0,
+          maxPatients: 5,
+        },
+      ];
+
+      const fakeAppointments = [
+        {
+          _id: "APT1",
+          status: "SCHEDULED",
+          patient: { name: "Nguyễn Văn A", phone: "0901234567" },
+          shift: { _id: "SHIFT1" },
+        },
+        {
+          _id: "APT2",
+          status: "COMPLETED",
+          patient: { name: "Trần Thị B", phone: "0912345678" },
+          shift: { _id: "SHIFT1" },
+        },
+        {
+          _id: "APT3",
+          status: "SCHEDULED",
+          patient: { name: "Phạm Minh C", phone: "0987654321" },
+          shift: { _id: "SHIFT2" },
+        },
+      ];
+
+      setShifts(fakeShifts);
+      setAppointments(fakeAppointments);
+      setLoading(false);
     };
+
     fetchData();
   }, [selectedDate]);
 
   const handleUpdateStatus = async (appointmentId, newStatus) => {
-    try {
-      const res = await updateAppointmentStatus(appointmentId, newStatus);
-      if (res.success) {
-        const aptRes = await getAppointments({ doctorId, date: selectedDate });
-        setAppointments(aptRes.success ? aptRes.data : []);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    setAppointments((prev) =>
+      prev.map((apt) =>
+        apt._id === appointmentId ? { ...apt, status: newStatus } : apt
+      )
+    );
   };
 
   const getStatusBadge = (status) => {
     const config = {
       SCHEDULED: { label: "Đã lên lịch", className: "status-scheduled" },
-      COMPLETED: { label: "Hoàn thành", className: "status-completed" },
+      COMPLETED: { label: "Đã duyệt", className: "status-completed" },
       CANCELLED: { label: "Đã hủy", className: "status-cancelled" },
     };
     return config[status] || config.SCHEDULED;

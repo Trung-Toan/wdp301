@@ -5,6 +5,7 @@ import RouterDoctor from "./RouterDoctor";
 import DoctorLayout from "../layouts/DoctorLayout";
 import RouterAssistant from "./RouterAssistant";
 import RouterAdminSystem from "./RouterAdminSystem";
+import RouterClinicAdmin from "./RouterClinicAdmin";
 
 export default function AllRouter() {
     return (
@@ -19,7 +20,7 @@ export default function AllRouter() {
             <Route path="/assistant/*" element={<RouterAssistant />} />
             <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
             <Route path="/admin/*" element={<RouterAdminSystem />} />
-
+            <Route path="/clinic-admin/*" element={<RouterClinicAdmin />} />
         </Routes>
     );
 }

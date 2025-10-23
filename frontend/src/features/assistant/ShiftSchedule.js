@@ -63,28 +63,29 @@ const ShiftSchedule = () => {
     setModalOpen(true);
   };
 
-  const handleSaveShift = async () => {
-    if (!shiftStart || !shiftEnd) return;
-    try {
-      const payload = {
-        start_time: shiftStart,
-        end_time: shiftEnd,
-        maxPatients,
-      };
-      if (editingShift) {
-        await updateShift(editingShift._id, payload);
-      } else {
-        await createShift("DOC001", {
-          date: selectedDate,
-          ...payload,
-        });
-      }
-      await fetchShifts();
-      setModalOpen(false);
-    } catch (error) {
-      console.error(error);
+const handleSaveShift = async () => {
+  if (!shiftStart || !shiftEnd) return;
+  try {
+    const payload = {
+      start_time: shiftStart,
+      end_time: shiftEnd,
+      maxPatients,
+    };
+
+    if (editingShift) {
+      await updateShift(editingShift._id, payload);
+    } else {
+      await createShift("DOC001", { date: selectedDate, ...payload });
     }
-  };
+
+    // ✅ Đừng thêm thủ công vào state nữa
+    // Chỉ cần fetch lại 1 lần để đảm bảo dữ liệu đồng bộ
+    await fetchShifts();
+    setModalOpen(false);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const confirmDeleteShift = (shift) => {
     setShiftToDelete(shift);
