@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Search, MapPin, Phone, CheckCircle } from "lucide-react";
+import { Search, MapPin, Phone, CheckCircle, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { clinicApi } from "../../../api";
 
@@ -176,9 +176,10 @@ export default function FacilitiesList() {
                                                     </p>
                                                     {clinic.email && (
                                                         <p className="flex items-center gap-2">
-                                                            ✉️ {clinic.email}
+                                                            <Mail className="w-4 h-4 text-blue-600" />
+                                                            {clinic.email}
                                                         </p>
-                                                    )}
+                                                    )} 
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-2 mt-3">
