@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../../../components/ui/Button";
-import Input from "../../../../components/ui/Input";
 import LocationSelector from "../../components/LocationSelector";
 import { clinicApi, specialtyApi } from "../../../../api";
 
