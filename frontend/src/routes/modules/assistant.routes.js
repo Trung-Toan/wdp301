@@ -6,7 +6,7 @@ import ShiftSchedule from "../../features/assistant/ShiftSchedule";
 export default function AssistantRoutes() {
     return (
         <Routes>
-            <Route path="/assistant" element={<AssistantLayout />}>
+            <Route path="/" element={<AssistantLayout />}>
                 <Route index element={<AssistantDashboard />} />
                 <Route path="dashboard" element={<AssistantDashboard />} />
                 <Route path="shift-schedule" element={<ShiftSchedule />} />

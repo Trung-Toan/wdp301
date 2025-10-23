@@ -15,7 +15,7 @@ import MedicalRecordRequests from "../../features/doctor/MedicalRecordRequests";
 export default function doctorRoutes() {
     return (
         <Routes>
-            <Route path="/doctor" element={<DoctorLayout />}>
+            <Route path="/" element={<DoctorLayout />}>
                 <Route index element={<DoctorDashboard />} />
                 <Route path="dashboard" element={<DoctorDashboard />} />
                 <Route path="appointments" element={<AppointmentSchedule />} />
