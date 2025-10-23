@@ -74,7 +74,7 @@ export function DoctorsListContent() {
                         location,
                         provinceName,
                         rating: d.rating || 0,
-                        experience: "Đang cập nhật",
+                        experience: d.experience || "Đang cập nhật",
                         price: "Đang cập nhật",
                         image: d.avatar_url || "/placeholder.svg",
                         available: true,
