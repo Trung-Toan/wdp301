@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import LocationSelector from "../../components/LocationSelector";
-import { clinicApi } from "../../../../api";
+import { clinicApi, specialtyApi } from "../../../../api";
 
 export function HeroSection() {
     const [filters, setFilters] = useState({
@@ -14,9 +14,35 @@ export function HeroSection() {
         q: "",
     });
 
+    const [specialties, setSpecialties] = useState([]); // Danh sách chuyên khoa
     const [results, setResults] = useState([]); // Kết quả tìm kiếm
     const [loading, setLoading] = useState(false); // Loading state
     const [hasSearched, setHasSearched] = useState(false); // Đã bấm search chưa
+
+    // Lấy danh sách chuyên khoa khi component load
+    useEffect(() => {
+        const fetchSpecialties = async () => {
+            try {
+                const res = await specialtyApi.getAll();
+
+                const list =
+                    Array.isArray(res.data)
+                        ? res.data
+                        : Array.isArray(res.data?.data)
+                            ? res.data.data
+                            : Array.isArray(res.data?.specialties)
+                                ? res.data.specialties
+                                : [];
+
+                setSpecialties(list);
+            } catch (error) {
+                console.error("Lỗi khi lấy danh sách chuyên khoa:", error);
+                setSpecialties([]); // đảm bảo không gây lỗi .map
+            }
+        };
+        fetchSpecialties();
+    }, []);
+
 
     const handleLocationChange = (value) => {
         setFilters((prev) => ({
@@ -72,6 +98,7 @@ export function HeroSection() {
                     Đặt lịch chỉ trong vài phút.
                 </motion.p>
 
+                {/* Bộ lọc tìm kiếm */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -79,14 +106,21 @@ export function HeroSection() {
                     className="mx-auto w-full max-w-4xl rounded-2xl bg-white/70 p-6 shadow-2xl backdrop-blur-md md:p-8"
                 >
                     <div className="grid gap-4 md:grid-cols-3">
-                        <Input
-                            placeholder="Nhập chuyên khoa..."
-                            value={filters.q}
+                        {/* Chọn chuyên khoa */}
+                        <select
+                            value={filters.specialtyId}
                             onChange={(e) =>
-                                setFilters((prev) => ({ ...prev, q: e.target.value }))
+                                setFilters((prev) => ({ ...prev, specialtyId: e.target.value }))
                             }
-                            className="pl-10 bg-white/80 backdrop-blur-sm border-gray-300 focus:border-blue-500"
-                        />
+                            className="w-full rounded-lg border border-gray-300 bg-white/80 backdrop-blur-sm px-3 py-2 text-gray-700 focus:border-blue-500 focus:outline-none"
+                        >
+                            <option value="">----- Chọn chuyên khoa -----</option>
+                            {specialties.map((s) => (
+                                <option key={s._id} value={s._id}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </select>
 
                         <LocationSelector onChange={handleLocationChange} />
 
@@ -100,7 +134,7 @@ export function HeroSection() {
                     </div>
                 </motion.div>
 
-                {/* Results */}
+                {/* Kết quả tìm kiếm */}
                 <div className="mt-10 container mx-auto px-6">
                     {loading && <p className="text-center text-gray-500">Đang tải kết quả...</p>}
 
@@ -112,7 +146,6 @@ export function HeroSection() {
                                     className="p-4 bg-white rounded-xl shadow hover:shadow-lg transition"
                                 >
                                     <h3 className="text-lg font-semibold">{clinic.name}</h3>
-                                    {/* Hiển thị địa chỉ */}
                                     <p className="text-gray-500 text-sm mt-1">
                                         {clinic.address ? (
                                             <>
@@ -132,7 +165,6 @@ export function HeroSection() {
                                         )}
                                     </p>
 
-                                    {/* Hiển thị specialties */}
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {clinic.specialties?.map((s) => (
                                             <span
