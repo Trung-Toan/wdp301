@@ -78,7 +78,7 @@ export function DoctorsListContent() {
                         price: "Đang cập nhật",
                         image: d.avatar_url || "/placeholder.svg",
                         available: true,
-                        reviews: 0,
+                        totalFeedback: d.totalFeedbacks || 0,
                     };
                 });
                 console.log("dữ liệu về bác sĩ : ", mapped);
@@ -228,7 +228,7 @@ export function DoctorsListContent() {
                                                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                                                     <span className="font-semibold">{doctor.rating}</span>
                                                     <span className="text-sm text-muted-foreground">
-                                                        ({doctor.reviews} đánh giá)
+                                                        ({doctor.totalFeedback} đánh giá)
                                                     </span>
                                                 </div>
                                             </div>
