@@ -10,6 +10,10 @@ export default function FacilitiesList() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedLocation, setSelectedLocation] = useState("Tất cả");
 
+    // State cho phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6; // số lượng cơ sở mỗi trang
+
     // Lấy dữ liệu từ API
     useEffect(() => {
         const fetchClinics = async () => {
@@ -42,12 +46,24 @@ export default function FacilitiesList() {
         return matchesSearch && matchesLocation;
     });
 
+    // Phân trang
+    const totalPages = Math.ceil(filteredClinics.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const currentClinics = filteredClinics.slice(startIndex, startIndex + itemsPerPage);
+
     const locations = [
         "Tất cả",
         ...Array.from(
             new Set(clinics.map((c) => c.address?.province?.name).filter(Boolean))
         ),
     ];
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+            window.scrollTo({ top: 0, behavior: "smooth" }); // cuộn lên đầu khi đổi trang
+        }
+    };
 
     if (loading)
         return <div className="text-center py-20 text-gray-500">Đang tải dữ liệu...</div>;
@@ -69,7 +85,10 @@ export default function FacilitiesList() {
                             placeholder="Tìm theo tên bệnh viện, phòng khám, địa chỉ..."
                             className="w-full pl-12 pr-4 h-14 rounded-lg shadow-md border border-gray-200 focus:ring-2 focus:ring-blue-400"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1); // reset về trang 1 khi tìm kiếm
+                            }}
                         />
                     </div>
                 </div>
@@ -84,7 +103,10 @@ export default function FacilitiesList() {
                         {locations.map((loc) => (
                             <button
                                 key={loc}
-                                onClick={() => setSelectedLocation(loc)}
+                                onClick={() => {
+                                    setSelectedLocation(loc);
+                                    setCurrentPage(1); // reset về trang 1 khi đổi lọc
+                                }}
                                 className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedLocation === loc
                                     ? "bg-blue-600 text-white"
                                     : "hover:bg-gray-100 text-gray-700"
@@ -107,8 +129,8 @@ export default function FacilitiesList() {
                     </p>
 
                     <div className="space-y-6">
-                        {filteredClinics.length > 0 ? (
-                            filteredClinics.map((clinic) => {
+                        {currentClinics.length > 0 ? (
+                            currentClinics.map((clinic) => {
                                 const address = clinic.address
                                     ? `${clinic.address.houseNumber || ""} ${clinic.address.street || ""}, ${clinic.address.ward?.name || ""}, ${clinic.address.province?.name || ""}`
                                     : "Chưa cập nhật địa chỉ";
@@ -189,6 +211,38 @@ export default function FacilitiesList() {
                             </div>
                         )}
                     </div>
+
+                    {/* Phân trang */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-8">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 bg-gray-200 rounded-md disabled:opacity-50 hover:bg-gray-300"
+                            >
+                                ← Trước
+                            </button>
+                            {Array.from({ length: totalPages }, (_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => handlePageChange(i + 1)}
+                                    className={`px-3 py-2 rounded-md ${currentPage === i + 1
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-100 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 bg-gray-200 rounded-md disabled:opacity-50 hover:bg-gray-300"
+                            >
+                                Sau →
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
