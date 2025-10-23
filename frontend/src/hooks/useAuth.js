@@ -1,25 +1,24 @@
-import { useContext, createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { jwtDecode } from "jwt-decode";
 
-// Tạo Auth Context
 const AuthContext = createContext(null);
 
-// Provider bao toàn app
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // { id, name, role, email, ... }
-    const [token, setToken] = useState(localStorage.getItem("access_token") || null);
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(sessionStorage.getItem("access_token") || null);
 
     const logout = useCallback(() => {
-        localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
         setToken(null);
         setUser(null);
     }, []);
 
-    // Khi token thay đổi → decode user info
     useEffect(() => {
+        console.log("token in authprovider:", token);
         if (token) {
             try {
                 const decoded = jwtDecode(token);
+                console.log("decoded user:", decoded);
                 setUser({
                     id: decoded.id,
                     name: decoded.name,
@@ -28,19 +27,23 @@ export const AuthProvider = ({ children }) => {
                 });
             } catch (error) {
                 console.error("❌ Invalid token:", error);
-                logout(); // Gọi hàm logout đã khai báo ổn định nhờ useCallback
+                logout();
             }
         } else {
             setUser(null);
         }
-    }, [token, logout]); // Thêm logout vào dependency array
+    }, [token, logout]);
 
     const login = useCallback((accessToken) => {
-        localStorage.setItem("access_token", accessToken);
+        sessionStorage.setItem("access_token", accessToken);
         setToken(accessToken);
     }, []);
 
     const isAuthenticated = !!user;
+
+    useEffect(() => {
+        console.log("user in authprovider:", user);
+    }, [user]);
 
     return (
         <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated }}>
@@ -49,7 +52,6 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-// Hook useAuth
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) throw new Error("useAuth must be used within an AuthProvider");

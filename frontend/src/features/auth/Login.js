@@ -14,12 +14,14 @@ import GoogleLoginButton from "./GoogleLoginButton";
 
 import "../../styles/Login.css";
 import { loginUser } from "../../api/auth/login/LoginController";
+import { useAuth } from "../../hooks/useAuth";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = location.state?.from || "/home";
+  const { login } = useAuth();
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -60,6 +62,7 @@ const Login = () => {
         });
         return;
       }
+      login(token);
 
       setSessionStorage("token", token);
       setSessionStorage("user", user);
