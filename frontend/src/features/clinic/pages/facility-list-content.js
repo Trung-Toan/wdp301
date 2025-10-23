@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Search, MapPin, Phone, CheckCircle, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { clinicApi } from "../../../api";
+import Loading from "../../../components/Loading";
 
 export default function FacilitiesList() {
     const [clinics, setClinics] = useState([]);
@@ -66,7 +67,7 @@ export default function FacilitiesList() {
     };
 
     if (loading)
-        return <div className="text-center py-20 text-gray-500">Đang tải dữ liệu...</div>;
+        return <Loading />
     if (error)
         return <div className="text-center py-20 text-red-500">{error}</div>;
 
@@ -132,7 +133,7 @@ export default function FacilitiesList() {
                         {currentClinics.length > 0 ? (
                             currentClinics.map((clinic) => {
                                 const address = clinic.address
-                                    ? `${clinic.address.houseNumber || ""} ${clinic.address.street || ""}, ${clinic.address.ward?.name || ""}, ${clinic.address.province?.name || ""}`
+                                    ? `${clinic.address.alley || ""}, ${clinic.address.houseNumber || ""} - ${clinic.address.street || ""}, ${clinic.address.ward?.name || ""}, ${clinic.address.province?.name || ""}`
                                     : "Chưa cập nhật địa chỉ";
 
                                 const specialties =
@@ -179,7 +180,7 @@ export default function FacilitiesList() {
                                                             <Mail className="w-4 h-4 text-blue-600" />
                                                             {clinic.email}
                                                         </p>
-                                                    )} 
+                                                    )}
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-2 mt-3">
