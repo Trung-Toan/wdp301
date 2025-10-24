@@ -26,7 +26,7 @@ const ClinicAdminLayout = () => {
     {
       title: "Quản lý bác sĩ",
       icon: <People size={20} />,
-      link: "/clinic-admin/doctors",
+      link: "/clinic-admin/manage-doctors",
     },
     {
       title: "Quản lý trợ lý",
