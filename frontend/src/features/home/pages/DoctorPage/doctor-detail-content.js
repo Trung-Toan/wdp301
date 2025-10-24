@@ -39,7 +39,7 @@ export function DoctorDetailContent({ doctorId }) {
         const fetchDoctor = async () => {
             setLoading(true);
             try {
-                const res = await doctorApi.getById(doctorId);
+                const res = await doctorApi.getDoctorById(doctorId);
                 console.log("Doctor in Doctor Details:", res.data);
                 setDoctor(res.data || {}); // đảm bảo là object
             } catch (err) {
@@ -132,7 +132,7 @@ export function DoctorDetailContent({ doctorId }) {
                                             <Stethoscope className="h-5 w-5" /> Về bác sĩ
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent>{doctor.about || "Chưa có thông tin về bác sĩ."}</CardContent>
+                                    <CardContent>{doctor.data.description || "Chưa có thông tin về bác sĩ."}</CardContent>
                                 </Card>
 
                                 <Card>
@@ -143,11 +143,9 @@ export function DoctorDetailContent({ doctorId }) {
                                     </CardHeader>
                                     <CardContent>
                                         <ul className="space-y-2">
-                                            {(doctor.education || []).map((edu, idx) => (
-                                                <li key={idx} className="flex gap-2">
-                                                    <span className="text-primary">•</span>{edu}
-                                                </li>
-                                            ))}
+                                            <li className="flex gap-2">
+                                                <span className="text-primary">•</span>{doctor.data.degree}
+                                            </li>
                                         </ul>
                                     </CardContent>
                                 </Card>

@@ -12,12 +12,36 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
     const pipeline = [
         { $match: { _id } },
 
+        // Lookup User
         { $lookup: { from: "users", localField: "user_id", foreignField: "_id", as: "user" } },
         { $unwind: "$user" },
 
+        // Lookup Clinic
         { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
         { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
+
+        // Lookup Specialty
         { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } },
+
+        // Lookup Licenses
+        {
+            $lookup: {
+                from: "licenses",
+                let: { docId: { $toString: "$_id" } },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $eq: [{ $toString: "$doctor_id" }, "$$docId"]
+                            }
+                        }
+                    }
+                ],
+                as: "licenses"
+            }
+        },
+        
+        // Lookup Slots
         {
             $lookup: {
                 from: "slots",
@@ -61,12 +85,14 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
                 as: "slots",
             },
         },
+
         {
             $addFields: {
                 minFee: { $min: "$slots.fee_amount" },
                 maxFee: { $max: "$slots.fee_amount" },
             },
         },
+
         {
             $project: {
                 _id: 1,
@@ -77,6 +103,7 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
                 user: { _id: 1, full_name: 1, avatar_url: 1 },
                 clinic: { _id: 1, name: 1, address: 1 },
                 specialties: { _id: 1, name: 1, icon_url: 1 },
+                licenses: 1,
                 slots: 1,
                 minFee: 1,
                 maxFee: 1,
@@ -86,6 +113,8 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
 
     const [doc] = await Doctor.aggregate(pipeline).allowDiskUse(true);
     if (!doc) return null;
+
+    // Đưa dữ liệu ra ở dạng gọn gàng hơn
     return {
         id: String(doc._id),
         name: doc.user?.full_name ?? "",
@@ -105,6 +134,17 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
             id: String(s._id),
             name: s.name,
             icon_url: s.icon_url || null,
+        })),
+        licenses: (doc.licenses).map((l) => ({
+            id: String(l._id),
+            licenseNumber: l.licenseNumber,
+            issued_by: l.issued_by,
+            issued_date: l.issued_date,
+            expiry_date: l.expiry_date,
+            document_url: l.document_url,
+            status: l.status,
+            approved_at: l.approved_at,
+            rejected_reason: l.rejected_reason || null,
         })),
         pricing: {
             minFee: doc.minFee ?? null,
