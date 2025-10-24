@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
 import Button from "../../../../../components/ui/Button";
+import RecordDetail from "./RecordDetail"; // ✅ Import
 
 export default function RecordsTab() {
     const [records, setRecords] = useState([]);
+    const [selectedRecord, setSelectedRecord] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         setLoading(true);
@@ -21,6 +21,13 @@ export default function RecordsTab() {
 
     if (loading) return <p>Đang tải dữ liệu...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
+
+    // ✅ Nếu chọn 1 hồ sơ, hiển thị trang chi tiết luôn trong tab
+    if (selectedRecord) {
+        return (
+            <RecordDetail recordId={selectedRecord._id} onBack={() => setSelectedRecord(null)} />
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -39,9 +46,7 @@ export default function RecordsTab() {
                         Ghi chú: {record.notes}
                     </p>
 
-                    <Button
-                        onClick={() => navigate(`/patient/records/${record._id}`)}
-                    >
+                    <Button onClick={() => setSelectedRecord(record)}>
                         Xem chi tiết
                     </Button>
                 </div>
