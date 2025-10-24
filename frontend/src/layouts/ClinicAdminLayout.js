@@ -5,7 +5,7 @@ import {
   UserPlus,
   MessageSquare,
   Ban,
-  AlertTriangle,
+  ClipboardCheck,
   X,
   List,
   Bell,
@@ -45,7 +45,7 @@ const ClinicAdminLayout = () => {
     },
     {
       title: "Cảnh báo quá tải",
-      icon: <AlertTriangle size={20} />,
+      icon: <ClipboardCheck size={20} />,
       link: "/clinic-admin/overload-alerts",
     },
   ];
@@ -66,11 +66,11 @@ const ClinicAdminLayout = () => {
         <div className="border-b border-indigo-700 p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-400 to-pink-400">
-              <AlertTriangle size={24} className="text-white" />
+              <ClipboardCheck size={28} className="text-white" />
             </div>
             {sidebarOpen && (
               <span className="whitespace-nowrap text-lg font-bold">
-                Clinic Admin
+                MediCare
               </span>
             )}
           </div>
