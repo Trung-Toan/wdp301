@@ -91,7 +91,7 @@ export function DoctorDetailContent({ doctorId }) {
 
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Hospital className="h-4 w-4" />{doctor.data.workplace || "Chưa có bệnh viện"}
+                                            <Hospital className="h-4 w-4" />{doctor.data.clinic.name || "Chưa có bệnh viện"}
                                         </div>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <GraduationCap className="h-5 w-5 text-blue-600" />

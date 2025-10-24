@@ -12,18 +12,18 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
     const pipeline = [
         { $match: { _id } },
 
-        // Lookup User
+        // === Lookup User (bác sĩ)
         { $lookup: { from: "users", localField: "user_id", foreignField: "_id", as: "user" } },
         { $unwind: "$user" },
 
-        // Lookup Clinic
+        // === Lookup Clinic
         { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
         { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
 
-        // Lookup Specialty
+        // === Lookup Specialty
         { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } },
 
-        // Lookup Licenses
+        // === Lookup Licenses
         {
             $lookup: {
                 from: "licenses",
@@ -40,8 +40,59 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
                 as: "licenses"
             }
         },
-        
-        // Lookup Slots
+
+        // === Lookup Feedbacks + thông tin người comment
+        {
+            $lookup: {
+                from: "feedbacks",
+                let: { docId: "$_id" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: ["$doctor_id", "$$docId"] }
+                        }
+                    },
+                    // Join sang bảng Patient
+                    {
+                        $lookup: {
+                            from: "patients",
+                            localField: "patient_id",
+                            foreignField: "_id",
+                            as: "patient"
+                        }
+                    },
+                    { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+
+                    // Join tiếp sang bảng User để lấy tên và avatar
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "patient.user_id",
+                            foreignField: "_id",
+                            as: "patient_user"
+                        }
+                    },
+                    { $unwind: { path: "$patient_user", preserveNullAndEmptyArrays: true } },
+
+                    {
+                        $project: {
+                            _id: 1,
+                            rating: 1,
+                            comment: 1,
+                            is_annonymous: 1,
+                            createdAt: 1,
+                            patient: {
+                                full_name: "$patient_user.full_name",
+                                avatar_url: "$patient_user.avatar_url"
+                            }
+                        }
+                    }
+                ],
+                as: "feedbacks"
+            }
+        },
+
+        // === Lookup Slots
         {
             $lookup: {
                 from: "slots",
@@ -86,13 +137,17 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
             },
         },
 
+        // === Tính min/max giá và rating trung bình
         {
             $addFields: {
                 minFee: { $min: "$slots.fee_amount" },
                 maxFee: { $max: "$slots.fee_amount" },
+                averageRating: { $avg: "$feedbacks.rating" },
+                totalFeedbacks: { $size: "$feedbacks" },
             },
         },
 
+        // === Chọn trường cần thiết
         {
             $project: {
                 _id: 1,
@@ -104,17 +159,20 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
                 clinic: { _id: 1, name: 1, address: 1 },
                 specialties: { _id: 1, name: 1, icon_url: 1 },
                 licenses: 1,
+                feedbacks: 1,
                 slots: 1,
                 minFee: 1,
                 maxFee: 1,
+                averageRating: 1,
+                totalFeedbacks: 1,
             },
         },
     ];
 
     const [doc] = await Doctor.aggregate(pipeline).allowDiskUse(true);
+
     if (!doc) return null;
 
-    // Đưa dữ liệu ra ở dạng gọn gàng hơn
     return {
         id: String(doc._id),
         name: doc.user?.full_name ?? "",
@@ -127,7 +185,11 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
             ? {
                 id: String(doc.clinic._id),
                 name: doc.clinic.name,
-                address: doc.clinic.address?.fullAddress || null,
+                province: doc.clinic.address?.province?.name || null,
+                ward: doc.clinic.address?.ward?.name || null,
+                houseNumber: doc.clinic.address?.houseNumber || null,
+                street: doc.clinic.address?.street || null,
+                alley: doc.clinic.address?.alley || null,
             }
             : null,
         specialties: (doc.specialties || []).map((s) => ({
@@ -135,7 +197,7 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
             name: s.name,
             icon_url: s.icon_url || null,
         })),
-        licenses: (doc.licenses).map((l) => ({
+        licenses: (doc.licenses || []).map((l) => ({
             id: String(l._id),
             licenseNumber: l.licenseNumber,
             issued_by: l.issued_by,
@@ -146,6 +208,23 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
             approved_at: l.approved_at,
             rejected_reason: l.rejected_reason || null,
         })),
+        feedbacks: (doc.feedbacks || []).map((f) => ({
+            id: String(f._id),
+            rating: f.rating,
+            comment: f.comment,
+            is_annonymous: f.is_annonymous,
+            createdAt: f.createdAt,
+            patient: f.is_annonymous
+                ? null // nếu ẩn danh thì không hiển thị người comment
+                : {
+                    full_name: f.patient?.full_name || "Người dùng",
+                    avatar_url: f.patient?.avatar_url || null,
+                },
+        })),
+        rating: {
+            average: doc.averageRating ?? 0,
+            total: doc.totalFeedbacks ?? 0,
+        },
         pricing: {
             minFee: doc.minFee ?? null,
             maxFee: doc.maxFee ?? null,
