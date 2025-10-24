@@ -6,8 +6,6 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  Calendar,
-  Award,
 } from "lucide-react";
 import {
   sampleAssistants,
@@ -39,8 +37,6 @@ const AssistantManagement = () => {
         assignedDoctor: doctorUser?.full_name
           ? `BS. ${doctorUser.full_name}`
           : "N/A",
-        hireDate: new Date(assistant.createdAt).toISOString().split("T")[0],
-        certifications: ["Chứng chỉ Y tá", "Chứng chỉ Sơ cứu"],
         assistantData: assistant,
       };
     });
@@ -63,13 +59,6 @@ const AssistantManagement = () => {
 
   const roles = ["Lễ tân", "Y tá", "Kỹ thuật viên", "Quản lý phòng khám"];
   const doctors = ["BS. Nguyễn Văn A", "BS. Trần Thị B", "BS. Lê Văn C"];
-  const shifts = [
-    { value: "MORNING", label: "Sáng (8:00 - 12:00)" },
-    { value: "AFTERNOON", label: "Chiều (13:00 - 17:00)" },
-    { value: "EVENING", label: "Tối (17:00 - 21:00)" },
-    { value: "FULL_DAY", label: "Cả ngày" },
-  ];
-
   const handleAddAssistant = () => {
     setEditingId(null);
     setFormData({
@@ -163,10 +152,6 @@ const AssistantManagement = () => {
 
     return matchesSearch && matchesRole && matchesStatus;
   });
-
-  const getShiftLabel = (shift) => {
-    return shifts.find((s) => s.value === shift)?.label || shift;
-  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -422,26 +407,6 @@ const AssistantManagement = () => {
                     {doctors.map((doctor) => (
                       <option key={doctor} value={doctor}>
                         {doctor}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Ca làm việc
-                  </label>
-                  <select
-                    required
-                    value={formData.shift}
-                    onChange={(e) =>
-                      setFormData({ ...formData, shift: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {shifts.map((shift) => (
-                      <option key={shift.value} value={shift.value}>
-                        {shift.label}
                       </option>
                     ))}
                   </select>
