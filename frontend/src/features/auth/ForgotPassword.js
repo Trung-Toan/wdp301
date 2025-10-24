@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { requestPasswordReset } from "../../api/auth/authService"; // import hàm API
+import { findEmailAndResetPassword } from "../../api/auth/ForgotPassword/forgorPasswordApi";
+ // import hàm API
 
-export default function ForgotPasswordPage() {
+export default function ForgotPassword() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
@@ -16,7 +17,7 @@ export default function ForgotPasswordPage() {
 
         setLoading(true);
         try {
-            await requestPasswordReset(email); // 👈 Gọi API thông qua hàm riêng
+            await findEmailAndResetPassword(email); //  Gọi API thông qua hàm riêng
             setMessage("Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu cho bạn.");
         } catch (err) {
             console.error(err);

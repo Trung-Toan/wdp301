@@ -68,7 +68,7 @@ export const doctorApi = {
     axiosInstance.delete(`/doctor/assistants/${assistantId}`),
 
   // Lấy bác sĩ theo ID
-  getById: (id) =>
+  getDoctorById: (id) =>
     axiosInstance.get(`/doctor/${id}`),
 };
 

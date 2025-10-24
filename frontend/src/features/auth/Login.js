@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
   clearSessionStorage,
@@ -14,10 +14,14 @@ import GoogleLoginButton from "./GoogleLoginButton";
 
 import "../../styles/Login.css";
 import { loginUser } from "../../api/auth/login/LoginController";
+import { useAuth } from "../../hooks/useAuth";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from || "/home";
+  const { login } = useAuth();
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -47,7 +51,7 @@ const Login = () => {
       const user = response.account;
       const patient = response.patient;
       console.log("PATIENT FROM LOGIN:", patient);
-      
+
       if (!token || !user) {
         Swal.fire({
           icon: "error",
@@ -58,6 +62,7 @@ const Login = () => {
         });
         return;
       }
+      login(token);
 
       setSessionStorage("token", token);
       setSessionStorage("user", user);
@@ -73,7 +78,7 @@ const Login = () => {
       if (user.role === "DOCTOR") {
         navigate("/doctor/dashboard");
       } else {
-        navigate("/home");
+        navigate(redirectTo, { replace: true });
       }
     },
 
@@ -217,7 +222,7 @@ const Login = () => {
           </Link>
           <br />
           Quên mật khẩu?{" "}
-          <Link to="/find_email" className="text-primary fw-semibold">
+          <Link to="/forgot_password" className="text-primary fw-semibold">
             Khôi phục tài khoản
           </Link>
         </p>

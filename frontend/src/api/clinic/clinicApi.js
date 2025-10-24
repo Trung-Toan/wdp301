@@ -14,4 +14,6 @@ export const clinicApi = {
      * @param {string} [params.sort="-createdAt"]
      */
     searchClinics: (params) => axiosInstance.get("/clinic/search", { params }),
+
+    getAllClinic: () => axiosInstance.get("/clinic/allClinic"),
 };

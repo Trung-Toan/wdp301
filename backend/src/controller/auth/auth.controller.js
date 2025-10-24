@@ -176,8 +176,8 @@ exports.requestPasswordReset = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
     try {
-        const { token, newPassword } = req.body;
-        const data = await svc.resetPassword({ token, newPassword });
+        const { token, newPassword, accountId } = req.body;
+        const data = await svc.resetPassword({ token, newPassword, accountId });
         res.json({ ok: true, ...data });
     } catch (e) {
         res.status(400).json({ ok: false, message: e.message });
