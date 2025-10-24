@@ -7,7 +7,7 @@ import Login from "../../features/auth/Login";
 import ForgotPassword from "../../features/auth/ForgotPassword";
 import ResetPassword from "../../features/auth/ResetPassword";
 import { BookingContent } from "../../features/customer/pages/Booking/booking";
-import { DoctorsListContent } from "../../features/home/pages/DoctorPage/doctors-list-content";
+import DoctorsListContent from "../../features/home/pages/DoctorPage/doctors-list-content";
 import DoctorDetailPage from "../../features/home/pages/DoctorPage";
 import { AppointmentsContent } from "../../features/customer/pages/Appointment/appointment";
 import SpecialtiesList from "../../features/home/pages/Specialties/specialties-list-content";
