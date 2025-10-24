@@ -20,7 +20,7 @@ router.get("/patients/:patientId", authRequired, roleRequired("ASSISTANT"), Assi
 // view list appointment of doctor with pagination
 router.get("/appointments", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewAppointments);
 
-// GET /appointments/:appointmentId
+// GET /appointments/:appointmentId 
 // view detail appointment by appointmentId
 router.get("/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewAppointmentDetail);
 
@@ -29,9 +29,13 @@ router.get("/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT
 router.put("/appointments/:appointmentId/verify", authRequired, roleRequired("ASSISTANT"), AssistanceController.verifyAppointment);
 
 /* ========================= Slot ========================= */
+// GET /slots/doctor
+// Get all slot for appointment
+router.get("/slots/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewAppointmentSlot);
+
 // POST /appointments/:appointmentId/slots
 // create slot for appointment
-router.post("/appointments/:appointmentId/slots", authRequired, roleRequired("ASSISTANT"), AssistanceController.createAppointmentSlot);
+router.post("/slots/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.createAppointmentSlot);
 
 // PUT /appointments/:appointmentId/slots/
 // update slot for appointment

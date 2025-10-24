@@ -24,7 +24,7 @@ exports.getListPatients = async (req) => {
         const assistant = await exports.getAssistantByAccountId(accountId);
         if (!assistant) throw new Error('Truy cập bị từ chối: Không tìm thấy trợ lý.');
 
-        return await patientService.getPatientAvailableOfDoctor(assistant.doctor_id, parseInt(page), parseInt(limit), search);
+        return await patientService.getPatientAvailableOfDoctor(assistant.doctor_id, page, limit, search);
     } catch (error) {
         throw error;
     }

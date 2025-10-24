@@ -37,16 +37,14 @@ exports.viewListPatients = async (req, res) => {
 // GET /patients/:patientId
 exports.viewPatientById = async (req, res) => {
   try {
-    const { patient } = await patientService.getPatientById(req);
-    const { records, pagination } =
-      await medicalRecordService.getListMedicalRecordsByIdPatient(req);
-
+    const {patientId} = req.params;
+    const {appointment} = await appointmentService.getAppointmentById(req, patientId);
+    
     return resUtils.successResponse(
       res,
       {
-        patient: patient,
-        medical_record: records,
-        pagination_: pagination,
+        patient: appointment?.patient,
+        medical_record: appointment?.medical_record,
       },
       "Lấy thông tin bệnh nhân thành công."
     );
@@ -90,7 +88,8 @@ exports.viewAppointments = async (req, res) => {
 // GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
   try {
-    const { appointment } = await appointmentService.getAppointmentById(req);
+    const {appointmentId} = req.params;
+    const {appointment} = await appointmentService.getAppointmentById(req, appointmentId);
     return resUtils.successResponse(
       res,
       appointment,

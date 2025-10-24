@@ -1,5 +1,6 @@
 const doctorService = require("../doctor/doctor.service");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
+const Appointment = require(("../../model/appointment/Appointment"));
 
 exports.requestViewMedicalRecord = async (req) => {
   try {
@@ -192,7 +193,6 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
   }
 };
 
-
 /**
  * get list medical records by patient id of doctor
  * 
@@ -250,6 +250,7 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
 
     // Lấy danh sách hồ sơ theo quyền truy cập + phân trang
     const records = await MedicalRecord.find(query)
+      .populate("appointment_id", "full_name phone email dob gender")
       .skip(skip)
       .limit(limitNumber)
       .lean();
@@ -269,6 +270,67 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
     throw error;
   }
 };
+
+exports.getMedicalRecordByAppointmentId = async (appointmentId) => {
+  try {
+    const medicalRecord = await MedicalRecord.find({ appointment_id: appointmentId }).lean();
+    return medicalRecord || [];
+  } catch (error) {
+    console.error("Error in getMedicalRecordByAppointmentId:", error);
+    return null;
+  }
+};
+
+exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (docter_id, full_name, phone, email, dob) => {
+  try {
+    const accessControlMatch = {
+      $or: [
+        { doctor_id: docter_id }, // 1. Bác sĩ tạo ra bệnh án
+        { status: "PUBLIC" },     // 2. Bệnh án công khai
+        {
+          // 3. Bệnh án riêng tư đã cấp quyền
+          status: "PRIVATE",
+          access_requests: {
+            $elemMatch: {
+              doctor_id: docter_id,
+              status: "VERIFIED",
+            },
+          },
+        },
+      ],
+    };
+
+    const apps = await Appointment
+      .find({
+        doctor_id: docter_id,
+        full_name: full_name,
+        phone: phone,
+        email: email,
+        dob: dob,
+        status: "COMPLETED"
+      })
+      .select("_id")
+      .lean();
+
+    if (apps.length === 0) {
+      console.log("Không tìm thấy cuộc hẹn (appointment) nào khớp.");
+      return [];
+    }
+    const appointmentIds = apps.map(app => app._id);
+    const medicalRecords = await MedicalRecord.find({
+      $and: [
+        { appointment_id: { $in: appointmentIds } },
+        accessControlMatch
+      ]
+    }) .lean();
+
+    return medicalRecords || [];
+
+  } catch (err) {
+    console.log("error at getMedicalRecordByAppointment_fullname_phone_email_dob: ", err);
+    return [];
+  }
+}
 
 /**
  * Get list medical records of patients for doctor with pagination and search
@@ -623,3 +685,4 @@ exports.verifyMedicalRecord = async (req) => {
     throw error;
   }
 };
+

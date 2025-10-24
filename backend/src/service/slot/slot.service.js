@@ -52,6 +52,21 @@ exports.getListSlotsByDoctorId = async (doctor_id) => {
     }
 };
 
+exports.getAllListSlotsByDoctorId = async (doctor_id, status = "") => {
+    try {
+        const slots = await Slot.find({
+            doctor_id,
+            ...(status && { status: status })
+        }).sort({ start_time: 1 }).lean();
+        
+        return slots || [];
+    } catch (error) {
+        console.error("Error in getListSlotsByDoctorId:", error);
+        return [];
+    }
+};
+
+
 exports.getSlotById = async (slot_id) => {
     try {
         const slot = await Slot.findById(slot_id).lean();
@@ -59,5 +74,42 @@ exports.getSlotById = async (slot_id) => {
     } catch (error) {
         console.error("Error in getSlotById:", error);
         return null;
+    }
+};
+
+/**
+ * Tạo một slot mới
+ * @param {object} slotData - Dữ liệu của slot (ví dụ: { doctor_id, date, start_time, ... })
+ */
+exports.createSlot = async (slotData) => {
+    try {
+        const newSlot = new Slot(slotData);
+        await newSlot.save();
+        return newSlot.toObject(); // .toObject() giống .lean() cho document mới
+    } catch (error) {
+        console.error("Error in createSlot:", error);
+        // Có thể throw error để controller bắt
+        throw error; 
+    }
+};
+
+
+/**
+ * Cập nhật một slot bằng ID
+ * @param {string} slot_id - ID của slot cần cập nhật
+ * @param {object} updateData - Dữ liệu cần cập nhật (ví dụ: { status: "BOOKED" })
+ */
+exports.updateSlotById = async (slot_id, updateData) => {
+    try {
+        const updatedSlot = await Slot.findByIdAndUpdate(
+            slot_id,
+            { $set: updateData },
+            { new: true } // {new: true} để trả về document đã được cập nhật
+        ).lean();
+        
+        return updatedSlot; // Trả về null nếu không tìm thấy
+    } catch (error) {
+        console.error("Error in updateSlotById:", error);
+        throw error;
     }
 };
