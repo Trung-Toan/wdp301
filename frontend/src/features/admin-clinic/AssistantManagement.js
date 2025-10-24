@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import {
   Plus,
   Trash2,
@@ -9,38 +9,46 @@ import {
   Calendar,
   Award,
 } from "lucide-react";
+import {
+  sampleAssistants,
+  sampleUsers,
+  sampleAccounts,
+  sampleDoctors,
+} from "../../data/mockData";
 
 const AssistantManagement = () => {
-  const [assistants, setAssistants] = useState([
-    {
-      id: 1,
-      name: "Nguyễn Thị C",
-      role: "Lễ tân",
-      email: "assistant1@clinic.com",
-      phone: "0912345680",
-      status: "ACTIVE",
-      assignedDoctor: "BS. Nguyễn Văn A",
-      hireDate: "2022-01-15",
-      performanceRating: 4.7,
-      tasksCompleted: 245,
-      shift: "MORNING",
-      certifications: ["Chứng chỉ Y tá", "Chứng chỉ Sơ cứu"],
-    },
-    {
-      id: 2,
-      name: "Trần Văn D",
-      role: "Y tá",
-      email: "assistant2@clinic.com",
-      phone: "0912345681",
-      status: "ACTIVE",
-      assignedDoctor: "BS. Trần Thị B",
-      hireDate: "2023-03-20",
-      performanceRating: 4.5,
-      tasksCompleted: 189,
-      shift: "AFTERNOON",
-      certifications: ["Chứng chỉ Y tá"],
-    },
-  ]);
+  const [assistants, setAssistants] = useState([]);
+
+  useEffect(() => {
+    const transformedAssistants = sampleAssistants.map((assistant) => {
+      const user = sampleUsers.find((u) => u._id === assistant.user_id);
+      const doctor = sampleDoctors.find((d) => d._id === assistant.doctor_id);
+      const doctorUser = sampleUsers.find((u) => u._id === doctor?.user_id);
+
+      return {
+        id: assistant._id,
+        name: user?.full_name || "Unknown",
+        role: "Y tá",
+        email:
+          sampleAccounts.find((a) => a._id === user?.account_id)?.email ||
+          "N/A",
+        phone:
+          sampleAccounts.find((a) => a._id === user?.account_id)
+            ?.phone_number || "N/A",
+        status: "ACTIVE",
+        assignedDoctor: doctorUser?.full_name
+          ? `BS. ${doctorUser.full_name}`
+          : "N/A",
+        hireDate: new Date(assistant.createdAt).toISOString().split("T")[0],
+        performanceRating: 4.5 + Math.random() * 0.5,
+        tasksCompleted: Math.floor(Math.random() * 300) + 100,
+        shift: "MORNING",
+        certifications: ["Chứng chỉ Y tá", "Chứng chỉ Sơ cứu"],
+        assistantData: assistant,
+      };
+    });
+    setAssistants(transformedAssistants);
+  }, []);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
