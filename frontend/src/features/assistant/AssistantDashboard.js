@@ -3,8 +3,6 @@ import { Link } from "react-router-dom";
 import {
   Users,
   Calendar,
-  FileText,
-  CheckCircle,
   TrendingUp,
   TrendingDown,
   Clock,

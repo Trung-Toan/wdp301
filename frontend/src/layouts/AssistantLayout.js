@@ -4,12 +4,8 @@ import {
   House,
   People,
   Calendar,
-  FileText,
   ClipboardCheck,
   BellSlash,
-  ChatLeftText,
-  PersonBadge,
-  CheckCircle,
   List,
   X,
   BoxArrowRight,
@@ -96,9 +92,8 @@ const DoctorLayout = () => {
             <Link
               key={index}
               to={item.link}
-              className={`nav-item ${
-                location.pathname === item.link ? "nav-item-active" : ""
-              }`}
+              className={`nav-item ${location.pathname === item.link ? "nav-item-active" : ""
+                }`}
             >
               <span className="nav-icon">{item.icon}</span>
               {sidebarOpen && <span className="nav-text">{item.title}</span>}
@@ -151,15 +146,15 @@ const DoctorLayout = () => {
           <div className="footer-content">
             <p className="footer-text">© 2025 MediCare. All rights reserved.</p>
             <div className="footer-links">
-              <a href="#" className="footer-link">
+              <Link to="#" className="footer-link">
                 Điều khoản
-              </a>
-              <a href="#" className="footer-link">
+              </Link>
+              <Link to="#" className="footer-link">
                 Chính sách
-              </a>
-              <a href="#" className="footer-link">
+              </Link>
+              <Link to="#" className="footer-link">
                 Hỗ trợ
-              </a>
+              </Link>
             </div>
           </div>
         </footer>
