@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, MapPin, Star, Hospital, Award } from "lucide-react";
+import { Search, MapPin, Star, Hospital, Award, Stethoscope } from "lucide-react";
 import { Link } from "react-router-dom";
 import { doctorApi } from "../../../../api";
 import Button from "../../../../components/ui/Button";
@@ -22,7 +22,7 @@ export default function DoctorsListContent() {
         async function fetchDoctors() {
             try {
                 const res = await doctorApi.getDoctorTop({ limit: 0 });
-            
+
                 const apiDoctors = res.data?.data || [];
 
                 const mapped = apiDoctors
@@ -240,8 +240,10 @@ export default function DoctorsListContent() {
                                                 </h3>
 
                                                 <div className="flex items-center gap-2 text-sm mb-2">
-                                                    <Badge variant="secondary">
-                                                        {doctor.specialty}
+                                                    <Badge variant="secondary" className="mb-3 flex items-center gap-1">
+                                                        <Stethoscope className="w-4 h-4 text-blue-600" /> {/* Icon chuyên khoa */}
+                                                        <strong>Chuyên Khoa: </strong>
+                                                        {doctor.specialty || "Chưa có chuyên khoa"}
                                                     </Badge>
                                                     <Badge className="bg-green-500 hover:bg-green-600">
                                                         Còn lịch
