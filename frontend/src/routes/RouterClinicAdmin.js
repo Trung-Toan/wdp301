@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Route, Routes } from "react-router-dom";
 import ClinicAdminLayout from "../layouts/ClinicAdminLayout";
 import ClinicDashboard from "../features/admin-clinic/ClinicDashboard";
-// import DoctorManagement from "../features/clinic-admin/DoctorManagement";
+import DoctorManagement from "../features/admin-clinic/ClinicDashboard";
 // import AssistantManagement from "../features/clinic-admin/AssistantManagement";
 // import FeedbackViewer from "../features/clinic-admin/FeedbackViewer";
 // import BlacklistManagement from "../features/clinic-admin/BlacklistManagement";
@@ -14,8 +14,8 @@ const RouterClinicAdmin = () => {
       <Route path="/" element={<ClinicAdminLayout />}>
         <Route index element={<ClinicDashboard />} />
         <Route path="dashboard" element={<ClinicDashboard />} />
-        {/* <Route path="doctors" element={<DoctorManagement />} />
-        <Route path="assistants" element={<AssistantManagement />} />
+        <Route path="doctors" element={<DoctorManagement />} />
+        {/* <Route path="assistants" element={<AssistantManagement />} />
         <Route path="feedback" element={<FeedbackViewer />} />
         <Route path="blacklist" element={<BlacklistManagement />} />
         <Route path="overload-alerts" element={<OverloadAlertsSystem />} /> */}
