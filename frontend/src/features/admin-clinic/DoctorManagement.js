@@ -1,4 +1,6 @@
-import { memo, useState } from "react";
+"use client";
+
+import { memo, useState, useEffect } from "react";
 import {
   Plus,
   Trash2,
@@ -8,39 +10,49 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
+import {
+  sampleDoctors,
+  sampleUsers,
+  sampleAccounts,
+  sampleSpecialties,
+} from "../../data/mockData";
 
 const DoctorManagement = () => {
   const [clinicType, setClinicType] = useState("MULTIPLE_DOCTORS");
-  const [doctors, setDoctors] = useState([
-    {
-      id: 1,
-      name: "BS. Nguyễn Văn A",
-      specialty: "Tim mạch",
-      email: "doctor1@clinic.com",
-      phone: "0912345678",
-      status: "ACTIVE",
-      licenseStatus: "APPROVED",
-      licenseExpiry: "2025-06-15",
-      joinDate: "2020-01-15",
-      rating: 4.8,
-      totalPatients: 156,
-      appointmentsToday: 12,
-    },
-    {
-      id: 2,
-      name: "BS. Trần Thị B",
-      specialty: "Nhi khoa",
-      email: "doctor2@clinic.com",
-      phone: "0912345679",
-      status: "ACTIVE",
-      licenseStatus: "APPROVED",
-      licenseExpiry: "2025-08-20",
-      joinDate: "2021-03-20",
-      rating: 4.6,
-      totalPatients: 142,
-      appointmentsToday: 10,
-    },
-  ]);
+  const [doctors, setDoctors] = useState([]);
+
+  useEffect(() => {
+    const transformedDoctors = sampleDoctors.map((doctor) => {
+      const user = sampleUsers.find((u) => u._id === doctor.user_id);
+      const specialties = doctor.specialty_id
+        .map((id) => sampleSpecialties.find((s) => s._id === id))
+        .map((s) => s?.name)
+        .join(", ");
+
+      return {
+        id: doctor._id,
+        name: user?.full_name || "Unknown",
+        specialty: specialties || "N/A",
+        email:
+          sampleAccounts.find((a) => a._id === user?.account_id)?.email ||
+          "N/A",
+        phone:
+          sampleAccounts.find((a) => a._id === user?.account_id)
+            ?.phone_number || "N/A",
+        status: "ACTIVE",
+        licenseStatus: "APPROVED",
+        licenseExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        joinDate: new Date(doctor.createdAt).toISOString().split("T")[0],
+        rating: doctor.rating || 4.5,
+        totalPatients: Math.floor(Math.random() * 200) + 50,
+        appointmentsToday: Math.floor(Math.random() * 15) + 1,
+        doctorData: doctor,
+      };
+    });
+    setDoctors(transformedDoctors);
+  }, []);
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
