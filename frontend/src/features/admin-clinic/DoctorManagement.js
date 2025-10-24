@@ -1,5 +1,3 @@
-"use client";
-
 import { memo, useState, useEffect } from "react";
 import {
   Plus,
