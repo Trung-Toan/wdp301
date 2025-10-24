@@ -40,9 +40,6 @@ const AssistantManagement = () => {
           ? `BS. ${doctorUser.full_name}`
           : "N/A",
         hireDate: new Date(assistant.createdAt).toISOString().split("T")[0],
-        performanceRating: 4.5 + Math.random() * 0.5,
-        tasksCompleted: Math.floor(Math.random() * 300) + 100,
-        shift: "MORNING",
         certifications: ["Chứng chỉ Y tá", "Chứng chỉ Sơ cứu"],
         assistantData: assistant,
       };
@@ -240,12 +237,6 @@ const AssistantManagement = () => {
                 Bác sĩ phụ trách
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Ca làm việc
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Đánh giá
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Trạng thái
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
@@ -278,20 +269,6 @@ const AssistantManagement = () => {
                   <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
                     {assistant.assignedDoctor}
                   </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-1 rounded w-fit">
-                    <Calendar size={14} />
-                    <span>{getShiftLabel(assistant.shift)}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Award size={14} className="text-yellow-500" />
-                    <span className="text-sm font-semibold text-gray-900">
-                      {assistant.performanceRating.toFixed(1)}
-                    </span>
-                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <button
