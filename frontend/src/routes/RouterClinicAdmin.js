@@ -14,7 +14,7 @@ const RouterClinicAdmin = () => {
       <Route path="/" element={<ClinicAdminLayout />}>
         <Route index element={<ClinicDashboard />} />
         <Route path="dashboard" element={<ClinicDashboard />} />
-        <Route path="doctors" element={<DoctorManagement />} />
+        <Route path="manage-doctors" element={<DoctorManagement />} />
         {/* <Route path="assistants" element={<AssistantManagement />} />
         <Route path="feedback" element={<FeedbackViewer />} />
         <Route path="blacklist" element={<BlacklistManagement />} />
