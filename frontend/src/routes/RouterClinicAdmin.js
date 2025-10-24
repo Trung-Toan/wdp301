@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import ClinicAdminLayout from "../layouts/ClinicAdminLayout";
 import ClinicDashboard from "../features/admin-clinic/ClinicDashboard";
 import DoctorManagement from "../features/admin-clinic/DoctorManagement";
-import AssistantManagement from "../features/admin-clinic/ClinicDashboard";
+import AssistantManagement from "../features/admin-clinic/AssistantManagement";
 
 const RouterClinicAdmin = () => {
   return (
