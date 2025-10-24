@@ -215,7 +215,7 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
             is_annonymous: f.is_annonymous,
             createdAt: f.createdAt,
             patient: f.is_annonymous
-                ? null // nếu ẩn danh thì không hiển thị người comment
+                ? { full_name: "Người dùng ẩn danh", avatar_url: "/default-avatar.png" }
                 : {
                     full_name: f.patient?.full_name || "Người dùng",
                     avatar_url: f.patient?.avatar_url || null,
