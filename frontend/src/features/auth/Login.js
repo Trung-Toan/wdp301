@@ -46,9 +46,10 @@ const Login = () => {
         return;
       }
 
-      console.log("LOGIN RESPONSE:", response);
+
       const token = response.tokens?.accessToken;
       const account = response.account;
+      console.log("Account RESPONSE:", account);
       const patient = response.patient;
       console.log("PATIENT FROM LOGIN:", patient);
       const user = response.user;
@@ -69,6 +70,8 @@ const Login = () => {
       setSessionStorage("token", token);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
+      setSessionStorage("account", account);
+
 
       Swal.fire({
         icon: "success",
