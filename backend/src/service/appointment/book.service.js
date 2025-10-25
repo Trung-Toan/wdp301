@@ -285,7 +285,7 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
 
     const total = await Appointment.countDocuments(filter);
 
-    // 👉 Chuẩn hóa dữ liệu để frontend dễ dùng
+    // Chuẩn hóa dữ liệu để frontend dễ dùng
     const formatted = appointments.map((a) => ({
         id: a._id,
         status: a.status.toLowerCase(), // vd: upcoming
@@ -302,6 +302,10 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
             year: "numeric",
         }) : "",
         time: a.slot_id?.start_time ? new Date(a.slot_id.start_time).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+        }) : "",
+        end_time: a.slot_id?.end_time ? new Date(a.slot_id.end_time).toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
         }) : "",
