@@ -4,8 +4,6 @@ const appointmentService = require("../appointment/appointment.service");
 
 /**
  * Hàm tìm kiếm một bác sĩ dựa trên user_id.
- * @param {mongoose.Types.ObjectId | string} userId - ID của người dùng cần tìm.
- * @returns {Promise<Doctor|null>}
  */
 exports.findDoctorByUserId = async (userId) => {
     try {
@@ -19,11 +17,6 @@ exports.findDoctorByUserId = async (userId) => {
 
 /**
  * Thực hiện phân trang trên một mảng ID.
- * @param {Array<any>} allIds Mảng chứa tất cả ID.
- * @param {object} paginationOptions - Tùy chọn phân trang.
- * @param {number} paginationOptions.page - Trang hiện tại.
- * @param {number} paginationOptions.limit - Số lượng mục trên mỗi trang.
- * @returns {Array<any>} Mảng chứa các ID của trang hiện tại.
  */
 const getPaginatedIds = (allIds, { page, limit }) => {
     const skip = (page - 1) * limit;
@@ -43,8 +36,6 @@ exports.findDoctorByAccountId = async (accountId) => {
 
 /**
  * Lấy danh sách người dùng là bệnh nhân của bác sĩ (đã khám xong) kèm theo phân trang.
- * @param {*} req
- * @returns {Promise<object>}
  */
 exports.getListPatients = async (req) => {
     const { page = 1, limit = 10, search = "" } = req.query;
@@ -86,4 +77,8 @@ exports.getListPatients = async (req) => {
     } catch (error) {
         throw error;
     }
+};
+
+exports.registerDoctor = async (req) => {
+    const {} = req.body;
 };

@@ -5,12 +5,38 @@ const { REQUIRE_EMAIL_VERIFICATION } = require('../config/env');
 function authRequired(req, res, next) {
     try {
         const h = req.headers.authorization || '';
-        const token = h.startsWith('Bearer ') ? h.slice(7) : null;
-        if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
+        console.log('Auth middleware - Authorization header:', h);
 
+        // Handle both "Bearer token" and "Bearer Bearer token" cases
+        let token = null;
+        if (h.startsWith('Bearer ')) {
+            token = h.slice(7); // Remove first "Bearer "
+            // If token still starts with "Bearer ", remove it too (handle duplicate Bearer)
+            if (token.startsWith('Bearer ')) {
+                token = token.slice(7);
+            }
+        }
+
+        console.log('Auth middleware - Extracted token:', token ? token.substring(0, 50) + '...' : 'null');
+
+        if (!token) {
+            console.log('Auth middleware - No token found');
+            return res.status(401).json({ ok: false, message: 'Unauthorized' });
+        }
+
+        console.log('Auth middleware - Verifying token...');
         req.user = verifyAccessToken(token); // { sub, role, email_verified, ... }
+        console.log('Auth middleware - Token verified successfully:', {
+            sub: req.user.sub,
+            role: req.user.role,
+            email_verified: req.user.email_verified
+        });
         next();
     } catch (e) {
+        console.error('Auth middleware - Token verification failed:', {
+            message: e.message,
+            name: e.name
+        });
         return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
     }
 }

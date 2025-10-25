@@ -2,25 +2,21 @@ const Doctor = require("../../model/doctor/Doctor");
 const Clinic = require("../../model/clinic/Clinic");
 
 async function getTopDoctors({ limit, provinceCode, wardCode }) {
-    const doctorFilter = { rating: { $ne: null } };
+    const doctorFilter = {};
 
     if (provinceCode || wardCode) {
         const clinicFilter = {};
         if (provinceCode) clinicFilter["address.province.code"] = String(provinceCode);
         if (wardCode) clinicFilter["address.ward.code"] = String(wardCode);
-
         const clinics = await Clinic.find(clinicFilter).select("_id").lean();
         const clinicIds = clinics.map(c => c._id);
-
         if (clinicIds.length === 0) {
             return [];
         }
-
         doctorFilter.clinic_id = { $in: clinicIds };
     }
-
     let query = Doctor.find(doctorFilter)
-        .sort({ rating: -1, createdAt: -1 })
+        .sort({ createdAt: -1 })
         .populate({
             path: "clinic_id",
             select: "name address",
@@ -33,26 +29,24 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         })
         .populate({
             path: "user_id",
-            select: "full_name",
+            select: "full_name avatar_url",
             model: "User",
         })
-        .select("title degree workplace rating avatar_url specialty_id clinic_id user_id createdAt")
+        .select("title degree description experience specialty_id clinic_id user_id createdAt")
         .lean();
 
     if (limit && Number(limit) > 0) {
         query = query.limit(Number(limit));
     }
-
     const doctors = await query;
-
     return doctors.map(d => ({
         _id: d._id,
-        full_name: d.user_id ? d.user_id.full_name : null, // thêm full_name
+        full_name: d.user_id ? d.user_id.full_name : null,
+        avatar_url: d.user_id ? d.user_id.avatar_url : null,
         title: d.title,
         degree: d.degree,
-        workplace: d.workplace,
-        rating: d.rating,
-        avatar_url: d.avatar_url,
+        description: d.description,
+        experience: d.experience,
         specialties: d.specialty_id
             ? d.specialty_id.map(s => ({ _id: s._id, name: s.name }))
             : [],
@@ -66,4 +60,5 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         createdAt: d.createdAt,
     }));
 }
+
 module.exports = { getTopDoctors };

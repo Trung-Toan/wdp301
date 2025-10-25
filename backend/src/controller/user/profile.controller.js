@@ -7,6 +7,7 @@ function fail(res, err, status = 500) { return res.status(status).json({ success
 exports.getMyProfile = async (req, res) => {
     try {
         const accountId = req.user?.sub;
+
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
 
         const user = await User.findOne({ account_id: accountId })
@@ -21,7 +22,7 @@ exports.getMyProfile = async (req, res) => {
             dob: user.dob,
             gender: user.gender,
             address: user.address,
-            avatar_url: user.avatar_url || "https://i.pravatar.cc/150?img=12", // ảnh mặc định
+            avatar_url: user.avatar_url || "https://i.pravatar.cc/150?img=12",
             account: user.account_id,
             notify_upcoming: user.notify_upcoming,
             notify_results: user.notify_results,
@@ -39,11 +40,13 @@ exports.getMyProfile = async (req, res) => {
 exports.updateMyProfile = async (req, res) => {
     try {
         const accountId = req.user?.sub;
+
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
 
         let { full_name, email, phone, dob, gender, address, avatar_url } = req.body || {};
 
         const userSet = {};
+
         if (full_name !== undefined) userSet.full_name = full_name;
         if (dob !== undefined) userSet.dob = dob;
         if (gender !== undefined) userSet.gender = gender;
@@ -61,6 +64,7 @@ exports.updateMyProfile = async (req, res) => {
         const accountSet = {};
         if (phone !== undefined) {
             const normalizedPhone = String(phone).trim();
+
             if (normalizedPhone.length > 0) {
                 const dupPhone = await Account.exists({
                     _id: { $ne: accountId },
@@ -106,6 +110,7 @@ exports.updateMyProfile = async (req, res) => {
 exports.updateSettings = async (req, res) => {
     try {
         const accountId = req.user?.sub;
+
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
         const {
             notify_upcoming,

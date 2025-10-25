@@ -17,22 +17,24 @@ const { validateAppointmentBooking } = require("../../middleware/validateAppoint
  *   schemas:
  *     AppointmentCreateRequest:
  *       type: object
- *       required: [slot_id, doctor_id, patient_id, specialty_id, full_name, phone, email]
+ *       required: [slot_id, doctor_id, patient_id, specialty_id, full_name, phone, email, scheduled_date, fee_amount]
  *       properties:
- *         slot_id:       { type: string, example: "670d2f5f7f9f1b2c3d4e5f60" }
- *         doctor_id:     { type: string, example: "670d2a1f7f9f1b2c3d4e5a12" }
- *         patient_id:    { type: string, example: "670d2c4a7f9f1b2c3d4e5b34" }
- *         specialty_id:  { type: string, example: "670d299e7f9f1b2c3d4e59ff" }
- *         clinic_id:     { type: string, example: "670d29117f9f1b2c3d4e5901" }
- *         full_name:     { type: string, example: "Nguyễn Nam Phong" }
- *         phone:         { type: string, example: "0985843234" }
- *         email:         { type: string, example: "exam@gmail.com" }
- *         dob:           { type: string, format: date, example: "1998-02-20" }
- *         gender:        { type: string, enum: [MALE, FEMALE, OTHER], example: "MALE" }
- *         province_code: { type: string, example: "01" }
- *         ward_code:     { type: string, example: "00235" }
- *         address_text:  { type: string, example: "Số 10, ngõ 1, Đống Đa" }
- *         reason:        { type: string, example: "Đau đầu, mỏi mắt" }
+ *         slot_id:         { type: string, example: "670d2f5f7f9f1b2c3d4e5f60" }
+ *         doctor_id:       { type: string, example: "670d2a1f7f9f1b2c3d4e5a12" }
+ *         patient_id:      { type: string, example: "670d2c4a7f9f1b2c3d4e5b34" }
+ *         specialty_id:    { type: string, example: "670d299e7f9f1b2c3d4e59ff" }
+ *         clinic_id:       { type: string, example: "670d29117f9f1b2c3d4e5901" }
+ *         scheduled_date:  { type: string, format: date, example: "2025-10-21", description: "Ngày khám (YYYY-MM-DD)" }
+ *         fee_amount:      { type: number, example: 300000, description: "Phí khám" }
+ *         full_name:       { type: string, example: "Nguyễn Nam Phong" }
+ *         phone:           { type: string, example: "0985843234" }
+ *         email:           { type: string, example: "exam@gmail.com" }
+ *         dob:             { type: string, format: date, example: "1998-02-20" }
+ *         gender:          { type: string, enum: [MALE, FEMALE, OTHER], example: "MALE" }
+ *         province_code:   { type: string, example: "01" }
+ *         ward_code:       { type: string, example: "00235" }
+ *         address_text:    { type: string, example: "Số 10, ngõ 1, Đống Đa" }
+ *         reason:          { type: string, example: "Đau đầu, mỏi mắt" }
  *
  *     DoctorLite:
  *       type: object
@@ -102,7 +104,7 @@ const { validateAppointmentBooking } = require("../../middleware/validateAppoint
  * @swagger
  * /api/appointments:
  *   post:
- *     summary: Tạo lịch khám (đặt lịch)
+ *     summary: Tạo lịch khám (đặt lịch) với kiểm tra slot availability thời gian thực
  *     tags: [Appointments]
  *     requestBody:
  *       required: true
@@ -220,5 +222,65 @@ router.get("/:id", ctrl.getById);
  *         description: Lỗi server
  */
 router.get("/patient/:patientId", validateObjectId("patientId"), ctrl.getByPatient);
+
+
+/**
+ * @swagger
+ * /api/appointments/doctors/{doctorId}/slots/available:
+ *   get:
+ *     summary: Lấy danh sách slots available của bác sĩ trong ngày
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: doctorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của bác sĩ
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày cần lấy slots (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Danh sách slots available
+ *       400:
+ *         description: Thiếu tham số date
+ */
+router.get("/doctors/:doctorId/slots/available", ctrl.getAvailableSlots);
+
+/**
+ * @swagger
+ * /api/appointments/slots/{slotId}/check-availability:
+ *   get:
+ *     summary: Kiểm tra slot có thể đặt lịch không
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: slotId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của slot
+ *       - in: query
+ *         name: scheduledDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày đặt lịch (YYYY-MM-DD)
+ *       - in: query
+ *         name: patientId
+ *         schema:
+ *           type: string
+ *         description: ID của bệnh nhân (để kiểm tra trùng lịch)
+ *     responses:
+ *       200:
+ *         description: Kết quả kiểm tra availability
+ */
+router.get("/slots/:slotId/check-availability", ctrl.checkSlotAvailability);
 
 module.exports = router;

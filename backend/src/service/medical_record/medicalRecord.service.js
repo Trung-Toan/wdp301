@@ -4,8 +4,11 @@ const MedicalRecord = require("../../model/patient/MedicalRecord");
 exports.requestViewMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+
     const doctorId = doctor._id;
+
     const { patientId } = req.params;
+
     const { reason } = req.body;
 
     if (!reason || reason.trim() === "") {
@@ -49,6 +52,7 @@ exports.requestViewMedicalRecord = async (req) => {
     });
 
     const results = await Promise.all(updatePromises);
+
     const updatedRequests = results.filter(Boolean);
 
     if (updatedRequests.length === 0) {
@@ -56,7 +60,6 @@ exports.requestViewMedicalRecord = async (req) => {
         "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
       );
     }
-
     return updatedRequests;
   } catch (error) {
     console.error("Error in requestViewMedicalRecord:", error);
@@ -67,9 +70,13 @@ exports.requestViewMedicalRecord = async (req) => {
 exports.requestViewMedicalRecordById = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+
     const doctorId = doctor._id;
+
     const patientId = req.params.patientId;
+
     const medicalRecordId = req.params.medicalRecordId;
+
     const { reason } = req.body;
 
     if (!reason || reason.trim() === "") {
@@ -124,10 +131,13 @@ exports.requestViewMedicalRecordById = async (req) => {
 exports.getHistoryMedicalRecordRequests = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+
     const doctorIdAsObjectId = doctor._id;
 
     const page = parseInt(req.query.page) || 1;
+
     const limit = parseInt(req.query.limit) || 10;
+
     const skip = (page - 1) * limit;
 
     const results = await MedicalRecord.aggregate([
@@ -171,7 +181,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       : 0;
     const totalPages = Math.ceil(totalItems / limit);
 
-    // ✅ Populate sau khi aggregate
+    // Populate sau khi aggregate
     await MedicalRecord.populate(requests, [
       { path: "patient", model: "Patient" },
       { path: "medical_record", model: "MedicalRecord" }
@@ -195,9 +205,6 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
 
 /**
  * get list medical records by patient id of doctor
- * 
- * @param {*} req 
- * @returns 
  */
 exports.getListMedicalRecordsByIdPatient = async (req) => {
   try {
@@ -253,7 +260,6 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
       .skip(skip)
       .limit(limitNumber)
       .lean();
-
     const totalPages = Math.ceil(totalRecords / limitNumber);
 
     return {
@@ -273,9 +279,6 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
 
 /**
  * Get list medical records of patients for doctor with pagination and search
- * 
- * @param {*} req page, limit, search
- * @returns 
  */
 exports.getListMedicalRecords = async (req) => {
   try {
@@ -325,13 +328,13 @@ exports.getListMedicalRecords = async (req) => {
       // Liên kết với collection 'users' để lấy full_name
       {
         $lookup: {
-          from: "users", // Tên collection của User, thường là số nhiều
-          localField: "patientInfo.user_id",
+          from: "appointments", // Tên collection của User, thường là số nhiều
+          localField: "appointment_id",
           foreignField: "_id",
-          as: "userInfo",
+          as: "appointmentInfo",
         },
       },
-      { $unwind: "$userInfo" },
+      { $unwind: "$appointmentInfo" },
     ];
 
     // 3. Thêm điều kiện $match cho tìm kiếm nếu có `search` query
@@ -340,7 +343,7 @@ exports.getListMedicalRecords = async (req) => {
         $match: {
           $or: [
             { "patientInfo.patient_code": { $regex: search, $options: "i" } },
-            { "userInfo.full_name": { $regex: search, $options: "i" } },
+            { "appointmentInfo.full_name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -383,7 +386,7 @@ exports.getListMedicalRecords = async (req) => {
           patient_id: "$patientInfo._id",
           doctor_id: "$doctor_id",
           patient_code: "$patientInfo.patient_code",
-          patient_name: "$userInfo.full_name",
+          patient_name: "$appointmentInfo.full_name",
         },
       },
     ];
@@ -439,13 +442,13 @@ exports.getListMedicalRecordsVerify = async (req) => {
       { $unwind: "$patientInfo" },
       {
         $lookup: {
-          from: "users",
-          localField: "patientInfo.user_id",
+          from: "appointments", // Tên collection của User, thường là số nhiều
+          localField: "appointment_id",
           foreignField: "_id",
-          as: "userInfo",
+          as: "appointmentInfo",
         },
       },
-      { $unwind: "$userInfo" },
+      { $unwind: "$appointmentInfo" },
     ];
 
     // Nếu có search theo tên hoặc mã BN
@@ -454,7 +457,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
         $match: {
           $or: [
             { "patientInfo.patient_code": { $regex: search, $options: "i" } },
-            { "userInfo.full_name": { $regex: search, $options: "i" } },
+            { "appointmentInfo.full_name": { $regex: search, $options: "i" } },
           ],
         },
       });
@@ -494,7 +497,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
           patient_id: "$patientInfo._id",
           doctor_id: "$doctor_id",
           patient_code: "$patientInfo.patient_code",
-          patient_name: "$userInfo.full_name",
+          patient_name: "$appointmentInfo.full_name",
         },
       },
     ];
@@ -517,6 +520,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
   }
 };
 
+// change 
 exports.getMedicalRecordById = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
@@ -526,22 +530,37 @@ exports.getMedicalRecordById = async (req) => {
     const medicalRecord = await MedicalRecord
       .findById(recordId)
       .populate({
+        path: 'appointment_id',
+        select: "full_name phone email dob gender",
+      })
+      .populate({
         path: 'patient_id',
         select: "-__v -createdAt -updatedAt",
-        populate: {
-          path: 'user_id',
-          select: "-__v -createdAt -updatedAt -_id -account_id",
-        }
       })
+      .select("-__v -createdAt -updatedAt -appointment_id")
       .lean();
 
     const { patient_id, ...rest } = medicalRecord;
-    const { user_id, ...restPatient } = patient_id;
+    const { appointment_id } = rest;
+
     const data = {
-      medical_record: rest,
+      medical_record: {
+        _id: rest._id,
+        doctor_id: rest.doctor_id,
+        diagnosis: rest.diagnosis,
+        symptoms: rest.symptoms,
+        prescription: rest.prescription,
+        access_requests: rest.access_requests,
+        attachments: rest.attachments,
+        notes: rest.notes,
+        status: rest.status,
+      },
       patient: {
-        ...restPatient,
-        ...user_id,
+        full_name: appointment_id.full_name,
+        phone: appointment_id.phone,
+        email: appointment_id.email,
+        dob: appointment_id.dob,
+        gender: appointment_id.gender
       },
     };
 

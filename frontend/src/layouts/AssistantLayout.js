@@ -64,11 +64,11 @@ const DoctorLayout = () => {
     //   icon: <PersonBadge size={20} />,
     //   link: "/doctor/assistants",
     // },
-    {
-      title: "Thông báo nghỉ",
-      icon: <BellSlash size={20} />,
-      link: "/doctor/absence",
-    },
+    // {
+    //   title: "Thông báo nghỉ",
+    //   icon: <BellSlash size={20} />,
+    //   link: "/doctor/absence",
+    // },
   ];
 
   const handleLogout = () => {

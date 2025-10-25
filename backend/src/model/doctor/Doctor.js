@@ -5,9 +5,8 @@ const doctorSchema = new Schema(
   {
     title: { type: String },
     degree: { type: String },
-    avatar_url: { type: String },
-    workplace: { type: String },
-    rating: { type: Number },
+    description: { type: String },
+    experience: { type: String },
     clinic_id: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
     specialty_id: [
       {
@@ -30,7 +29,6 @@ const doctorSchema = new Schema(
 doctorSchema.index({ clinic_id: 1 });
 doctorSchema.index({ specialty_id: 1 });
 doctorSchema.index({ user_id: 1 });
-doctorSchema.index({ rating: -1 });
 
 const Doctor = mongoose.model("Doctor", doctorSchema, "doctors");
 

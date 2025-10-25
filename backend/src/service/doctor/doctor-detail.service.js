@@ -12,18 +12,12 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
     const pipeline = [
         { $match: { _id } },
 
-        // Thông tin user (tên, avatar)
         { $lookup: { from: "users", localField: "user_id", foreignField: "_id", as: "user" } },
         { $unwind: "$user" },
 
-        // Phòng khám
         { $lookup: { from: "clinics", localField: "clinic_id", foreignField: "_id", as: "clinic" } },
         { $unwind: { path: "$clinic", preserveNullAndEmptyArrays: true } },
-
-        // Chuyên khoa
         { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } },
-
-        // Lấy slot liên quan
         {
             $lookup: {
                 from: "slots",
@@ -67,24 +61,19 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
                 as: "slots",
             },
         },
-
-        // Tính giá min/max
         {
             $addFields: {
                 minFee: { $min: "$slots.fee_amount" },
                 maxFee: { $max: "$slots.fee_amount" },
             },
         },
-
-        // Lọc thông tin
         {
             $project: {
                 _id: 1,
                 title: 1,
                 degree: 1,
-                workplace: 1,
-                rating: 1,
-                doctor_avatar_url: "$avatar_url",
+                description: 1,
+                experience: 1,
                 user: { _id: 1, full_name: 1, avatar_url: 1 },
                 clinic: { _id: 1, name: 1, address: 1 },
                 specialties: { _id: 1, name: 1, icon_url: 1 },
@@ -97,15 +86,14 @@ async function getDoctorDetailFull(doctorId, { from, to, limitSlot = 10 } = {}) 
 
     const [doc] = await Doctor.aggregate(pipeline).allowDiskUse(true);
     if (!doc) return null;
-
     return {
         id: String(doc._id),
         name: doc.user?.full_name ?? "",
         title: doc.title ?? null,
         degree: doc.degree ?? null,
-        avatar_url: doc.user?.avatar_url || doc.doctor_avatar_url || null,
-        workplace: doc.workplace ?? null,
-        rating: doc.rating ?? null,
+        description: doc.description ?? null,
+        experience: doc.experience ?? null,
+        avatar_url: doc.user?.avatar_url ?? null,
         clinic: doc.clinic
             ? {
                 id: String(doc.clinic._id),
