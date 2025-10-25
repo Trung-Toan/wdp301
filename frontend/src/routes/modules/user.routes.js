@@ -9,7 +9,7 @@ import ResetPassword from "../../features/auth/ResetPassword";
 import { BookingContent } from "../../features/customer/pages/Booking/booking";
 import DoctorsListContent from "../../features/home/pages/DoctorPage/doctors-list-content";
 import DoctorDetailPage from "../../features/home/pages/DoctorPage";
-import { AppointmentsContent } from "../../features/customer/pages/Appointment/appointment";
+import AppointmentsContent from "../../features/customer/pages/Appointment/appointment";
 import SpecialtiesList from "../../features/home/pages/Specialties/specialties-list-content";
 import SpecialtyDetail from "../../features/home/pages/Specialties/specialty-detail-content";
 import FacilitiesList from "../../features/clinic/pages/facility-list-content";

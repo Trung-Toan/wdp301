@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Calendar,
     Clock,
@@ -12,80 +12,75 @@ import {
     MoreVertical,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { appointmentApi } from "../../../../api/patients/appointmentApi";
 
-// Mock data cho lịch hẹn
-const mockAppointments = [
-    {
-        id: 1,
-        status: "upcoming",
-        doctorName: "BS. Nguyễn Văn An",
-        specialty: "Tim mạch",
-        hospital: "Bệnh viện Đa khoa Trung ương",
-        location: "Hà Nội",
-        date: "Thứ 2, 20/01/2025",
-        time: "09:00",
-        price: "500.000đ",
-        image: "/doctor-portrait-male.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Khám định kỳ tim mạch",
-    },
-    {
-        id: 2,
-        status: "upcoming",
-        doctorName: "BS. Trần Thị Bình",
-        specialty: "Da liễu",
-        hospital: "Phòng khám Đa khoa Medlatec",
-        location: "Hà Nội",
-        date: "Thứ 4, 22/01/2025",
-        time: "14:30",
-        price: "400.000đ",
-        image: "/doctor-portrait-female.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Điều trị mụn và chăm sóc da",
-    },
-    {
-        id: 3,
-        status: "completed",
-        doctorName: "BS. Lê Văn Cường",
-        specialty: "Nội tổng quát",
-        hospital: "Bệnh viện Bạch Mai",
-        location: "Hà Nội",
-        date: "Thứ 6, 10/01/2025",
-        time: "10:00",
-        price: "300.000đ",
-        image: "/doctor-portrait-male-2.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Khám sức khỏe tổng quát",
-    },
-    {
-        id: 4,
-        status: "cancelled",
-        doctorName: "BS. Phạm Thị Dung",
-        specialty: "Sản phụ khoa",
-        hospital: "Bệnh viện Phụ sản Hà Nội",
-        location: "Hà Nội",
-        date: "Thứ 3, 14/01/2025",
-        time: "15:00",
-        price: "450.000đ",
-        image: "/doctor-portrait-female-2.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Khám thai định kỳ",
-    },
-];
-
-export function AppointmentsContent() {
+export default function AppointmentsContent() {
     const [selectedTab, setSelectedTab] = useState("upcoming");
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
 
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    // Gọi API lấy danh sách lịch hẹn của bệnh nhân
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                setLoading(true);
+
+                const patientStr = sessionStorage.getItem("patient");
+                if (!patientStr) {
+                    setError("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
+                    return;
+                }
+
+                const patient = JSON.parse(patientStr);
+                console.log("Patient ID:", patient._id);
+
+                const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
+                console.log("API response:", res.data);
+
+                // ✅ Lấy mảng thật và chuẩn hóa status
+                const data =
+                    Array.isArray(res.data?.data?.data)
+                        ? res.data.data.data.map((apt) => ({
+                            ...apt,
+                            status:
+                                apt.status === "scheduled" ? "upcoming" : apt.status,
+                        }))
+                        : [];
+
+                setAppointments(data);
+            } catch (err) {
+                console.error(err);
+                setError("Không thể tải danh sách lịch hẹn");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAppointments();
+    }, []);
+
+
+
+
+    // Định dạng ngày sang dd/MM/yyyy
+    const formatDate = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return date.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+    };
+
+    // Badge trạng thái
     const getStatusBadge = (status) => {
-        const base =
-            "px-2 py-1 text-sm rounded-md flex items-center gap-1 font-medium w-fit";
+        const base = "px-2 py-1 text-sm rounded-md flex items-center gap-1 font-medium w-fit";
         switch (status) {
             case "upcoming":
                 return (
@@ -121,17 +116,22 @@ export function AppointmentsContent() {
         setAppointmentToCancel(null);
     };
 
-    const filteredAppointments = mockAppointments.filter(
+    //  Lọc danh sách theo tab
+    const filteredAppointments = appointments.filter(
         (apt) => apt.status === selectedTab
     );
+
+    console.log("Filtered Appointments:", filteredAppointments);
+
+
+    if (loading) return <p className="text-center py-10">Đang tải dữ liệu...</p>;
+    if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
     return (
         <div className="bg-gray-50 min-h-screen py-10 px-4">
             <div className="max-w-6xl mx-auto">
                 <h1 className="text-3xl font-bold mb-2">Lịch hẹn của tôi</h1>
-                <p className="text-gray-600 mb-8">
-                    Quản lý và theo dõi các lịch khám của bạn
-                </p>
+                <p className="text-gray-600 mb-8">Quản lý và theo dõi các lịch khám của bạn</p>
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-6">
@@ -140,8 +140,8 @@ export function AppointmentsContent() {
                             key={tab}
                             onClick={() => setSelectedTab(tab)}
                             className={`px-4 py-2 rounded-lg font-medium ${selectedTab === tab
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                 }`}
                         >
                             {tab === "upcoming" && "Sắp tới"}
@@ -197,7 +197,7 @@ export function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-blue-600" />
-                                            {appointment.date}
+                                            {formatDate(appointment.date)}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
@@ -268,7 +268,7 @@ export function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-blue-600" />
-                                            {selectedAppointment.date}
+                                            {formatDate(selectedAppointment.date)}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
@@ -314,7 +314,7 @@ export function AppointmentsContent() {
                             <p className="text-gray-600 mb-6">
                                 Bạn có chắc chắn muốn hủy lịch hẹn với{" "}
                                 <b>{appointmentToCancel?.doctorName}</b> vào{" "}
-                                <b>{appointmentToCancel?.date}</b> lúc{" "}
+                                <b>{formatDate(appointmentToCancel?.date)}</b> lúc{" "}
                                 <b>{appointmentToCancel?.time}</b>?
                             </p>
                             <div className="flex justify-center gap-4">
