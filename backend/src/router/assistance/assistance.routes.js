@@ -24,22 +24,26 @@ router.get("/appointments", authRequired, roleRequired("ASSISTANT"), AssistanceC
 // view detail appointment by appointmentId
 router.get("/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewAppointmentDetail);
 
-// PUT /appointments/:appointmentId/verify
+// PUT /verify/appointments/:appointmentId?status=
 // verify appointment
-router.put("/appointments/:appointmentId/verify", authRequired, roleRequired("ASSISTANT"), AssistanceController.verifyAppointment);
+router.put("/verify/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.verifyAppointment);
 
 /* ========================= Slot ========================= */
 // GET /slots/doctor
 // Get all slot for appointment
 router.get("/slots/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewAppointmentSlot);
 
-// POST /appointments/:appointmentId/slots
+// GET /slots/:slotId/doctor
+// Get slot by id
+router.get("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewSlotById);
+
+// POST /slots/doctor
 // create slot for appointment
 router.post("/slots/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.createAppointmentSlot);
 
-// PUT /appointments/:appointmentId/slots/
+// PUT /slots/:slotId/doctor
 // update slot for appointment
-router.put("/appointments/:appointmentId/slots", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateAppointmentSlot);
+router.put("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateAppointmentSlot);
 
 /* ========================= MEDICAL RECORDS ========================= */
 // GET /patients/:patientId/medical-records?page=1

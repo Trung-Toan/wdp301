@@ -84,11 +84,10 @@ exports.getSlotById = async (slot_id) => {
 exports.createSlot = async (slotData) => {
     try {
         const newSlot = new Slot(slotData);
-        await newSlot.save();
-        return newSlot.toObject(); // .toObject() giống .lean() cho document mới
+        const savedSlot = await newSlot.save();
+        return savedSlot; 
     } catch (error) {
         console.error("Error in createSlot:", error);
-        // Có thể throw error để controller bắt
         throw error; 
     }
 };
@@ -104,10 +103,10 @@ exports.updateSlotById = async (slot_id, updateData) => {
         const updatedSlot = await Slot.findByIdAndUpdate(
             slot_id,
             { $set: updateData },
-            { new: true } // {new: true} để trả về document đã được cập nhật
+            { new: true } 
         ).lean();
         
-        return updatedSlot; // Trả về null nếu không tìm thấy
+        return updatedSlot; 
     } catch (error) {
         console.error("Error in updateSlotById:", error);
         throw error;

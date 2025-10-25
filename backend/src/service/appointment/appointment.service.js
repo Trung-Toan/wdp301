@@ -96,7 +96,7 @@ exports.uniquePatientIdsWithAppointmentIsCompleted = async (
 
 exports.getListAppointments = async (req, doctorId) => {
   console.log("doctorId: ", doctorId);
-  
+
   const slotObj =
     (await slotService.getSlotAtNowByDocterId(doctorId)) ||
     (await slotService.getFirtAvailableSlotByDoctorId(doctorId));
@@ -261,7 +261,7 @@ exports.getPatientsWithAppointments = async (
 
 exports.getAppointmentById = async (req, appointmentId) => {
   try {
-    
+
     const appointment = await Appointment.findById(appointmentId)
       .populate("slot_id", "start_time end_time")
       .populate({
@@ -307,3 +307,28 @@ exports.getAppointmentById = async (req, appointmentId) => {
     return null;
   }
 };
+
+
+exports.getAppointmentByIdDefault = async (appointmentId) => {
+  try {
+    return await Appointment.findById(appointmentId).lean() || null;
+  } catch (error) {
+    console.log(`Lỗi tại getAppointmentByIdDefault(${appointmentId}): `, erorr);
+    return null;
+  }
+}
+
+
+exports.updateAppointment = async (id, appData) => {
+  try {
+    const updatedApp = await Appointment.findByIdAndUpdate(
+      id,
+      { $set: appData },
+      { new: true }
+    ).lean();
+    return updatedApp || null;
+  } catch (error) {
+    console.log("Lỗi không thể cập nhật app: ", error);
+    return null;
+  }
+}
