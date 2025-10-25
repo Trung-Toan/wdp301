@@ -68,6 +68,8 @@ exports.registerPatients = async (req, res) => {
             dob,
             gender,
             address,
+            province_code,
+            ward_code,
         } = req.body;
 
         // Kiểm tra xác nhận mật khẩu
@@ -105,6 +107,8 @@ exports.registerPatients = async (req, res) => {
             // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
             const patient = new Patient({
                 user_id: user._id,
+                province_code: province_code || null,
+                ward_code: ward_code || null,
                 blood_type: null,
                 allergies: [],
                 chronic_diseases: [],
