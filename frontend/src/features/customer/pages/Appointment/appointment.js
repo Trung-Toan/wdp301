@@ -10,6 +10,7 @@ import {
     XCircle,
     AlertCircle,
     MoreVertical,
+    Hospital,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
@@ -193,18 +194,28 @@ export default function AppointmentsContent() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
                                         <div className="flex items-center gap-2">
                                             <MapPin className="h-4 w-4 text-blue-600" />
+                                            {[
+                                                appointment.location?.alley,
+                                                appointment.location?.houseNumber,
+                                                appointment.location?.ward?.name,
+                                                appointment.location?.province?.name
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' - ')}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Hospital className="h-4 w-4 text-blue-600" />
                                             {appointment.hospital}
                                         </div>
+
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-blue-600" />
-                                            {formatDate(appointment.date)}
+                                            {appointment.date}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
                                             {appointment.time}
-                                        </div>
-                                        <div className="font-semibold text-blue-600">
-                                            {appointment.price}
                                         </div>
                                     </div>
 
