@@ -26,7 +26,6 @@ async function verifyMailer() {
 }
 verifyMailer().catch(() => { });
 
-// ---- Helpers ----
 function formatVND(n) {
     try {
         return new Intl.NumberFormat("vi-VN").format(Number(n || 0)) + "₫";
