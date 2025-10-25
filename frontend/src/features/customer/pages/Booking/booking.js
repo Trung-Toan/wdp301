@@ -29,7 +29,10 @@ export function BookingContent() {
     const [wards, setWards] = useState([]);
 
     const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
+    console.log("storedUser:", storedUser);
     const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "{}"));
+    console.log("storedPatient:", storedPatient);
+
 
 
     // Load danh sách tỉnh
