@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
 import Button from "../../../../../components/ui/Button";
-import RecordDetail from "./RecordDetail"; // ✅ Import
+import RecordDetail from "./RecordDetail";
 
 export default function RecordsTab() {
     const [records, setRecords] = useState([]);
@@ -9,23 +9,44 @@ export default function RecordsTab() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
+    const [page, setPage] = useState(1);
+    const [limit] = useState(5);
+    const [totalPages, setTotalPages] = useState(1);
+
+    // ✅ Ghi nhớ hàm fetchRecords để không bị re-create mỗi render
+    const fetchRecords = useCallback(async (pageNumber = 1) => {
         setLoading(true);
-        medicalRecordPatientApi.getListMedicalRecords()
-            .then(res => {
-                if (res.data?.data?.items) setRecords(res.data.data.items);
-            })
-            .catch(err => setError(err.message || "Lỗi khi tải dữ liệu"))
-            .finally(() => setLoading(false));
-    }, []);
+        try {
+            const res = await medicalRecordPatientApi.getListMedicalRecords({
+                page: pageNumber,
+                limit,
+            });
+            const data = res.data?.data;
+            if (data?.items) {
+                setRecords(data.items);
+                setTotalPages(data.totalPages || 1);
+            }
+        } catch (err) {
+            setError(err.message || "Lỗi khi tải dữ liệu");
+        } finally {
+            setLoading(false);
+        }
+    }, [limit]);
+
+    // ✅ Gọi API khi page thay đổi
+    useEffect(() => {
+        fetchRecords(page);
+    }, [fetchRecords, page]);
 
     if (loading) return <p>Đang tải dữ liệu...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
 
-    // ✅ Nếu chọn 1 hồ sơ, hiển thị trang chi tiết luôn trong tab
     if (selectedRecord) {
         return (
-            <RecordDetail recordId={selectedRecord._id} onBack={() => setSelectedRecord(null)} />
+            <RecordDetail
+                recordId={selectedRecord._id}
+                onBack={() => setSelectedRecord(null)}
+            />
         );
     }
 
@@ -33,7 +54,9 @@ export default function RecordsTab() {
         <div className="space-y-6">
             <h2 className="text-2xl font-bold mb-4">Danh sách hồ sơ bệnh án</h2>
 
-            {records.map(record => (
+            {records.length === 0 && <p>Không có hồ sơ nào.</p>}
+
+            {records.map((record) => (
                 <div
                     key={record._id}
                     className="border rounded-lg p-4 bg-white shadow-sm"
@@ -51,6 +74,30 @@ export default function RecordsTab() {
                     </Button>
                 </div>
             ))}
+
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-3 mt-6">
+                    <Button
+                        variant="outline"
+                        disabled={page === 1}
+                        onClick={() => setPage((prev) => prev - 1)}
+                    >
+                        ← Trước
+                    </Button>
+
+                    <span className="text-sm text-gray-700">
+                        Trang {page} / {totalPages}
+                    </span>
+
+                    <Button
+                        variant="outline"
+                        disabled={page === totalPages}
+                        onClick={() => setPage((prev) => prev + 1)}
+                    >
+                        Sau →
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

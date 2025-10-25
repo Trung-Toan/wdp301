@@ -21,7 +21,7 @@ exports.listMyRecords = async (req, res) => {
             return res.status(404).json({ success: false, error: "Patient not found for current account" });
         }
 
-        const { page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 5 } = req.query;
         const skip = (Number(page) - 1) * Number(limit);
 
         const [rawItems, total] = await Promise.all([
