@@ -184,9 +184,10 @@ exports.login = async ({ email, password, ip, user_agent }) => {
             role: acc.role,
             status: acc.status,
             email_verified: acc.email_verified,
+            phone_number: acc.phone_number,
         },
-        user, 
-        patient, 
+        user,
+        patient,
         tokens: {
             accessToken,
             refreshToken,
