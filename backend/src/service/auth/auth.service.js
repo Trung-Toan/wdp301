@@ -23,6 +23,7 @@ const {
 } = require('./email.service');
 const Patient = require('../../model/patient/Patient');
 const User = require('../../model/user/User');
+const AdminClinic = require('../../model/user/AdminClinic');
 
 const SALT_ROUNDS = 12;
 const randomToken = (bytes = 48) => crypto.randomBytes(bytes).toString('hex');
@@ -46,6 +47,41 @@ exports.registerPatients = async ({ username, email, password, phone_number, rol
         password: hash,
         role: role || 'PATIENT',
         status: 'ACTIVE',
+        email_verified: false,
+    });
+
+    const token = randomToken(32);
+    const tokenHash = await hashOpaque(token);
+
+    await EmailVerification.create({
+        token_hash: tokenHash,
+        expires_at: addDays(new Date(), 1),
+        used: false,
+        account_id: acc._id,
+    });
+
+    const html = buildVerifyEmailTemplate({
+        accountId: String(acc._id),
+        token,
+        apiBaseUrl: APP_BASE_URL,
+    });
+
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
+
+    return sanitizeAccount(acc);
+};
+
+exports.registerClinicOwner = async ({ username, email, password, phone_number, role }) => {
+    const emailNorm = (email || '').trim().toLowerCase();
+    const hash = await hashPassword(password);
+
+    const acc = await Account.create({
+        username: username.trim(),
+        email: emailNorm,
+        phone_number: phone_number?.trim(),
+        password: hash,
+        role: role || 'ADMIN_CLINIC',
+        status: 'PENDING', // Clinic owners need approval
         email_verified: false,
     });
 
