@@ -48,15 +48,17 @@ const Login = () => {
 
       console.log("LOGIN RESPONSE:", response);
       const token = response.tokens?.accessToken;
-      const user = response.account;
+      const account = response.account;
       const patient = response.patient;
       console.log("PATIENT FROM LOGIN:", patient);
+      const user = response.user;
+      console.log("USER FROM LOGIN:", user);
 
-      if (!token || !user) {
+      if (!token || !account) {
         Swal.fire({
           icon: "error",
           title: "Lỗi dữ liệu đăng nhập",
-          text: "Token hoặc user không tồn tại.",
+          text: "Token hoặc account không tồn tại.",
           timer: 3000,
           showConfirmButton: true,
         });
