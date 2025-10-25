@@ -43,7 +43,7 @@ export default function AppointmentsContent() {
                 const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
                 console.log("API response:", res.data);
 
-                // ✅ Lấy mảng thật và chuẩn hóa status
+                // Lấy mảng thật và chuẩn hóa status
                 const data =
                     Array.isArray(res.data?.data?.data)
                         ? res.data.data.data.map((apt) => ({
@@ -64,9 +64,6 @@ export default function AppointmentsContent() {
 
         fetchAppointments();
     }, []);
-
-
-
 
     // Định dạng ngày sang dd/MM/yyyy
     const formatDate = (dateString) => {
@@ -279,11 +276,11 @@ export default function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-blue-600" />
-                                            {formatDate(selectedAppointment.date)}
+                                            {selectedAppointment.date}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
-                                            {selectedAppointment.time}
+                                            {selectedAppointment.time || "?"} -  {selectedAppointment.end_time || "?"}
                                         </div>
                                     </div>
                                 </div>
@@ -301,16 +298,9 @@ export default function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-start gap-2">
                                             <FileText className="h-4 w-4 text-blue-600" />
-                                            {selectedAppointment.reason}
+                                            <strong>Lý do khám:</strong>{selectedAppointment.reason}
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="pt-2 border-t flex justify-between items-center">
-                                    <span className="font-semibold">Tổng chi phí:</span>
-                                    <span className="text-blue-600 font-bold text-xl">
-                                        {selectedAppointment.price}
-                                    </span>
                                 </div>
                             </div>
                         </div>
