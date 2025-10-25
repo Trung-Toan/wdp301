@@ -15,7 +15,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useSessionStorage("user");
   const navigate = useNavigate();
-
+  console.log("information: ", user);
 
   const onLogout = async () => {
     try {
@@ -82,7 +82,7 @@ export default function Header() {
               >
                 <PersonCircle size={22} />
                 <span className="hidden sm:block font-medium">
-                  {user?.username || "User"}
+                  {user?.full_name || "User"}
                 </span>
               </Dropdown.Toggle>
 
@@ -94,7 +94,7 @@ export default function Header() {
                 }}
               >
                 <Dropdown.Header className="text-center text-gray-700">
-                  Xin chào, <span className="font-semibold">{user?.username}</span> 👋
+                  Xin chào, <span className="font-semibold">{user?.full_name}</span> 👋
                 </Dropdown.Header>
                 <Dropdown.Divider />
                 <Dropdown.Item
