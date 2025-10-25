@@ -1,10 +1,6 @@
-"use client"
-
-import { useState } from "react"
-import { Outlet, useNavigate, useLocation } from "react-router-dom"
+import { memo, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Menu,
-  X,
   LayoutDashboard,
   Building2,
   Users,
@@ -12,93 +8,125 @@ import {
   AlertCircle,
   Ban,
   Shield,
+  X,
+  List,
   Bell,
+  UserCircle,
   LogOut,
-  User,
-} from "lucide-react"
+} from "lucide-react";
 
 const AdminLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const menuItems = [
-    { id: "dashboard", label: "Tổng quan hệ thống", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { id: "clinics", label: "Quản lý phòng khám", icon: Building2, path: "/admin/clinics" },
-    { id: "accounts", label: "Quản lý tài khoản", icon: Users, path: "/admin/accounts" },
-    { id: "licenses", label: "Quản lý giấy phép", icon: FileText, path: "/admin/licenses" },
-    { id: "complaints", label: "Xem khiếu nại", icon: AlertCircle, path: "/admin/complaints" },
-    { id: "banned", label: "Tài khoản bị khóa", icon: Ban, path: "/admin/banned" },
-    { id: "blacklist", label: "Danh sách đen", icon: Shield, path: "/admin/blacklist" },
-  ]
+    { title: "Tổng quan hệ thống", icon: <LayoutDashboard size={20} />, link: "/admin/dashboard" },
+    { title: "Quản lý phòng khám", icon: <Building2 size={20} />, link: "/admin/clinics" },
+    { title: "Quản lý tài khoản", icon: <Users size={20} />, link: "/admin/accounts" },
+    { title: "Quản lý giấy phép", icon: <FileText size={20} />, link: "/admin/licenses" },
+    { title: "Xem khiếu nại", icon: <AlertCircle size={20} />, link: "/admin/complaints" },
+    { title: "Tài khoản bị khóa", icon: <Ban size={20} />, link: "/admin/banned" },
+    { title: "Danh sách đen", icon: <Shield size={20} />, link: "/admin/blacklist" },
+  ];
 
-  const isActive = (path) => location.pathname === path
+  const handleLogout = () => {
+    sessionStorage.clear();
+    navigate("/login");
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-800">
+    <div className="clinic-admin-layout">
       {/* Sidebar */}
       <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
+        className={`sidebar ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
       >
-        <div className="flex items-center justify-between px-4 py-4 border-b">
-          <h2 className={`font-bold text-blue-600 text-xl ${!sidebarOpen && "hidden"}`}>MediCare</h2>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <div className="logo-icon">
+              <Shield size={28} />
+            </div>
+            {sidebarOpen && <span className="logo-text">MediCare Admin</span>}
+          </div>
         </div>
 
-        <nav className="flex flex-col gap-1 px-2 mt-3">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.path)}
-              className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all ${
-                isActive(item.path)
-                  ? "bg-blue-100 text-blue-600 font-semibold"
-                  : "hover:bg-gray-100 text-gray-700"
+        <nav className="sidebar-nav">
+          {menuItems.map((item, index) => (
+            <Link
+              key={index}
+              to={item.link}
+              className={`nav-item ${
+                location.pathname === item.link ? "nav-item-active" : ""
               }`}
             >
-              <item.icon size={20} />
-              {sidebarOpen && <span>{item.label}</span>}
-            </button>
+              <span className="nav-icon">{item.icon}</span>
+              {sidebarOpen && <span className="nav-text">{item.title}</span>}
+            </Link>
           ))}
         </nav>
 
-        <div className="mt-auto border-t p-4">
-          <button className="flex items-center gap-2 text-red-600 hover:text-red-700">
-            <LogOut size={18} />
+        <div className="sidebar-footer">
+          <button onClick={handleLogout} className="logout-btn">
+            <LogOut size={20} />
             {sidebarOpen && <span>Đăng xuất</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      {/* Main Content */}
+      <div className="main-content">
         {/* Header */}
-        <header className="flex items-center justify-between bg-white border-b border-gray-200 px-6 py-3">
-          <h1 className="text-lg font-semibold text-gray-800">Hệ thống quản trị MediCare</h1>
-          <div className="flex items-center gap-5">
-            <button className="relative">
+        <header className="header">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="toggle-sidebar-btn"
+          >
+            {sidebarOpen ? <X size={24} /> : <List size={24} />}
+          </button>
+
+          <div className="header-right">
+            <button className="notification-btn">
               <Bell size={20} />
-              <span className="absolute -top-1 -right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="notification-badge">3</span>
             </button>
 
-            <div className="flex items-center gap-2">
-              <User size={20} className="text-gray-600" />
-              <span className="font-medium text-gray-700">Admin</span>
+            <div className="user-profile">
+              <UserCircle size={32} />
+              <div className="user-info">
+                <span className="user-name">Quản trị viên</span>
+                <span className="user-role">Admin</span>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        {/* Page Content */}
+        <main className="page-content">
           <Outlet />
         </main>
+
+        {/* Footer */}
+        <footer className="footer">
+          <div className="footer-content">
+            <p className="footer-text">
+              © 2025 MediCare Admin System. All rights reserved.
+            </p>
+            <div className="footer-links">
+              <a href="/" className="footer-link">
+                Điều khoản
+              </a>
+              <a href="/" className="footer-link">
+                Chính sách
+              </a>
+              <a href="/" className="footer-link">
+                Hỗ trợ
+              </a>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminLayout
+export default memo(AdminLayout);

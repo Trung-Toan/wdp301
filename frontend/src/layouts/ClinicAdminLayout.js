@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
-  People,
+  Users,
   UserPlus,
   MessageSquare,
   Ban,
@@ -10,8 +10,8 @@ import {
   X,
   List,
   Bell,
-  PersonCircle,
-  BoxArrowRight,
+  UserCircle,
+  LogOut,
 } from "lucide-react";
 // import "../styles/clinic-admin/ClinicAdminLayout.css";
 
@@ -28,7 +28,7 @@ const ClinicAdminLayout = () => {
     },
     {
       title: "Quản lý bác sĩ",
-      icon: <People size={20} />,
+      icon: <Users size={20} />,
       link: "/clinic-admin/doctors",
     },
     {
@@ -90,7 +90,7 @@ const ClinicAdminLayout = () => {
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
-            <BoxArrowRight size={20} />
+            <LogOut size={20} />
             {sidebarOpen && <span>Đăng xuất</span>}
           </button>
         </div>
@@ -114,7 +114,7 @@ const ClinicAdminLayout = () => {
             </button>
 
             <div className="user-profile">
-              <PersonCircle size={32} />
+              <UserCircle size={32} />
               <div className="user-info">
                 <span className="user-name">Quản lý phòng khám</span>
                 <span className="user-role">Admin</span>
