@@ -253,8 +253,31 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
     const skip = (page - 1) * limit;
 
     const appointments = await Appointment.find(filter)
-        .select("status booked_at scheduled_date fee_amount booking_code slot_id")
+        .populate({
+            path: "doctor_id",
+            populate: [
+                {
+                    path: "user_id",
+                    select: "full_name avatar_url",
+                },
+                {
+                    path: "specialty_id",
+                    select: "name",
+                },
+                {
+                    path: "clinic_id",
+                    select: "name address",
+                },
+            ],
+        })
         .populate("slot_id", "start_time end_time")
+        .populate({
+            path: "patient_id",
+            populate: {
+                path: "user_id",
+                select: "full_name",
+            },
+        })
         .sort({ booked_at: -1 })
         .skip(skip)
         .limit(limit)
@@ -262,12 +285,47 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
 
     const total = await Appointment.countDocuments(filter);
 
+    // 👉 Chuẩn hóa dữ liệu để frontend dễ dùng
+    const formatted = appointments.map((a) => ({
+        id: a._id,
+        status: a.status.toLowerCase(), // vd: upcoming
+        doctorName: a.doctor_id?.user_id?.full_name
+            ? `BS. ${a.doctor_id.user_id.full_name}`
+            : "Không rõ",
+        specialty: a.doctor_id?.specialty_id?.[0]?.name || "Không rõ",
+        hospital: a.doctor_id?.clinic_id?.name || "Không rõ",
+        location: a.doctor_id?.clinic_id?.address || "",
+        date: a.scheduled_date ? new Date(a.scheduled_date).toLocaleDateString("vi-VN", {
+            weekday: "long",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        }) : "",
+        time: a.slot_id?.start_time ? new Date(a.slot_id.start_time).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+        }) : "",
+        price: a.fee_amount?.toLocaleString("vi-VN") + "đ",
+        image: a.doctor_id?.user_id?.avatar_url || "/doctor-default.jpg",
+        patientName: a.patient_id?.user_id?.full_name || "",
+        phone: a.phone,
+        reason: a.reason,
+    }));
+    function mapStatus(status) {
+        switch (status) {
+            case "SCHEDULED": return "upcoming";
+            case "COMPLETED": return "completed";
+            case "CANCELLED": return "cancelled";
+            case "NO_SHOW": return "missed";
+            default: return "unknown";
+        }
+    }
     return {
         total,
         page,
         limit,
         totalPages: Math.ceil(total / limit),
-        data: appointments,
+        data: formatted,
     };
 }
 
