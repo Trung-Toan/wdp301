@@ -215,7 +215,7 @@ export default function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
-                                            {appointment.time}
+                                            {appointment.time || "?"} - {appointment.end_time || "?"}
                                         </div>
                                     </div>
 
