@@ -6,4 +6,7 @@ export const specialtyApi = {
     return axiosInstance.get("/clinic/specialties");
   },
 
+  getSpecialtyById: async (id) => {
+    return axiosInstance.get(`/clinic/specialties/${id}`);
+  },
 };

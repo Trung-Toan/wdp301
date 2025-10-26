@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
     MapPin,
     Clock,
     ChevronLeft,
     ChevronRight,
     GraduationCap,
+    ArrowLeft,
 } from "lucide-react";
 import { doctorApi } from "../../../../api";
+import { specialtyApi } from "../../../../api";  
 
 export default function SpecialtyDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [specialtyName, setSpecialtyName] = useState("Chưa xác định");
@@ -21,34 +24,30 @@ export default function SpecialtyDetail() {
     const limit = 5;
 
     useEffect(() => {
-        const fetchDoctors = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await doctorApi.getDoctorBySpecialty(id, {
+                const specialtyRes = await specialtyApi.getSpecialtyById(id);
+                const specialtyData = specialtyRes.data?.data;
+                if (specialtyData?.name) {
+                    setSpecialtyName("Chuyên khoa " + specialtyData.name);
+                }
+                const doctorRes = await doctorApi.getDoctorBySpecialty(id, {
                     page: currentPage,
                     limit,
                 });
-                const data = res.data;
+
+                const data = doctorRes.data;
                 setDoctors(data.items || []);
                 setTotalPages(data.meta?.totalPages || 1);
-
-                console.log("information data: ", data);
-                // Lấy tên chuyên khoa từ bác sĩ đầu tiên (nếu có)
-                if (data.items?.length > 0) {
-                    const firstDoctor = data.items[0];
-                    if (firstDoctor.specialty_id?.length > 0) {
-                        setSpecialtyName("Chuyên khoa " + firstDoctor.specialty_id[0].name);
-                    } else {
-                        setSpecialtyName("Chuyên khoa chưa rõ");
-                    }
-                }
             } catch (error) {
-                console.error("Lỗi khi lấy danh sách bác sĩ:", error);
+                console.error("Lỗi khi lấy dữ liệu:", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchDoctors();
+
+        fetchData();
     }, [id, currentPage]);
 
     const nextPage = () => {
@@ -67,10 +66,16 @@ export default function SpecialtyDetail() {
     return (
         <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-700 to-purple-600 py-16 text-center text-white shadow-md">
-                <h1 className="text-4xl font-bold mb-2">
-                    {specialtyName}
-                </h1>
+            <div className="relative bg-gradient-to-r from-blue-700 to-purple-600 py-16 text-center text-white shadow-md">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="absolute left-6 top-6 flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full backdrop-blur-sm transition-all duration-200"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-sm font-medium">Quay lại</span>
+                </button>
+
+                <h1 className="text-4xl font-bold mb-2">{specialtyName}</h1>
                 <p className="text-lg opacity-90">
                     Danh sách bác sĩ thuộc {specialtyName.toLowerCase()}
                 </p>
@@ -112,29 +117,22 @@ export default function SpecialtyDetail() {
 
                                         <p className="text-gray-600 flex items-center gap-2 mb-2 text-sm">
                                             <GraduationCap className="w-4 h-4 text-blue-500" />
-                                            {doctor.degree ||
-                                                "Chưa cập nhật chuyên môn"}
+                                            {doctor.degree || "Chưa cập nhật chuyên môn"}
                                         </p>
 
                                         <p className="flex items-center gap-2 text-gray-700 text-sm mb-2">
                                             <MapPin className="w-4 h-4 text-blue-500" />
-                                            {doctor.clinic?.name ||
-                                                "Không rõ phòng khám"}{" "}
-                                            –{" "}
-                                            {formatAddress(
-                                                doctor.clinic?.address
-                                            )}
+                                            {doctor.clinic?.name || "Không rõ phòng khám"} –{" "}
+                                            {formatAddress(doctor.clinic?.address)}
                                         </p>
 
                                         <p className="flex items-center gap-2 text-gray-700 text-sm mb-2">
                                             <Clock className="w-4 h-4 text-blue-500" />
-                                            {doctor.experience ||
-                                                "Chưa cập nhật kinh nghiệm"}
+                                            {doctor.experience || "Chưa cập nhật kinh nghiệm"}
                                         </p>
 
                                         <p className="text-sm text-gray-600 leading-relaxed line-clamp-3 mt-3 text-justify">
-                                            {doctor.description ||
-                                                "Chưa có mô tả chi tiết"}
+                                            {doctor.description || "Chưa có mô tả chi tiết"}
                                         </p>
 
                                         {/* Actions */}
@@ -155,18 +153,16 @@ export default function SpecialtyDetail() {
                         <div className="flex justify-between items-center mt-12">
                             <p className="text-sm text-gray-600">
                                 Trang{" "}
-                                <span className="font-semibold">
-                                    {currentPage}
-                                </span>{" "}
-                                / {totalPages}
+                                <span className="font-semibold">{currentPage}</span> /{" "}
+                                {totalPages}
                             </p>
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={prevPage}
                                     disabled={currentPage === 1}
                                     className={`flex items-center gap-1 px-4 py-2 rounded-lg border transition ${currentPage === 1
-                                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                                        : "text-blue-600 border-blue-300 hover:bg-blue-50"
+                                            ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                                            : "text-blue-600 border-blue-300 hover:bg-blue-50"
                                         }`}
                                 >
                                     <ChevronLeft className="w-4 h-4" /> Trước
@@ -175,8 +171,8 @@ export default function SpecialtyDetail() {
                                     onClick={nextPage}
                                     disabled={currentPage === totalPages}
                                     className={`flex items-center gap-1 px-4 py-2 rounded-lg border transition ${currentPage === totalPages
-                                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                                        : "text-blue-600 border-blue-300 hover:bg-blue-50"
+                                            ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                                            : "text-blue-600 border-blue-300 hover:bg-blue-50"
                                         }`}
                                 >
                                     Sau <ChevronRight className="w-4 h-4" />
