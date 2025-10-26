@@ -78,3 +78,7 @@ exports.getListPatients = async (req) => {
         throw error;
     }
 };
+
+exports.registerDoctor = async (req) => {
+    const {} = req.body;
+};

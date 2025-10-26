@@ -3,15 +3,12 @@ const Specialty = require("../../model/clinic/Specialty");
 
 async function searchClinics({ provinceCode, wardCode, specialtyId, q, page = 1, limit = 20, sort = "-createdAt" }) {
     const and = [];
-
     if (provinceCode) {
         and.push({ $or: [{ provinceCode }, { "address.province.code": provinceCode }] });
     }
-
     if (wardCode) {
         and.push({ $or: [{ wardCode }, { "address.ward.code": wardCode }] });
     }
-
     if (specialtyId) {
         and.push({
             $or: [
@@ -21,15 +18,12 @@ async function searchClinics({ provinceCode, wardCode, specialtyId, q, page = 1,
             ],
         });
     }
-
     if (q && q.trim()) {
         const rx = new RegExp(q.trim(), "i");
         and.push({ $or: [{ name: rx }, { shortName: rx }, { description: rx }] });
     }
-
     const filter = and.length ? { $and: and } : {};
     const skip = (Number(page) - 1) * Number(limit);
-
     const [items, total] = await Promise.all([
         Clinic.find(filter)
             .sort(sort)
@@ -40,7 +34,6 @@ async function searchClinics({ provinceCode, wardCode, specialtyId, q, page = 1,
             .lean(),
         Clinic.countDocuments(filter),
     ]);
-
     return {
         meta: {
             page: Number(page),

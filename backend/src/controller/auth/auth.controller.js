@@ -12,7 +12,20 @@ const Account = require('../../model/auth/Account');
 exports.googleLogin = async (req, res) => {
     try {
         const { id_token } = req.body;
+        // Log để debug
+        console.log('Google Login Debug:', {
+            hasIdToken: !!id_token,
+            idTokenLength: id_token?.length,
+            idTokenStart: id_token?.substring(0, 50) + '...'
+        });
+
         const profile = await verifyGoogleIdToken(id_token);
+        console.log('Google Profile verified:', {
+            sub: profile.sub,
+            email: profile.email,
+            email_verified: profile.email_verified,
+            name: profile.name
+        });
 
         const { account, tokens } = await loginWithGoogle({
             googleProfile: profile,
@@ -27,7 +40,16 @@ exports.googleLogin = async (req, res) => {
             tokens,
         });
     } catch (e) {
-        res.status(400).json({ ok: false, message: 'Google login thất bại' });
+        console.error('Google Login Error:', {
+            message: e.message,
+            stack: e.stack,
+            name: e.name
+        });
+        res.status(400).json({
+            ok: false,
+            message: 'Google login thất bại',
+            error: process.env.NODE_ENV === 'development' ? e.message : undefined
+        });
     }
 };
 
@@ -38,7 +60,8 @@ exports.registerPatients = async (req, res) => {
             email,
             password,
             confirmPassword,
-            phone,
+            phone_number,
+            role,
             fullName,
             dob,
             gender,
@@ -55,8 +78,8 @@ exports.registerPatients = async (req, res) => {
             username,
             email,
             password,
-            phone_number: phone,
-            role: "PATIENT",
+            phone_number,
+            role: role || "PATIENT",
         });
 
         // Tạo bản ghi user liên kết với account_id

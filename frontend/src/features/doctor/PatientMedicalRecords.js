@@ -14,10 +14,6 @@ import {
   XCircle,
 } from "react-bootstrap-icons";
 import { useLocation } from "react-router-dom";
-import {
-  rejectPrescription,
-  verifyPrescription,
-} from "../../services/doctorService";
 import "../../styles/doctor/patient-medical-records.css";
 import { doctorApi } from "../../api/doctor/doctorApi";
 
@@ -174,27 +170,6 @@ const PatientMedicalRecords = () => {
     } catch (error) {
       console.error("Lỗi phê duyệt:", error);
       alert("Phê duyệt thất bại, vui lòng thử lại sau!");
-    }
-  };
-
-  const handleRejectPrescription = async (id) => {
-    if (!id) return;
-    const reason = prompt("Nhập lý do yêu cầu làm lại:");
-    if (!reason) return;
-
-    const response = await rejectPrescription(id, reason);
-    if (response.success) {
-      alert("Đã yêu cầu bệnh nhân/chuyên viên làm lại đơn thuốc!");
-      setSelectedRecord((prev) => ({
-        ...prev,
-        prescription: {
-          ...prev.prescription,
-          rejected_at: new Date().toISOString(),
-          reject_reason: reason,
-        },
-      }));
-    } else {
-      alert(response.message || "Yêu cầu thất bại");
     }
   };
 
@@ -458,14 +433,16 @@ const PatientMedicalRecords = () => {
                     </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {selectedRecord?.medical_record?.symptoms.map((symptom, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-200"
-                      >
-                        {symptom}
-                      </span>
-                    ))}
+                    {selectedRecord?.medical_record?.symptoms.map(
+                      (symptom, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-200"
+                        >
+                          {symptom}
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -481,27 +458,33 @@ const PatientMedicalRecords = () => {
                         Đơn thuốc
                       </h3>
                     </div>
-                    {getPrescriptionStatus(selectedRecord?.medical_record?.prescription) && (
+                    {getPrescriptionStatus(
+                      selectedRecord?.medical_record?.prescription
+                    ) && (
                       <span
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${
-                          selectedRecord?.medical_record?.prescription.verified_at
+                          selectedRecord?.medical_record?.prescription
+                            .verified_at
                             ? "bg-green-100 text-green-700 border border-green-300"
                             : "bg-yellow-100 text-yellow-700 border border-yellow-300"
                         }`}
                       >
                         {
-                          getPrescriptionStatus(selectedRecord?.medical_record?.prescription)
-                            .icon
+                          getPrescriptionStatus(
+                            selectedRecord?.medical_record?.prescription
+                          ).icon
                         }
                         {
-                          getPrescriptionStatus(selectedRecord?.medical_record?.prescription)
-                            .text
+                          getPrescriptionStatus(
+                            selectedRecord?.medical_record?.prescription
+                          ).text
                         }
                       </span>
                     )}
                   </div>
 
-                  {selectedRecord?.medical_record?.prescription.medicines?.length > 0 && (
+                  {selectedRecord?.medical_record?.prescription.medicines
+                    ?.length > 0 && (
                     <div className="space-y-4">
                       {selectedRecord?.medical_record?.prescription.medicines.map(
                         (medicine, idx) => (
@@ -558,11 +541,14 @@ const PatientMedicalRecords = () => {
                     </div>
                   )}
 
-                  {selectedRecord?.medical_record?.prescription?.status !== "VERIFIED" && (
+                  {selectedRecord?.medical_record?.prescription?.status !==
+                    "VERIFIED" && (
                     <div className="mt-6 flex justify-end gap-3">
                       <button
                         onClick={() =>
-                          handleVerifyPrescription(selectedRecord?.medical_record?._id)
+                          handleVerifyPrescription(
+                            selectedRecord?.medical_record?._id
+                          )
                         }
                         className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                       >
@@ -570,12 +556,7 @@ const PatientMedicalRecords = () => {
                         Phê duyệt
                       </button>
 
-                      <button
-                        onClick={() =>
-                          handleRejectPrescription(selectedRecord?.medical_record?._id)
-                        }
-                        className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-                      >
+                      <button className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
                         <XCircle size={16} />
                         Yêu cầu làm lại
                       </button>
@@ -588,7 +569,10 @@ const PatientMedicalRecords = () => {
                         Hướng dẫn sử dụng:
                       </p>
                       <p className="text-sm text-blue-800">
-                        {selectedRecord?.medical_record?.prescription.instruction}
+                        {
+                          selectedRecord?.medical_record?.prescription
+                            .instruction
+                        }
                       </p>
                     </div>
                   )}

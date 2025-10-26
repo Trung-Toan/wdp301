@@ -8,10 +8,7 @@ import {
   Clock,
   Activity,
 } from "lucide-react";
-import {
-  getDashboardStats,
-  getTodayAppointmentsList,
-} from "../../services/doctorService";
+import { getDashboardStats } from "../../services/doctorService";
 import "../../styles/doctor/DoctorDashboard.css";
 
 const DoctorDashboard = () => {
@@ -40,23 +37,6 @@ const DoctorDashboard = () => {
       if (statsResponse.success) {
         setStats(statsResponse.data);
       }
-
-      // Fetch today's appointments
-      const appointmentsResponse = await getTodayAppointmentsList("DOC001");
-      if (appointmentsResponse.success) {
-        // Format appointments for display
-        const formattedAppointments = appointmentsResponse.data.map((apt) => ({
-          id: apt.id,
-          patientName: apt?.patient?.user?.full_name,
-          start_time: apt?.slot?.start_time,
-          end_time: apt?.slot?.end_time,
-          type: apt.reason,
-          status: apt.status,
-        }));
-        setRecentAppointments(formattedAppointments);
-      }
-
-      console.log("appointmentsResponse", appointmentsResponse);
 
       setLoading(false);
     } catch (error) {

@@ -11,7 +11,6 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         const clinicFilter = {};
         if (provinceCode) clinicFilter["address.province.code"] = String(provinceCode);
         if (wardCode) clinicFilter["address.ward.code"] = String(wardCode);
-
         const clinics = await Clinic.find(clinicFilter).select("_id").lean();
         const clinicIds = clinics.map(c => c._id);
 

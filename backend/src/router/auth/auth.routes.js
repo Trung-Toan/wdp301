@@ -23,7 +23,7 @@ const { authRequired } = require('../../middleware/auth');
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username, email, password]
+ *             required: [username, email, password, confirmPassword]
  *             properties:
  *               username:
  *                 type: string
@@ -34,19 +34,36 @@ const { authRequired } = require('../../middleware/auth');
  *               password:
  *                 type: string
  *                 example: secret123
+ *               confirmPassword:
+ *                 type: string
+ *                 example: secret123
  *               phone_number:
  *                 type: string
  *                 example: "+84901234567"
  *               role:
  *                 type: string
  *                 example: PATIENT
+ *               fullName:
+ *                 type: string
+ *                 example: "Nguyễn Văn A"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-01"
+ *               gender:
+ *                 type: string
+ *                 enum: [MALE, FEMALE, OTHER]
+ *                 example: MALE
+ *               address:
+ *                 type: string
+ *                 example: "123 Đường ABC, Quận 1, TP.HCM"
  *     responses:
  *       '200':
  *         description: OK
  *       '400':
  *         description: Bad Request
  */
-router.post('/register/patients', ctrl.registerPatients);
+router.post('/register', ctrl.registerPatients);
 
 /**
  * @openapi

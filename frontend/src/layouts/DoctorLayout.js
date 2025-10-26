@@ -92,8 +92,9 @@ const DoctorLayout = () => {
             <Link
               key={index}
               to={item.link}
-              className={`nav-item ${location.pathname === item.link ? "nav-item-active" : ""
-                }`}
+              className={`nav-item ${
+                location.pathname === item.link ? "nav-item-active" : ""
+              }`}
             >
               <span className="nav-icon">{item.icon}</span>
               {sidebarOpen && <span className="nav-text">{item.title}</span>}
@@ -126,7 +127,11 @@ const DoctorLayout = () => {
               <span className="notification-badge">3</span>
             </button>
 
-            <div className="user-profile">
+            <div
+              className="user-profile"
+              onClick={() => navigate("/doctor/profile")}
+              style={{ cursor: "pointer" }}
+            >
               <PersonCircle size={32} />
               <div className="user-info">
                 <span className="user-name">{user.username}</span>

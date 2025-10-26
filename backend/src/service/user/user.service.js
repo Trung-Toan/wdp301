@@ -2,6 +2,7 @@ const User = require("../../model/user/User");
 const Patient = require('../../model/patient/Patient');
 
 exports.findUserByAccountId = async (accountId) => {
+
   try {
     const user = await User.findOne({ account_id: accountId }).populate('account_id', '_id role');
     const fomatUser = {
@@ -31,7 +32,6 @@ exports.getUsersFromPatientIds = async (patientIds) => {
   }
 
   try {
-    // Lấy danh sách bệnh nhân và user_id tương ứng
     const patients = await Patient.find({ _id: { $in: patientIds } })
       .select('_id patient_code user_id')
       .populate({
