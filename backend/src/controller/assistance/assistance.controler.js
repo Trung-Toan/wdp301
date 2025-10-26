@@ -100,13 +100,13 @@ exports.viewAppointmentDetail = async (req, res) => {
 
 // PUT /verify/appointments/:appointmentId?status=
 exports.verifyAppointment = async (req, res) => {
-  const {appointmentId} = req.params;
-  const {status} = req.query;
+  const { appointmentId } = req.params;
+  const { status } = req.query;
   try {
     const app = await appointmentService.getAppointmentByIdDefault(appointmentId);
     if (!app) return resUtils.notFoundResponse(res, "Không tìm thấy lịch khám để phê duyệt");
     if (app.status !== "SCHEDULED") return resUtils.badRequestResponse(res, "Bạn chỉ được xác nhận với trạng thái là chờ duyệt");
-    if (!status || status !== "COMPLETED" || status !== "CANCELLED") 
+    if (!status || status !== "COMPLETED" || status !== "CANCELLED")
       return resUtils.badRequestResponse(res, "Trạng thái không phù hợp");
     app.status = status;
     const appUpdated = await appointmentService.updateAppointment(app._id, app);
@@ -157,39 +157,60 @@ exports.viewSlotById = async (req, res) => {
 exports.createAppointmentSlot = async (req, res) => {
   try {
     const assistant = await assistantService.getAssistantByAccountId(req.user.sub);
-    const {doctor_id = assistant.doctor_id, status = "AVAILABLE", fee_amount, start_time, end_time, max_patients = 10, note = "", clinic_id} = req.body;
-    if (!(start_time || end_time)) 
-      return resUtils.badRequestResponse(res, "Giờ bắt đầu và giờ kết thúc không được để trống");
-    if ((start_time.getUTCHours() * 60 + start_time.getUTCMinutes()) >= (end_time.getUTCHours() * 60 + end_time.getUTCMinutes())) 
+    let { fee_amount, start_time, end_time, max_patients = 10, note = "", clinic_id } = req.body;
+
+    // Convert string -> Date
+    start_time = new Date(start_time);
+    end_time = new Date(end_time);
+
+    if (!start_time || !end_time || isNaN(start_time) || isNaN(end_time))
+      return resUtils.badRequestResponse(res, "Sai định dạng ngày giờ");
+
+    if ((start_time.getHours() * 60 + start_time.getMinutes()) >= (end_time.getHours() * 60 + end_time.getMinutes()))
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
-    if (!max_patients || max_patients < 1) 
+
+    if (!max_patients || max_patients < 1)
       return resUtils.badRequestResponse(res, "Số lượng người khám trong một slot phải lớn hơn 1");
-    if (!fee_amount || fee_amount < 0) 
+
+    if (!fee_amount || fee_amount < 0)
       return resUtils.badRequestResponse(res, "Giá không được để trống và phải lớn hơn 0");
-    const newSlot = new Slot(doctor_id, status, fee_amount, start_time, end_time, max_patients, note, clinic_id);
-    const slot = await slotService.createSlot(newSlot);
-    return resUtils.createdResponse(res, slot, "Thêm slot mới thành công")
+
+    const newSlotData = {
+      doctor_id: assistant.doctor_id,
+      status: "AVAILABLE",
+      fee_amount,
+      start_time,
+      end_time,
+      max_patients,
+      note,
+      clinic_id,
+      created_by: assistant._id
+    };
+
+    const slot = await slotService.createSlot(newSlotData);
+    return resUtils.createdResponse(res, slot, "Thêm slot mới thành công");
   } catch (error) {
     console.log("Lỗi tạo slot cho doctor: ", error);
-    return resUtils.serverErrorResponse(res, error, "Lỗi không thể tạo slot")
+    return resUtils.serverErrorResponse(res, error, "Lỗi không thể tạo slot");
   }
 };
 
+
 // PUT PUT /slots/:slotId/doctor
 exports.updateAppointmentSlot = async (req, res) => {
-  const {slotId} = req.params;
+  const { slotId } = req.params;
   try {
     const findSlot = await slotService.getSlotById(slotId);
-    if (!findSlot) 
+    if (!findSlot)
       return resUtils.badRequestResponse(res, "Không tìm thấy slot để update");
-    const {fee_amount, start_time, end_time, max_patients = 10, note = ""} = req.body;
-    if (!(start_time || end_time)) 
+    const { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
+    if (!(start_time || end_time))
       return resUtils.badRequestResponse(res, "Giờ bắt đầu và giờ kết thúc không được để trống");
-    if ((start_time.getUTCHours() * 60 + start_time.getUTCMinutes()) >= (end_time.getUTCHours() * 60 + end_time.getUTCMinutes())) 
+    if ((start_time.getUTCHours() * 60 + start_time.getUTCMinutes()) >= (end_time.getUTCHours() * 60 + end_time.getUTCMinutes()))
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
-    if (!max_patients || max_patients < 1) 
+    if (!max_patients || max_patients < 1)
       return resUtils.badRequestResponse(res, "Số lượng người khám trong một slot phải lớn hơn 0");
-    if (!fee_amount || fee_amount < 0) 
+    if (!fee_amount || fee_amount < 0)
       return resUtils.badRequestResponse(res, "Giá không được để trống và phải lớn hơn hoặc bằng 0");
     findSlot.fee_amount = fee_amount;
     findSlot.start_time = start_time;
