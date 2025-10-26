@@ -9,7 +9,6 @@ import ResetPassword from "../../features/auth/ResetPassword";
 import { BookingContent } from "../../features/customer/pages/Booking/booking";
 import DoctorsListContent from "../../features/home/pages/DoctorPage/doctors-list-content";
 import DoctorDetailPage from "../../features/home/pages/DoctorPage";
-import AppointmentsContent from "../../features/customer/pages/Appointment/appointment";
 import SpecialtiesList from "../../features/home/pages/Specialties/specialties-list-content";
 import SpecialtyDetail from "../../features/home/pages/Specialties/specialty-detail-content";
 import FacilitiesList from "../../features/clinic/pages/facility-list-content";
@@ -28,7 +27,6 @@ export default function UserRoutes() {
                 <Route path="home/doctordetail/:id/booking" element={<BookingContent />} />
                 <Route path="home/doctorlist" element={<DoctorsListContent />} />
                 <Route path="home/doctordetail/:id" element={<DoctorDetailPage />} />
-                <Route path="home/appointment" element={<AppointmentsContent />} />
                 <Route path="home/specialty" element={<SpecialtiesList />} />
                 <Route path="home/specialty/detail/:id" element={<SpecialtyDetail />} />
                 <Route path="home/facility" element={<FacilitiesList />} />
