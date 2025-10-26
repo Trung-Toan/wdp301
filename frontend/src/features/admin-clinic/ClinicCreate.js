@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { Plus, X, MapPin, Clock, FileText } from "lucide-react";
-import { sampleClinics, sampleSpecialties } from "../../data/mongoDBSampleData";
+import { sampleClinics, sampleSpecialties } from "../../data/mockData";
 
 const ClinicCreation = () => {
   const [showModal, setShowModal] = useState(false);
