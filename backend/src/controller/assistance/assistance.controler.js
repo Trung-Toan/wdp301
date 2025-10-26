@@ -194,19 +194,22 @@ exports.createAppointmentSlot = async (req, res) => {
     return resUtils.serverErrorResponse(res, error, "Lỗi không thể tạo slot");
   }
 };
-
-
-// PUT PUT /slots/:slotId/doctor
+ 
+// PUT /slots/:slotId/doctor
 exports.updateAppointmentSlot = async (req, res) => {
   const { slotId } = req.params;
   try {
     const findSlot = await slotService.getSlotById(slotId);
-    if (!findSlot)
-      return resUtils.badRequestResponse(res, "Không tìm thấy slot để update");
-    const { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
+    if (!findSlot) return resUtils.badRequestResponse(res, "Không tìm thấy slot để update");
+
+    let { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
+    // Convert string -> Date
+    start_time = new Date(start_time);
+    end_time = new Date(end_time);
+
     if (!(start_time || end_time))
       return resUtils.badRequestResponse(res, "Giờ bắt đầu và giờ kết thúc không được để trống");
-    if ((start_time.getUTCHours() * 60 + start_time.getUTCMinutes()) >= (end_time.getUTCHours() * 60 + end_time.getUTCMinutes()))
+    if ((start_time.getHours() * 60 + start_time.getMinutes()) >= (end_time.getHours() * 60 + end_time.getMinutes()))
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
     if (!max_patients || max_patients < 1)
       return resUtils.badRequestResponse(res, "Số lượng người khám trong một slot phải lớn hơn 0");
