@@ -6,11 +6,11 @@ async function setLocation(req, res) {
         if (!accountId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
         const { province_code, ward_code } = req.body || {};
-        if (!province_code || !ward_code) {
-            return res.status(400).json({ success: false, message: "province_code and ward_code are required" });
+        if (!province_code) {
+            return res.status(400).json({ success: false, message: "province_code is required" });
         }
 
-        const updated = await patientService.updatePatientLocationByAccountId(accountId, { province_code, ward_code });
+        const updated = await patientService.updatePatientLocationByAccountId(accountId, { province_code, ward_code: ward_code || null });
         return res.json({ success: true, data: { province_code: updated.province_code, ward_code: updated.ward_code } });
     } catch (err) {
         const msg = err?.message || String(err);

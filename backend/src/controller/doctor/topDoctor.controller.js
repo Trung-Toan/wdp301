@@ -28,14 +28,14 @@ async function getTopDoctorsNearMeController(req, res) {
         if (!accountId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
         const patient = await patientService.findPatientByAccountId(accountId);
-        if (!patient || (!patient.province_code && !patient.ward_code)) {
-            return res.status(400).json({ success: false, message: "Missing patient location. Please set province and ward." });
+        if (!patient || !patient.province_code) {
+            return res.status(400).json({ success: false, message: "Missing patient location. Please set province." });
         }
 
         const data = await getTopDoctors({
             limit,
             provinceCode: patient.province_code,
-            wardCode: patient.ward_code,
+            wardCode: null, // Không dùng ward_code nữa
         });
 
         return res.json({ success: true, total: data.length, data });

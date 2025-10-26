@@ -4,10 +4,9 @@ const Clinic = require("../../model/clinic/Clinic");
 async function getTopDoctors({ limit, provinceCode, wardCode }) {
     const doctorFilter = {};
 
-    if (provinceCode || wardCode) {
-        const clinicFilter = {};
-        if (provinceCode) clinicFilter["address.province.code"] = String(provinceCode);
-        if (wardCode) clinicFilter["address.ward.code"] = String(wardCode);
+    // Chỉ lọc theo province_code (thành phố), bỏ ward_code
+    if (provinceCode) {
+        const clinicFilter = { "address.province.code": String(provinceCode) };
         const clinics = await Clinic.find(clinicFilter).select("_id").lean();
         const clinicIds = clinics.map(c => c._id);
         if (clinicIds.length === 0) {
