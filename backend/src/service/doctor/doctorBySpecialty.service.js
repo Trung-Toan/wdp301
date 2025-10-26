@@ -39,6 +39,11 @@ async function searchDoctorsBySpecialty({
                 select: "full_name avatar_url",
                 model: "User",
             })
+            .populate({
+                path: "specialty_id",
+                select: "name",
+                model: "Specialty",
+            })
             .select("title degree description experience user_id clinic_id specialty_id createdAt")
             .lean(),
         Doctor.countDocuments(filter),
