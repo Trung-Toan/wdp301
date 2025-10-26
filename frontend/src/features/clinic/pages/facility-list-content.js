@@ -151,7 +151,15 @@ export default function FacilitiesList() {
                         {currentClinics.length > 0 ? (
                             currentClinics.map((clinic) => {
                                 const address = clinic.address
-                                    ? `${clinic.address.alley || ""}, ${clinic.address.houseNumber || ""} - ${clinic.address.street || ""}, ${clinic.address.ward?.name || ""}, ${clinic.address.province?.name || ""}`
+                                    ? [
+                                        clinic.address.alley,
+                                        clinic.address.houseNumber,
+                                        clinic.address.street,
+                                        clinic.address.ward?.name,
+                                        clinic.address.province?.name,
+                                    ]
+                                        .filter(Boolean) // loại bỏ phần null / undefined / rỗng
+                                        .join(", ") // nối các phần bằng dấu phẩy và khoảng trắng
                                     : "Chưa cập nhật địa chỉ";
 
                                 const specialties =
