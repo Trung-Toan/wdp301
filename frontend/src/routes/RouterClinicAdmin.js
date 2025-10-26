@@ -4,6 +4,7 @@ import ClinicAdminLayout from "../layouts/ClinicAdminLayout";
 import ClinicDashboard from "../features/admin-clinic/ClinicDashboard";
 import DoctorManagement from "../features/admin-clinic/DoctorManagement";
 import AssistantManagement from "../features/admin-clinic/AssistantManagement";
+import ClinicCreation from "../features/admin-clinic/ClinicCreate";
 
 const RouterClinicAdmin = () => {
   return (
@@ -11,6 +12,7 @@ const RouterClinicAdmin = () => {
       <Route path="/" element={<ClinicAdminLayout />}>
         <Route index element={<ClinicDashboard />} />
         <Route path="dashboard" element={<ClinicDashboard />} />
+        <Route path="clinics" element={<ClinicCreation />} />
         <Route path="manage-doctors" element={<DoctorManagement />} />
         <Route path="assistants" element={<AssistantManagement />} />
       </Route>
