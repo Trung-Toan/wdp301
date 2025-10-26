@@ -9,6 +9,7 @@ import {
   X,
   List,
   Bell,
+  Plus,
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
 
@@ -22,6 +23,11 @@ const ClinicAdminLayout = () => {
       title: "Trang chủ",
       icon: <House size={20} />,
       link: "/clinic-admin/dashboard",
+    },
+    {
+      title: "Tạo phòng khám",
+      icon: <Plus size={20} />,
+      link: "/clinic-admin/clinics",
     },
     {
       title: "Quản lý bác sĩ",
