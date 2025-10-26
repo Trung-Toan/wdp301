@@ -12,6 +12,7 @@ const {
     APP_VERSION = '1.0.0',
     APP_BASE_URL = `http://localhost:${PORT}`,
     EMAIL_FROM = 'mediclinicschedulesp@gmail.com',
+    REQUIRE_EMAIL_VERIFICATION = 'true',
 
     SMTP_HOST,
     SMTP_PORT,
@@ -36,6 +37,7 @@ module.exports = {
     APP_VERSION,
     APP_BASE_URL,
     EMAIL_FROM,
+    REQUIRE_EMAIL_VERIFICATION: REQUIRE_EMAIL_VERIFICATION === 'true',
 
     SMTP_HOST,
     SMTP_PORT: Number(SMTP_PORT),

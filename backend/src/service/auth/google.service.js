@@ -151,6 +151,21 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                 await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
                 acc.email_verified = true;
             }
+
+            // Kiểm tra và tạo Patient nếu thiếu (cho các tài khoản cũ)
+            if (acc.role === 'PATIENT') {
+                const user = await User.findOne({ account_id: acc._id });
+                if (user) {
+                    const existingPatient = await Patient.findOne({ user_id: user._id });
+                    if (!existingPatient) {
+                        console.log('Creating missing Patient record for existing account:', acc._id);
+                        await Patient.create({
+                            user_id: user._id,
+                        });
+                        console.log('Patient record created successfully for existing account');
+                    }
+                }
+            }
         }
 
         // Only create AuthProviders record if we don't already have one
