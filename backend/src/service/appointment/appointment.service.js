@@ -95,21 +95,28 @@ exports.uniquePatientIdsWithAppointmentIsCompleted = async (
 };
 
 exports.getListAppointments = async (req, doctorId) => {
-  console.log("doctorId: ", doctorId);
+  const now = new Date();
+  let { date = now } = req.query;
+  date = new Date(date);
 
+  date.setHours(
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds()
+  );
   const slotObj =
-    (await slotService.getSlotAtNowByDocterId(doctorId)) ||
-    (await slotService.getFirtAvailableSlotByDoctorId(doctorId));
+    (await slotService.getSlotAtDateByDocterId(doctorId, date)) ||
+    (await slotService.getFirstAvailableSlotByDoctorId(doctorId, date));
 
   const {
     page = 1,
     limit = 10,
     status = null,
     slot = slotObj?._id,
-    date = new Date(),
   } = req.query;
 
-  const slotNow = await slotService.getSlotById(slot);
+  const slotNow = await slotService.getSlotById(slot, date);
 
   // Ép kiểu số nguyên
   const currentPage = parseInt(page, 10);
@@ -174,7 +181,7 @@ exports.getListAppointments = async (req, doctorId) => {
         start_time: slotNow?.start_time,
         end_time: slotNow?.end_time,
       },
-      slot_list: (await slotService.getListSlotsByDoctorId(doctorId)) || [],
+      slot_list: (await slotService.getListSlotsByDoctorId(doctorId, date)) || [],
     },
     pagination: {
       totalItems: totalAppointments,

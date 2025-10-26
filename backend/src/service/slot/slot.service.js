@@ -1,22 +1,20 @@
 const Slot = require("../../model/appointment/Slot");
+const moment = require("moment-timezone");
 
-exports.getSlotAtNowByDocterId = async (doctor_id) => {
+/**
+ * lấy slot của bác sĩ này tại thời điểm này hoặc  
+ * @param {*} doctor_id 
+ * @param {*} date 
+ * @returns 
+ */
+exports.getSlotAtDateByDocterId = async (doctor_id, date = new Date()) => {
     try {
-        const now = new Date();
-        let nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const slots = await Slot.find({
+        const slot = await Slot.findOne({
             doctor_id,
             status: "AVAILABLE",
+            start_time: { $lte: date },
+            end_time: { $gt: date }
         }).lean();
-
-        const slot = slots.find((s) => {
-            const start = new Date(s.start_time);
-            const end = new Date(s.end_time);
-            const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes();
-            const endMinutes = end.getUTCHours() * 60 + end.getUTCMinutes();
-            return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-        });
-
         return slot || null;
     } catch (error) {
         console.error("Error in getSlotAtNowByDocterId:", error);
@@ -24,25 +22,50 @@ exports.getSlotAtNowByDocterId = async (doctor_id) => {
     }
 };
 
-exports.getFirtAvailableSlotByDoctorId = async (doctor_id) => {
+/**
+ * Lấy slot AVAILABLE đầu tiên (sớm nhất) trong một ngày cụ thể.
+ * @param {*} doctor_id 
+ * @param {*} date (Một đối tượng Date. Hàm sẽ tìm slot trong ngày của Date này)
+ * @returns {object|null} - Trả về object slot hoặc null nếu không tìm thấy.
+ */
+exports.getFirstAvailableSlotByDoctorId = async (doctor_id, date = new Date()) => {
+
     try {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
         const slot = await Slot.findOne({
             doctor_id,
             status: "AVAILABLE",
-        }).sort({ start_time: 1 }).lean();
+            start_time: { $gte: startOfDay, $lte: endOfDay } 
+        })
+            .sort({ start_time: 1 }) 
+            .lean();
 
         return slot || null;
+
     } catch (error) {
-        console.error("Error in getFirtAvailableSlotByDoctorId:", error);
+        console.error("Error in getFirstAvailableSlotByDoctorId:", error);
         return null;
     }
 };
 
-exports.getListSlotsByDoctorId = async (doctor_id) => {
+exports.getListSlotsByDoctorId = async (doctor_id, date = new Date()) => {
+
     try {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
         const slots = await Slot.find({
             doctor_id,
             status: "AVAILABLE",
+            start_time: { $gte: startOfDay, $lte: endOfDay }
         }).sort({ start_time: 1 }).lean();
 
         return slots || [];
