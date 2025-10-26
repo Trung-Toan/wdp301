@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import ClinicAdminLayout from "../layouts/ClinicAdminLayout";
 // import ClinicDashboard from "../features/clinic-admin/ClinicDashboard";
 // import DoctorManagement from "../features/clinic-admin/DoctorManagement";
-import AssistantManagement from "../features/clinic-admin/AssistantManagement";
+import AssistantManagement from "../features/admin-clinic/AssistantManagement";
 // import FeedbackViewer from "../features/clinic-admin/FeedbackViewer";
 // import BlacklistManagement from "../features/clinic-admin/BlacklistManagement";
 // import OverloadAlertsSystem from "../features/clinic-admin/OverloadAlertsSystem";
