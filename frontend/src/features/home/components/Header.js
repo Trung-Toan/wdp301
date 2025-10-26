@@ -106,6 +106,14 @@ export default function Header() {
                 </Dropdown.Item>
                 <Dropdown.Divider />
                 <Dropdown.Item
+                  as={Link}
+                  to="/home/appointment"
+                  className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
+                >
+                  <InfoCircle /> Lịch hẹn
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item
                   onClick={onLogout}
                   className="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors duration-150"
                 >
