@@ -13,11 +13,12 @@ export default function SpecialtyDetail() {
     const { id } = useParams();
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [specialtyName, setSpecialtyName] = useState("Chưa xác định");
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const limit = 5; // mỗi trang 5 bác sĩ
+    const limit = 5;
 
     useEffect(() => {
         const fetchDoctors = async () => {
@@ -30,6 +31,17 @@ export default function SpecialtyDetail() {
                 const data = res.data;
                 setDoctors(data.items || []);
                 setTotalPages(data.meta?.totalPages || 1);
+
+                console.log("information data: ", data);
+                // Lấy tên chuyên khoa từ bác sĩ đầu tiên (nếu có)
+                if (data.items?.length > 0) {
+                    const firstDoctor = data.items[0];
+                    if (firstDoctor.specialty_id?.length > 0) {
+                        setSpecialtyName("Chuyên khoa " + firstDoctor.specialty_id[0].name);
+                    } else {
+                        setSpecialtyName("Chuyên khoa chưa rõ");
+                    }
+                }
             } catch (error) {
                 console.error("Lỗi khi lấy danh sách bác sĩ:", error);
             } finally {
@@ -56,9 +68,11 @@ export default function SpecialtyDetail() {
         <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-700 to-purple-600 py-16 text-center text-white shadow-md">
-                <h1 className="text-4xl font-bold mb-2">Bác sĩ chuyên khoa</h1>
+                <h1 className="text-4xl font-bold mb-2">
+                    {specialtyName}
+                </h1>
                 <p className="text-lg opacity-90">
-                    Danh sách bác sĩ thuộc chuyên khoa này
+                    Danh sách bác sĩ thuộc {specialtyName.toLowerCase()}
                 </p>
             </div>
 

@@ -27,6 +27,8 @@ const statisticsCtrl = require("../../controller/clinic/statistics.controller");
  */
 router.get("/specialties", ctrl.getAllSpecialties);
 
+router.get("/specialties/:specialtyId", ctrl.getSpecialtyById)
+
 /**
  * @swagger
  * /api/clinic/search:
