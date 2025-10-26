@@ -7,16 +7,27 @@ import Badge from "../../../../components/ui/Badge";
 import { Star, MapPin, Calendar } from "lucide-react";
 import { doctorApi } from "../../../../api";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../../../hooks/useAuth";
 
 export function FeaturedDoctorsSection() {
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(false);
-
+    const { token } = useAuth();
+    const isLoggedIn = !!token;
+    console.log("isLoggedIn: ", isLoggedIn);
     useEffect(() => {
         const fetchDoctors = async () => {
             setLoading(true);
             try {
-                const res = await doctorApi.getDoctorTopNearMe(4);
+                const limit = 4;
+                let res;
+                if (isLoggedIn) {
+                    // Nếu đã đăng nhập => gọi API top gần vị trí người dùng
+                    res = await doctorApi.getDoctorTopNearMe(limit);
+                } else {
+                    // Nếu chưa đăng nhập => gọi API top toàn hệ thống
+                    res = await doctorApi.getDoctorTop(limit);
+                }
                 console.log("doctor list: ", res.data);
                 setDoctors(res.data.data || []);
             } catch (err) {
@@ -26,8 +37,9 @@ export function FeaturedDoctorsSection() {
                 setLoading(false);
             }
         };
+
         fetchDoctors();
-    }, []);
+    }, [isLoggedIn]);
 
     return (
         <section
@@ -66,7 +78,6 @@ export function FeaturedDoctorsSection() {
                                 transition={{ delay: i * 0.1 }}
                             >
                                 <Card className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white/70 backdrop-blur-md shadow-md transition-transform hover:-translate-y-2 hover:shadow-2xl min-h-[480px] flex flex-col">
-                                    {/* Image */}
                                     <div className="relative w-full h-56 sm:h-64 md:h-72 overflow-hidden rounded-t-2xl flex-shrink-0">
                                         <img
                                             src={doctor.avatar_url || "/placeholder.svg"}
@@ -76,16 +87,15 @@ export function FeaturedDoctorsSection() {
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                                     </div>
 
-                                    {/* Nội dung */}
                                     <CardContent className="p-5 flex flex-col justify-between flex-1">
                                         <div>
                                             <h3 className="text-lg sm:text-xl font-semibold text-gray-800 group-hover:text-blue-600 break-words">
                                                 <Link to={`/home/doctordetail/${doctor._id}`}>
-                                                    {(doctor.title) + " - " + (doctor.full_name || "chưa có tên bác sĩ")}
+                                                    {(doctor.title || "") + " - " + (doctor.full_name || "Chưa có tên bác sĩ")}
                                                 </Link>
                                             </h3>
 
-                                            {doctor.specialties && doctor.specialties.length > 0 ? (
+                                            {doctor.specialties?.length > 0 ? (
                                                 <Badge className="mt-2 inline-block bg-gradient-to-r from-blue-400 to-cyan-400 text-white px-2 py-1 text-xs sm:text-sm rounded-lg break-words">
                                                     {doctor.specialties.map((s) => s.name).join(", ")}
                                                 </Badge>
