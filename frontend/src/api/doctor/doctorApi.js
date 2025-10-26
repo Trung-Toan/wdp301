@@ -2,6 +2,10 @@ import { axiosInstance } from "../axiosInstance";
 
 export const doctorApi = {
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
+  getDoctorTop: (limit) =>
+    axiosInstance.get("/doctor/top", { params: { limit } }),
+
+  // Lấy bác sĩ top gần đây (nếu không truyền limit -> lấy tất cả)
   getDoctorTopNearMe: (limit) =>
     axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
 
