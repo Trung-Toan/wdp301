@@ -10,16 +10,18 @@ import {
 } from "react-bootstrap-icons";
 import NotificationDropdown from "./NotificationDropdown";
 import { logoutApi } from "../../../api/auth/logout/LogoutApt";
+import { useAuth } from "../../../hooks/useAuth";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useSessionStorage("user");
   const navigate = useNavigate();
   console.log("information: ", user);
-
+  const { logout } = useAuth();
   const onLogout = async () => {
     try {
       await logoutApi.logout(); // gọi API logout
+      logout();
       localStorage.removeItem("token"); // xóa token (nếu bạn lưu token ở đây)
       localStorage.removeItem("user");  // xóa thông tin người dùng (nếu có)
       navigate("/login"); // điều hướng về trang đăng nhập
@@ -110,7 +112,7 @@ export default function Header() {
                   to="/patient/appointment"
                   className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
                 >
-                  <Calendar /> Lịch hẹn 
+                  <Calendar /> Lịch hẹn
                 </Dropdown.Item>
                 <Dropdown.Divider />
                 <Dropdown.Item

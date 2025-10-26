@@ -12,23 +12,25 @@ import { useAuth } from "../../../../hooks/useAuth";
 export function FeaturedDoctorsSection() {
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(false);
-    const { token } = useAuth();
-    const isLoggedIn = !!token;
-    console.log("isLoggedIn: ", isLoggedIn);
+    const { isAuthenticated } = useAuth();
+
+    console.log("isAuthenticated in FeaturedDoctorsSection:", isAuthenticated);
+
     useEffect(() => {
         const fetchDoctors = async () => {
             setLoading(true);
             try {
                 const limit = 4;
                 let res;
-                if (isLoggedIn) {
-                    // Nếu đã đăng nhập => gọi API top gần vị trí người dùng
+
+                if (isAuthenticated) {
+                    // Nếu đã đăng nhập -> top gần vị trí người dùng
                     res = await doctorApi.getDoctorTopNearMe(limit);
                 } else {
-                    // Nếu chưa đăng nhập => gọi API top toàn hệ thống
+                    // Nếu chưa đăng nhập -> top toàn hệ thống
                     res = await doctorApi.getDoctorTop(limit);
                 }
-                console.log("doctor list: ", res.data);
+
                 setDoctors(res.data.data || []);
             } catch (err) {
                 console.error("Lỗi khi lấy bác sĩ top:", err);
@@ -39,7 +41,7 @@ export function FeaturedDoctorsSection() {
         };
 
         fetchDoctors();
-    }, [isLoggedIn]);
+    }, [isAuthenticated]); // useEffect sẽ chạy lại khi login/logout
 
     return (
         <section
