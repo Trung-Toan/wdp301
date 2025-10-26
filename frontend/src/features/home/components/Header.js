@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Calendar, Menu } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
@@ -110,7 +110,7 @@ export default function Header() {
                   to="/patient/appointment"
                   className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
                 >
-                  <InfoCircle /> Lịch hẹn
+                  <Calendar /> Lịch hẹn 
                 </Dropdown.Item>
                 <Dropdown.Divider />
                 <Dropdown.Item
