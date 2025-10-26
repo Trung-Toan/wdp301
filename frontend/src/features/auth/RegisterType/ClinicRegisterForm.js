@@ -64,10 +64,10 @@ export default function ClinicRegisterForm() {
                                     <div className="flex flex-col items-center">
                                         <div
                                             className={`flex h-12 w-12 items-center justify-center rounded-lg border-2 font-semibold ${currentStep === step.number
-                                                    ? "border-blue-600 bg-blue-600 text-white"
-                                                    : currentStep > step.number
-                                                        ? "border-green-500 bg-green-500 text-white"
-                                                        : "border-gray-300 bg-gray-200 text-gray-500"
+                                                ? "border-blue-600 bg-blue-600 text-white"
+                                                : currentStep > step.number
+                                                    ? "border-green-500 bg-green-500 text-white"
+                                                    : "border-gray-300 bg-gray-200 text-gray-500"
                                                 }`}
                                         >
                                             {currentStep > step.number ? (
@@ -83,8 +83,8 @@ export default function ClinicRegisterForm() {
                                     {index < steps.length - 1 && (
                                         <div
                                             className={`mx-2 h-0.5 flex-1 ${currentStep > step.number
-                                                    ? "bg-green-500"
-                                                    : "bg-gray-300"
+                                                ? "bg-green-500"
+                                                : "bg-gray-300"
                                                 }`}
                                         />
                                     )}
