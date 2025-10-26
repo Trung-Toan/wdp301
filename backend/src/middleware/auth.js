@@ -1,5 +1,6 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const Account = require('../model/auth/Account');
+const User = require('../model/user/User');
 const AdminClinic = require('../model/user/AdminClinic');
 const AdminSystem = require('../model/user/AdminSystem');
 const { REQUIRE_EMAIL_VERIFICATION } = require('../config/env');
@@ -114,7 +115,13 @@ async function authenticateAdminClinic(req, res, next) {
         }
 
         // Lấy admin_clinic_id từ database
-        const adminClinic = await AdminClinic.findOne({ user_id: req.user.sub });
+        // req.user.sub là Account ID, cần tìm User qua account_id
+        const user = await User.findOne({ account_id: req.user.sub });
+        if (!user) {
+            return res.status(404).json({ ok: false, message: 'User not found' });
+        }
+
+        const adminClinic = await AdminClinic.findOne({ user_id: user._id });
         if (!adminClinic) {
             return res.status(404).json({ ok: false, message: 'Admin Clinic not found' });
         }

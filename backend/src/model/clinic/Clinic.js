@@ -45,7 +45,7 @@ const clinicSchema = new Schema(
     address_detail: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AddressDetail",
-      required: true,
+      required: false,
     },
 
     // Địa chỉ đơn giản hóa
