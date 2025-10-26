@@ -65,17 +65,6 @@ export default function AppointmentsContent() {
         fetchAppointments();
     }, []);
 
-    // Định dạng ngày sang dd/MM/yyyy
-    const formatDate = (dateString) => {
-        if (!dateString) return "";
-        const date = new Date(dateString);
-        return date.toLocaleDateString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        });
-    };
-
     // Badge trạng thái
     const getStatusBadge = (status) => {
         const base = "px-2 py-1 text-sm rounded-md flex items-center gap-1 font-medium w-fit";
