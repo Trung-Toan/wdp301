@@ -3,27 +3,28 @@ import {
     Calendar,
     Clock,
     MapPin,
+    User,
+    Phone,
+    FileText,
     CheckCircle2,
     XCircle,
     AlertCircle,
     MoreVertical,
     Hospital,
-    ArrowLeft
+    ArrowLeft,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
 
 export default function AppointmentsContent() {
-    const navigate = useNavigate(); // 👉 Dùng để quay lại
-
     const [selectedTab, setSelectedTab] = useState("upcoming");
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
-
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     // Gọi API lấy danh sách lịch hẹn của bệnh nhân
     useEffect(() => {
@@ -43,12 +44,12 @@ export default function AppointmentsContent() {
                 const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
                 console.log("API response:", res.data);
 
+                // Lấy mảng thật và chuẩn hóa status
                 const data =
                     Array.isArray(res.data?.data?.data)
                         ? res.data.data.data.map((apt) => ({
                             ...apt,
-                            status:
-                                apt.status === "scheduled" ? "upcoming" : apt.status,
+                            status: apt.status === "scheduled" ? "upcoming" : apt.status,
                         }))
                         : [];
 
@@ -64,6 +65,7 @@ export default function AppointmentsContent() {
         fetchAppointments();
     }, []);
 
+    // Định dạng ngày sang dd/MM/yyyy
     const formatDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
@@ -74,6 +76,7 @@ export default function AppointmentsContent() {
         });
     };
 
+    // Badge trạng thái
     const getStatusBadge = (status) => {
         const base = "px-2 py-1 text-sm rounded-md flex items-center gap-1 font-medium w-fit";
         switch (status) {
@@ -111,6 +114,7 @@ export default function AppointmentsContent() {
         setAppointmentToCancel(null);
     };
 
+    //  Lọc danh sách theo tab
     const filteredAppointments = appointments.filter(
         (apt) => apt.status === selectedTab
     );
@@ -121,17 +125,20 @@ export default function AppointmentsContent() {
     return (
         <div className="bg-gray-50 min-h-screen py-10 px-4">
             <div className="max-w-6xl mx-auto">
-                {/* 🔙 Nút quay lại */}
+
+                {/* Nút Quay lại */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6"
+                    className="flex items-center gap-2 text-blue-600 mb-6 hover:text-blue-800 transition"
                 >
-                    <ArrowLeft className="h-5 w-5" />
-                    Quay lại
+                    <ArrowLeft className="w-5 h-5" />
+                    <span>Quay lại</span>
                 </button>
 
                 <h1 className="text-3xl font-bold mb-2">Lịch hẹn của tôi</h1>
-                <p className="text-gray-600 mb-8">Quản lý và theo dõi các lịch khám của bạn</p>
+                <p className="text-gray-600 mb-8">
+                    Quản lý và theo dõi các lịch khám của bạn
+                </p>
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-6">
@@ -197,10 +204,10 @@ export default function AppointmentsContent() {
                                                 appointment.location?.alley,
                                                 appointment.location?.houseNumber,
                                                 appointment.location?.ward?.name,
-                                                appointment.location?.province?.name,
+                                                appointment.location?.province?.name
                                             ]
                                                 .filter(Boolean)
-                                                .join(" - ")}
+                                                .join(' - ')}
                                         </div>
 
                                         <div className="flex items-center gap-2">
@@ -214,8 +221,7 @@ export default function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
-                                            {appointment.time || "?"} -{" "}
-                                            {appointment.end_time || "?"}
+                                            {appointment.time || "?"} - {appointment.end_time || "?"}
                                         </div>
                                     </div>
 
@@ -239,6 +245,104 @@ export default function AppointmentsContent() {
                             </div>
                         </div>
                     ))
+                )}
+
+                {/* Modal chi tiết */}
+                {selectedAppointment && (
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-lg relative">
+                            <button
+                                onClick={() => setSelectedAppointment(null)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                            >
+                                ✕
+                            </button>
+                            <h2 className="text-2xl font-bold mb-4">Chi tiết lịch hẹn</h2>
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <img
+                                        src={selectedAppointment.image || "/placeholder.svg"}
+                                        alt={selectedAppointment.doctorName}
+                                        className="w-20 h-20 rounded-lg object-cover"
+                                    />
+                                    <div>
+                                        <h3 className="text-lg font-semibold">
+                                            {selectedAppointment.doctorName}
+                                        </h3>
+                                        <p className="text-gray-500">
+                                            {selectedAppointment.specialty}
+                                        </p>
+                                        {getStatusBadge(selectedAppointment.status)}
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 border-t">
+                                    <h4 className="font-semibold mb-2">Thông tin lịch khám</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-blue-600" />
+                                            {selectedAppointment.hospital}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-blue-600" />
+                                            {selectedAppointment.date}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="h-4 w-4 text-blue-600" />
+                                            {selectedAppointment.time || "?"} - {selectedAppointment.end_time || "?"}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 border-t">
+                                    <h4 className="font-semibold mb-2">Thông tin bệnh nhân</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <User className="h-4 w-4 text-blue-600" />
+                                            {selectedAppointment.patientName}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="h-4 w-4 text-blue-600" />
+                                            {selectedAppointment.phone}
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                            <FileText className="h-4 w-4 text-blue-600" />
+                                            <strong>Lý do khám:</strong> {selectedAppointment.reason}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal xác nhận hủy */}
+                {cancelDialogOpen && (
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md text-center">
+                            <h2 className="text-xl font-bold mb-4">Xác nhận hủy lịch hẹn</h2>
+                            <p className="text-gray-600 mb-6">
+                                Bạn có chắc chắn muốn hủy lịch hẹn với{" "}
+                                <b>{appointmentToCancel?.doctorName}</b> vào{" "}
+                                <b>{appointmentToCancel?.date}</b> lúc{" "}
+                                <b>{appointmentToCancel?.time}</b>?
+                            </p>
+                            <div className="flex justify-center gap-4">
+                                <button
+                                    onClick={() => setCancelDialogOpen(false)}
+                                    className="px-5 py-2 rounded-lg border hover:bg-gray-100"
+                                >
+                                    Không
+                                </button>
+                                <button
+                                    onClick={confirmCancel}
+                                    className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                                >
+                                    Xác nhận hủy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
