@@ -5,7 +5,6 @@ import {
   People,
   Calendar,
   ClipboardCheck,
-  BellSlash,
   List,
   X,
   BoxArrowRight,
