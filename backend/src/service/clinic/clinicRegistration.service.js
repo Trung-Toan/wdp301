@@ -38,7 +38,7 @@ exports.createRegistrationRequest = async ({
             closing_hours: clinic_info.closing_hours,
             address: clinic_info.address,
             specialties: clinic_info.specialties,
-            created_by: admin_clinic_id,
+            created_by: admin_clinic_id, // Từ token qua middleware
             status: "PENDING", // Chờ phê duyệt
         });
 
