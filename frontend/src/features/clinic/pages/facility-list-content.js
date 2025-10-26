@@ -35,17 +35,35 @@ export default function FacilitiesList() {
         fetchClinics();
     }, []);
 
+    // Hàm xóa dấu tiếng Việt
+    const removeVietnameseTones = (str) => {
+        return str
+            .normalize("NFD") // tách dấu ra khỏi ký tự gốc
+            .replace(/[\u0300-\u036f]/g, "") // xóa các dấu
+            .replace(/đ/g, "d")
+            .replace(/Đ/g, "D")
+            .toLowerCase(); // chuyển về chữ thường
+    };
+
     // Lọc dữ liệu theo tên / địa chỉ / location
     const filteredClinics = clinics.filter((c) => {
-        const addressText = `${c.address?.houseNumber || ""} ${c.address?.street || ""} ${c.address?.ward?.name || ""} ${c.address?.province?.name || ""}`.toLowerCase();
+        const addressText = `${c.address?.houseNumber || ""} ${c.address?.street || ""} ${c.address?.ward?.name || ""} ${c.address?.province?.name || ""}`;
+
+        const normalizedName = removeVietnameseTones(c.name);
+        const normalizedAddress = removeVietnameseTones(addressText);
+        const normalizedSearch = removeVietnameseTones(searchQuery);
+
         const matchesSearch =
-            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            addressText.includes(searchQuery.toLowerCase());
+            normalizedName.includes(normalizedSearch) ||
+            normalizedAddress.includes(normalizedSearch);
+
         const matchesLocation =
             selectedLocation === "Tất cả" ||
             c.address?.province?.name === selectedLocation;
+
         return matchesSearch && matchesLocation;
     });
+
 
     // Phân trang
     const totalPages = Math.ceil(filteredClinics.length / itemsPerPage);
@@ -140,7 +158,6 @@ export default function FacilitiesList() {
                                     Array.isArray(clinic.specialties) && clinic.specialties.length
                                         ? clinic.specialties
                                         : ["Đa khoa", "Nội tổng hợp"];
-
                                 return (
                                     <div
                                         key={clinic.id}
@@ -184,15 +201,36 @@ export default function FacilitiesList() {
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-2 mt-3">
-                                                    {specialties.slice(0, 4).map((s) => (
-                                                        <span
-                                                            key={s}
-                                                            className="text-xs border rounded-full px-2 py-1 text-gray-700"
-                                                        >
-                                                            {s}
-                                                        </span>
-                                                    ))}
+                                                    {specialties.length > 0 ? (
+                                                        specialties.slice(0, 4).map((s) => (
+                                                            <span
+                                                                key={s.id}
+                                                                className="flex items-center gap-1 text-xs border rounded-full px-2 py-1 text-gray-700"
+                                                            >
+                                                                {/* Nếu có icon thì hiển thị kèm */}
+                                                                {s.icon_url && (
+                                                                    <img
+                                                                        src={s.icon_url}
+                                                                        alt={s.name}
+                                                                        className="w-4 h-4 rounded-full object-cover"
+                                                                    />
+                                                                )}
+                                                                {s.name}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        // fallback nếu không có chuyên khoa
+                                                        <>
+                                                            <span className="text-xs border rounded-full px-2 py-1 text-gray-700">
+                                                                Đa khoa
+                                                            </span>
+                                                            <span className="text-xs border rounded-full px-2 py-1 text-gray-700">
+                                                                Nội tổng hợp
+                                                            </span>
+                                                        </>
+                                                    )}
                                                 </div>
+
 
                                                 <div className="flex gap-2 mt-4">
                                                     <Link
