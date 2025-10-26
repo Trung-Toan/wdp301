@@ -12,12 +12,10 @@ const {
     JWT_SECRET,
     ACCESS_EXPIRES,
     REFRESH_EXPIRES_DAYS,
-    REQUIRE_EMAIL_VERIFICATION = false,
+    REQUIRE_EMAIL_VERIFICATION,
     APP_BASE_URL,
     FRONTEND_ORIGIN,
 } = require('../../config/env');
-
-console.log('REQUIRE_EMAIL_VERIFICATION:', REQUIRE_EMAIL_VERIFICATION, typeof REQUIRE_EMAIL_VERIFICATION);
 
 const {
     sendMail,
@@ -26,7 +24,6 @@ const {
 } = require('./email.service');
 const Patient = require('../../model/patient/Patient');
 const User = require('../../model/user/User');
-const AdminClinic = require('../../model/user/AdminClinic');
 
 const SALT_ROUNDS = 12;
 const randomToken = (bytes = 48) => crypto.randomBytes(bytes).toString('hex');
@@ -50,77 +47,26 @@ exports.registerPatients = async ({ username, email, password, phone_number, rol
         password: hash,
         role: role || 'PATIENT',
         status: 'ACTIVE',
-        email_verified: !REQUIRE_EMAIL_VERIFICATION, // Auto verify nếu không cần verify email
+        email_verified: false,
     });
 
-    // Chỉ gửi email verification nếu REQUIRE_EMAIL_VERIFICATION = true
-    if (REQUIRE_EMAIL_VERIFICATION) {
-        try {
-            const token = randomToken(32);
-            const tokenHash = await hashOpaque(token);
+    const token = randomToken(32);
+    const tokenHash = await hashOpaque(token);
 
-            await EmailVerification.create({
-                token_hash: tokenHash,
-                expires_at: addDays(new Date(), 1),
-                used: false,
-                account_id: acc._id,
-            });
-
-            const html = buildVerifyEmailTemplate({
-                accountId: String(acc._id),
-                token,
-                apiBaseUrl: APP_BASE_URL,
-            });
-
-            await sendMail(acc.email, 'Xác minh email của bạn', html);
-        } catch (emailError) {
-            console.warn('Failed to send verification email:', emailError.message);
-            // Không throw error nếu gửi email fail
-        }
-    }
-
-    return sanitizeAccount(acc);
-};
-
-exports.registerClinicOwner = async ({ username, email, password, phone_number, role }) => {
-    const emailNorm = (email || '').trim().toLowerCase();
-    const hash = await hashPassword(password);
-
-    const acc = await Account.create({
-        username: username.trim(),
-        email: emailNorm,
-        phone_number: phone_number?.trim(),
-        password: hash,
-        role: role || 'ADMIN_CLINIC',
-        status: 'PENDING', // Clinic owners need approval
-        email_verified: !REQUIRE_EMAIL_VERIFICATION, // Auto verify nếu không cần verify email
+    await EmailVerification.create({
+        token_hash: tokenHash,
+        expires_at: addDays(new Date(), 1),
+        used: false,
+        account_id: acc._id,
     });
 
-    // Chỉ gửi email verification nếu REQUIRE_EMAIL_VERIFICATION = true
-    if (REQUIRE_EMAIL_VERIFICATION) {
-        try {
-            const token = randomToken(32);
-            const tokenHash = await hashOpaque(token);
+    const html = buildVerifyEmailTemplate({
+        accountId: String(acc._id),
+        token,
+        apiBaseUrl: APP_BASE_URL,
+    });
 
-            await EmailVerification.create({
-                token_hash: tokenHash,
-                expires_at: addDays(new Date(), 1),
-                used: false,
-                account_id: acc._id,
-            });
-
-            const html = buildVerifyEmailTemplate({
-                accountId: String(acc._id),
-                token,
-                apiBaseUrl: APP_BASE_URL,
-            });
-
-            await sendMail(acc.email, 'Xác minh email của bạn', html);
-        } catch (emailError) {
-            console.warn('Failed to send verification email:', emailError.message);
-            // Không throw error nếu gửi email fail
-        }
-    }
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
 
     return sanitizeAccount(acc);
 };
@@ -219,22 +165,15 @@ exports.login = async ({ email, password, ip, user_agent }) => {
     // Thêm phần lấy thông tin user và patient
     let user = null;
     let patient = null;
-    if (acc.role === "PATIENT") {
-        const user = await User.findOne({ account_id: acc._id });
 
-        if (user) {
-            patient = await Patient.findOne({ user_id: user._id }).lean();
+    // Dù là PATIENT, DOCTOR, hay ADMIN_CLINIC thì vẫn có user tương ứng
+    user = await User.findOne({ account_id: acc._id })
+        .select("full_name avatar_url dob gender address")
+        .lean();
 
-            // Nếu không tìm thấy Patient, tạo mới (cho các tài khoản cũ)
-            if (!patient) {
-                console.log('Creating missing Patient record for existing account:', acc._id);
-                const newPatient = await Patient.create({
-                    user_id: user._id,
-                });
-                patient = newPatient.toObject();
-                console.log('Patient record created successfully for existing account');
-            }
-        }
+    // Nếu là bệnh nhân, lấy thêm thông tin patient
+    if (acc.role === "PATIENT" && user) {
+        patient = await Patient.findOne({ user_id: user._id }).lean();
     }
 
     return {
@@ -403,5 +342,4 @@ exports.resetPassword = async ({ token, newPassword, accountId }) => {
 
     return { ok: true };
 };
-
 
