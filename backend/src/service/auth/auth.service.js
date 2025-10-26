@@ -206,10 +206,20 @@ exports.login = async ({ email, password, ip, user_agent }) => {
 
     let patient = null;
     if (acc.role === "PATIENT") {
-        const user = await User.findOne({ account_id: acc._id }).lean();
+        const user = await User.findOne({ account_id: acc._id });
 
         if (user) {
             patient = await Patient.findOne({ user_id: user._id }).lean();
+
+            // Nếu không tìm thấy Patient, tạo mới (cho các tài khoản cũ)
+            if (!patient) {
+                console.log('Creating missing Patient record for existing account:', acc._id);
+                const newPatient = await Patient.create({
+                    user_id: user._id,
+                });
+                patient = newPatient.toObject();
+                console.log('Patient record created successfully for existing account');
+            }
         }
     }
 
