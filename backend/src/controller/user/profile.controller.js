@@ -12,7 +12,8 @@ exports.getMyProfile = async (req, res) => {
 
         const user = await User.findOne({ account_id: accountId })
             .populate("account_id", "username email status role")
-            .lean();
+            .populate("patients", "province_code ward_code") // virtual
+            .lean({ virtuals: true }); // cần virtuals:true để có patients
 
         if (!user) return fail(res, new Error("User not found"), 404);
 
@@ -29,7 +30,10 @@ exports.getMyProfile = async (req, res) => {
             notify_marketing: user.notify_marketing,
             privacy_allow_doctor_view: user.privacy_allow_doctor_view,
             privacy_share_with_providers: user.privacy_share_with_providers,
+            province_code: user.patients?.province_code || null,
+            ward_code: user.patients?.ward_code || null,
         });
+
     } catch (err) {
         return fail(res, err);
     }
@@ -91,6 +95,18 @@ exports.updateMyProfile = async (req, res) => {
                 accountSet.email = normalizedEmail;
             }
         }
+
+        if (address !== undefined) {
+            // Lấy _id của user vừa update
+            const userId = user._id;
+
+            // Nếu bạn muốn update trực tiếp các field trong Patient
+            await Patient.updateOne(
+                { user_id: userId },
+                { $set: { province_code: address.provinceCode || null, ward_code: address.wardCode || null } }
+            );
+        }
+
 
         if (Object.keys(accountSet).length) {
             await Account.findByIdAndUpdate(accountId, { $set: accountSet }, { new: true });
