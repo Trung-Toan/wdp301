@@ -102,7 +102,6 @@ exports.viewAppointmentDetail = async (req, res) => {
 exports.verifyAppointment = async (req, res) => {
   const {appointmentId} = req.params;
   const {status} = req.query;
-  const statusEnum = ["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"];
   try {
     const app = await appointmentService.getAppointmentByIdDefault(appointmentId);
     if (!app) return resUtils.notFoundResponse(res, "Không tìm thấy lịch khám để phê duyệt");
