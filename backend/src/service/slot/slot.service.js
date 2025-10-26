@@ -1,27 +1,27 @@
 const Slot = require("../../model/appointment/Slot");
 
 exports.getSlotAtNowByDocterId = async (doctor_id) => {
-  try {
-    const now = new Date();
-    let nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const slots = await Slot.find({
-      doctor_id,
-      status: "AVAILABLE",
-    }).lean();
+    try {
+        const now = new Date();
+        let nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const slots = await Slot.find({
+            doctor_id,
+            status: "AVAILABLE",
+        }).lean();
 
-    const slot = slots.find((s) => {
-      const start = new Date(s.start_time);
-      const end = new Date(s.end_time);
-      const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes();
-      const endMinutes = end.getUTCHours() * 60 + end.getUTCMinutes();
-      return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
-    });
+        const slot = slots.find((s) => {
+            const start = new Date(s.start_time);
+            const end = new Date(s.end_time);
+            const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes();
+            const endMinutes = end.getUTCHours() * 60 + end.getUTCMinutes();
+            return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+        });
 
-    return slot || null;
-  } catch (error) {
-    console.error("Error in getSlotAtNowByDocterId:", error);
-    return null;
-  }
+        return slot || null;
+    } catch (error) {
+        console.error("Error in getSlotAtNowByDocterId:", error);
+        return null;
+    }
 };
 
 exports.getFirtAvailableSlotByDoctorId = async (doctor_id) => {
@@ -30,7 +30,7 @@ exports.getFirtAvailableSlotByDoctorId = async (doctor_id) => {
             doctor_id,
             status: "AVAILABLE",
         }).sort({ start_time: 1 }).lean();
-        
+
         return slot || null;
     } catch (error) {
         console.error("Error in getFirtAvailableSlotByDoctorId:", error);
@@ -44,7 +44,7 @@ exports.getListSlotsByDoctorId = async (doctor_id) => {
             doctor_id,
             status: "AVAILABLE",
         }).sort({ start_time: 1 }).lean();
-        
+
         return slots || [];
     } catch (error) {
         console.error("Error in getListSlotsByDoctorId:", error);
@@ -52,19 +52,29 @@ exports.getListSlotsByDoctorId = async (doctor_id) => {
     }
 };
 
-exports.getAllListSlotsByDoctorId = async (doctor_id, status = "") => {
+exports.getAllListSlotsByDoctorId = async (doctor_id, date, status) => {
     try {
-        const slots = await Slot.find({
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const query = {
             doctor_id,
-            ...(status && { status: status })
-        }).sort({ start_time: 1 }).lean();
-        
+            start_time: { $gte: startOfDay, $lte: endOfDay }
+        };
+
+        if (status) query.status = status;
+
+        const slots = await Slot.find(query).sort({ start_time: 1 }).lean();
         return slots || [];
     } catch (error) {
         console.error("Error in getListSlotsByDoctorId:", error);
         return [];
     }
 };
+
 
 
 exports.getSlotById = async (slot_id) => {
@@ -85,10 +95,10 @@ exports.createSlot = async (slotData) => {
     try {
         const newSlot = new Slot(slotData);
         const savedSlot = await newSlot.save();
-        return savedSlot; 
+        return savedSlot;
     } catch (error) {
         console.error("Error in createSlot:", error);
-        throw error; 
+        throw error;
     }
 };
 
@@ -103,10 +113,10 @@ exports.updateSlotById = async (slot_id, updateData) => {
         const updatedSlot = await Slot.findByIdAndUpdate(
             slot_id,
             { $set: updateData },
-            { new: true } 
+            { new: true }
         ).lean();
-        
-        return updatedSlot; 
+
+        return updatedSlot;
     } catch (error) {
         console.error("Error in updateSlotById:", error);
         throw error;

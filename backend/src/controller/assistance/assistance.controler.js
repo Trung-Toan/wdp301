@@ -6,6 +6,8 @@ const appointmentService = require("../../service/appointment/appointment.servic
 const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
 const slotService = require("../../service/slot/slot.service");
 const Slot = require("../../model/appointment/Slot");
+const moment = require("moment-timezone");
+
 /* ========================= PATIENTS ========================= */
 // GET /patients
 exports.viewListPatients = async (req, res) => {
@@ -123,9 +125,10 @@ exports.verifyAppointment = async (req, res) => {
 // GET /slots/doctor
 exports.viewAppointmentSlot = async (req, res) => {
   try {
+    const { date = new Date(), status = "" } = req.query;
     const assistant = await assistantService.getAssistantByAccountId(req.user.sub);
     const doctor_id = assistant.doctor_id;
-    const slot = await slotService.getAllListSlotsByDoctorId(doctor_id);
+    const slot = await slotService.getAllListSlotsByDoctorId(doctor_id, date, status);
     return resUtils.successResponse(
       res,
       slot,
@@ -160,8 +163,9 @@ exports.createAppointmentSlot = async (req, res) => {
     let { fee_amount, start_time, end_time, max_patients = 10, note = "", clinic_id } = req.body;
 
     // Convert string -> Date
-    start_time = new Date(start_time);
-    end_time = new Date(end_time);
+    // Convert giờ client (VN) sang UTC để lưu đúng trong DB
+    start_time = moment.tz(start_time, "Asia/Ho_Chi_Minh").utc().toDate();
+    end_time = moment.tz(end_time, "Asia/Ho_Chi_Minh").utc().toDate();
 
     if (!start_time || !end_time || isNaN(start_time) || isNaN(end_time))
       return resUtils.badRequestResponse(res, "Sai định dạng ngày giờ");
@@ -194,7 +198,7 @@ exports.createAppointmentSlot = async (req, res) => {
     return resUtils.serverErrorResponse(res, error, "Lỗi không thể tạo slot");
   }
 };
- 
+
 // PUT /slots/:slotId/doctor
 exports.updateAppointmentSlot = async (req, res) => {
   const { slotId } = req.params;
@@ -204,8 +208,8 @@ exports.updateAppointmentSlot = async (req, res) => {
 
     let { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
     // Convert string -> Date
-    start_time = new Date(start_time);
-    end_time = new Date(end_time);
+    start_time = moment.tz(start_time, "Asia/Ho_Chi_Minh").utc().toDate();
+    end_time = moment.tz(end_time, "Asia/Ho_Chi_Minh").utc().toDate();
 
     if (!(start_time || end_time))
       return resUtils.badRequestResponse(res, "Giờ bắt đầu và giờ kết thúc không được để trống");
