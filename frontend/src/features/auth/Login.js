@@ -80,9 +80,13 @@ const Login = () => {
         showConfirmButton: false,
       });
 
-      if (user.role === "DOCTOR") {
+      if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
-      } else {
+      } 
+      else if(account.role === "ADMIN_CLINIC") {
+        
+      }
+      else {
         navigate(redirectTo, { replace: true });
       }
     },

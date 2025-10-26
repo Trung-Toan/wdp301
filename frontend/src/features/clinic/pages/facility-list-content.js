@@ -185,7 +185,7 @@ export default function FacilitiesList() {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <Link
-                                                        to={`/facilities/${clinic.id}`}
+                                                        to={`/home/facilities/${clinic.id}`}
                                                         className="text-xl font-bold hover:text-blue-600"
                                                     >
                                                         {clinic.name}
