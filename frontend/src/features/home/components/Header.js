@@ -107,7 +107,7 @@ export default function Header() {
                 <Dropdown.Divider />
                 <Dropdown.Item
                   as={Link}
-                  to="/home/appointment"
+                  to="/patient/appointment"
                   className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
                 >
                   <InfoCircle /> Lịch hẹn
