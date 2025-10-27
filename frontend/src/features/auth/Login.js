@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
@@ -7,7 +7,6 @@ import Swal from "sweetalert2";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
-  clearSessionStorage,
   setSessionStorage,
 } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
@@ -27,10 +26,6 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  useEffect(() => {
-    clearSessionStorage();
-  }, []);
-
   // Gọi API đăng nhập
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
@@ -49,11 +44,16 @@ const Login = () => {
 
       const token = response.tokens?.accessToken;
       const account = response.account;
-      console.log("Account RESPONSE:", account);
       const patient = response.patient;
-      console.log("PATIENT FROM LOGIN:", patient);
       const user = response.user;
-      console.log("USER FROM LOGIN:", user);
+
+      console.log("🔍 LOGIN RESPONSE:", {
+        account,
+        user,
+        patient,
+        "patient._id": patient?._id,
+        "patient.id": patient?.id
+      });
 
       if (!token || !account) {
         Swal.fire({
@@ -65,13 +65,22 @@ const Login = () => {
         });
         return;
       }
-      login(token);
 
+      // Save all data to sessionStorage FIRST
       setSessionStorage("token", token);
+      setSessionStorage("account", account);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
-      setSessionStorage("account", account);
 
+      console.log("✅ Saved to sessionStorage:", {
+        hasAccount: !!account,
+        hasUser: !!user,
+        hasPatient: !!patient,
+        patientId: patient?._id || patient?.id
+      });
+
+      // Then call login to update auth context
+      login(token);
 
       Swal.fire({
         icon: "success",
@@ -84,19 +93,12 @@ const Login = () => {
         navigate("/doctor/dashboard");
       }
       else if (account.role === "ADMIN_CLINIC") {
-        navigate("/admin_clinic/dashboard");
-      }
-      else if (account.role === "ASSISTANT") {
-        navigate("/assistant/dashboard");
-      }
-      else if (account.role === "OWNER") {
-        navigate("/owner/dashboard");
+        navigate("/clinic-admin/dashboard");
       }
       else {
         navigate(redirectTo, { replace: true });
       }
     },
-
 
     onError: (error) => {
       Swal.fire({

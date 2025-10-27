@@ -24,8 +24,14 @@ export function FeaturedDoctorsSection() {
                 let res;
 
                 if (isAuthenticated) {
-                    // Nếu đã đăng nhập -> top gần vị trí người dùng
-                    res = await doctorApi.getDoctorTopNearMe(limit);
+                    // Nếu đã đăng nhập -> thử lấy top gần vị trí người dùng
+                    try {
+                        res = await doctorApi.getDoctorTopNearMe(limit);
+                    } catch (err) {
+                        // Nếu lỗi (vd: chưa có province) -> fallback về top toàn hệ thống
+                        console.warn("Cannot get doctors near me, falling back to top doctors:", err.message);
+                        res = await doctorApi.getDoctorTop(limit);
+                    }
                 } else {
                     // Nếu chưa đăng nhập -> top toàn hệ thống
                     res = await doctorApi.getDoctorTop(limit);

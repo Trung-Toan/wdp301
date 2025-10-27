@@ -237,6 +237,29 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
         throw new Error("Không thể tạo session. Vui lòng thử lại.");
     }
 
+    // Thêm phần lấy thông tin user và patient (giống login)
+    let user = null;
+    let patient = null;
+
+    user = await User.findOne({ account_id: acc._id })
+        .select("full_name avatar_url dob gender address")
+        .lean();
+
+    console.log("🔍 GOOGLE LOGIN DEBUG - user found:", user);
+
+    // Nếu là bệnh nhân, lấy thêm thông tin patient
+    if (acc.role === "PATIENT" && user) {
+        console.log("🔍 GOOGLE LOGIN DEBUG - searching for patient with user_id:", user._id);
+        patient = await Patient.findOne({ user_id: user._id }).lean();
+        console.log("🔍 GOOGLE LOGIN DEBUG - patient found:", patient);
+
+        // Nếu không tìm thấy, thử tìm tất cả patients
+        if (!patient) {
+            const allPatients = await Patient.find({}).lean();
+            console.log("🔍 GOOGLE LOGIN DEBUG - all patients in DB:", allPatients);
+        }
+    }
+
     return {
         account: {
             _id: acc._id,
@@ -244,6 +267,8 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
             role: acc.role,
             email_verified: acc.email_verified,
         },
+        user,
+        patient,
         tokens: { accessToken, refreshToken, refreshExpiresAt: expiresAt },
     };
 };

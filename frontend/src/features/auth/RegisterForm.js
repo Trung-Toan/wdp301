@@ -110,12 +110,22 @@ export default function RegisterForm() {
             // Gộp địa chỉ hoàn chỉnh
             const fullAddress = `${formData.addressDetail}, ${wards.find(w => w.code === formData.ward)?.name || ""}, ${provinces.find(p => p.code === formData.province)?.name || ""}`;
 
+            // Map form data to backend expected format
+            const role = formData.accountType === "patient" ? "PATIENT" : "ADMIN_CLINIC";
+
             await registerPatientsApi.register({
-                ...formData,
-                role: formData.accountType, // <-- thêm dòng này
+                username: formData.username,
+                email: formData.email,
+                password: formData.password,
+                confirmPassword: formData.confirmPassword,
+                phone_number: formData.phone,
+                role: role,
+                fullName: formData.fullName,
+                dob: formData.dob,
+                gender: formData.gender,
+                address: fullAddress,
                 province_code: formData.province,
                 ward_code: formData.ward,
-                address: fullAddress,
             });
 
             setNotification({

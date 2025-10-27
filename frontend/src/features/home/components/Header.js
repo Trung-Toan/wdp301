@@ -1,5 +1,5 @@
 import { Calendar, Menu } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
 import { Dropdown } from "react-bootstrap";
@@ -14,19 +14,25 @@ import { useAuth } from "../../../hooks/useAuth";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const user = useSessionStorage("user");
+  const { user: authUser } = useAuth();
+  const sessionUser = useSessionStorage("user");
+  const user = authUser || sessionUser; // Prioritize authUser from context
   const navigate = useNavigate();
   console.log("information: ", user);
   const { logout } = useAuth();
   const onLogout = async () => {
     try {
-      await logoutApi.logout(); // gọi API logout
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      await logoutApi.logout(refreshToken); // gọi API logout với refreshToken
       logout();
       localStorage.removeItem("token"); // xóa token (nếu bạn lưu token ở đây)
       localStorage.removeItem("user");  // xóa thông tin người dùng (nếu có)
       navigate("/login"); // điều hướng về trang đăng nhập
     } catch (error) {
       console.error("Đăng xuất thất bại:", error);
+      // Vẫn logout local nếu API thất bại
+      logout();
+      navigate("/login");
     }
   };
 

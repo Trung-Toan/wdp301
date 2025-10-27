@@ -14,6 +14,7 @@ import SpecialtyDetail from "../../features/home/pages/Specialties/specialty-det
 import FacilitiesList from "../../features/clinic/pages/facility-list-content";
 import FacilityDetail from "../../features/clinic/pages/facility-detail-content";
 import FacilityBooking from "../../features/clinic/pages/facility-booking-content";
+import ClinicSearchPage from "../../features/clinic/pages/ClinicSearchPage";
 
 export default function UserRoutes() {
     return (
@@ -32,6 +33,8 @@ export default function UserRoutes() {
                 <Route path="home/facility" element={<FacilitiesList />} />
                 <Route path="home/facilities/:id" element={<FacilityDetail />} />
                 <Route path="home/booking/facility" element={<FacilityBooking />} />
+                <Route path="clinics/search" element={<ClinicSearchPage />} />
+                <Route path="clinics/:id" element={<FacilityDetail />} />
             </Route>
         </Routes>
     );
