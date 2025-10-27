@@ -82,9 +82,15 @@ const Login = () => {
 
       if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
-      } 
-      else if(account.role === "ADMIN_CLINIC") {
-        
+      }
+      else if (account.role === "ADMIN_CLINIC") {
+        navigate("/admin_clinic/dashboard");
+      }
+      else if (account.role === "ASSISTANT") {
+        navigate("/assistant/dashboard");
+      }
+      else if (account.role === "OWNER") {
+        navigate("/owner/dashboard");
       }
       else {
         navigate(redirectTo, { replace: true });
