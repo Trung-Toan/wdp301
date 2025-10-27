@@ -5,8 +5,10 @@ import {
   Calendar,
   Person,
   Telephone,
-  CheckCircle,
-  XCircle,
+  CheckCircle, // Nút Duyệt
+  XCircle, // Nút Hủy
+  CheckCircleFill, // Nút Hoàn thành (MỚI)
+  CalendarX, // Nút Vắng mặt (MỚI)
 } from "react-bootstrap-icons";
 import "../../styles/assistant/appointment-schedule.css";
 
@@ -22,7 +24,13 @@ const getLocalDate = () => {
   const year = today.getFullYear();
   const month = (today.getMonth() + 1).toString().padStart(2, "0");
   const day = today.getDate().toString().padStart(2, "0");
-  return `${year}-${month}-${day}`;
+
+  // NOTE: Dùng ngày này để khớp với mock data trong assistantService.js
+  // Bỏ dòng này khi chạy thật
+  return "2025-10-27";
+
+  // Dùng dòng này khi chạy thật
+  // return `${year}-${month}-${day}`;
 };
 
 const ApproveAppointment = () => {
@@ -86,20 +94,26 @@ const ApproveAppointment = () => {
     }
   };
 
+  // Cập nhật Status Badges
   const getStatusBadge = (status) => {
     const config = {
       SCHEDULED: { label: "Chờ duyệt", className: "status-scheduled" },
-      COMPLETED: { label: "Đã duyệt", className: "status-completed" },
+      APPROVE: { label: "Đã duyệt", className: "status-approved" },
+      COMPLETED: { label: "Đã khám xong", className: "status-completed" },
       CANCELLED: { label: "Đã hủy", className: "status-cancelled" },
+      NO_SHOW: { label: "Vắng mặt", className: "status-no-show" },
     };
     return config[status] || config.SCHEDULED;
   };
 
+  // Cập nhật thứ tự Sắp xếp
   const getShiftAppointments = (shiftId) => {
     const statusSortOrder = {
-      SCHEDULED: 1,
-      COMPLETED: 2,
-      CANCELLED: 3,
+      SCHEDULED: 1, // Chờ duyệt
+      APPROVE: 2, // Đã duyệt (Chờ khám)
+      COMPLETED: 3, // Đã khám xong
+      NO_SHOW: 4, // Vắng mặt
+      CANCELLED: 5, // Đã hủy
     };
 
     return appointments
@@ -206,6 +220,18 @@ const ApproveAppointment = () => {
                   ) : (
                     shiftAppointments.map((apt) => {
                       const statusInfo = getStatusBadge(apt.status);
+
+                      let badgeColor = "bg-gray-100 text-gray-700";
+                      if (statusInfo.className === "status-scheduled") {
+                        badgeColor = "bg-blue-100 text-blue-700"; // Chờ
+                      } else if (statusInfo.className === "status-approved") {
+                        badgeColor = "bg-green-100 text-green-700"; // Duyệt
+                      } else if (statusInfo.className === "status-completed") {
+                        badgeColor = "bg-indigo-100 text-indigo-700"; // Khám xong
+                      } else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show") {
+                        badgeColor = "bg-red-100 text-red-700"; // Hủy/Vắng
+                      }
+
                       return (
                         <div
                           key={apt._id}
@@ -219,28 +245,25 @@ const ApproveAppointment = () => {
                               </p>
                               <p className="text-gray-500 text-sm">
                                 <Telephone className="inline mr-1" />
-                                {/* === ĐÂY LÀ DÒNG ĐÃ SỬA === */}
                                 {apt.patient?.phone || "Không rõ"}
                               </p>
-                              {/* ========================= */}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.className === "status-scheduled"
-                                  ? "bg-blue-100 text-blue-700"
-                                  : statusInfo.className === "status-completed"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}
                             >
                               {statusInfo.label}
                             </span>
+
+                            {/* === THAY ĐỔI 3: Cập nhật logic nút === */}
+
+                            {/* 1. Nếu CHỜ DUYỆT (SCHEDULED) */}
                             {apt.status === "SCHEDULED" && (
                               <>
                                 <button
                                   onClick={() =>
-                                    handleUpdateStatus(apt._id, "COMPLETED")
+                                    handleUpdateStatus(apt._id, "APPROVE")
                                   }
                                   className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
                                   title="Duyệt"
@@ -258,6 +281,34 @@ const ApproveAppointment = () => {
                                 </button>
                               </>
                             )}
+
+                            {/* 2. Nếu ĐÃ DUYỆT (APPROVE) */}
+                            {apt.status === "APPROVE" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(apt._id, "COMPLETED")
+                                  }
+                                  className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+                                  title="Đã khám xong"
+                                >
+                                  <CheckCircleFill size={16} />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(apt._id, "NO_SHOW")
+                                  }
+                                  className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
+                                  title="Vắng mặt"
+                                >
+                                  <CalendarX size={16} />
+                                </button>
+                              </>
+                            )}
+
+                            {/* (Các trạng thái COMPLETED, CANCELLED, NO_SHOW sẽ không có nút) */}
+                            {/* =================================== */}
+
                           </div>
                         </div>
                       );

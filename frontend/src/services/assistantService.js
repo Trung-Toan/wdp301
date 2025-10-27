@@ -72,10 +72,20 @@ let mockAppointments = [
     _id: "APT003",
     shiftId: "SHIFT002", // Gán vào ca 2
     patientId: "PAT003",
-    status: "SCHEDULED", // <-- Chờ duyệt
+    status: "APPROVE", // <-- Đã duyệt
     reason: "Tái khám",
     createdAt: "2025-10-27T09:00:00Z",
   },
+  // === THÊM LỊCH HẸN NÀY VÀO ===
+  {
+    _id: "APT004",
+    shiftId: "SHIFT001", // Gán vào ca 1
+    patientId: "PAT003", // Bệnh nhân Le Van C
+    status: "COMPLETED", // <-- ĐÃ KHÁM XONG
+    reason: "Đã khám xong",
+    createdAt: "2025-10-27T09:30:00Z",
+  },
+  // ==============================
 ];
 
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
