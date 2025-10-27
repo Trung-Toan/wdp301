@@ -12,34 +12,16 @@ export default function PersonalTabDebug() {
     const [provinces, setProvinces] = useState([]);
     const [wards, setWards] = useState([]);
 
-    // ==============================
-    // Debug log function
-    const logState = () => {
-        console.log("===== Debug State =====");
-        console.log("formData:", formData);
-        console.log("editData:", editData);
-        console.log("provinces:", provinces);
-        console.log("wards:", wards);
-        console.log("=======================");
-    };
-    useEffect(() => {
-        logState();
-    }, [formData, editData, provinces, wards]);
-
-    // ==============================
-    // Load provinces
     useEffect(() => {
         const fetchProvinces = async () => {
             try {
                 const res = await provinceApi.getProvinces();
-                console.log("API provinces response:", res.data);
                 if (res.data?.options) {
                     const provinceList = res.data.options.map(p => ({
                         value: p.value,
                         label: p.label
                     }));
                     setProvinces(provinceList);
-                    console.log("Mapped provinces:", provinceList);
                 }
             } catch (err) {
                 console.error("Lỗi tải tỉnh:", err);
@@ -48,8 +30,6 @@ export default function PersonalTabDebug() {
         fetchProvinces();
     }, []);
 
-    // ==============================
-    // Load patient profile
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -75,7 +55,6 @@ export default function PersonalTabDebug() {
                     // Khi load profile
                     if (data.province_code) {
                         const wardRes = await wardApi.getWardsByProvince(data.province_code);
-                        console.log("API wards response:", wardRes.data);
 
                         const rawWards = wardRes.data?.data || wardRes.data?.options || [];
                         const wardList = rawWards.map(w => ({
@@ -83,7 +62,6 @@ export default function PersonalTabDebug() {
                             label: w.name || w.label
                         }));
                         setWards(wardList);
-                        console.log("Mapped wards:", wardList);
                     }
                 }
             } catch (err) {
@@ -94,7 +72,6 @@ export default function PersonalTabDebug() {
         fetchProfile();
     }, []);
 
-    // ==============================
     const handleChange = (e) => {
         const { name, value } = e.target;
         setEditData(prev => {
@@ -108,13 +85,11 @@ export default function PersonalTabDebug() {
         const provinceCode = e.target.value;
         setEditData(prev => ({ ...prev, provinceCode, wardCode: "" }));
         setWards([]);
-        console.log("Selected provinceCode:", provinceCode);
 
         if (!provinceCode) return;
 
         try {
             const res = await wardApi.getWardsByProvince(provinceCode);
-            console.log("API wards response on province change:", res.data);
 
             const rawWards = res.data?.data || res.data?.options || [];
             const wardList = rawWards.map(w => ({
@@ -122,14 +97,12 @@ export default function PersonalTabDebug() {
                 label: w.name || w.label
             }));
             setWards(wardList);
-            console.log("Mapped wards:", wardList);
         } catch (err) {
             console.error("Lỗi tải quận/huyện:", err);
         }
     };
 
     const handleSave = async () => {
-        console.log("Saving editData:", editData);
         try {
             const payload = {
                 full_name: editData.full_name,
@@ -139,9 +112,7 @@ export default function PersonalTabDebug() {
                 province_code: editData.provinceCode,
                 ward_code: editData.wardCode,
             };
-            console.log("Payload sent:", payload);
             const res = await profilePatientApi.updateInformation(payload);
-            console.log("API update response:", res.data);
             if (res.data?.success) {
                 setFormData(editData);
                 setIsEditing(false);
@@ -155,10 +126,27 @@ export default function PersonalTabDebug() {
         }
     };
 
-    const handleCancel = () => {
+    const handleCancel = async () => {
         setEditData(formData);
         setIsEditing(false);
         console.log("Edit cancelled, reset editData to formData");
+        try {
+            if (formData.provinceCode) {
+                const res = await wardApi.getWardsByProvince(formData.provinceCode);
+
+                const rawWards = res.data?.data || res.data?.options || [];
+                const wardList = rawWards.map(w => ({
+                    value: w.code || w.value,
+                    label: w.name || w.label
+                }));
+                setWards(wardList);
+            } else {
+                setWards([]);
+            }
+        } catch (err) {
+            console.error("Lỗi khi tải lại wards lúc hủy:", err);
+            setWards([]);
+        }
     };
 
     const getProvinceName = (code) => provinces.find(p => p.value === code)?.label || "";
@@ -167,7 +155,7 @@ export default function PersonalTabDebug() {
     return (
         <div className="p-6 border rounded-lg">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Thông tin cá nhân (Debug)</h2>
+                <h2 className="text-2xl font-bold">Thông tin cá nhân</h2>
                 {!isEditing && (
                     <button onClick={() => setIsEditing(true)} className="border px-4 py-2 rounded-md flex items-center gap-2">
                         <Edit2 size={16} /> Chỉnh sửa
