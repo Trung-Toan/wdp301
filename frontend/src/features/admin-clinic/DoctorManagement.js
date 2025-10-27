@@ -200,11 +200,6 @@ const DoctorManagement = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý bác sĩ</h1>
-          <p className="text-sm text-gray-600 mt-2">
-            {clinicType === "SINGLE_DOCTOR"
-              ? "Phòng khám 1 bác sĩ"
-              : "Phòng khám nhiều bác sĩ"}
-          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
