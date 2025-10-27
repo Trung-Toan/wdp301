@@ -29,7 +29,7 @@ exports.createDoctor = async (payload) => {
       [
         {
           username: username.trim(),
-          email: "",
+          email: "abc@example.com",
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "DOCTOR",
