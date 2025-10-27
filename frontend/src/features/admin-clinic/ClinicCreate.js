@@ -77,45 +77,28 @@ const ClinicCreation = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newRequest = {
-      _id: `request_${Date.now()}`,
-      ...formData,
-      status: "PENDING",
-      requested_by: "68e4fb9303bb8005b8f4c0fe", // Current user ID
-      rejection_reason: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
 
-    // Store request in sessionStorage for demo
-    const requests = JSON.parse(
-      sessionStorage.getItem("clinicRequests") || "[]"
-    );
-    requests.push(newRequest);
-    sessionStorage.setItem("clinicRequests", JSON.stringify(requests));
+    try {
+      const payload = {
+        clinic_info: formData,
+      };
 
-    setShowModal(false);
-    alert("Yêu cầu tạo phòng khám đã được gửi! Vui lòng chờ duyệt.");
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      website: "",
-      description: "",
-      registration_number: "",
-      opening_hours: "08:00",
-      closing_hours: "20:00",
-      address: {
-        province: { code: "79", name: "TP. Hồ Chí Minh" },
-        ward: { code: "00001", name: "Phường Bến Nghé" },
-        houseNumber: "",
-        street: "",
-        alley: "",
-      },
-      specialties: [],
-    });
+      // Gửi yêu cầu duyệt tạo phòng khám
+      const res = await adminclinicAPI.createRegistrationRequest(payload);
+
+      if (res.data.ok) {
+        alert("Yêu cầu tạo phòng khám đã được gửi! Vui lòng chờ duyệt.");
+        setShowModal(false);
+        setClinics([...clinics, res.data.data]);
+      } else {
+        alert("Gửi yêu cầu thất bại: " + res.data.message);
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi yêu cầu tạo phòng khám:", error);
+      alert("Không thể gửi yêu cầu. Vui lòng thử lại.");
+    }
   };
 
   const handleSpecialtyChange = (specialtyId) => {
