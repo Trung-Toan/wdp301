@@ -47,6 +47,9 @@ exports.createDoctor = async (payload) => {
       [
         {
           full_name,
+          dob: null,
+          gender: null,
+          address: "",
           account_id: acc[0]._id,
         },
       ],
