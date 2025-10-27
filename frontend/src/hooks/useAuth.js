@@ -9,7 +9,10 @@ export const AuthProvider = ({ children }) => {
 
     const login = useCallback((accessToken) => {
         sessionStorage.setItem("access_token", accessToken);
+        sessionStorage.setItem("token", accessToken); // Also set "token" key
         setToken(accessToken);
+        // Trigger re-render of components using sessionStorage
+        window.dispatchEvent(new Event("session-update"));
     }, []);
 
     const logout = useCallback(() => {
@@ -20,6 +23,8 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.removeItem("account");
         setToken(null);
         setUser(null);
+        // Trigger re-render of components using sessionStorage
+        window.dispatchEvent(new Event("session-update"));
     }, []);
 
     useEffect(() => {

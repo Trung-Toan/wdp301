@@ -1,5 +1,5 @@
 import { Calendar, Menu } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
 import { Dropdown } from "react-bootstrap";
@@ -14,7 +14,9 @@ import { useAuth } from "../../../hooks/useAuth";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const user = useSessionStorage("user");
+  const { user: authUser } = useAuth();
+  const sessionUser = useSessionStorage("user");
+  const user = authUser || sessionUser; // Prioritize authUser from context
   const navigate = useNavigate();
   console.log("information: ", user);
   const { logout } = useAuth();

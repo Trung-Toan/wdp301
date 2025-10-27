@@ -19,13 +19,14 @@ const GoogleLoginButton = () => {
         const token = data.tokens.accessToken;
         const account = data.account;
 
-        // Call login function from useAuth to set token in context
-        login(token);
-
         // Lưu thông tin user & tokens vào sessionStorage (using correct keys)
         setSessionStorage("token", token);
         setSessionStorage("account", account);
         setSessionStorage("refreshToken", data.tokens.refreshToken);
+        setSessionStorage("user", account); // Set user for Header
+
+        // Then call login to update auth context
+        login(token);
 
         Swal.fire("Thành công", "Đăng nhập bằng Google thành công!", "success");
 

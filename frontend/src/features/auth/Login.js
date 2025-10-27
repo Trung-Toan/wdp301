@@ -60,13 +60,14 @@ const Login = () => {
         });
         return;
       }
-      login(token);
-
-      // Save all data to sessionStorage
+      // Save all data to sessionStorage FIRST
       setSessionStorage("token", token);
       setSessionStorage("account", account);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
+
+      // Then call login to update auth context
+      login(token);
 
       Swal.fire({
         icon: "success",
