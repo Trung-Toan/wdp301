@@ -1,15 +1,21 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { Plus, X, MapPin, Clock, FileText } from "lucide-react";
-import { sampleClinics, sampleSpecialties } from "../../data/mockData";
+import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
+import { sampleClinics } from "../../data/mockData";
 
 const ClinicCreation = () => {
   const [showModal, setShowModal] = useState(false);
   const [clinics, setClinics] = useState(sampleClinics);
+  const [specialties, setSpecialties] = useState([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(true);
+  const [filteredSpecialties, setFilteredSpecialties] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
     website: "",
+    logo_url: "",
+    banner_url: "",
     description: "",
     registration_number: "",
     opening_hours: "08:00",
@@ -23,6 +29,29 @@ const ClinicCreation = () => {
     },
     specialties: [],
   });
+
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      try {
+        setLoadingSpecialties(true);
+        const res = await adminclinicAPI.getAllSpecialties();
+        if (res.data.ok) {
+          setSpecialties(res.data.data);
+          setFilteredSpecialties(res.data.data);
+        } else {
+          console.error(
+            "Không thể lấy danh sách chuyên khoa:",
+            res.data.message
+          );
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API chuyên khoa:", error);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+    fetchSpecialties();
+  }, []);
 
   const handleAddClinic = () => {
     setShowModal(true);
@@ -430,29 +459,66 @@ const ClinicCreation = () => {
                 </div>
               </div>
 
-              {/* Specialties */}
+              {/* Chuyên khoa */}
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4">
                   Chuyên khoa
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {sampleSpecialties.map((specialty) => (
-                    <label
-                      key={specialty._id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
+
+                {loadingSpecialties ? (
+                  <p className="text-gray-500 text-sm">
+                    Đang tải chuyên khoa...
+                  </p>
+                ) : (
+                  <>
+                    {/* Ô tìm kiếm chuyên khoa */}
+                    <div className="mb-3">
                       <input
-                        type="checkbox"
-                        checked={formData.specialties.includes(specialty._id)}
-                        onChange={() => handleSpecialtyChange(specialty._id)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        type="text"
+                        placeholder="Tìm kiếm chuyên khoa..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onChange={(e) => {
+                          const keyword = e.target.value.toLowerCase();
+                          setFilteredSpecialties(
+                            specialties.filter((s) =>
+                              s.name.toLowerCase().includes(keyword)
+                            )
+                          );
+                        }}
                       />
-                      <span className="text-sm text-gray-900">
-                        {specialty.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                    </div>
+
+                    {/* Danh sách rút gọn và có cuộn */}
+                    <div className="max-h-48 overflow-y-auto pr-1">
+                      {filteredSpecialties.length > 0 ? (
+                        filteredSpecialties.map((specialty) => (
+                          <label
+                            key={specialty._id}
+                            className="flex items-center gap-2 py-1 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.specialties.includes(
+                                specialty._id
+                              )}
+                              onChange={() =>
+                                handleSpecialtyChange(specialty._id)
+                              }
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-900">
+                              {specialty.name}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-sm italic">
+                          Không tìm thấy chuyên khoa nào
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Form Actions */}
