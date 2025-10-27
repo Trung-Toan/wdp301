@@ -4,6 +4,8 @@ import DoctorRoutes from "./doctor.routes";
 import AssistantRoutes from "./assistant.routes";
 import OwnerRoutes from "./owner.routes";
 import PatientsRoutes from "./patients.routes";
+import AdminClinicRoutes from "./adminClinic.routes";
+
 
 export const routeConfig = [
   { path: "/*", element: <UserRoutes />, isPublic: true },
@@ -11,4 +13,5 @@ export const routeConfig = [
   { path: "/doctor/*", element: <DoctorRoutes />, roles: ["DOCTOR"] },
   { path: "/assistant/*", element: <AssistantRoutes />, roles: ["ASSISTANT"] },
   { path: "/owner/*", element: <OwnerRoutes />, roles: ["OWNER"] },
+  { path: "/admin_clinic/*", element: <AdminClinicRoutes />, roles: ["ADMIN_CLINIC"]},
 ];

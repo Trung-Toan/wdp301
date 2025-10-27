@@ -24,12 +24,58 @@ export function BookingContent() {
 
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [bookingInfo, setBookingInfo] = useState(null);
+    const [patientId, setPatientId] = useState(null);
 
     const [provinces, setProvinces] = useState([]);
     const [wards, setWards] = useState([]);
 
+    const [storedAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
     const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
-    const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "{}"));
+    const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "null"));
+
+    // Fetch patient_id từ API nếu không có trong sessionStorage
+    useEffect(() => {
+        const fetchPatientId = async () => {
+            // Nếu có storedPatient, dùng luôn
+            if (storedPatient && typeof storedPatient === 'object' && Object.keys(storedPatient).length > 0) {
+                const id = storedPatient._id || storedPatient.id;
+                if (id) {
+                    console.log("✅ Using patient_id from storedPatient:", id);
+                    setPatientId(id);
+                    return;
+                }
+            }
+
+            // Nếu không có storedPatient nhưng có storedUser, dùng user._id làm fallback
+            if (storedUser && typeof storedUser === 'object' && Object.keys(storedUser).length > 0) {
+                const fallbackId = storedUser._id || storedUser.id;
+                if (fallbackId) {
+                    console.log("⚠️ No patient found, using user._id as fallback:", fallbackId);
+                    setPatientId(fallbackId);
+                    return;
+                }
+            }
+
+            // Nếu không tìm thấy gì cả
+            if (storedAccount?.id) {
+                console.error("❌ Không tìm thấy patient_id trong sessionStorage!");
+                console.error("❌ storedAccount:", storedAccount);
+                console.error("❌ storedUser:", storedUser);
+                console.error("❌ storedPatient:", storedPatient);
+            }
+        };
+        fetchPatientId();
+    }, [storedAccount, storedUser, storedPatient]);
+
+    // Log để debug
+    useEffect(() => {
+        console.log("🔍 Debug patient data:", {
+            patientId,
+            storedPatient,
+            storedUser,
+            storedAccount
+        });
+    }, [patientId, storedPatient, storedUser, storedAccount]);
 
 
     // Load danh sách tỉnh
@@ -66,53 +112,72 @@ export function BookingContent() {
 
     // Gán dữ liệu user vào form
     useEffect(() => {
-        if (storedUser) {
+        if (storedUser || storedAccount) {
+            // Chuyển định dạng ngày nếu có
+            let dobFormatted = "";
+            if (storedUser?.dob) {
+                const date = new Date(storedUser.dob);
+                // Format thành yyyy-MM-dd
+                dobFormatted = date.toISOString().split("T")[0];
+            }
+
             setFormData(prev => ({
                 ...prev,
-                fullName: storedUser.username || "",
-                phone: storedUser.phone_number || "",
-                email: storedUser.email || "",
-                dateOfBirth: storedUser.dateOfBirth || "",
-                gender: storedUser.gender || "male",
+                fullName: storedUser.full_name || "",
+                phone: storedAccount.phone_number || "",
+                email: storedAccount.email || "",
+                dateOfBirth: dobFormatted,
+                gender: storedUser.gender || "Nam",
+                address: storedUser.address || "",
             }));
         }
-    }, [storedUser]);
-    console.log("formData:", formData);
-
+    }, [storedUser, storedAccount]);
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
     // Xử lý gửi form
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!selectedSlot) return alert("Vui lòng chọn lịch khám");
 
+        if (!selectedSlot) return alert("Vui lòng chọn lịch khám");
         if (!formData.dateOfBirth) return alert("Vui lòng nhập ngày sinh");
         if (!formData.province) return alert("Vui lòng chọn Tỉnh/Thành phố");
         if (!formData.ward) return alert("Vui lòng chọn Phường/Xã");
 
+        // Kiểm tra nếu không có patientId thì báo lỗi
+        if (!patientId) {
+            alert("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
+            return;
+        }
+
         try {
+            const genderMap = {
+                "Nam": "MALE",
+                "Nữ": "FEMALE",
+                "Khác": "OTHER"
+            };
+            const apiGender = genderMap[formData.gender] || formData.gender.toUpperCase();
+
             const payload = {
                 slot_id: selectedSlot.id,
                 doctor_id: doctorId,
-                patient_id: storedPatient._id, // Dùng patient._id thay vì user._id
+                patient_id: patientId,
                 specialty_id: selectedSlot.specialtyId?.id || selectedSlot.specialtyId,
                 clinic_id: selectedSlot.clinicId,
                 full_name: formData.fullName,
                 phone: formData.phone,
                 email: formData.email,
                 dob: formData.dateOfBirth,
-                gender: formData.gender.toUpperCase(),
+                gender: apiGender,
                 province_code: formData.province,
                 ward_code: formData.ward,
                 address_text: formData.address,
                 reason: formData.reason,
             };
 
-
-            console.log("Payload gửi lên API:", payload);
+            console.log("📤 Đang gửi đặt lịch với patient_id:", patientId);
             const response = await patientsApi.createAppointment(payload);
-            console.log("Phản hồi từ API:", response);
+            console.log("✅ Đặt lịch thành công!");
             setBookingInfo(response.data);
             setIsSubmitted(true);
         } catch (err) {
@@ -216,7 +281,7 @@ export function BookingContent() {
                                 <div>
                                     <label className="block mb-2 font-medium">Giới tính <span className="text-red-500">*</span></label>
                                     <div className="flex gap-6">
-                                        {["male", "female", "other"].map(g => (
+                                        {["Nam", "Nữ", "Khác"].map(g => (
                                             <label key={g} className="flex items-center gap-2">
                                                 <input
                                                     type="radio"
@@ -224,7 +289,7 @@ export function BookingContent() {
                                                     checked={formData.gender === g}
                                                     onChange={e => handleChange("gender", e.target.value)}
                                                 />
-                                                {g === "male" ? "Nam" : g === "female" ? "Nữ" : "Khác"}
+                                                {g === "Nam" ? "Nam" : g === "Nữ" ? "Nữ" : "Khác"}
                                             </label>
                                         ))}
                                     </div>

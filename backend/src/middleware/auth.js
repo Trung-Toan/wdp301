@@ -1,16 +1,45 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const Account = require('../model/auth/Account');
+const User = require('../model/user/User');
+const AdminClinic = require('../model/user/AdminClinic');
+const AdminSystem = require('../model/user/AdminSystem');
 const { REQUIRE_EMAIL_VERIFICATION } = require('../config/env');
 
 function authRequired(req, res, next) {
     try {
         const h = req.headers.authorization || '';
-        const token = h.startsWith('Bearer ') ? h.slice(7) : null;
-        if (!token) return res.status(401).json({ ok: false, message: 'Unauthorized' });
+        console.log('Auth middleware - Authorization header:', h);
 
+        // Handle both "Bearer token" and "Bearer Bearer token" cases
+        let token = null;
+        if (h.startsWith('Bearer ')) {
+            token = h.slice(7); // Remove first "Bearer "
+            // If token still starts with "Bearer ", remove it too (handle duplicate Bearer)
+            if (token.startsWith('Bearer ')) {
+                token = token.slice(7);
+            }
+        }
+
+        console.log('Auth middleware - Extracted token:', token ? token.substring(0, 50) + '...' : 'null');
+
+        if (!token) {
+            console.log('Auth middleware - No token found');
+            return res.status(401).json({ ok: false, message: 'Unauthorized' });
+        }
+
+        console.log('Auth middleware - Verifying token...');
         req.user = verifyAccessToken(token); // { sub, role, email_verified, ... }
+        console.log('Auth middleware - Token verified successfully:', {
+            sub: req.user.sub,
+            role: req.user.role,
+            email_verified: req.user.email_verified
+        });
         next();
     } catch (e) {
+        console.error('Auth middleware - Token verification failed:', {
+            message: e.message,
+            name: e.name
+        });
         return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
     }
 }
@@ -58,4 +87,98 @@ async function verifiedEmailRequired(req, res, next) {
     }
 }
 
-module.exports = { authRequired, roleRequired, verifiedEmailRequired };
+/**
+ * Middleware xác thực cho Admin Clinic
+ * Kiểm tra token và lấy thông tin admin_clinic_id
+ */
+async function authenticateAdminClinic(req, res, next) {
+    try {
+        const h = req.headers.authorization || '';
+        let token = null;
+
+        if (h.startsWith('Bearer ')) {
+            token = h.slice(7);
+            if (token.startsWith('Bearer ')) {
+                token = token.slice(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({ ok: false, message: 'Unauthorized' });
+        }
+
+        req.user = verifyAccessToken(token);
+
+        // Kiểm tra role
+        if (req.user.role !== 'ADMIN_CLINIC') {
+            return res.status(403).json({ ok: false, message: 'Forbidden - Admin Clinic access required' });
+        }
+
+        // Lấy admin_clinic_id từ database
+        // req.user.sub là Account ID, cần tìm User qua account_id
+        const user = await User.findOne({ account_id: req.user.sub });
+        if (!user) {
+            return res.status(404).json({ ok: false, message: 'User not found' });
+        }
+
+        const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+        if (!adminClinic) {
+            return res.status(404).json({ ok: false, message: 'Admin Clinic not found' });
+        }
+
+        req.user.admin_clinic_id = adminClinic._id;
+        next();
+    } catch (e) {
+        console.error('Admin Clinic auth middleware error:', e);
+        return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
+    }
+}
+
+/**
+ * Middleware xác thực cho Admin System
+ * Kiểm tra token và lấy thông tin admin_system_id
+ */
+async function authenticateAdminSystem(req, res, next) {
+    try {
+        const h = req.headers.authorization || '';
+        let token = null;
+
+        if (h.startsWith('Bearer ')) {
+            token = h.slice(7);
+            if (token.startsWith('Bearer ')) {
+                token = token.slice(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({ ok: false, message: 'Unauthorized' });
+        }
+
+        req.user = verifyAccessToken(token);
+
+        // Kiểm tra role
+        if (req.user.role !== 'ADMIN_SYSTEM') {
+            return res.status(403).json({ ok: false, message: 'Forbidden - Admin System access required' });
+        }
+
+        // Lấy admin_system_id từ database
+        const adminSystem = await AdminSystem.findOne({ user_id: req.user.sub });
+        if (!adminSystem) {
+            return res.status(404).json({ ok: false, message: 'Admin System not found' });
+        }
+
+        req.user.admin_system_id = adminSystem._id;
+        next();
+    } catch (e) {
+        console.error('Admin System auth middleware error:', e);
+        return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
+    }
+}
+
+module.exports = {
+    authRequired,
+    roleRequired,
+    verifiedEmailRequired,
+    authenticateAdminClinic,
+    authenticateAdminSystem
+};

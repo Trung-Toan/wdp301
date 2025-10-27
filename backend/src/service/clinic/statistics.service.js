@@ -5,11 +5,13 @@ const Doctor = require("../../model/doctor/Doctor");
 
 
 async function getBookingStatistics(clinicId, { startDate, endDate } = {}) {
+
     if (!mongoose.Types.ObjectId.isValid(clinicId)) {
         throw new Error("Invalid clinic ID");
     }
 
     const matchFilter = { clinic_id: new mongoose.Types.ObjectId(clinicId) };
+
 
     // Nếu có khoảng thời gian, thêm filter
     if (startDate || endDate) {
@@ -45,7 +47,6 @@ async function getBookingStatistics(clinicId, { startDate, endDate } = {}) {
     ];
 
     const [result] = await Appointment.aggregate(pipeline);
-
     if (!result) {
         return {
             totalBookings: 0,
@@ -86,8 +87,8 @@ async function getBookingStatistics(clinicId, { startDate, endDate } = {}) {
     };
 }
 
-
 async function getBookingTrends(clinicId, { period = 'day', startDate, endDate } = {}) {
+
     if (!mongoose.Types.ObjectId.isValid(clinicId)) {
         throw new Error("Invalid clinic ID");
     }
@@ -99,9 +100,9 @@ async function getBookingTrends(clinicId, { period = 'day', startDate, endDate }
         if (startDate) matchFilter.booked_at.$gte = new Date(startDate);
         if (endDate) matchFilter.booked_at.$lte = new Date(endDate);
     }
-
     // Xác định format ngày theo period
     let dateFormat;
+
     switch (period) {
         case 'month':
             dateFormat = { year: { $year: "$booked_at" }, month: { $month: "$booked_at" } };
@@ -150,13 +151,9 @@ async function getBookingTrends(clinicId, { period = 'day', startDate, endDate }
 
 /**
  * Lấy thống kê top specialties (chuyên khoa phổ biến) theo clinic
- * @param {String} clinicId - ID của clinic
- * @param {Object} options - Các tùy chọn
- * @param {Date} options.startDate - Ngày bắt đầu
- * @param {Date} options.endDate - Ngày kết thúc
- * @param {Number} options.limit - Số lượng specialty trả về (default: 10)
  */
 async function getTopSpecialties(clinicId, { startDate, endDate, limit = 10 } = {}) {
+
     if (!mongoose.Types.ObjectId.isValid(clinicId)) {
         throw new Error("Invalid clinic ID");
     }
@@ -244,9 +241,6 @@ async function getTopSpecialties(clinicId, { startDate, endDate, limit = 10 } = 
 
 /**
  * Lấy thống kê chi tiết của một specialty cụ thể
- * @param {String} clinicId - ID của clinic
- * @param {String} specialtyId - ID của specialty
- * @param {Object} options - Các tùy chọn
  */
 async function getSpecialtyDetails(clinicId, specialtyId, { startDate, endDate } = {}) {
     if (!mongoose.Types.ObjectId.isValid(clinicId) || !mongoose.Types.ObjectId.isValid(specialtyId)) {
@@ -323,8 +317,6 @@ async function getSpecialtyDetails(clinicId, specialtyId, { startDate, endDate }
         }
     };
 }
-
-
 
 /**
  * Lấy thống kê hiệu suất của các bác sĩ trong clinic
@@ -486,6 +478,8 @@ async function getDoctorPerformance(clinicId, { startDate, endDate, limit = 20, 
     }));
 }
 
+
+
 /**
  * Lấy thống kê chi tiết của một bác sĩ cụ thể
  */
@@ -559,7 +553,6 @@ async function getDoctorDetailedPerformance(clinicId, doctorId, { startDate, end
     ];
 
     const trends = await Appointment.aggregate(trendsPipeline);
-
     return {
         doctor: {
             _id: doctor._id,

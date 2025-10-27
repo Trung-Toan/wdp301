@@ -71,6 +71,41 @@ exports.registerPatients = async ({ username, email, password, phone_number, rol
     return sanitizeAccount(acc);
 };
 
+exports.registerClinicOwner = async ({ username, email, password, phone_number, role }) => {
+    const emailNorm = (email || '').trim().toLowerCase();
+    const hash = await hashPassword(password);
+
+    const acc = await Account.create({
+        username: username.trim(),
+        email: emailNorm,
+        phone_number: phone_number?.trim(),
+        password: hash,
+        role: role || 'ADMIN_CLINIC',
+        status: 'PENDING', // Clinic owners need approval
+        email_verified: false,
+    });
+
+    const token = randomToken(32);
+    const tokenHash = await hashOpaque(token);
+
+    await EmailVerification.create({
+        token_hash: tokenHash,
+        expires_at: addDays(new Date(), 1),
+        used: false,
+        account_id: acc._id,
+    });
+
+    const html = buildVerifyEmailTemplate({
+        accountId: String(acc._id),
+        token,
+        apiBaseUrl: APP_BASE_URL,
+    });
+
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
+
+    return sanitizeAccount(acc);
+};
+
 exports.verifyEmail = async ({ token, accountId }) => {
     if (!token) throw new Error('Missing token');
     if (!accountId) throw new Error('Missing accountId');
@@ -103,35 +138,46 @@ exports.verifyEmail = async ({ token, accountId }) => {
 
 
 exports.login = async ({ email, password, ip, user_agent }) => {
-    const emailNorm = (email || '').trim().toLowerCase();
-    const acc = await Account.findOne({ email: emailNorm }).select('+password');
+    const emailNorm = (email || "").trim().toLowerCase();
+    const acc = await Account.findOne({ email: emailNorm }).select("+password");
 
     if (!acc) {
-        await LoginAttempt.create({ ip, email: emailNorm, ok: false, reason: 'not_found' });
-        throw new Error('Email hoặc mật khẩu sai');
+        await LoginAttempt.create({ ip, email: emailNorm, ok: false, reason: "not_found" });
+        throw new Error("Email hoặc mật khẩu sai");
     }
 
-    if (acc.status !== 'ACTIVE') {
-        await LoginAttempt.create({ ip, email: emailNorm, account_id: acc._id, ok: false, reason: 'status_not_active' });
-        throw new Error('Tài khoản chưa active');
+    if (acc.status !== "ACTIVE") {
+        await LoginAttempt.create({
+            ip,
+            email: emailNorm,
+            account_id: acc._id,
+            ok: false,
+            reason: "status_not_active",
+        });
+        throw new Error("Tài khoản chưa active");
     }
 
     const passOk = await comparePassword(password, acc.password);
     if (!passOk) {
-        await LoginAttempt.create({ ip, email: emailNorm, account_id: acc._id, ok: false, reason: 'wrong_password' });
-        throw new Error('Email hoặc mật khẩu sai');
+        await LoginAttempt.create({
+            ip,
+            email: emailNorm,
+            account_id: acc._id,
+            ok: false,
+            reason: "wrong_password",
+        });
+        throw new Error("Email hoặc mật khẩu sai");
     }
 
-    // Đăng nhập thành công
+    //Đăng nhập thành công
     await LoginAttempt.create({
         ip,
         email: emailNorm,
         account_id: acc._id,
         ok: true,
-        reason: acc.email_verified ? 'ok' : 'email_not_verified_but_login_allowed'
+        reason: acc.email_verified ? "ok" : "email_not_verified_but_login_allowed",
     });
 
-    // Tạo access token
     const payload = { sub: String(acc._id), role: acc.role, email_verified: !!acc.email_verified };
     const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_EXPIRES });
 
@@ -151,19 +197,45 @@ exports.login = async ({ email, password, ip, user_agent }) => {
         user_agent,
     });
 
+    // Thêm phần lấy thông tin user và patient
+    let user = null;
     let patient = null;
-    if (acc.role === "PATIENT") {
-        const user = await User.findOne({ account_id: acc._id }).lean();
 
-        if (user) {
-            patient = await Patient.findOne({ user_id: user._id }).lean();
+    // Dù là PATIENT, DOCTOR, hay ADMIN_CLINIC thì vẫn có user tương ứng
+    user = await User.findOne({ account_id: acc._id })
+        .select("full_name avatar_url dob gender address")
+        .lean();
+
+    console.log("🔍 LOGIN DEBUG - user found:", user);
+
+    // Nếu là bệnh nhân, lấy thêm thông tin patient
+    if (acc.role === "PATIENT" && user) {
+        console.log("🔍 LOGIN DEBUG - searching for patient with user_id:", user._id);
+        console.log("🔍 LOGIN DEBUG - user._id type:", typeof user._id);
+        console.log("🔍 LOGIN DEBUG - user._id:", user._id);
+
+        // Thử tìm patient
+        patient = await Patient.findOne({ user_id: user._id }).lean();
+        console.log("🔍 LOGIN DEBUG - patient found:", patient);
+
+        // Nếu không tìm thấy, thử tìm tất cả patients
+        if (!patient) {
+            const allPatients = await Patient.find({}).lean();
+            console.log("🔍 LOGIN DEBUG - all patients in DB:", allPatients);
         }
     }
 
-
     return {
         ok: true,
-        account: sanitizeAccount(acc),
+        account: {
+            _id: acc._id,
+            email: acc.email,
+            role: acc.role,
+            status: acc.status,
+            email_verified: acc.email_verified,
+            phone_number: acc.phone_number,
+        },
+        user,
         patient,
         tokens: {
             accessToken,
@@ -319,5 +391,4 @@ exports.resetPassword = async ({ token, newPassword, accountId }) => {
 
     return { ok: true };
 };
-
 

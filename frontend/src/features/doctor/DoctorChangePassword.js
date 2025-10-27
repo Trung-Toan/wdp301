@@ -1,11 +1,18 @@
 import { memo, useState } from "react";
 import { Button } from "react-bootstrap";
+import { Eye, EyeSlash } from "react-bootstrap-icons";
 
 const DoctorChangePassword = () => {
   const [passwords, setPasswords] = useState({
     oldPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+
+  const [showPassword, setShowPassword] = useState({
+    old: false,
+    new: false,
+    confirm: false,
   });
 
   const handleChange = (e) => {
@@ -34,48 +41,79 @@ const DoctorChangePassword = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Mật khẩu cũ */}
-          <div>
+          <div className="relative">
             <label className="block text-gray-700 font-medium mb-1">
               Mật khẩu hiện tại
             </label>
             <input
-              type="password"
+              type={showPassword.old ? "text" : "password"}
               name="oldPassword"
               value={passwords.oldPassword}
               onChange={handleChange}
-              className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border border-blue-200 rounded-lg p-2 pr-10 focus:ring-2 focus:ring-blue-400 outline-none"
               required
             />
+            <span
+              className="absolute right-3 top-[38px] text-gray-500 cursor-pointer"
+              onClick={() =>
+                setShowPassword({ ...showPassword, old: !showPassword.old })
+              }
+            >
+              {showPassword.old ? <EyeSlash size={20} /> : <Eye size={20} />}
+            </span>
           </div>
 
           {/* Mật khẩu mới */}
-          <div>
+          <div className="relative">
             <label className="block text-gray-700 font-medium mb-1">
               Mật khẩu mới
             </label>
             <input
-              type="password"
+              type={showPassword.new ? "text" : "password"}
               name="newPassword"
               value={passwords.newPassword}
               onChange={handleChange}
-              className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border border-blue-200 rounded-lg p-2 pr-10 focus:ring-2 focus:ring-blue-400 outline-none"
               required
             />
+            <span
+              className="absolute right-3 top-[38px] text-gray-500 cursor-pointer"
+              onClick={() =>
+                setShowPassword({ ...showPassword, new: !showPassword.new })
+              }
+            >
+              {showPassword.new ? <EyeSlash size={20} /> : <Eye size={20} />}
+            </span>
           </div>
 
           {/* Xác nhận mật khẩu */}
-          <div>
+          <div className="relative">
             <label className="block text-gray-700 font-medium mb-1">
               Xác nhận mật khẩu
             </label>
             <input
-              type="password"
+              type={showPassword.confirm ? "text" : "password"}
               name="confirmPassword"
               value={passwords.confirmPassword}
               onChange={handleChange}
-              className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+              className="w-full border border-blue-200 rounded-lg p-2 pr-10 focus:ring-2 focus:ring-blue-400 outline-none"
               required
             />
+            <span
+              className="absolute right-3 top-[38px] text-gray-500 cursor-pointer"
+              onClick={() =>
+                setShowPassword({
+                  ...showPassword,
+                  confirm: !showPassword.confirm,
+                })
+              }
+            >
+              {showPassword.confirm ? (
+                <EyeSlash size={20} />
+              ) : (
+                <Eye size={20} />
+              )}
+            </span>
           </div>
 
           <Button

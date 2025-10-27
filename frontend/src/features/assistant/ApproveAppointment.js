@@ -3,7 +3,6 @@
 import { memo, useEffect, useState } from "react";
 import {
   Calendar,
-  Clock,
   Person,
   Telephone,
   CheckCircle,

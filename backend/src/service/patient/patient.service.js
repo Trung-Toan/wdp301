@@ -5,6 +5,7 @@ const appointmentService = require("../appointment/appointment.service");
 exports.getPatientById = async (req) => {
     try {
         const patientId = req.params.patientId;
+
         const patients = await Patient.findById(patientId)
             .select('-__v -createdAt -updatedAt')
             .populate({
@@ -41,8 +42,6 @@ exports.getPatientById = async (req) => {
 
 /**
  * get patient by code
- * @param {*} req 
- * @returns 
  */
 exports.getPatientByCode = async (req) => {
     try {
@@ -80,7 +79,7 @@ exports.findPatientByAccountId = async (accountId) => {
 }
 
 /**
- * Update patient location (province_code, ward_code) by account id
+ * Update patient location (province_code, ward_code optional) by account id
  */
 exports.updatePatientLocationByAccountId = async (accountId, { province_code, ward_code }) => {
     const user = await userService.findUserByAccountId(accountId);
@@ -88,16 +87,20 @@ exports.updatePatientLocationByAccountId = async (accountId, { province_code, wa
         throw new Error('User not found');
     }
 
+    const updateData = { province_code };
+    if (ward_code !== undefined) {
+        updateData.ward_code = ward_code;
+    }
+
     const patient = await Patient.findOneAndUpdate(
         { user_id: user._id },
-        { $set: { province_code, ward_code } },
+        { $set: updateData },
         { new: true }
     ).lean();
 
     if (!patient) {
         throw new Error('Patient not found');
     }
-
     return patient;
 }
 

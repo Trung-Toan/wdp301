@@ -11,23 +11,19 @@ async function searchDoctorsBySpecialty({
     if (!specialtyId) {
         return { meta: { page: +page, limit: +limit, total: 0, totalPages: 1 }, items: [] };
     }
-
     const specObjId = new mongoose.Types.ObjectId(String(specialtyId));
     const skip = (Number(page) - 1) * Number(limit);
-
     const sortObj = {};
     String(sort)
         .split(",")
         .map(s => s.trim())
         .filter(Boolean)
         .forEach(f => (f[0] === "-" ? (sortObj[f.slice(1)] = -1) : (sortObj[f] = 1)));
-
     const filter = { specialty_id: specObjId };
     if (q && q.trim()) {
         const rx = new RegExp(q.trim(), "i");
         filter.$or = [{ title: rx }, { degree: rx }, { description: rx }, { experience: rx }];
     }
-
     const [items, total] = await Promise.all([
         Doctor.find(filter)
             .sort(sortObj)
@@ -38,11 +34,20 @@ async function searchDoctorsBySpecialty({
                 select: "name address",
                 model: "Clinic",
             })
+            .populate({
+                path: "user_id",
+                select: "full_name avatar_url",
+                model: "User",
+            })
+            .populate({
+                path: "specialty_id",
+                select: "name",
+                model: "Specialty",
+            })
             .select("title degree description experience user_id clinic_id specialty_id createdAt")
             .lean(),
         Doctor.countDocuments(filter),
     ]);
-
     return {
         meta: {
             page: Number(page),
@@ -69,5 +74,4 @@ async function searchDoctorsBySpecialty({
         })),
     };
 }
-
 module.exports = { searchDoctorsBySpecialty };

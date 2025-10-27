@@ -103,40 +103,40 @@ router.get("/profile", authRequired, roleRequired("DOCTOR"), DoctorController.vi
 router.get("/by-specialty", getDoctorsBySpecialty);
 
 
-/**
- * @openapi
- * /api/doctor/top:
- *   get:
- *     tags:
- *       - Doctor
- *     summary: Lấy danh sách bác sĩ nổi bật (rating cao nhất)
- *     description: Trả về các bác sĩ có điểm đánh giá (rating) cao nhất, kèm thông tin phòng khám.
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 5
- *           minimum: 1
- *           maximum: 50
- *         description: Số lượng bác sĩ muốn lấy (mặc định 5)
- *       - in: query
- *         name: provinceCode
- *         schema:
- *           type: string
- *           example: "01"
- *         description: Mã tỉnh/thành để lọc theo địa điểm phòng khám
- *       - in: query
- *         name: wardCode
- *         schema:
- *           type: string
- *           example: "00004"
- *         description: Mã phường/xã để lọc theo địa điểm phòng khám
- *     responses:
- *       200:
- *         description: Danh sách bác sĩ nổi bật
- */
-router.get("/top", getTopDoctorsController);
+// /**
+//  * @openapi
+//  * /api/doctor/top:
+//  *   get:
+//  *     tags:
+//  *       - Doctor
+//  *     summary: Lấy danh sách bác sĩ nổi bật (rating cao nhất)
+//  *     description: Trả về các bác sĩ có điểm đánh giá (rating) cao nhất, kèm thông tin phòng khám.
+//  *     parameters:
+//  *       - in: query
+//  *         name: limit
+//  *         schema:
+//  *           type: integer
+//  *           default: 5
+//  *           minimum: 1
+//  *           maximum: 50
+//  *         description: Số lượng bác sĩ muốn lấy (mặc định 5)
+//  *       - in: query
+//  *         name: provinceCode
+//  *         schema:
+//  *           type: string
+//  *           example: "01"
+//  *         description: Mã tỉnh/thành để lọc theo địa điểm phòng khám
+//  *       - in: query
+//  *         name: wardCode
+//  *         schema:
+//  *           type: string
+//  *           example: "00004"
+//  *         description: Mã phường/xã để lọc theo địa điểm phòng khám
+//  *     responses:
+//  *       200:
+//  *         description: Danh sách bác sĩ nổi bật
+//  */
+ router.get("/top", getTopDoctorsController);
 
 /**
  * @openapi

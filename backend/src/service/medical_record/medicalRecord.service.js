@@ -5,8 +5,11 @@ const Appointment = require(("../../model/appointment/Appointment"));
 exports.requestViewMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+
     const doctorId = doctor._id;
+
     const { patientId } = req.params;
+
     const { reason } = req.body;
 
     if (!reason || reason.trim() === "") {
@@ -50,6 +53,7 @@ exports.requestViewMedicalRecord = async (req) => {
     });
 
     const results = await Promise.all(updatePromises);
+
     const updatedRequests = results.filter(Boolean);
 
     if (updatedRequests.length === 0) {
@@ -57,7 +61,6 @@ exports.requestViewMedicalRecord = async (req) => {
         "Bạn đã gửi yêu cầu hoặc đã được cấp quyền truy cập hồ sơ của bệnh nhân này."
       );
     }
-
     return updatedRequests;
   } catch (error) {
     console.error("Error in requestViewMedicalRecord:", error);
@@ -68,9 +71,13 @@ exports.requestViewMedicalRecord = async (req) => {
 exports.requestViewMedicalRecordById = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+
     const doctorId = doctor._id;
+
     const patientId = req.params.patientId;
+
     const medicalRecordId = req.params.medicalRecordId;
+
     const { reason } = req.body;
 
     if (!reason || reason.trim() === "") {
@@ -125,10 +132,13 @@ exports.requestViewMedicalRecordById = async (req) => {
 exports.getHistoryMedicalRecordRequests = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+
     const doctorIdAsObjectId = doctor._id;
 
     const page = parseInt(req.query.page) || 1;
+
     const limit = parseInt(req.query.limit) || 10;
+
     const skip = (page - 1) * limit;
 
     const results = await MedicalRecord.aggregate([
@@ -172,7 +182,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       : 0;
     const totalPages = Math.ceil(totalItems / limit);
 
-    // ✅ Populate sau khi aggregate
+    // Populate sau khi aggregate
     await MedicalRecord.populate(requests, [
       { path: "patient", model: "Patient" },
       { path: "medical_record", model: "MedicalRecord" }
@@ -195,9 +205,6 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
 
 /**
  * get list medical records by patient id of doctor
- * 
- * @param {*} req 
- * @returns 
  */
 exports.getListMedicalRecordsByIdPatient = async (req) => {
   try {
@@ -334,9 +341,6 @@ exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (docter_i
 
 /**
  * Get list medical records of patients for doctor with pagination and search
- * 
- * @param {*} req page, limit, search
- * @returns 
  */
 exports.getListMedicalRecords = async (req) => {
   try {

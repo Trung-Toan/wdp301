@@ -11,9 +11,13 @@ export const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-    const token = sessionStorage.getItem("token");
+    // Try both possible token keys
+    const token = sessionStorage.getItem("accessToken") || sessionStorage.getItem("token");
     if (token) {
-        config.headers.Authorization = `Bearer ${token.replace(/^"|"$/g, "")}`;
+        // Clean token and add Bearer prefix
+        const cleanToken = token.replace(/^"|"$/g, "");
+        config.headers.Authorization = `Bearer ${cleanToken}`;
+        console.log('Axios interceptor - Adding token to request:', cleanToken.substring(0, 50) + '...');
     }
     return config;
 });

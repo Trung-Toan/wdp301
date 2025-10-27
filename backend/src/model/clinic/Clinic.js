@@ -19,15 +19,20 @@ const clinicSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["ACTIVE", "INACTIVE"],
-      default: "ACTIVE",
+      enum: ["PENDING", "ACTIVE", "INACTIVE", "REJECTED"],
+      default: "PENDING",
       required: true,
     },
 
-    option: {
-      type: String,
-      enum: ["SINGLE_DOCTOR", "MULTIPLE_DOCTOR"],
-      required: true,
+    // Thông tin phê duyệt/từ chối (chỉ khi cần thiết)
+    review_info: {
+      reviewed_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "AdminSystem",
+      },
+      reviewed_at: { type: Date },
+      review_notes: { type: String },
+      rejection_reason: { type: String },
     },
 
     created_by: {
@@ -40,7 +45,7 @@ const clinicSchema = new Schema(
     address_detail: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AddressDetail",
-      required: true,
+      required: false,
     },
 
     // Địa chỉ đơn giản hóa
@@ -72,6 +77,7 @@ clinicSchema.index({ "address.province.code": 1, "address.ward.code": 1 });
 clinicSchema.index({ name: 1 });
 clinicSchema.index({ status: 1 });
 clinicSchema.index({ specialties: 1 });
+clinicSchema.index({ created_by: 1 });
 
 // ==== Middleware tự động sinh fullAddress ====
 clinicSchema.pre("save", function (next) {

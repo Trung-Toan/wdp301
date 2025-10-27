@@ -5,6 +5,40 @@ const ctrl = require("../../controller/clinic/specialty.controller");
 const clinicCtrl = require("../../controller/clinic/clinic.controller");
 const statisticsCtrl = require("../../controller/clinic/statistics.controller");
 
+/**
+ * @swagger
+ * /api/clinic/search:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Tìm phòng khám theo tỉnh/thành, phường/xã và chuyên khoa
+ *     parameters:
+ *       - in: query
+ *         name: provinceCode
+ *         schema: { type: string, example: "79" }
+ *       - in: query
+ *         name: wardCode
+ *         schema: { type: string, example: "27343" }
+ *       - in: query
+ *         name: specialtyId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+ *       - in: query
+ *         name: sort
+ *         schema: { type: string, default: "-createdAt" }
+ *     responses:
+ *       200:
+ *         description: Danh sách phòng khám phù hợp
+ */
+router.get("/search", getClinicsByFilters);
+
 
 /**
  * @swagger
@@ -27,39 +61,8 @@ const statisticsCtrl = require("../../controller/clinic/statistics.controller");
  */
 router.get("/specialties", ctrl.getAllSpecialties);
 
-/**
- * @swagger
- * /api/clinic/search:
- *   get:
- *     tags: [Clinic]
- *     summary: Tìm bác sĩ theo tỉnh/thành, phường/xã và chuyên khoa
- *     parameters:
- *       - in: query
- *         name: provinceCode
- *         schema: { type: string, example: "01" }
- *       - in: query
- *         name: wardCode
- *         schema: { type: string, example: "00004" }
- *       - in: query
- *         name: specialtyId
- *         schema: { type: string }
- *       - in: query
- *         name: q
- *         schema: { type: string }
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1, minimum: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
- *       - in: query
- *         name: sort
- *         schema: { type: string, default: "-createdAt" }
- *     responses:
- *       200:
- *         description: Danh sách bác sĩ phù hợp (kèm thông tin phòng khám)
- */
-router.get("/search", searchDoctorController);
+router.get("/specialties/:specialtyId", ctrl.getSpecialtyById)
+
 
 /**
  * @swagger

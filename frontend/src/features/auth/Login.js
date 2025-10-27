@@ -7,7 +7,6 @@ import Swal from "sweetalert2";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
-  clearSessionStorage,
   setSessionStorage,
 } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
@@ -27,10 +26,6 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
-  useEffect(() => {
-    clearSessionStorage();
-  }, []);
-
   // Gọi API đăng nhập
   const mutation = useMutation({
     mutationFn: ({ username, password }) => loginUser(username, password),
@@ -46,27 +41,46 @@ const Login = () => {
         return;
       }
 
-      console.log("LOGIN RESPONSE:", response);
-      const token = response.tokens?.accessToken;
-      const user = response.account;
-      const patient = response.patient;
-      console.log("PATIENT FROM LOGIN:", patient);
 
-      if (!token || !user) {
+      const token = response.tokens?.accessToken;
+      const account = response.account;
+      const patient = response.patient;
+      const user = response.user;
+
+      console.log("🔍 LOGIN RESPONSE:", {
+        account,
+        user,
+        patient,
+        "patient._id": patient?._id,
+        "patient.id": patient?.id
+      });
+
+      if (!token || !account) {
         Swal.fire({
           icon: "error",
           title: "Lỗi dữ liệu đăng nhập",
-          text: "Token hoặc user không tồn tại.",
+          text: "Token hoặc account không tồn tại.",
           timer: 3000,
           showConfirmButton: true,
         });
         return;
       }
-      login(token);
 
+      // Save all data to sessionStorage FIRST
       setSessionStorage("token", token);
+      setSessionStorage("account", account);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
+
+      console.log("✅ Saved to sessionStorage:", {
+        hasAccount: !!account,
+        hasUser: !!user,
+        hasPatient: !!patient,
+        patientId: patient?._id || patient?.id
+      });
+
+      // Then call login to update auth context
+      login(token);
 
       Swal.fire({
         icon: "success",
@@ -75,13 +89,19 @@ const Login = () => {
         showConfirmButton: false,
       });
 
-      if (user.role === "DOCTOR") {
+      if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
-      } else {
+      }
+      else if (account.role === "ADMIN_CLINIC") {
+        navigate("/clinic-admin/dashboard");
+      }
+      else if (account.role === "ASSISTANT") {
+        navigate("/assistant/dashboard");
+      }
+      else {
         navigate(redirectTo, { replace: true });
       }
     },
-
 
     onError: (error) => {
       Swal.fire({

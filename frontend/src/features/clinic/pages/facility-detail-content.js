@@ -74,7 +74,7 @@ export default function FacilityDetail() {
             {/* Back Button */}
             <div className="border-b bg-white">
                 <div className="container mx-auto px-4 py-4">
-                    <Link to="/facilities" className="flex items-center text-gray-700 hover:text-blue-600">
+                    <Link to="/home/facility" className="flex items-center text-gray-700 hover:text-blue-600">
                         <ChevronLeft className="h-5 w-5 mr-1" />
                         Quay lại danh sách
                     </Link>

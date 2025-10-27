@@ -6,15 +6,29 @@ const { verifyGoogleIdToken } = require('../../utils/verify-google');
 const { loginWithGoogle } = require('../../service/auth/google.service');
 const User = require('../../model/user/User');
 const Patient = require('../../model/patient/Patient');
+const AdminClinic = require('../../model/user/AdminClinic');
 const Account = require('../../model/auth/Account');
 
 
 exports.googleLogin = async (req, res) => {
     try {
         const { id_token } = req.body;
-        const profile = await verifyGoogleIdToken(id_token);
+        // Log để debug
+        console.log('Google Login Debug:', {
+            hasIdToken: !!id_token,
+            idTokenLength: id_token?.length,
+            idTokenStart: id_token?.substring(0, 50) + '...'
+        });
 
-        const { account, tokens } = await loginWithGoogle({
+        const profile = await verifyGoogleIdToken(id_token);
+        console.log('Google Profile verified:', {
+            sub: profile.sub,
+            email: profile.email,
+            email_verified: profile.email_verified,
+            name: profile.name
+        });
+
+        const { account, user, patient, tokens } = await loginWithGoogle({
             googleProfile: profile,
             ua: req.headers['user-agent'] || '',
             ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
@@ -24,10 +38,21 @@ exports.googleLogin = async (req, res) => {
         res.json({
             ok: true,
             account: { id: account._id, email: account.email, role: account.role, email_verified: account.email_verified },
+            user,
+            patient,
             tokens,
         });
     } catch (e) {
-        res.status(400).json({ ok: false, message: 'Google login thất bại' });
+        console.error('Google Login Error:', {
+            message: e.message,
+            stack: e.stack,
+            name: e.name
+        });
+        res.status(400).json({
+            ok: false,
+            message: 'Google login thất bại',
+            error: process.env.NODE_ENV === 'development' ? e.message : undefined
+        });
     }
 };
 
@@ -38,11 +63,14 @@ exports.registerPatients = async (req, res) => {
             email,
             password,
             confirmPassword,
-            phone,
+            phone_number,
+            role,
             fullName,
             dob,
             gender,
             address,
+            province_code,
+            ward_code,
         } = req.body;
 
         // Kiểm tra xác nhận mật khẩu
@@ -50,45 +78,85 @@ exports.registerPatients = async (req, res) => {
             return res.status(400).json({ ok: false, message: "Mật khẩu xác nhận không khớp" });
         }
 
-        // Gọi service để tạo tài khoản (Account)
-        const account = await svc.registerPatients({
-            username,
-            email,
-            password,
-            phone_number: phone,
-            role: "PATIENT",
-        });
+        // Validate role
+        const userRole = role || "PATIENT";
+        if (!["PATIENT", "ADMIN_CLINIC"].includes(userRole)) {
+            return res.status(400).json({ ok: false, message: "Loại tài khoản không hợp lệ" });
+        }
 
-        // Tạo bản ghi user liên kết với account_id
-        const user = await User.create({
-            full_name: fullName,
-            dob,
-            gender,
-            address,
-            account_id: account._id,
-        });
+        let account, user, additionalData;
 
-        // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
-        const patient = new Patient({
-            user_id: user._id,
-            blood_type: null,
-            allergies: [],
-            chronic_diseases: [],
-            medications: [],
-            surgery_history: [],
-        });
+        if (userRole === "PATIENT") {
+            // Đăng ký bệnh nhân
+            account = await svc.registerPatients({
+                username,
+                email,
+                password,
+                phone_number,
+                role: userRole,
+            });
 
-        // Middleware pre("save") sẽ tự sinh patient_code
-        await patient.save();
+            // Tạo bản ghi user liên kết với account_id
+            user = await User.create({
+                full_name: fullName,
+                dob,
+                gender,
+                address,
+                account_id: account._id,
+            });
+
+            // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
+            const patient = new Patient({
+                user_id: user._id,
+                province_code: province_code || null,
+                ward_code: ward_code || null,
+                blood_type: null,
+                allergies: [],
+                chronic_diseases: [],
+                medications: [],
+                surgery_history: [],
+            });
+
+            // Middleware pre("save") sẽ tự sinh patient_code
+            await patient.save();
+            additionalData = { patient };
+
+        } else if (userRole === "ADMIN_CLINIC") {
+            // Đăng ký chủ phòng khám
+            account = await svc.registerClinicOwner({
+                username,
+                email,
+                password,
+                phone_number,
+                role: userRole,
+            });
+
+            // Tạo bản ghi user liên kết với account_id
+            user = await User.create({
+                full_name: fullName,
+                dob,
+                gender,
+                address,
+                account_id: account._id,
+            });
+
+            // Tạo bản ghi AdminClinic liên kết với user_id
+            const adminClinic = await AdminClinic.create({
+                user_id: user._id,
+            });
+            additionalData = { adminClinic };
+        }
 
         // Trả kết quả về cho FE
         res.json({
             ok: true,
-            message: "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.",
+            message: userRole === "PATIENT"
+                ? "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản."
+                : "Đăng ký thành công! Tài khoản của bạn đang chờ phê duyệt. Vui lòng kiểm tra email để xác minh tài khoản.",
             data: {
                 account,
                 user,
-                patient,
+                ...additionalData,
             },
         });
     } catch (e) {
@@ -193,7 +261,7 @@ exports.changePassword = async (req, res) => {
         if (!currentPassword || !newPassword)
             return res.status(400).json({ ok: false, message: "Missing fields" });
 
-        const account = await Account.findById(accountId).select('+password'); // Lấy password
+        const account = await Account.findById(accountId).select('+password');
         if (!account) return res.status(404).json({ ok: false, message: "Account not found" });
 
         const isMatch = await bcrypt.compare(currentPassword, account.password);

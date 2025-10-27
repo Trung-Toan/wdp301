@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Calendar,
     Clock,
@@ -10,82 +10,64 @@ import {
     XCircle,
     AlertCircle,
     MoreVertical,
+    Hospital,
+    ArrowLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { appointmentApi } from "../../../../api/patients/appointmentApi";
 
-// Mock data cho lịch hẹn
-const mockAppointments = [
-    {
-        id: 1,
-        status: "upcoming",
-        doctorName: "BS. Nguyễn Văn An",
-        specialty: "Tim mạch",
-        hospital: "Bệnh viện Đa khoa Trung ương",
-        location: "Hà Nội",
-        date: "Thứ 2, 20/01/2025",
-        time: "09:00",
-        price: "500.000đ",
-        image: "/doctor-portrait-male.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Khám định kỳ tim mạch",
-    },
-    {
-        id: 2,
-        status: "upcoming",
-        doctorName: "BS. Trần Thị Bình",
-        specialty: "Da liễu",
-        hospital: "Phòng khám Đa khoa Medlatec",
-        location: "Hà Nội",
-        date: "Thứ 4, 22/01/2025",
-        time: "14:30",
-        price: "400.000đ",
-        image: "/doctor-portrait-female.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Điều trị mụn và chăm sóc da",
-    },
-    {
-        id: 3,
-        status: "completed",
-        doctorName: "BS. Lê Văn Cường",
-        specialty: "Nội tổng quát",
-        hospital: "Bệnh viện Bạch Mai",
-        location: "Hà Nội",
-        date: "Thứ 6, 10/01/2025",
-        time: "10:00",
-        price: "300.000đ",
-        image: "/doctor-portrait-male-2.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Khám sức khỏe tổng quát",
-    },
-    {
-        id: 4,
-        status: "cancelled",
-        doctorName: "BS. Phạm Thị Dung",
-        specialty: "Sản phụ khoa",
-        hospital: "Bệnh viện Phụ sản Hà Nội",
-        location: "Hà Nội",
-        date: "Thứ 3, 14/01/2025",
-        time: "15:00",
-        price: "450.000đ",
-        image: "/doctor-portrait-female-2.jpg",
-        patientName: "Nguyễn Văn A",
-        phone: "0912345678",
-        reason: "Khám thai định kỳ",
-    },
-];
-
-export function AppointmentsContent() {
+export default function AppointmentsContent() {
     const [selectedTab, setSelectedTab] = useState("upcoming");
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
+    // Gọi API lấy danh sách lịch hẹn của bệnh nhân
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                setLoading(true);
+
+                const patientStr = sessionStorage.getItem("patient");
+                if (!patientStr) {
+                    setError("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
+                    return;
+                }
+
+                const patient = JSON.parse(patientStr);
+                console.log("Patient ID:", patient._id);
+
+                const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
+                console.log("API response:", res.data);
+
+                // Lấy mảng thật và chuẩn hóa status
+                const data =
+                    Array.isArray(res.data?.data?.data)
+                        ? res.data.data.data.map((apt) => ({
+                            ...apt,
+                            status: apt.status === "scheduled" ? "upcoming" : apt.status,
+                        }))
+                        : [];
+
+                setAppointments(data);
+            } catch (err) {
+                console.error(err);
+                setError("Không thể tải danh sách lịch hẹn");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAppointments();
+    }, []);
+
+    // Badge trạng thái
     const getStatusBadge = (status) => {
-        const base =
-            "px-2 py-1 text-sm rounded-md flex items-center gap-1 font-medium w-fit";
+        const base = "px-2 py-1 text-sm rounded-md flex items-center gap-1 font-medium w-fit";
         switch (status) {
             case "upcoming":
                 return (
@@ -121,13 +103,27 @@ export function AppointmentsContent() {
         setAppointmentToCancel(null);
     };
 
-    const filteredAppointments = mockAppointments.filter(
+    //  Lọc danh sách theo tab
+    const filteredAppointments = appointments.filter(
         (apt) => apt.status === selectedTab
     );
+
+    if (loading) return <p className="text-center py-10">Đang tải dữ liệu...</p>;
+    if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
     return (
         <div className="bg-gray-50 min-h-screen py-10 px-4">
             <div className="max-w-6xl mx-auto">
+
+                {/* Nút Quay lại */}
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center gap-2 text-blue-600 mb-6 hover:text-blue-800 transition"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                    <span>Quay lại</span>
+                </button>
+
                 <h1 className="text-3xl font-bold mb-2">Lịch hẹn của tôi</h1>
                 <p className="text-gray-600 mb-8">
                     Quản lý và theo dõi các lịch khám của bạn
@@ -140,8 +136,8 @@ export function AppointmentsContent() {
                             key={tab}
                             onClick={() => setSelectedTab(tab)}
                             className={`px-4 py-2 rounded-lg font-medium ${selectedTab === tab
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                 }`}
                         >
                             {tab === "upcoming" && "Sắp tới"}
@@ -193,18 +189,28 @@ export function AppointmentsContent() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
                                         <div className="flex items-center gap-2">
                                             <MapPin className="h-4 w-4 text-blue-600" />
+                                            {[
+                                                appointment.location?.alley,
+                                                appointment.location?.houseNumber,
+                                                appointment.location?.ward?.name,
+                                                appointment.location?.province?.name
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' - ')}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Hospital className="h-4 w-4 text-blue-600" />
                                             {appointment.hospital}
                                         </div>
+
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-blue-600" />
                                             {appointment.date}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
-                                            {appointment.time}
-                                        </div>
-                                        <div className="font-semibold text-blue-600">
-                                            {appointment.price}
+                                            {appointment.time || "?"} - {appointment.end_time || "?"}
                                         </div>
                                     </div>
 
@@ -272,7 +278,7 @@ export function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-blue-600" />
-                                            {selectedAppointment.time}
+                                            {selectedAppointment.time || "?"} - {selectedAppointment.end_time || "?"}
                                         </div>
                                     </div>
                                 </div>
@@ -290,16 +296,9 @@ export function AppointmentsContent() {
                                         </div>
                                         <div className="flex items-start gap-2">
                                             <FileText className="h-4 w-4 text-blue-600" />
-                                            {selectedAppointment.reason}
+                                            <strong>Lý do khám:</strong> {selectedAppointment.reason}
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="pt-2 border-t flex justify-between items-center">
-                                    <span className="font-semibold">Tổng chi phí:</span>
-                                    <span className="text-blue-600 font-bold text-xl">
-                                        {selectedAppointment.price}
-                                    </span>
                                 </div>
                             </div>
                         </div>

@@ -15,7 +15,7 @@ const { authRequired } = require('../../middleware/auth');
  * /api/auth/register:
  *   post:
  *     tags: [Auth]
- *     summary: Register
+ *     summary: Register Patient or Clinic Owner
  *     security: []
  *     requestBody:
  *       required: true
@@ -23,30 +23,68 @@ const { authRequired } = require('../../middleware/auth');
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username, email, password]
+ *             required: [username, email, password, confirmPassword, phone_number, fullName, dob, gender, address]
  *             properties:
  *               username:
  *                 type: string
- *                 example: kem
+ *                 example: "user123"
  *               email:
  *                 type: string
- *                 example: kem@example.com
+ *                 example: "user@example.com"
  *               password:
  *                 type: string
- *                 example: secret123
+ *                 example: "Password123"
+ *               confirmPassword:
+ *                 type: string
+ *                 example: "Password123"
  *               phone_number:
  *                 type: string
- *                 example: "+84901234567"
+ *                 example: "0912345678"
  *               role:
  *                 type: string
- *                 example: PATIENT
+ *                 enum: [PATIENT, ADMIN_CLINIC]
+ *                 default: PATIENT
+ *                 example: "PATIENT"
+ *               fullName:
+ *                 type: string
+ *                 example: "Nguyễn Văn A"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-01"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
+ *               address:
+ *                 type: string
+ *                 example: "123 Đường ABC"
+ *               province_code:
+ *                 type: string
+ *                 example: "48"
+ *               ward_code:
+ *                 type: string
+ *                 example: "154"
  *     responses:
  *       '200':
  *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản."
+ *                 data:
+ *                   type: object
  *       '400':
  *         description: Bad Request
  */
-router.post('/register/patients', ctrl.registerPatients);
+router.post('/register', ctrl.registerPatients);
 
 /**
  * @openapi
