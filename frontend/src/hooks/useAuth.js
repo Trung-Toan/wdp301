@@ -14,23 +14,57 @@ export const AuthProvider = ({ children }) => {
 
     const logout = useCallback(() => {
         sessionStorage.removeItem("access_token");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("patient");
+        sessionStorage.removeItem("account");
         setToken(null);
         setUser(null);
     }, []);
 
     useEffect(() => {
-        if (!token) {
+        // Get token from both possible locations
+        const storedToken = sessionStorage.getItem("access_token") || sessionStorage.getItem("token");
+        const currentToken = token || storedToken;
+
+        if (!currentToken) {
             setUser(null);
             return;
         }
         try {
-            const decoded = jwtDecode(token);
-            setUser({
-                id: decoded.id,
-                name: decoded.name,
-                email: decoded.email,
-                role: decoded.role,
-            });
+            // Get user info from sessionStorage (more complete data)
+            const storedAccount = sessionStorage.getItem("account");
+            const storedUser = sessionStorage.getItem("user");
+            const storedPatient = sessionStorage.getItem("patient");
+
+            if (storedAccount) {
+                const account = JSON.parse(storedAccount);
+                const user = storedUser ? JSON.parse(storedUser) : null;
+                const patient = storedPatient ? JSON.parse(storedPatient) : null;
+                const decoded = jwtDecode(currentToken);
+
+                // Reconstruct complete user object
+                setUser({
+                    id: decoded.sub,
+                    email: account.email || decoded.email,
+                    role: decoded.role,
+                    name: user?.full_name || account.email,
+                    email_verified: decoded.email_verified,
+                    phone_number: account.phone_number,
+                    status: account.status,
+                    _id: account._id,
+                    ...(user && { ...user }),
+                    ...(patient && { patient })
+                });
+            } else {
+                // Fallback: decode from token only
+                const decoded = jwtDecode(currentToken);
+                setUser({
+                    id: decoded.sub,
+                    role: decoded.role,
+                    email_verified: decoded.email_verified
+                });
+            }
         } catch (err) {
             console.error("❌ Invalid token:", err);
             logout();

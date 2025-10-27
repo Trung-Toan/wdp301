@@ -5,22 +5,36 @@ import { useNavigate } from "react-router-dom";
 
 import { setSessionStorage } from "../../hooks/useSessionStorage";
 import { loginByGoogleAccount } from "../../api/auth/login/LoginController";
+import { useAuth } from "../../hooks/useAuth";
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Mutation: gọi API login Google
   const googleLoginMutation = useMutation({
     mutationFn: (idToken) => loginByGoogleAccount(idToken),
     onSuccess: (data) => {
       if (data?.ok) {
-        // Lưu thông tin user & tokens vào sessionStorage
-        setSessionStorage("accessToken", data.tokens.accessToken);
+        const token = data.tokens.accessToken;
+        const account = data.account;
+
+        // Call login function from useAuth to set token in context
+        login(token);
+
+        // Lưu thông tin user & tokens vào sessionStorage (using correct keys)
+        setSessionStorage("token", token);
+        setSessionStorage("account", account);
         setSessionStorage("refreshToken", data.tokens.refreshToken);
-        setSessionStorage("user", data.account);
 
         Swal.fire("Thành công", "Đăng nhập bằng Google thành công!", "success");
-        navigate("/");
+
+        // Navigate based on role
+        if (account.role === "DOCTOR") {
+          navigate("/doctor/dashboard");
+        } else {
+          navigate("/");
+        }
       } else {
         Swal.fire("Lỗi", data?.message || "Đăng nhập thất bại!", "error");
       }

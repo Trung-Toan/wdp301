@@ -7,7 +7,6 @@ import Swal from "sweetalert2";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
-  clearSessionStorage,
   setSessionStorage,
 } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
@@ -26,10 +25,6 @@ const Login = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-
-  useEffect(() => {
-    clearSessionStorage();
-  }, []);
 
   // Gọi API đăng nhập
   const mutation = useMutation({
@@ -67,10 +62,11 @@ const Login = () => {
       }
       login(token);
 
+      // Save all data to sessionStorage
       setSessionStorage("token", token);
+      setSessionStorage("account", account);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
-      setSessionStorage("account", account);
 
 
       Swal.fire({
@@ -82,9 +78,9 @@ const Login = () => {
 
       if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
-      } 
-      else if(account.role === "ADMIN_CLINIC") {
-        
+      }
+      else if (account.role === "ADMIN_CLINIC") {
+
       }
       else {
         navigate(redirectTo, { replace: true });
