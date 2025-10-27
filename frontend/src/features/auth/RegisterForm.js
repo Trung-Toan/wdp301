@@ -17,7 +17,7 @@ export default function RegisterForm() {
     const [wards, setWards] = useState([]);
 
     const [formData, setFormData] = useState({
-        accountType: "patient",
+        accountType: "PATIENT",
         username: "",
         email: "",
         phone: "",
@@ -112,6 +112,9 @@ export default function RegisterForm() {
 
             await registerPatientsApi.register({
                 ...formData,
+                role: formData.accountType, // <-- thêm dòng này
+                province_code: formData.province,
+                ward_code: formData.ward,
                 address: fullAddress,
             });
 
@@ -155,8 +158,8 @@ export default function RegisterForm() {
                                 <input
                                     type="radio"
                                     name="accountType"
-                                    value="patient"
-                                    checked={formData.accountType === "patient"}
+                                    value="PATIENT"
+                                    checked={formData.accountType === "PATIENT"}
                                     onChange={handleChange}
                                 />
                                 <span>Bệnh nhân</span>
@@ -165,8 +168,8 @@ export default function RegisterForm() {
                                 <input
                                     type="radio"
                                     name="accountType"
-                                    value="clinic_owner"
-                                    checked={formData.accountType === "clinic_owner"}
+                                    value="ADMIN_CLINIC"
+                                    checked={formData.accountType === "ADMIN_CLINIC"}
                                     onChange={handleChange}
                                 />
                                 <span>Chủ phòng khám</span>
