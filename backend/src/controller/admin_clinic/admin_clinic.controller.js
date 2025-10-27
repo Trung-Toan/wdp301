@@ -1,6 +1,6 @@
 const {
   createDoctor,
-} = require("../../service/admin_clinic/createDoctor.service");
+} = require("../../service/admin_clinic/adminClinic.service");
 
 exports.createAccountDoctor = async (req, res, next) => {
   try {
