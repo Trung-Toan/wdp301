@@ -9,16 +9,19 @@ import {
   XCircle,
   CheckCircleFill,
   CalendarX,
-  FileEarmarkPlus, // Icon mới: Tạo bệnh án
+  FileEarmarkPlus,
+  PersonBadge,
+  PersonFill,
+  Clipboard2Pulse // Thêm icon tuổi
 } from "react-bootstrap-icons";
-import { Dialog, Transition } from "@headlessui/react"; // Thêm
+import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
 
 import {
   getShifts,
   getAppointments,
   updateAppointmentStatus,
-  createMedicalRecord, // API mới
+  createMedicalRecord,
 } from "../../services/assistantService";
 
 // Helper lấy ngày Local (YYYY-MM-DD)
@@ -27,16 +30,12 @@ const getLocalDate = () => {
   const year = today.getFullYear();
   const month = (today.getMonth() + 1).toString().padStart(2, "0");
   const day = today.getDate().toString().padStart(2, "0");
-
   return "2025-10-27"; // Hardcode cho mock data
 };
 
-// Cấu trúc form bệnh án (dựa trên schema)
+// Cấu trúc form bệnh án
 const initialRecordFormData = {
-  diagnosis: "",
-  symptoms: "", // Dùng string, sẽ split thành array khi lưu
-  notes: "",
-  status: "PRIVATE",
+  diagnosis: "", symptoms: "", notes: "", status: "PRIVATE",
 };
 
 const ApproveAppointment = () => {
@@ -47,14 +46,12 @@ const ApproveAppointment = () => {
   const [selectedShiftId, setSelectedShiftId] = useState(null);
   const doctorId = "DOC001";
 
-  // --- State cho Modal Bệnh Án ---
+  // State cho Modal Bệnh Án
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-  // Lưu lịch hẹn đang được chọn để tạo bệnh án
   const [selectedAptForRecord, setSelectedAptForRecord] = useState(null);
   const [recordFormData, setRecordFormData] = useState(initialRecordFormData);
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // ---------------------------------
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,21 +81,58 @@ const ApproveAppointment = () => {
     fetchData();
   }, [selectedDate, doctorId]);
 
+  // === CẬP NHẬT HÀM NÀY ===
   const handleUpdateStatus = async (appointmentId, newStatus) => {
+    // Tìm appointment gốc để lấy shiftId
+    const targetAppointment = appointments.find(apt => apt._id === appointmentId);
+    if (!targetAppointment) return;
+    const targetShiftId = targetAppointment.shift?._id;
+
     const originalAppointments = [...appointments];
-    setAppointments((prev) =>
-      prev.map((apt) =>
-        apt._id === appointmentId ? { ...apt, status: newStatus } : apt
-      )
+    const originalShifts = [...shifts]; // Lưu lại shifts gốc
+
+    // Optimistic Update cho appointments
+    const updatedAppointments = originalAppointments.map((apt) =>
+      apt._id === appointmentId ? { ...apt, status: newStatus } : apt
     );
+    setAppointments(updatedAppointments);
+
+    // Optimistic Update cho shifts (tính lại count)
+    if (targetShiftId && (newStatus === "APPROVE" || newStatus === "CANCELLED" || newStatus === "NO_SHOW")) {
+      const updatedShifts = originalShifts.map(shift => {
+        if (shift._id === targetShiftId) {
+          // Đếm lại số lượng APPROVE/COMPLETED trong state appointments MỚI
+          const newCount = updatedAppointments.filter(
+            apt => apt.shift?._id === targetShiftId && ["APPROVE", "COMPLETED"].includes(apt.status)
+          ).length;
+          return { ...shift, patientsCount: newCount };
+        }
+        return shift;
+      });
+      setShifts(updatedShifts);
+    }
+
+
     try {
-      await updateAppointmentStatus(appointmentId, newStatus);
+      const response = await updateAppointmentStatus(appointmentId, newStatus);
+
+      if (!response.success) {
+        alert(response.error || "Cập nhật trạng thái thất bại.");
+        // Rollback cả appointments và shifts
+        setAppointments(originalAppointments);
+        setShifts(originalShifts);
+      }
+      // Nếu thành công, không cần làm gì thêm vì UI đã update
+
     } catch (error) {
       console.error("Failed to update status:", error);
+      // Rollback cả appointments và shifts
       setAppointments(originalAppointments);
-      alert("Cập nhật trạng thái thất bại.");
+      setShifts(originalShifts);
+      alert("Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.");
     }
   };
+  // ========================
 
   const getStatusBadge = (status) => {
     const config = {
@@ -132,7 +166,7 @@ const ApproveAppointment = () => {
   // --- Hàm cho Modal Bệnh Án ---
   const openCreateRecordModal = (appointment) => {
     setSelectedAptForRecord(appointment);
-    setRecordFormData(initialRecordFormData); // Reset form
+    setRecordFormData(initialRecordFormData);
     setRecordModalError("");
     setIsRecordModalOpen(true);
   };
@@ -152,23 +186,17 @@ const ApproveAppointment = () => {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
       return;
     }
-
     setIsSubmitting(true);
     setRecordModalError("");
-
     try {
       const payload = {
         ...recordFormData,
-        // Chuyển string triệu chứng thành array
         symptoms: recordFormData.symptoms.split(',').map(s => s.trim()).filter(s => s),
-        // Thêm các ID cần thiết từ schema
         doctor_id: doctorId,
         patient_id: selectedAptForRecord.patient._id,
         appointment_id: selectedAptForRecord._id,
       };
-
       const res = await createMedicalRecord(payload);
-
       if (res.success) {
         alert("Tạo bệnh án thành công!");
         closeRecordModal();
@@ -192,18 +220,13 @@ const ApproveAppointment = () => {
             <Calendar className="text-white" size={32} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Duyệt lịch khám bệnh
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Xem và quản lý các ca khám và bệnh nhân
-            </p>
+            <h1 className="text-3xl font-bold text-gray-800">Duyệt lịch khám bệnh</h1>
+            <p className="text-gray-500 mt-1">Xem và quản lý các ca khám và bệnh nhân</p>
           </div>
         </div>
 
-        {/* Khu vực điều khiển (Date Picker và Shift Tabs) */}
+        {/* Khu vực điều khiển */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          {/* ... (Giữ nguyên code Date Picker và Shift Tabs) ... */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
               <Calendar className="text-gray-400" size={20} />
@@ -222,26 +245,22 @@ const ApproveAppointment = () => {
                   <button
                     key={shift._id}
                     onClick={() => setSelectedShiftId(shift._id)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all
-                       ${selectedShiftId === shift._id
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }
-                     `}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${selectedShiftId === shift._id
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
                   >
                     Ca: {shift.start_time} - {shift.end_time}
                   </button>
                 ))
               ) : (
-                <span className="text-gray-500 text-sm">
-                  Không có ca nào trong ngày này.
-                </span>
+                <span className="text-gray-500 text-sm">Không có ca nào trong ngày này.</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Khu vực nội dung (Danh sách bệnh nhân) */}
+        {/* Khu vực nội dung */}
         {loading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -249,21 +268,19 @@ const ApproveAppointment = () => {
           </div>
         ) : getSelectedShift() ? (
           (() => {
-            const shift = getSelectedShift();
+            const shift = getSelectedShift(); // Lấy shift đang chọn từ state đã cập nhật
             const shiftAppointments = getShiftAppointments(shift._id);
-            const actualPatientsCount = shiftAppointments.length;
+            // Lấy count TỪ SHIFT STATE đã được update
+            const currentApprovedCount = shift.patientsCount || 0;
 
             return (
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                {/* Shift Header */}
+                {/* Shift Header - Hiển thị số lượng đã duyệt/khám */}
                 <div className="bg-blue-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
-                  {/* ... (Giữ nguyên code Shift Header) ... */}
                   <div className="flex items-center gap-4">
-                    <span className="font-bold text-blue-700">
-                      Ca: {shift.start_time} - {shift.end_time}
-                    </span>
+                    <span className="font-bold text-blue-700">Ca: {shift.start_time} - {shift.end_time}</span>
                     <span className="text-gray-600">
-                      Số bệnh nhân: {actualPatientsCount}/{shift.maxPatients}
+                      Số bệnh nhân đã duyệt: {currentApprovedCount}/{shift.maxPatients}
                     </span>
                   </div>
                 </div>
@@ -275,47 +292,85 @@ const ApproveAppointment = () => {
                   ) : (
                     shiftAppointments.map((apt) => {
                       const statusInfo = getStatusBadge(apt.status);
-
                       let badgeColor = "bg-gray-100 text-gray-700";
-                      if (statusInfo.className === "status-scheduled") {
-                        badgeColor = "bg-blue-100 text-blue-700";
-                      } else if (statusInfo.className === "status-approved") {
-                        badgeColor = "bg-green-100 text-green-700";
-                      } else if (statusInfo.className === "status-completed") {
-                        badgeColor = "bg-indigo-100 text-indigo-700";
-                      } else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show") {
-                        badgeColor = "bg-red-100 text-red-700";
-                      }
+                      // ... (logic badgeColor giữ nguyên) ...
+                      if (statusInfo.className === "status-scheduled") badgeColor = "bg-blue-100 text-blue-700";
+                      else if (statusInfo.className === "status-approved") badgeColor = "bg-green-100 text-green-700";
+                      else if (statusInfo.className === "status-completed") badgeColor = "bg-indigo-100 text-indigo-700";
+                      else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show") badgeColor = "bg-red-100 text-red-700";
+
 
                       return (
-                        <div
-                          key={apt._id}
-                          className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm"
-                        >
+                        <div key={apt._id} className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm">
                           <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                            {/* ... (Giữ nguyên code thông tin Patient) ... */}
                             <Person className="text-blue-600" size={20} />
                             <div>
-                              <p className="font-semibold">
-                                {apt.patient?.name || "Bệnh nhân ẩn"}
-                              </p>
+                              <p className="font-semibold">{apt.patient?.name || "Bệnh nhân ẩn"}</p>
                               <p className="text-gray-500 text-sm">
                                 <Telephone className="inline mr-1" />
                                 {apt.patient?.phone || "Không rõ"}
                               </p>
+                              {/* === THÊM TUỔI === */}
+                              <p className="text-gray-500 text-sm mt-1">
+                                <PersonBadge className="inline mr-1" />
+                                Tuổi: {apt.patient?.age || "N/A"}
+                              </p>
+                              {/* ================ */}
+                              {/* === ADDED REASON FOR VISIT === */}
+                              <p className="text-gray-500 text-sm mt-1">
+                                <Clipboard2Pulse className="inline mr-1" />
+                                Lý do: {apt.reason || "Không rõ"}
+                              </p>
+                              {/* ============================= */}
                             </div>
                           </div>
-
-                          {/* === THÊM NÚT "TẠO BỆNH ÁN" === */}
                           <div className="flex items-center gap-2">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}
-                            >
-                              {statusInfo.label}
-                            </span>
-
-                            {/* 1. Nếu CHỜ DUYỆT (SCHEDULED) */}
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}>{statusInfo.label}</span>
                             {apt.status === "SCHEDULED" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(apt._id, "APPROVE")
+                                  }
+                                  className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                                  title="Duyệt"
+                                >
+                                  <CheckCircle size={16} />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(apt._id, "CANCELLED")
+                                  }
+                                  className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                                  title="Hủy"
+                                >
+                                  <XCircle size={16} />
+                                </button>
+                              </>
+                            )}
+                            {apt.status === "APPROVE" && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(apt._id, "COMPLETED")
+                                  }
+                                  className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+                                  title="Đã khám xong"
+                                >
+                                  <CheckCircleFill size={16} />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(apt._id, "NO_SHOW")
+                                  }
+                                  className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
+                                  title="Vắng mặt"
+                                >
+                                  <CalendarX size={16} />
+                                </button>
+                              </>
+                            )}
+                            {/* {apt.status === "SCHEDULED" && (
                               <>
                                 <button
                                   onClick={() => handleUpdateStatus(apt._id, "APPROVE")}
@@ -332,12 +387,9 @@ const ApproveAppointment = () => {
                                   <XCircle size={16} />
                                 </button>
                               </>
-                            )}
-
-                            {/* 2. Nếu ĐÃ DUYỆT (APPROVE) */}
-                            {apt.status === "APPROVE" && (
-                              <>
-                                {/* NÚT MỚI: TẠO BỆNH ÁN */}
+                            )} */}
+                            {/* {apt.status === "APPROVE" && (
+                              <div>
                                 <button
                                   onClick={() => openCreateRecordModal(apt)}
                                   className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
@@ -359,11 +411,9 @@ const ApproveAppointment = () => {
                                 >
                                   <CalendarX size={16} />
                                 </button>
-                              </>
-                            )}
-                            {/* (Các trạng thái khác không có nút) */}
+                              </div>
+                            )} */}
                           </div>
-                          {/* =============================== */}
                         </div>
                       );
                     })
@@ -374,19 +424,15 @@ const ApproveAppointment = () => {
           })()
         ) : (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
-            {/* ... (Giữ nguyên code "Không có ca khám") ... */}
-            <p className="text-xl font-semibold text-gray-700 mb-2">
-              Không có ca khám nào
-            </p>
-            <p className="text-gray-500">
-              Hãy thử chọn ngày khác hoặc tạo ca mới
-            </p>
+            <p className="text-xl font-semibold text-gray-700 mb-2">Không có ca khám nào</p>
+            <p className="text-gray-500">Hãy thử chọn ngày khác hoặc tạo ca mới</p>
           </div>
         )}
       </div>
 
-      {/* === MODAL TẠO BỆNH ÁN MỚI === */}
+      {/* MODAL TẠO BỆNH ÁN */}
       <Transition appear show={isRecordModalOpen} as={Fragment}>
+        {/* ... (Code Modal giữ nguyên) ... */}
         <Dialog as="div" className="relative z-10" onClose={closeRecordModal}>
           <Transition.Child
             as={Fragment}
@@ -511,7 +557,6 @@ const ApproveAppointment = () => {
           </div>
         </Dialog>
       </Transition>
-      {/* =========================== */}
     </div>
   );
 };
