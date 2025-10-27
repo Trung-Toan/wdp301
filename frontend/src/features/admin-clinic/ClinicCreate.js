@@ -1,11 +1,10 @@
 import { memo, useState, useEffect } from "react";
 import { Plus, X, MapPin, Clock, FileText } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
-import { sampleClinics } from "../../data/mockData";
 
 const ClinicCreation = () => {
   const [showModal, setShowModal] = useState(false);
-  const [clinics, setClinics] = useState(sampleClinics);
+  const [clinics, setClinics] = useState([]);
   const [specialties, setSpecialties] = useState([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   const [filteredSpecialties, setFilteredSpecialties] = useState([]);
@@ -139,11 +138,6 @@ const ClinicCreation = () => {
           >
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
               <h3 className="text-lg font-bold">{clinic.name}</h3>
-              <p className="text-sm text-blue-100 mt-1">
-                {clinic.clinic_type === "SINGLE_DOCTOR"
-                  ? "1 bác sĩ"
-                  : "Nhiều bác sĩ"}
-              </p>
             </div>
 
             <div className="p-4 space-y-3">
@@ -154,10 +148,10 @@ const ClinicCreation = () => {
                 />
                 <div className="text-sm">
                   <p className="text-gray-900 font-semibold">
-                    {clinic.address.fullAddress}
+                    {clinic.address?.houseNumber} {clinic.address?.street}
                   </p>
                   <p className="text-gray-600 text-xs mt-1">
-                    {clinic.address.province.name}
+                    {clinic.address?.province?.name}
                   </p>
                 </div>
               </div>
