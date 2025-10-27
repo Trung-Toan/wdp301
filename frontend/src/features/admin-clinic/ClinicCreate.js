@@ -138,6 +138,22 @@ const ClinicCreation = () => {
           >
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
               <h3 className="text-lg font-bold">{clinic.name}</h3>
+              {/* Hiển thị trạng thái */}
+              {clinic.status === "PENDING" && (
+                <p className="text-sm text-yellow-200 mt-1 italic">
+                  Phòng khám đang chờ duyệt
+                </p>
+              )}
+              {clinic.status === "REJECTED" && (
+                <p className="text-sm text-red-200 mt-1 italic">
+                  Phòng khám bị từ chối
+                </p>
+              )}
+              {clinic.status === "APPROVED" && (
+                <p className="text-sm text-green-200 mt-1 italic">
+                  Phòng khám đã được duyệt
+                </p>
+              )}
             </div>
 
             <div className="p-4 space-y-3">
@@ -192,14 +208,17 @@ const ClinicCreation = () => {
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-3">
-                <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-600 rounded font-semibold text-sm hover:bg-blue-200 transition-colors">
-                  Chỉnh sửa
-                </button>
-                <button className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded font-semibold text-sm hover:bg-red-200 transition-colors">
-                  Xóa
-                </button>
-              </div>
+              {/* Nếu PENDING thì không hiển thị nút */}
+              {clinic.status !== "PENDING" && (
+                <div className="flex gap-2 pt-3">
+                  <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-600 rounded font-semibold text-sm hover:bg-blue-200 transition-colors">
+                    Chỉnh sửa
+                  </button>
+                  <button className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded font-semibold text-sm hover:bg-red-200 transition-colors">
+                    Xóa
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
