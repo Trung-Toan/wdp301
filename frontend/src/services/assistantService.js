@@ -38,13 +38,15 @@ let mockShifts = [
 
 // --- PATIENT MOCK DATA ---
 let mockPatients = [
-  { _id: "PAT001", name: "Nguyen Van A", age: 30, phone: "0901234567" },
-  { _id: "PAT002", name: "Tran Thi B", age: 25, phone: "0912345678" },
-  { _id: "PAT003", name: "Le Van C", age: 40, phone: "0923456789" },
-  { _id: "PAT004", name: "Pham Thi D", age: 55, phone: "0934567890" },
-  { _id: "PAT005", name: "Hoang Van E", age: 28, phone: "0945678901" },
-  { _id: "PAT006", name: "Do Thi F", age: 33, phone: "0956789012" }, // 6th patient
-  { _id: "PAT007", name: "Vu Van G", age: 48, phone: "0967890123" }, // 7th patient
+  { _id: "PAT001", name: "Nguyen Van A", age: 30, gender: "Nam", phone: "0901234567", lastVisit: "2025-10-20", diagnosis: "Viêm họng cấp" },
+  { _id: "PAT002", name: "Tran Thi B", age: 25, gender: "Nữ", phone: "0912345678", lastVisit: "2025-10-22", diagnosis: "Rối loạn tiêu hóa" },
+  { _id: "PAT003", name: "Le Van C", age: 40, gender: "Nam", phone: "0923456789", lastVisit: "2025-10-27", diagnosis: "Đã khám xong" },
+  { _id: "PAT004", name: "Pham Thi D", age: 55, gender: "Nữ", phone: "0934567890", lastVisit: "2025-10-27", diagnosis: "Kiểm tra định kỳ" },
+  { _id: "PAT005", name: "Hoang Van E", age: 28, gender: "Nam", phone: "0945678901", lastVisit: "2025-10-27", diagnosis: "Tư vấn sức khỏe" },
+  { _id: "PAT006", name: "Do Thi F", age: 33, gender: "Nữ", phone: "0956789012", lastVisit: "2025-10-27", diagnosis: "Đau bụng" },
+  { _id: "PAT007", name: "Vu Van G", age: 48, gender: "Nam", phone: "0967890123", lastVisit: "2025-10-27", diagnosis: "Đau bụng" },
+  { _id: "PAT008", name: "Trinh Van H", age: 62, gender: "Nam", phone: "0978901234", lastVisit: "2025-10-27", diagnosis: "Đau bụng" },
+  { _id: "PAT009", name: "Dang Thi I", age: 19, gender: "Nữ", phone: "0989012345", lastVisit: "2025-10-27", diagnosis: "Đau bụng" },
 ];
 
 // --- APPOINTMENT MOCK DATA ---

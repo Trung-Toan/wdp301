@@ -348,28 +348,33 @@ const ApproveAppointment = () => {
                                 </button>
                               </>
                             )}
+                            {/* === THAY ĐỔI Ở ĐÂY === */}
                             {apt.status === "APPROVE" && (
-                              <>
+                              <> {/* <- Đổi <div> thành Fragment */}
                                 <button
-                                  onClick={() =>
-                                    handleUpdateStatus(apt._id, "COMPLETED")
-                                  }
+                                  onClick={() => openCreateRecordModal(apt)}
+                                  className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                                  title="Tạo bệnh án"
+                                >
+                                  <FileEarmarkPlus size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateStatus(apt._id, "COMPLETED")}
                                   className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
                                   title="Đã khám xong"
                                 >
                                   <CheckCircleFill size={16} />
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleUpdateStatus(apt._id, "NO_SHOW")
-                                  }
+                                  onClick={() => handleUpdateStatus(apt._id, "NO_SHOW")}
                                   className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
                                   title="Vắng mặt"
                                 >
                                   <CalendarX size={16} />
                                 </button>
-                              </>
+                              </> /* <- Đổi </div> thành Fragment */
                             )}
+                            {/* ===================== */}
                             {/* {apt.status === "SCHEDULED" && (
                               <>
                                 <button
@@ -509,20 +514,21 @@ const ApproveAppointment = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
+                    {/* === THAY ĐỔI BẮT ĐẦU TỪ ĐÂY === */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Quyền riêng tư
+                        Đơn thuốc
                       </label>
-                      <select
-                        name="status"
-                        value={recordFormData.status}
+                      <textarea
+                        name="prescription"
+                        rows={4}
+                        value={recordFormData.prescription}
                         onChange={handleRecordFormChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="PRIVATE">Riêng tư (Mặc định)</option>
-                        <option value="PUBLIC">Công khai</option>
-                      </select>
+                        placeholder="Vd: Paracetamol 500mg (2 viên/ngày, sau ăn) trong 3 ngày..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      />
                     </div>
+                    {/* ================================ */}
                   </div>
 
                   {recordModalError && (
