@@ -206,9 +206,23 @@ exports.login = async ({ email, password, ip, user_agent }) => {
         .select("full_name avatar_url dob gender address")
         .lean();
 
+    console.log("🔍 LOGIN DEBUG - user found:", user);
+
     // Nếu là bệnh nhân, lấy thêm thông tin patient
     if (acc.role === "PATIENT" && user) {
+        console.log("🔍 LOGIN DEBUG - searching for patient with user_id:", user._id);
+        console.log("🔍 LOGIN DEBUG - user._id type:", typeof user._id);
+        console.log("🔍 LOGIN DEBUG - user._id:", user._id);
+
+        // Thử tìm patient
         patient = await Patient.findOne({ user_id: user._id }).lean();
+        console.log("🔍 LOGIN DEBUG - patient found:", patient);
+
+        // Nếu không tìm thấy, thử tìm tất cả patients
+        if (!patient) {
+            const allPatients = await Patient.find({}).lean();
+            console.log("🔍 LOGIN DEBUG - all patients in DB:", allPatients);
+        }
     }
 
     return {

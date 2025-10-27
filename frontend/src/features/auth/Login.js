@@ -44,11 +44,16 @@ const Login = () => {
 
       const token = response.tokens?.accessToken;
       const account = response.account;
-      console.log("Account RESPONSE:", account);
       const patient = response.patient;
-      console.log("PATIENT FROM LOGIN:", patient);
       const user = response.user;
-      console.log("USER FROM LOGIN:", user);
+
+      console.log("🔍 LOGIN RESPONSE:", {
+        account,
+        user,
+        patient,
+        "patient._id": patient?._id,
+        "patient.id": patient?.id
+      });
 
       if (!token || !account) {
         Swal.fire({
@@ -60,11 +65,19 @@ const Login = () => {
         });
         return;
       }
+
       // Save all data to sessionStorage FIRST
       setSessionStorage("token", token);
       setSessionStorage("account", account);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
+
+      console.log("✅ Saved to sessionStorage:", {
+        hasAccount: !!account,
+        hasUser: !!user,
+        hasPatient: !!patient,
+        patientId: patient?._id || patient?.id
+      });
 
       // Then call login to update auth context
       login(token);

@@ -22,13 +22,17 @@ export default function Header() {
   const { logout } = useAuth();
   const onLogout = async () => {
     try {
-      await logoutApi.logout(); // gọi API logout
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      await logoutApi.logout(refreshToken); // gọi API logout với refreshToken
       logout();
       localStorage.removeItem("token"); // xóa token (nếu bạn lưu token ở đây)
       localStorage.removeItem("user");  // xóa thông tin người dùng (nếu có)
       navigate("/login"); // điều hướng về trang đăng nhập
     } catch (error) {
       console.error("Đăng xuất thất bại:", error);
+      // Vẫn logout local nếu API thất bại
+      logout();
+      navigate("/login");
     }
   };
 

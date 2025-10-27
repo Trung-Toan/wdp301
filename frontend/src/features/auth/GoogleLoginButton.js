@@ -18,12 +18,30 @@ const GoogleLoginButton = () => {
       if (data?.ok) {
         const token = data.tokens.accessToken;
         const account = data.account;
+        const user = data.user;
+        const patient = data.patient;
+
+        console.log("🔍 GOOGLE LOGIN RESPONSE:", {
+          account,
+          user,
+          patient,
+          "patient._id": patient?._id,
+          "patient.id": patient?.id
+        });
 
         // Lưu thông tin user & tokens vào sessionStorage (using correct keys)
         setSessionStorage("token", token);
         setSessionStorage("account", account);
         setSessionStorage("refreshToken", data.tokens.refreshToken);
-        setSessionStorage("user", account); // Set user for Header
+        setSessionStorage("user", user); // Set user for Header
+        setSessionStorage("patient", patient); // Set patient for booking
+
+        console.log("✅ Saved to sessionStorage:", {
+          hasAccount: !!account,
+          hasUser: !!user,
+          hasPatient: !!patient,
+          patientId: patient?._id || patient?.id
+        });
 
         // Then call login to update auth context
         login(token);

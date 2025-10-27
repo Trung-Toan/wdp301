@@ -28,7 +28,7 @@ exports.googleLogin = async (req, res) => {
             name: profile.name
         });
 
-        const { account, tokens } = await loginWithGoogle({
+        const { account, user, patient, tokens } = await loginWithGoogle({
             googleProfile: profile,
             ua: req.headers['user-agent'] || '',
             ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
@@ -38,6 +38,8 @@ exports.googleLogin = async (req, res) => {
         res.json({
             ok: true,
             account: { id: account._id, email: account.email, role: account.role, email_verified: account.email_verified },
+            user,
+            patient,
             tokens,
         });
     } catch (e) {
