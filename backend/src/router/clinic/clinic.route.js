@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { getClinicsByFilters } = require("../../controller/clinic/filterClinic.controller");
 const { searchDoctorController } = require("../../controller/doctor/searchDoctors.controller");
 const ctrl = require("../../controller/clinic/specialty.controller");
+const clinicCtrl = require("../../controller/clinic/clinic.controller");
 const statisticsCtrl = require("../../controller/clinic/statistics.controller");
 
 
@@ -25,6 +26,8 @@ const statisticsCtrl = require("../../controller/clinic/statistics.controller");
  *         description: OK
  */
 router.get("/specialties", ctrl.getAllSpecialties);
+
+router.get("/specialties/:specialtyId", ctrl.getSpecialtyById)
 
 /**
  * @swagger
@@ -177,8 +180,6 @@ router.get("/:clinicId/statistics/specialties/top", statisticsCtrl.getTopSpecial
  */
 router.get("/:clinicId/statistics/specialties/:specialtyId", statisticsCtrl.getSpecialtyDetails);
 
-
-
 /**
  * @swagger
  * /api/clinic/{clinicId}/statistics/doctors/performance:
@@ -244,6 +245,6 @@ router.get("/:clinicId/statistics/doctors/performance", statisticsCtrl.getDoctor
  */
 router.get("/:clinicId/statistics/doctors/:doctorId", statisticsCtrl.getDoctorDetailedPerformance);
 
-
+router.get("/allClinic", clinicCtrl.getAllClinic);
 
 module.exports = router;

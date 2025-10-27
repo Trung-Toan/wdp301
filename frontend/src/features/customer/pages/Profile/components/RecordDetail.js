@@ -1,12 +1,11 @@
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
 import AccessRequests from "./RecordsTab/AccessRequests";
 import Notes from "./RecordsTab/Notes";
 import Prescriptions from "./RecordsTab/Prescriptions";
+import Button from "../../../../../components/ui/Button";
 
-export default function RecordDetail() {
-    const { recordId } = useParams();
+export default function RecordDetail({ recordId, onBack }) {
     const [record, setRecord] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -28,7 +27,10 @@ export default function RecordDetail() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold mb-4">Chi tiết hồ sơ bệnh án</h2>
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Chi tiết hồ sơ bệnh án</h2>
+                <Button variant="outline" onClick={onBack}>← Quay lại</Button>
+            </div>
 
             <div className="bg-gray-100 p-4 rounded-lg shadow">
                 <p><strong>Chẩn đoán:</strong> {record.diagnosis}</p>
@@ -36,10 +38,9 @@ export default function RecordDetail() {
                 <p><strong>Ngày tạo:</strong> {new Date(record.createdAt).toLocaleString()}</p>
             </div>
 
-            {/* Các tab con tái sử dụng */}
-            <AccessRequests records={[record]} />
             <Notes records={[record]} />
             <Prescriptions records={[record]} />
+            <AccessRequests records={[record]} />
         </div>
     );
 }

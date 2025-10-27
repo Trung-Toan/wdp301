@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
   clearSessionStorage,
@@ -14,10 +14,14 @@ import GoogleLoginButton from "./GoogleLoginButton";
 
 import "../../styles/Login.css";
 import { loginUser } from "../../api/auth/login/LoginController";
+import { useAuth } from "../../hooks/useAuth";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from || "/home";
+  const { login } = useAuth();
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -42,26 +46,32 @@ const Login = () => {
         return;
       }
 
-      console.log("LOGIN RESPONSE:", response);
+
       const token = response.tokens?.accessToken;
-      const user = response.account;
+      const account = response.account;
+      console.log("Account RESPONSE:", account);
       const patient = response.patient;
       console.log("PATIENT FROM LOGIN:", patient);
-      
-      if (!token || !user) {
+      const user = response.user;
+      console.log("USER FROM LOGIN:", user);
+
+      if (!token || !account) {
         Swal.fire({
           icon: "error",
           title: "Lỗi dữ liệu đăng nhập",
-          text: "Token hoặc user không tồn tại.",
+          text: "Token hoặc account không tồn tại.",
           timer: 3000,
           showConfirmButton: true,
         });
         return;
       }
+      login(token);
 
       setSessionStorage("token", token);
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
+      setSessionStorage("account", account);
+
 
       Swal.fire({
         icon: "success",
@@ -70,10 +80,14 @@ const Login = () => {
         showConfirmButton: false,
       });
 
-      if (user.role === "DOCTOR") {
+      if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
-      } else {
-        navigate("/home");
+      } 
+      else if(account.role === "ADMIN_CLINIC") {
+        
+      }
+      else {
+        navigate(redirectTo, { replace: true });
       }
     },
 
@@ -217,7 +231,7 @@ const Login = () => {
           </Link>
           <br />
           Quên mật khẩu?{" "}
-          <Link to="/find_email" className="text-primary fw-semibold">
+          <Link to="/forgot_password" className="text-primary fw-semibold">
             Khôi phục tài khoản
           </Link>
         </p>

@@ -136,7 +136,7 @@ router.get("/by-specialty", getDoctorsBySpecialty);
 //  *       200:
 //  *         description: Danh sách bác sĩ nổi bật
 //  */
-// router.get("/top", getTopDoctorsController);
+ router.get("/top", getTopDoctorsController);
 
 /**
  * @openapi

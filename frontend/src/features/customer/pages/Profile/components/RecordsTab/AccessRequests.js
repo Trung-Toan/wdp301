@@ -4,27 +4,45 @@ import { medicalRecordPatientApi } from "../../../../../../api/patients/medicalR
 import Button from "../../../../../../components/ui/Button";
 
 export default function AccessRequests({ records }) {
-    // flatten tất cả access requests
-    const initialRequests = records.flatMap(r =>
-        (r.access_requests || []).map(req => ({
-            ...req,
-            recordId: r._id, // lưu recordId để call API
-            // tạm thời giả lập tên, chuyên khoa, cơ sở y tế nếu backend chưa có
-            doctorName: `Bác sĩ ${req.doctor_id}`,
-            specialty: "Chuyên khoa chưa có",
-            facility: "Cơ sở chưa có",
-            avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70) + 1}`,
-        }))
-    );
+    // Luôn khai báo hook ở đầu component
+    const [requests, setRequests] = useState(() => {
+        if (!records || records.length === 0) return [];
+        // flatten tất cả access requests
+        return records.flatMap(r =>
+            (r.access_requests || []).map(req => {
+                const doctor = r.doctor_id || {};
+                const user = doctor.user_id || {};
+                const specialty = doctor.specialty_id?.[0];
+                const clinic = doctor.clinic_id;
 
-    const [requests, setRequests] = useState(initialRequests);
+                // Ghép địa chỉ hiển thị đẹp
+                const addressParts = [
+                    clinic?.address?.houseNumber,
+                    clinic?.address?.ward?.name,
+                    clinic?.address?.province?.name
+                ].filter(Boolean);
+                const address = addressParts.join(", ");
 
-    if (requests.length === 0) return null;
+                return {
+                    ...req,
+                    recordId: r._id,
+                    doctorName: user.full_name || "Chưa rõ bác sĩ",
+                    avatar: user.avatar_url || `https://i.pravatar.cc/150?u=${user._id}`,
+                    specialty: specialty?.name || "Chưa rõ chuyên khoa",
+                    facility: clinic?.name || "Chưa rõ cơ sở",
+                    address: address || "Chưa có địa chỉ",
+                };
+            })
+        );
+    });
+
+    // Nếu không có dữ liệu, không render gì cả
+    if (!requests || requests.length === 0) return null;
 
     const handleAction = (recordId, requestId, action) => {
         medicalRecordPatientApi
             .updateAccessRequest(recordId, requestId, action)
-            .then(res => {
+            .then(() => {
                 setRequests(prev =>
                     prev.map(r =>
                         r._id === requestId
@@ -64,6 +82,7 @@ export default function AccessRequests({ records }) {
                                         <p className="font-semibold text-lg">{req.doctorName}</p>
                                         <p className="text-sm text-muted-foreground">{req.specialty}</p>
                                         <p className="text-sm text-muted-foreground">{req.facility}</p>
+                                        <p className="text-xs text-gray-500">{req.address}</p>
                                     </div>
 
                                     <div className="flex items-center gap-2">

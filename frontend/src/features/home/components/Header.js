@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Calendar, Menu } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
@@ -10,16 +10,18 @@ import {
 } from "react-bootstrap-icons";
 import NotificationDropdown from "./NotificationDropdown";
 import { logoutApi } from "../../../api/auth/logout/LogoutApt";
+import { useAuth } from "../../../hooks/useAuth";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useSessionStorage("user");
   const navigate = useNavigate();
-
-
+  console.log("information: ", user);
+  const { logout } = useAuth();
   const onLogout = async () => {
     try {
       await logoutApi.logout(); // gọi API logout
+      logout();
       localStorage.removeItem("token"); // xóa token (nếu bạn lưu token ở đây)
       localStorage.removeItem("user");  // xóa thông tin người dùng (nếu có)
       navigate("/login"); // điều hướng về trang đăng nhập
@@ -82,7 +84,7 @@ export default function Header() {
               >
                 <PersonCircle size={22} />
                 <span className="hidden sm:block font-medium">
-                  {user?.username || "User"}
+                  {user?.full_name || "User"}
                 </span>
               </Dropdown.Toggle>
 
@@ -94,15 +96,23 @@ export default function Header() {
                 }}
               >
                 <Dropdown.Header className="text-center text-gray-700">
-                  Xin chào, <span className="font-semibold">{user?.username}</span> 👋
+                  Xin chào, <span className="font-semibold">{user?.full_name}</span> 👋
                 </Dropdown.Header>
                 <Dropdown.Divider />
                 <Dropdown.Item
                   as={Link}
-                  to="/home/profile"
+                  to="/patient/profile"
                   className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
                 >
                   <InfoCircle /> Thông tin cá nhân
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item
+                  as={Link}
+                  to="/patient/appointment"
+                  className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
+                >
+                  <Calendar /> Lịch hẹn
                 </Dropdown.Item>
                 <Dropdown.Divider />
                 <Dropdown.Item

@@ -25,8 +25,7 @@ exports.listMyRecords = async (req, res) => {
             return res.status(404).json({ success: false, error: "Patient not found for current account" });
         }
 
-        const { page = 1, limit = 20 } = req.query;
-
+        const { page = 1, limit = 5 } = req.query;
         const skip = (Number(page) - 1) * Number(limit);
 
         const [rawItems, total] = await Promise.all([
@@ -36,8 +35,21 @@ exports.listMyRecords = async (req, res) => {
                 .limit(Number(limit))
                 .populate({
                     path: "doctor_id",
-                    select: "full_name user_id",
-                    populate: { path: "user_id", select: "full_name" },
+                    select: "title degree specialty_id user_id clinic_id",
+                    populate: [
+                        {
+                            path: "user_id",
+                            select: "full_name avatar_url"
+                        },
+                        {
+                            path: "specialty_id",
+                            select: "name description"
+                        },
+                        {
+                            path: "clinic_id",
+                            select: "name address phone"
+                        }
+                    ]
                 })
                 .lean(),
             MedicalRecord.countDocuments({ patient_id: patientId }),
@@ -45,7 +57,9 @@ exports.listMyRecords = async (req, res) => {
 
         const items = rawItems.map(r => ({
             ...r,
-            doctor_name: pickDoctorName(r.doctor_id),
+            doctor_name: r.doctor_id?.user_id?.full_name || "Chưa xác định",
+            specialties: r.doctor_id?.specialty_id?.map(s => s.name) || [],
+            clinic_name: r.doctor_id?.clinic_id?.name || "Chưa có cơ sở",
         }));
 
         return res.status(200).json({
@@ -67,11 +81,29 @@ exports.getRecordDetail = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const rec = await MedicalRecord.findById(id).lean();
+        const rec = await MedicalRecord.findById(id)
+            .populate({
+                path: "doctor_id",
+                select: "title degree specialty_id user_id clinic_id",
+                populate: [
+                    { path: "user_id", select: "full_name avatar_url" },
+                    { path: "specialty_id", select: "name description" },
+                    { path: "clinic_id", select: "name address phone" }
+                ]
+            })
+            .lean();
 
         if (!rec) return fail(res, new Error("Record not found"), 404);
-        return ok(res, rec);
-    } catch (err) { return fail(res, err); }
+
+        return ok(res, {
+            ...rec,
+            doctor_name: rec.doctor_id?.user_id?.full_name || "Chưa xác định",
+            specialties: rec.doctor_id?.specialty_id?.map(s => s.name) || [],
+            clinic_name: rec.doctor_id?.clinic_id?.name || "Chưa có cơ sở",
+        });
+    } catch (err) {
+        return fail(res, err);
+    }
 };
 
 exports.requestAccess = async (req, res) => {

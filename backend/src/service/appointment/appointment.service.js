@@ -115,7 +115,6 @@ exports.getListAppointments = async (req) => {
     date = new Date(),
   } = req.query;
 
-  const slotNow = await slotService.getSlotById(slot);
 
   // Ép kiểu số nguyên
   const currentPage = parseInt(page, 10);

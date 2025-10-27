@@ -5,9 +5,13 @@ export const doctorApi = {
   getDoctorTop: (limit) =>
     axiosInstance.get("/doctor/top", { params: { limit } }),
 
+  // Lấy bác sĩ top gần đây (nếu không truyền limit -> lấy tất cả)
+  getDoctorTopNearMe: (limit) =>
+    axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
+
   // Lấy bác sĩ theo chuyên khoa
-  getBySpecialty: (specialtyId) =>
-    axiosInstance.get("/doctor/by-specialty", { params: { specialtyId } }),
+  getDoctorBySpecialty: (specialtyId, params = {}) =>
+    axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params } }),
 
   //lay danh sach benh nhan
   getAllPatient: (page, limit, search) => {
@@ -22,7 +26,7 @@ export const doctorApi = {
 
   //Lấy danh sách lịch hẹn
   getAppointments: (params) =>
-  axiosInstance.get("/doctor/appointments", { params }),
+    axiosInstance.get("/doctor/appointments", { params }),
 
   //Lấy chi tiết lịch hẹn
   getAppointmentById: (appointmentId) =>
@@ -68,7 +72,7 @@ export const doctorApi = {
     axiosInstance.delete(`/doctor/assistants/${assistantId}`),
 
   // Lấy bác sĩ theo ID
-  getById: (id) =>
+  getDoctorById: (id) =>
     axiosInstance.get(`/doctor/${id}`),
 };
 

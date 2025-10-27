@@ -28,8 +28,13 @@ export function BookingContent() {
     const [provinces, setProvinces] = useState([]);
     const [wards, setWards] = useState([]);
 
+    const [storedAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
+    console.log("storedAccount:", storedAccount)
     const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
+    console.log("storedUser:", storedUser);
     const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "{}"));
+    console.log("storedPatient:", storedPatient);
+
 
 
     // Load danh sách tỉnh
@@ -66,17 +71,27 @@ export function BookingContent() {
 
     // Gán dữ liệu user vào form
     useEffect(() => {
-        if (storedUser) {
+        if (storedUser || storedAccount) {
+            // Chuyển định dạng ngày nếu có
+            let dobFormatted = "";
+            if (storedUser?.dob) {
+                const date = new Date(storedUser.dob);
+                // Format thành yyyy-MM-dd
+                dobFormatted = date.toISOString().split("T")[0];
+            }
+
             setFormData(prev => ({
                 ...prev,
-                fullName: storedUser.username || "",
-                phone: storedUser.phone_number || "",
-                email: storedUser.email || "",
-                dateOfBirth: storedUser.dateOfBirth || "",
-                gender: storedUser.gender || "male",
+                fullName: storedUser.full_name || "",
+                phone: storedAccount.phone_number || "",
+                email: storedAccount.email || "",
+                dateOfBirth: dobFormatted,
+                gender: storedUser.gender || "Nam",
+                address: storedUser.address || "",
             }));
         }
-    }, [storedUser]);
+    }, [storedUser, storedAccount]);
+
     console.log("formData:", formData);
 
 
@@ -92,17 +107,24 @@ export function BookingContent() {
         if (!formData.ward) return alert("Vui lòng chọn Phường/Xã");
 
         try {
+            const genderMap = {
+                "Nam": "MALE",
+                "Nữ": "FEMALE",
+                "Khác": "OTHER"
+            };
+            const apiGender = genderMap[formData.gender] || formData.gender.toUpperCase();
+
             const payload = {
                 slot_id: selectedSlot.id,
                 doctor_id: doctorId,
-                patient_id: storedPatient._id, // Dùng patient._id thay vì user._id
+                patient_id: storedPatient._id,
                 specialty_id: selectedSlot.specialtyId?.id || selectedSlot.specialtyId,
                 clinic_id: selectedSlot.clinicId,
                 full_name: formData.fullName,
                 phone: formData.phone,
                 email: formData.email,
                 dob: formData.dateOfBirth,
-                gender: formData.gender.toUpperCase(),
+                gender: apiGender,
                 province_code: formData.province,
                 ward_code: formData.ward,
                 address_text: formData.address,
@@ -216,7 +238,7 @@ export function BookingContent() {
                                 <div>
                                     <label className="block mb-2 font-medium">Giới tính <span className="text-red-500">*</span></label>
                                     <div className="flex gap-6">
-                                        {["male", "female", "other"].map(g => (
+                                        {["Nam", "Nữ", "Khác"].map(g => (
                                             <label key={g} className="flex items-center gap-2">
                                                 <input
                                                     type="radio"
@@ -224,7 +246,7 @@ export function BookingContent() {
                                                     checked={formData.gender === g}
                                                     onChange={e => handleChange("gender", e.target.value)}
                                                 />
-                                                {g === "male" ? "Nam" : g === "female" ? "Nữ" : "Khác"}
+                                                {g === "Nam" ? "Nam" : g === "Nữ" ? "Nữ" : "Khác"}
                                             </label>
                                         ))}
                                     </div>

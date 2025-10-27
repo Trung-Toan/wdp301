@@ -10,14 +10,24 @@ const userSchema = new Schema(
     avatar_url: { type: String },
     account_id: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
     // Settings
-    notify_upcoming: { type: Boolean,  },
-    notify_results: { type: Boolean,  },
+    notify_upcoming: { type: Boolean, },
+    notify_results: { type: Boolean, },
     notify_marketing: { type: Boolean, default: false },
-    privacy_allow_doctor_view: { type: Boolean,  },
-    privacy_share_with_providers: { type: Boolean,  },
+    privacy_allow_doctor_view: { type: Boolean, },
+    privacy_share_with_providers: { type: Boolean, },
   },
   { timestamps: true }
 );
+
+userSchema.virtual("patients", {
+  ref: "Patient",         // tên model Patient
+  localField: "_id",      // _id của User
+  foreignField: "user_id", // user_id trong Patient
+  justOne: true,          // mỗi user chỉ có 1 patient
+});
+
+userSchema.set("toObject", { virtuals: true });
+userSchema.set("toJSON", { virtuals: true });
 
 const User = mongoose.model("User", userSchema, "users");
 

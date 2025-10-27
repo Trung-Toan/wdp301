@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, Fragment } from "react";
 import { Calendar, Plus, Pencil, Trash } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";

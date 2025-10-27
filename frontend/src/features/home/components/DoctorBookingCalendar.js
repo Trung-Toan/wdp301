@@ -70,7 +70,11 @@ export function DoctorBookingCalendar({ doctor }) {
         // key lưu login
         if (!user) {
             toast.error("Vui lòng đăng nhập để đặt lịch!");
-            navigate("/login"); // <-- chuyển sang trang login
+            setTimeout(() => {
+                navigate("/login", {
+                    state: { from: window.location.pathname + window.location.search }, // lưu đường dẫn hiện tại
+                });
+            }, 500);
             return;
         }
         // Nếu đã đăng nhập, chuyển sang booking page
@@ -157,7 +161,7 @@ export function DoctorBookingCalendar({ doctor }) {
                 )}
 
                 <div className="pt-4 border-t">
-                    <div className="flex justify-between mb-4">
+                    {/* <div className="flex justify-between mb-4">
                         <span className="text-muted-foreground">Giá khám:</span>
                         <span className="text-xl font-bold text-primary">
                             {selectedSlot?.fee
@@ -166,7 +170,7 @@ export function DoctorBookingCalendar({ doctor }) {
                                     ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
                                     : "Chưa có giá"}
                         </span>
-                    </div>
+                    </div> */}
 
                     <Button
                         className="w-full"
