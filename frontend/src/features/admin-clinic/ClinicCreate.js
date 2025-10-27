@@ -5,7 +5,6 @@ import { sampleClinics, sampleSpecialties } from "../../data/mockData";
 const ClinicCreation = () => {
   const [showModal, setShowModal] = useState(false);
   const [clinics, setClinics] = useState(sampleClinics);
-  const [clinicType, setClinicType] = useState("MULTIPLE_DOCTORS");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -52,7 +51,6 @@ const ClinicCreation = () => {
     const newRequest = {
       _id: `request_${Date.now()}`,
       ...formData,
-      clinic_type: clinicType,
       status: "PENDING",
       requested_by: "68e4fb9303bb8005b8f4c0fe", // Current user ID
       rejection_reason: null,
@@ -221,43 +219,6 @@ const ClinicCreation = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Clinic Type Selection */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  Loại phòng khám
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setClinicType("SINGLE_DOCTOR")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      clinicType === "SINGLE_DOCTOR"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold text-gray-900">1 bác sĩ</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Phòng khám chỉ có 1 bác sĩ
-                    </p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setClinicType("MULTIPLE_DOCTORS")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      clinicType === "MULTIPLE_DOCTORS"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold text-gray-900">Nhiều bác sĩ</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Phòng khám có nhiều bác sĩ
-                    </p>
-                  </button>
-                </div>
-              </div>
-
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
