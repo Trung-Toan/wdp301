@@ -108,21 +108,21 @@ const DoctorDashboard = () => {
       value: stats.todayPatients, // Số BN đã duyệt (COMPLETED)
       icon: <CalendarCheck size={32} />,
       color: "green",
-      link: "/assistant/approve-appointments",
+      link: "/assistant/appointments",
     },
     {
       title: "Lịch hẹn chờ duyệt",
       value: stats.pendingRequests, // Số BN chờ duyệt (SCHEDULED)
       icon: <Clock size={32} />,
       color: "orange",
-      link: "/assistant/approve-appointments",
+      link: "/assistant/appointments",
     },
     {
       title: "Tổng lịch hẹn hôm nay",
       value: stats.upcomingAppointments, // Tổng số
       icon: <People size={32} />,
       color: "blue",
-      link: "/assistant/approve-appointments",
+      link: "/assistant/appointments",
     },
   ];
 
