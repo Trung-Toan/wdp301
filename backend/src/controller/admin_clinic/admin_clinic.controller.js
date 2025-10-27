@@ -4,7 +4,7 @@ const {
 
 exports.createAccountDoctor = async (req, res, next) => {
   try {
-    const data = await createDoctor(req.query);
+    const data = await createDoctor(req.body);
     res.json({ success: true, total: data.length, data });
   } catch (err) {
     next(err);
