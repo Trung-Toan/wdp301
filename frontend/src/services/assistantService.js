@@ -28,7 +28,7 @@ let mockShifts = [
     start_time: "08:00",
     end_time: "12:00",
     maxPatients: 5,
-    patients: [], // Khởi tạo rỗng, sẽ được cập nhật khi duyệt
+    patients: [], // Khởi tạo rỗng, sẽ được cập nhật khi duyệt/hủy
     status: "active",
   },
   {
@@ -76,7 +76,6 @@ let mockAppointments = [
     reason: "Tái khám",
     createdAt: "2025-10-27T09:00:00Z",
   },
-  // === THÊM LỊCH HẸN NÀY VÀO ===
   {
     _id: "APT004",
     shiftId: "SHIFT001", // Gán vào ca 1
@@ -85,8 +84,11 @@ let mockAppointments = [
     reason: "Đã khám xong",
     createdAt: "2025-10-27T09:30:00Z",
   },
-  // ==============================
 ];
+
+// === THÊM MẢNG MỚI ĐỂ LƯU BỆNH ÁN ===
+let mockMedicalRecords = [];
+// ===================================
 
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -95,7 +97,7 @@ export const getShifts = async (doctorId, date) => {
   await delay();
   const shifts = mockShifts
     .filter((s) => s.doctor_id === doctorId && s.date === date)
-    .map((s) => ({ ...s, patientsCount: s.patients.length }));
+    .map((s) => ({ ...s, patientsCount: s.patients.length })); // Tính lại patientsCount
   return { success: true, data: shifts };
 };
 
@@ -118,7 +120,7 @@ export const updateShift = async (shiftId, shift) => {
   const index = mockShifts.findIndex((s) => s._id === shiftId);
   if (index !== -1) {
     mockShifts[index] = { ...mockShifts[index], ...shift };
-    mockShifts[index].patientsCount = mockShifts[index].patients.length;
+    mockShifts[index].patientsCount = mockShifts[index].patients.length; // Tính lại
     return { success: true, data: mockShifts[index] };
   }
   return { success: false, error: "Shift not found" };
@@ -148,13 +150,15 @@ export const getAppointments = async ({ doctorId, date, shiftId } = {}) => {
   if (shiftId) {
     list = list.filter((apt) => apt.shiftId === shiftId);
   } else if (date) {
-    const shifts = mockShifts.filter(
+    // Lọc appointment dựa trên các ca của bác sĩ trong ngày đó
+    const doctorShiftsToday = mockShifts.filter(
       (s) => s.doctor_id === doctorId && s.date === date
     );
-    const shiftIds = shifts.map((s) => s._id);
+    const shiftIds = doctorShiftsToday.map((s) => s._id);
     list = list.filter((apt) => shiftIds.includes(apt.shiftId));
   }
 
+  // Gắn thông tin patient và shift vào appointment
   const data = list.map((apt) => {
     const patient = mockPatients.find((p) => p._id === apt.patientId);
     const shift = mockShifts.find((s) => s._id === apt.shiftId);
@@ -179,65 +183,68 @@ export const updateAppointmentStatus = async (appointmentId, newStatus) => {
   // 2. Tìm ca làm việc tương ứng
   const shift = mockShifts.find((s) => s._id === appointment.shiftId);
   if (!shift) {
-    return { success: false, error: "Shift not found for this appointment" };
+    // Vẫn trả về success vì appointment đã được cập nhật
+    console.warn("Shift not found for appointment:", appointmentId);
+    return { success: true, data: appointment };
   }
 
   // 3. Cập nhật mảng `patients` trong `shift`
   const patientExistsInShift = shift.patients.includes(appointment.patientId);
 
-  if (newStatus === "COMPLETED") {
-    // Nếu duyệt, thêm bệnh nhân vào ca (nếu chưa có)
+  // Chỉ thêm khi được duyệt (APPROVE) hoặc hoàn thành (COMPLETED)
+  if (["APPROVE", "COMPLETED"].includes(newStatus)) {
     if (!patientExistsInShift) {
       shift.patients.push(appointment.patientId);
     }
-  } else if (newStatus === "CANCELLED") {
-    // Nếu hủy, xóa bệnh nhân khỏi ca (nếu có)
+  }
+  // Chỉ xóa khi bị hủy (CANCELLED) hoặc vắng mặt (NO_SHOW)
+  else if (["CANCELLED", "NO_SHOW"].includes(newStatus)) {
     if (patientExistsInShift) {
       shift.patients = shift.patients.filter(
         (pId) => pId !== appointment.patientId
       );
     }
   }
-  // Cập nhật lại số lượng bệnh nhân
-  shift.patientsCount = shift.patients.length;
+  // Cập nhật lại số lượng bệnh nhân (không cần nữa vì getShifts sẽ tính)
+  // shift.patientsCount = shift.patients.length;
 
   return { success: true, data: appointment };
 };
 // ===============================
 
-// === THÊM HÀM MỚI CHO DASHBOARD ===
+// === HÀM MỚI CHO DASHBOARD ===
 export const getDashboardStats = async (doctorId = "DOC001") => {
   await delay();
   const today = getLocalDate(); // Lấy ngày hôm nay
 
-  // 1. Lấy ca và lịch hẹn hôm nay
+  // 1. Lấy ca và lịch hẹn hôm nay của bác sĩ
   const todayShifts = mockShifts.filter(
     (s) => s.doctor_id === doctorId && s.date === today
   );
-
   const todayShiftIds = todayShifts.map((s) => s._id);
-
   const todayAppointments = mockAppointments.filter((apt) =>
     todayShiftIds.includes(apt.shiftId)
   );
 
   // 2. Tính toán
-  // Lấy tổng số bệnh nhân đã được duyệt (COMPLETED)
-  const todayPatients = todayAppointments.filter(
-    (apt) => apt.status === "COMPLETED"
+  // Số bệnh nhân đã được duyệt (APPROVE) HOẶC đã khám xong (COMPLETED)
+  const todayPatients = todayAppointments.filter((apt) =>
+    ["APPROVE", "COMPLETED"].includes(apt.status)
   ).length;
 
-  // Lấy tổng số lịch hẹn (cả chờ/đã duyệt)
-  const upcomingAppointments = todayAppointments.length;
+  // Tổng số lịch hẹn (SCHEDULED, APPROVE, COMPLETED)
+  const upcomingAppointments = todayAppointments.filter((apt) =>
+    ["SCHEDULED", "APPROVE", "COMPLETED"].includes(apt.status)
+  ).length;
 
-  // Lấy số lịch hẹn "Chờ duyệt"
+  // Lấy số lịch hẹn "Chờ duyệt" (SCHEDULED)
   const pendingRequests = todayAppointments.filter(
     (apt) => apt.status === "SCHEDULED"
   ).length;
 
   const stats = {
-    todayPatients: todayPatients,         // Lịch khám hôm nay (đã duyệt)
-    upcomingAppointments: upcomingAppointments, // Tổng lịch hẹn (cả chờ/đã duyệt)
+    todayPatients: todayPatients,         // BN đã duyệt/khám xong
+    upcomingAppointments: upcomingAppointments, // Tổng lịch hẹn sẽ diễn ra
     appointmentChange: 5,               // % thay đổi (mock)
     pendingPrescriptions: 0,            // (mock)
     pendingRequests: pendingRequests,   // Yêu cầu (chờ duyệt)
@@ -247,3 +254,39 @@ export const getDashboardStats = async (doctorId = "DOC001") => {
   return { success: true, data: stats };
 };
 // ====================================
+
+// === THÊM HÀM MỚI ĐỂ TẠO BỆNH ÁN ===
+export const createMedicalRecord = async (recordData) => {
+  await delay();
+  try {
+    // Validate required fields (theo schema)
+    if (!recordData.doctor_id || !recordData.patient_id || !recordData.appointment_id) {
+      throw new Error("Missing required IDs (doctor, patient, appointment).");
+    }
+
+    const newRecord = {
+      _id: "REC" + Date.now(),
+      diagnosis: recordData.diagnosis || "",
+      symptoms: recordData.symptoms || [],
+      notes: recordData.notes || "",
+      attachments: [], // Mặc định rỗng
+      access_requests: [], // Mặc định rỗng
+      prescription: null, // Mặc định null
+      status: recordData.status || "PRIVATE", // Mặc định PRIVATE
+      doctor_id: recordData.doctor_id,
+      patient_id: recordData.patient_id,
+      appointment_id: recordData.appointment_id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    mockMedicalRecords.push(newRecord);
+    console.log("Mock Medical Records:", mockMedicalRecords); // Để debug
+
+    return { success: true, data: newRecord };
+  } catch (error) {
+    console.error("Error creating medical record:", error);
+    return { success: false, error: error.message };
+  }
+};
+// ===================================
