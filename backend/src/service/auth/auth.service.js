@@ -71,6 +71,41 @@ exports.registerPatients = async ({ username, email, password, phone_number, rol
     return sanitizeAccount(acc);
 };
 
+exports.registerClinicOwner = async ({ username, email, password, phone_number, role }) => {
+    const emailNorm = (email || '').trim().toLowerCase();
+    const hash = await hashPassword(password);
+
+    const acc = await Account.create({
+        username: username.trim(),
+        email: emailNorm,
+        phone_number: phone_number?.trim(),
+        password: hash,
+        role: role || 'ADMIN_CLINIC',
+        status: 'PENDING', // Clinic owners need approval
+        email_verified: false,
+    });
+
+    const token = randomToken(32);
+    const tokenHash = await hashOpaque(token);
+
+    await EmailVerification.create({
+        token_hash: tokenHash,
+        expires_at: addDays(new Date(), 1),
+        used: false,
+        account_id: acc._id,
+    });
+
+    const html = buildVerifyEmailTemplate({
+        accountId: String(acc._id),
+        token,
+        apiBaseUrl: APP_BASE_URL,
+    });
+
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
+
+    return sanitizeAccount(acc);
+};
+
 exports.verifyEmail = async ({ token, accountId }) => {
     if (!token) throw new Error('Missing token');
     if (!accountId) throw new Error('Missing accountId');

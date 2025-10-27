@@ -80,7 +80,7 @@ const Login = () => {
         navigate("/doctor/dashboard");
       }
       else if (account.role === "ADMIN_CLINIC") {
-
+        navigate("/clinic-admin/dashboard");
       }
       else {
         navigate(redirectTo, { replace: true });

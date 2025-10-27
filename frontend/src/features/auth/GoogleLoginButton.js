@@ -32,6 +32,8 @@ const GoogleLoginButton = () => {
         // Navigate based on role
         if (account.role === "DOCTOR") {
           navigate("/doctor/dashboard");
+        } else if (account.role === "ADMIN_CLINIC") {
+          navigate("/clinic-admin/dashboard");
         } else {
           navigate("/");
         }

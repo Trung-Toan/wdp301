@@ -34,6 +34,10 @@ export function HeroSection() {
                                 : [];
 
                 setSpecialties(list);
+                console.log("Specialties loaded:", list);
+                if (list.length > 0) {
+                    console.log("First specialty:", list[0]);
+                }
             } catch (error) {
                 console.error("Lỗi khi lấy danh sách chuyên khoa:", error);
                 setSpecialties([]); // đảm bảo không gây lỗi .map
@@ -55,16 +59,22 @@ export function HeroSection() {
         setLoading(true);
         setHasSearched(true);
         try {
-            const res = await clinicApi.searchClinics({
+            const params = {
                 specialtyId: filters.specialtyId,
                 provinceCode: filters.provinceCode,
                 wardCode: filters.wardCode,
                 q: filters.q,
                 page: 1,
                 limit: 10,
-            });
-            setResults(res.data.items || []);
+            };
+            console.log("Filters params:", params);
+
+            const res = await clinicApi.searchClinics(params);
             console.log("Kết quả tìm kiếm:", res.data);
+
+            // Backend trả về { success: true, data: { items, page, limit, total, totalPages } }
+            const items = res.data?.data?.items || res.data?.items || [];
+            setResults(items);
         } catch (err) {
             console.error("Lỗi khi tìm kiếm:", err);
             setResults([]);
@@ -108,14 +118,20 @@ export function HeroSection() {
                         {/* Chọn chuyên khoa */}
                         <select
                             value={filters.specialtyId}
-                            onChange={(e) =>
-                                setFilters((prev) => ({ ...prev, specialtyId: e.target.value }))
-                            }
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                console.log("Selected specialty value:", value, typeof value);
+                                const selectedSpecialty = specialties.find(s => (s.id || s._id) === value || (s.id || s._id) === value.toString());
+                                if (selectedSpecialty && selectedSpecialty.name) {
+                                    console.log("Specialty name:", selectedSpecialty.name);
+                                }
+                                setFilters((prev) => ({ ...prev, specialtyId: value }));
+                            }}
                             className="w-full rounded-lg border border-gray-300 bg-white/80 backdrop-blur-sm px-3 py-2 text-gray-700 focus:border-blue-500 focus:outline-none"
                         >
                             <option value="">----- Chọn chuyên khoa -----</option>
                             {specialties.map((s) => (
-                                <option key={s._id} value={s._id}>
+                                <option key={s.id || s._id} value={s.id || s._id}>
                                     {s.name}
                                 </option>
                             ))}
