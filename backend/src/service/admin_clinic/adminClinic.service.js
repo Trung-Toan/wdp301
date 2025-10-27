@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const Account = require("../../model/auth/Account");
 const User = require("../../model/user/User");
 const Doctor = require("../../model/doctor/Doctor");
+const AdminClinic = require("../../model/user/AdminClinic");
+const Clinic = require("../../model/clinic/Clinic");
 
 const SALT_ROUNDS = 12;
 
@@ -87,5 +89,24 @@ exports.createDoctor = async (payload) => {
       ok: false,
       message: "Không thể tạo bác sĩ: " + error.message,
     };
+  }
+};
+
+//Lấy clinic mà admin clinic hiện tại quản lý
+exports.getClinicByAdmin = async (accountId) => {
+  try {
+    const user = await User.findOne({ account_id: accountId });
+    if (!user) throw new Error("Không tìm thấy user tương ứng với account này.");
+
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
+
+    const clinic = await Clinic.findOne({ created_by: adminClinic._id });
+    if (!clinic) throw new Error("Admin clinic này chưa có phòng khám nào.");
+
+    return { ok: true, data: clinic };
+  } catch (error) {
+    console.error("Lỗi khi lấy clinic của admin:", error);
+    return { ok: false, message: error.message };
   }
 };
