@@ -184,8 +184,9 @@ export const getPopulatedPatient = (patientId) => {
   };
 };
 
-// MongoDB Sample Data - Matches exact schema structure
-// Use this data for testing before integrating real APIs
+// ============================================
+// MONGODB SAMPLE DATA (DOCTOR/CLINIC/ASSISTANT)
+// ============================================
 
 // ============================================
 // ACCOUNT COLLECTION
@@ -534,7 +535,7 @@ export const sampleAssistants = [
 ];
 
 // ============================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS (for sample... data)
 // ============================================
 
 /**

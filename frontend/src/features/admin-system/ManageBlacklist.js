@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import "../styles/ManageBlacklist.css";
+import "../../styles/admin-system/ManageBlacklist.css";
 import ViewModal from "./ViewModal";
 import ConfirmModal from "./ConfirmModal";
 

@@ -1,5 +1,5 @@
 "use client";
-import "../styles/ConfirmModal.css";
+import "../../styles/admin-system/ConfirmModal.css";
 
 const ConfirmModal = ({
   title,
