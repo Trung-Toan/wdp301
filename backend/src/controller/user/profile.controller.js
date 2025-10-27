@@ -1,5 +1,6 @@
 const User = require("../../model/user/User");
 const Account = require("../../model/auth/Account");
+const Patient = require("../../model/patient/Patient");
 
 function ok(res, data, status = 200) { return res.status(status).json({ success: true, data }); }
 function fail(res, err, status = 500) { return res.status(status).json({ success: false, error: err?.message || String(err) }); }
@@ -39,18 +40,30 @@ exports.getMyProfile = async (req, res) => {
     }
 };
 
-
-
 exports.updateMyProfile = async (req, res) => {
     try {
         const accountId = req.user?.sub;
-
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
 
-        let { full_name, email, phone, dob, gender, address, avatar_url } = req.body || {};
+        const {
+            full_name,
+            email,
+            phone,
+            dob,
+            gender,
+            address,
+            avatar_url,
+            province_code,
+            ward_code,
+            blood_type,
+            allergies,
+            chronic_diseases,
+            medications,
+            surgery_history,
+        } = req.body || {};
 
+        // --- Update User table ---
         const userSet = {};
-
         if (full_name !== undefined) userSet.full_name = full_name;
         if (dob !== undefined) userSet.dob = dob;
         if (gender !== undefined) userSet.gender = gender;
@@ -59,16 +72,20 @@ exports.updateMyProfile = async (req, res) => {
 
         const user = await User.findOneAndUpdate(
             { account_id: accountId },
-            Object.keys(userSet).length ? { $set: userSet } : {},
+            { $set: userSet },
             { new: true }
         ).lean();
 
-        if (!user) return fail(res, new Error("User not found"), 404);
+        if (!user) return fail(res, new Error("Không tìm thấy người dùng."), 404);
 
+        const userId = user._id;
+
+        // --- Update Account table (email, phone) ---
         const accountSet = {};
+
+        // Check phone duplication
         if (phone !== undefined) {
             const normalizedPhone = String(phone).trim();
-
             if (normalizedPhone.length > 0) {
                 const dupPhone = await Account.exists({
                     _id: { $ne: accountId },
@@ -78,10 +95,10 @@ exports.updateMyProfile = async (req, res) => {
                     return fail(res, new Error("Số điện thoại đã được sử dụng bởi tài khoản khác."), 409);
                 }
                 accountSet.phone_number = normalizedPhone;
-            } else {
             }
         }
 
+        // Check email duplication
         if (email !== undefined) {
             const normalizedEmail = String(email).trim().toLowerCase();
             if (normalizedEmail.length > 0) {
@@ -96,28 +113,37 @@ exports.updateMyProfile = async (req, res) => {
             }
         }
 
-        if (address !== undefined) {
-            // Lấy _id của user vừa update
-            const userId = user._id;
-
-            // Nếu bạn muốn update trực tiếp các field trong Patient
-            await Patient.updateOne(
-                { user_id: userId },
-                { $set: { province_code: address.provinceCode || null, ward_code: address.wardCode || null } }
-            );
-        }
-
-
         if (Object.keys(accountSet).length) {
-            await Account.findByIdAndUpdate(accountId, { $set: accountSet }, { new: true });
+            await Account.findByIdAndUpdate(accountId, { $set: accountSet });
         }
 
-        return ok(res, user);
+        // ---Update Patient table ---
+        const patientSet = {};
+        if (province_code !== undefined) patientSet.province_code = province_code;
+        if (ward_code !== undefined) patientSet.ward_code = ward_code;
+        if (blood_type !== undefined) patientSet.blood_type = blood_type;
+        if (allergies !== undefined) patientSet.allergies = allergies;
+        if (chronic_diseases !== undefined) patientSet.chronic_diseases = chronic_diseases;
+        if (medications !== undefined) patientSet.medications = medications;
+        if (surgery_history !== undefined) patientSet.surgery_history = surgery_history;
+
+        if (Object.keys(patientSet).length) {
+            await Patient.findOneAndUpdate({ user_id: userId }, { $set: patientSet });
+        }
+
+        // --- Lấy lại dữ liệu đầy đủ sau khi update ---
+        const updatedUser = await User.findById(userId)
+            .populate("patients")
+            .populate("account_id", "email phone_number role")
+            .lean();
+
+        return ok(res, updatedUser);
     } catch (err) {
         if (err?.code === 11000) {
             const field = Object.keys(err?.keyPattern || {})[0] || "field";
             return fail(res, new Error(`${field} đã tồn tại.`), 409);
         }
+        console.error("updateMyProfile error:", err);
         return fail(res, err);
     }
 };
