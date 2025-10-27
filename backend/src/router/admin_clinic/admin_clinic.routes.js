@@ -11,4 +11,12 @@ router.post(
   adminclinicController.createAccountDoctor
 );
 
+//lấy clinic mà admin clinic hiện tại quản lý
+router.get(
+  "/get_clinic",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getClinicByAdmin
+);
+
 module.exports = router;
