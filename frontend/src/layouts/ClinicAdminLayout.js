@@ -22,37 +22,37 @@ const ClinicAdminLayout = () => {
     {
       title: "Trang chủ",
       icon: <House size={20} />,
-      link: "/clinic-admin/dashboard",
+      link: "/admin-clinic/dashboard",
     },
     {
       title: "Tạo phòng khám",
       icon: <Plus size={20} />,
-      link: "/clinic-admin/clinics",
+      link: "/admin-clinic/clinics",
     },
     {
       title: "Quản lý bác sĩ",
       icon: <People size={20} />,
-      link: "/clinic-admin/manage-doctors",
+      link: "/admin-clinic/manage-doctors",
     },
     {
       title: "Quản lý trợ lý",
       icon: <UserPlus size={20} />,
-      link: "/clinic-admin/assistants",
+      link: "/admin-clinic/assistants",
     },
     {
       title: "Feedback bệnh nhân",
       icon: <MessageSquare size={20} />,
-      link: "/clinic-admin/feedback",
+      link: "/admin-clinic/feedback",
     },
     {
       title: "Danh sách đen",
       icon: <Ban size={20} />,
-      link: "/clinic-admin/blacklist",
+      link: "/admin-clinic/blacklist",
     },
     {
       title: "Cảnh báo quá tải",
       icon: <ClipboardCheck size={20} />,
-      link: "/clinic-admin/overload-alerts",
+      link: "/admin-clinic/overload-alerts",
     },
   ];
 
