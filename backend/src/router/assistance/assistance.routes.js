@@ -46,9 +46,9 @@ router.post("/slots/doctor", authRequired, roleRequired("ASSISTANT"), Assistance
 router.put("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateAppointmentSlot);
 
 /* ========================= MEDICAL RECORDS ========================= */
-// GET /patients/:patientId/medical-records?page=1
+// GET /created/medical-records?page=1
 // view list medical record of patient with pagination
-router.get("/patients/:patientId/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewListMedicalRecords);
+router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewListMedicalRecords);
 
 // GET /medical-records/:recordId
 // view detail medical record by recordId

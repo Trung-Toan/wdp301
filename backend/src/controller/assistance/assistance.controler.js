@@ -108,7 +108,7 @@ exports.verifyAppointment = async (req, res) => {
     const app = await appointmentService.getAppointmentByIdDefault(appointmentId);
     if (!app) return resUtils.notFoundResponse(res, "Không tìm thấy lịch khám để phê duyệt");
     if (app.status !== "SCHEDULED") return resUtils.badRequestResponse(res, "Bạn chỉ được xác nhận với trạng thái là chờ duyệt");
-    if (!status || status !== "COMPLETED" || status !== "CANCELLED")
+    if (!status || (status !== "APPROVE" && status !== "CANCELLED"))
       return resUtils.badRequestResponse(res, "Trạng thái không phù hợp");
     app.status = status;
     const appUpdated = await appointmentService.updateAppointment(app._id, app);
@@ -234,9 +234,17 @@ exports.updateAppointmentSlot = async (req, res) => {
 
 
 /* ========================= MEDICAL RECORDS ========================= */
-// GET /patients/:patientId/medical-records
+// GET GET /created/medical-records?page=1
 exports.viewListMedicalRecords = async (req, res) => {
-  res.json({ message: `View list medical records of patient ID ${req.params.patientId}` });
+  const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+  if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+  try {
+    const {} = await assistantService.getMedicalRecordOfAssistant(assistance._id);
+  } catch (error) {
+    console.log(`Error at view list medical record: `, error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi không thể lấy giữ liệu hồ sơ bệnh án");
+  }
+
 };
 
 // GET /medical-records/:recordId

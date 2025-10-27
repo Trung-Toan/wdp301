@@ -30,3 +30,7 @@ exports.getListPatients = async (req) => {
     }
 
 };
+
+exports.getMedicalRecordOfAssistant = async (ass_id) => {
+    
+}

@@ -98,16 +98,15 @@ exports.getListAppointments = async (req, doctorId) => {
   const now = new Date();
   let { date = now } = req.query;
   date = new Date(date);
-
-  date.setHours(
+  let dateFilter = new Date(date);
+  dateFilter.setHours(
     now.getHours(),
     now.getMinutes(),
     now.getSeconds(),
     now.getMilliseconds()
   );
-  const slotObj =
-    (await slotService.getSlotAtDateByDocterId(doctorId, date)) ||
-    (await slotService.getFirstAvailableSlotByDoctorId(doctorId, date));
+  const slotObj = (await slotService.getSlotAtDateByDocterId(doctorId, dateFilter)
+    || await slotService.getFirstAvailableSlotByDoctorId(doctorId, dateFilter));
 
   const {
     page = 1,
@@ -116,21 +115,28 @@ exports.getListAppointments = async (req, doctorId) => {
     slot = slotObj?._id,
   } = req.query;
 
-  const slotNow = await slotService.getSlotById(slot, date);
+  const slotNow = await slotService.getSlotById(slot, dateFilter);
 
-  // Ép kiểu số nguyên
   const currentPage = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
-
-  // Tính toán skip
   const skip = (currentPage - 1) * limitNumber;
+
+  // Chuẩn hóa ngày bắt đầu và kết thúc của 1 ngày
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
 
   // Đếm tổng số lịch hẹn
   const totalAppointments = await Appointment.countDocuments({
     doctor_id: doctorId,
     ...(status ? { status } : {}),
     slot_id: slot,
-    scheduled_date: date,
+    scheduled_date: {
+      $gte: startOfDay,
+      $lt: endOfDay,
+    },
   });
 
   // Tính tổng số trang
@@ -141,7 +147,10 @@ exports.getListAppointments = async (req, doctorId) => {
     doctor_id: doctorId,
     ...(status ? { status } : {}),
     slot_id: slot,
-    scheduled_date: date,
+    scheduled_date: {
+      $gte: startOfDay,
+      $lt: endOfDay,
+    },
   })
     .select(
       "_id slot_id patient_id scheduled_date status created_at phone full_name"
