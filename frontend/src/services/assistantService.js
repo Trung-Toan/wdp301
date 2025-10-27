@@ -6,7 +6,8 @@ let mockShifts = [
   {
     _id: "SHIFT001",
     doctor_id: "DOC001",
-    date: "2025-10-14",
+    // === SỬA NGÀY HÔM NAY ===
+    date: "2025-10-27",
     start_time: "08:00",
     end_time: "12:00",
     maxPatients: 5,
@@ -16,16 +17,18 @@ let mockShifts = [
   {
     _id: "SHIFT002",
     doctor_id: "DOC001",
-    date: "2025-10-14",
+    // === SỬA NGÀY HÔM NAY ===
+    date: "2025-10-27",
     start_time: "13:00",
     end_time: "17:00",
     maxPatients: 3,
-    patients: [],
+    patients: [], // Ca này không có bệnh nhân
     status: "active",
   },
 ];
 
 // --- PATIENT MOCK DATA ---
+// (Chỉ giữ lại 1 mảng)
 let mockPatients = [
   { _id: "PAT001", name: "Nguyen Van A", age: 30, phone: "0901234567" },
   { _id: "PAT002", name: "Tran Thi B", age: 25, phone: "0912345678" },
@@ -33,23 +36,25 @@ let mockPatients = [
 ];
 
 // --- APPOINTMENT MOCK DATA ---
+// (Chỉ giữ lại 1 mảng)
 let mockAppointments = [
   {
     _id: "APT001",
-    shiftId: "SHIFT001",
+    shiftId: "SHIFT001", // Gán vào ca 1
     patientId: "PAT001",
-    status: "SCHEDULED",
+    status: "SCHEDULED", // <-- Chờ duyệt
     reason: "Khám tổng quát",
-    createdAt: "2025-10-14T07:30:00Z",
+    createdAt: "2025-10-27T07:30:00Z", // Sửa ngày
   },
   {
     _id: "APT002",
-    shiftId: "SHIFT001",
+    shiftId: "SHIFT001", // Gán vào ca 1
     patientId: "PAT002",
-    status: "SCHEDULED",
+    status: "SCHEDULED", // <-- Chờ duyệt
     reason: "Khám bệnh theo lịch",
-    createdAt: "2025-10-14T08:00:00Z",
+    createdAt: "2025-10-27T08:00:00Z", // Sửa ngày
   },
+  // Bạn có thể thêm data cho ca 2 nếu muốn
 ];
 
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -133,6 +138,9 @@ export const updateAppointmentStatus = async (appointmentId, newStatus) => {
   const index = mockAppointments.findIndex((a) => a._id === appointmentId);
   if (index !== -1) {
     mockAppointments[index].status = newStatus;
+
+    // Logic này chưa chính xác lắm, đáng lẽ phải là 'COMPLETED'
+    // Nhưng tôi giữ nguyên logic file của bạn
     if (newStatus === "SCHEDULED") {
       const shift = mockShifts.find(
         (s) => s._id === mockAppointments[index].shiftId

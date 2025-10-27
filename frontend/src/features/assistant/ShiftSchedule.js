@@ -502,7 +502,7 @@ const ShiftSchedule = () => {
                           onChange={(e) =>
                             setMaxPatients(
                               Number(e.target.value) > 0
-                                ? Number(e.gtarget.value)
+                                ? Number(e.target.value)
                                 : 1
                             )
                           }
