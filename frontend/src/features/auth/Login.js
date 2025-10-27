@@ -68,7 +68,6 @@ const Login = () => {
       setSessionStorage("user", user);
       setSessionStorage("patient", patient);
 
-
       Swal.fire({
         icon: "success",
         title: "Đăng nhập thành công!",
@@ -86,7 +85,6 @@ const Login = () => {
         navigate(redirectTo, { replace: true });
       }
     },
-
 
     onError: (error) => {
       Swal.fire({
