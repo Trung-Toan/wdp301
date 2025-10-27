@@ -4,7 +4,7 @@ const Account = require("../../model/auth/Account");
 const User = require("../../model/user/User");
 const Doctor = require("../../model/doctor/Doctor");
 
-const SALT_ROUNDS = 12; // bạn có thể chỉnh theo config
+const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
 
@@ -23,13 +23,13 @@ exports.createDoctor = async (payload) => {
       specialty_id,
     } = payload;
 
-    // 🔹 1. Tạo tài khoản
+    //Tạo tài khoản
     const hashedPassword = await hashPassword(password);
     const acc = await Account.create(
       [
         {
           username: username.trim(),
-          email: "", // có thể thêm email nếu có
+          email: "",
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "DOCTOR",
@@ -40,7 +40,7 @@ exports.createDoctor = async (payload) => {
       { session }
     );
 
-    // 🔹 2. Tạo User (liên kết Account)
+    //Tạo User (liên kết Account)
     const user = await User.create(
       [
         {
@@ -51,7 +51,7 @@ exports.createDoctor = async (payload) => {
       { session }
     );
 
-    // 🔹 3. Tạo Doctor (liên kết User)
+    //Tạo Doctor (liên kết User)
     const doctor = await Doctor.create(
       [
         {
