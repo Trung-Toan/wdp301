@@ -95,6 +95,9 @@ const Login = () => {
       else if (account.role === "ADMIN_CLINIC") {
         navigate("/clinic-admin/dashboard");
       }
+      else if (account.role === "ASSISSTANT") {
+        navigate("/assistant/dashboard");
+      }
       else {
         navigate(redirectTo, { replace: true });
       }
