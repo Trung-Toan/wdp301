@@ -1,5 +1,5 @@
 import { Calendar, Menu } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
 import { Dropdown } from "react-bootstrap";
