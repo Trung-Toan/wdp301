@@ -10,6 +10,7 @@ import {
   Eye,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
+import { toast } from "react-toastify";
 
 const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([]);
@@ -35,6 +36,9 @@ const DoctorManagement = () => {
         setSpecialties(res.data?.data || []);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách chuyên khoa:", err);
+        toast.error(
+          "Không thể lấy danh sách chuyên khoa: " + err.message
+        );
       }
     };
     fetchSpecialties();
@@ -65,11 +69,10 @@ const DoctorManagement = () => {
           };
         });
 
-        console.log("Lấy danh sách bác sĩ:", doctorsData);
-
         setDoctors(transformed);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách bác sĩ:", err);
+        toast.error("Không thể lấy danh sách bác sĩ: " + err.message);
       }
     };
     fetchDoctors();
@@ -80,7 +83,7 @@ const DoctorManagement = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        alert("Chức năng chỉnh sửa đang phát triển");
+        toast.info("Chức năng chỉnh sửa đang phát triển");
         setShowModal(false);
         return;
       }
@@ -95,15 +98,13 @@ const DoctorManagement = () => {
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
       if (res.data?.data) {
-        alert("Tạo bác sĩ thành công!");
+        toast.success("Tạo bác sĩ thành công");
         setShowModal(false);
         window.location.reload(); // refresh danh sách
       }
     } catch (err) {
       console.error("Lỗi khi tạo bác sĩ:", err);
-      alert(
-        "Không thể tạo bác sĩ: " + (err.response?.data?.message || err.message)
-      );
+      toast.error("Không thể tạo bác sĩ: " + err.message);
     }
   };
 
@@ -257,7 +258,7 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => alert("Chỉnh sửa đang phát triển")}
+                      onClick={() => toast.info("Chức năng chỉnh sửa đang phát triển")}
                       className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                       title="Chỉnh sửa"
                     >
