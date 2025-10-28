@@ -58,9 +58,9 @@ router.get("/medical-records/:recordId", authRequired, roleRequired("ASSISTANT")
 // update medical record 
 router.put("/medical-records/:recordId", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateMedicalRecord);
 
-//POST /medical-records/:recordId
-// create medical record
-router.post("/medical-records/:recordId", authRequired, roleRequired("ASSISTANT"), AssistanceController.createMedicalRecord);
+//POST /medical-records/appointment/:appointmentId
+// tạo hồ sơ bệnh án cho 1 lịch khám đã được duyệt và nó phải là trong 1 ngày 
+router.post("/medical-records/appointment/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.createMedicalRecord);
 
 /* ========================= PROFILE ========================= */
 // GET /profile

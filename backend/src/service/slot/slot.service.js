@@ -22,6 +22,11 @@ exports.getSlotAtDateByDocterId = async (doctor_id, date = new Date()) => {
     }
 };
 
+exports.slotAvaiable = async (doctorId, dateFilter) => {
+    return (await exports.getSlotAtDateByDocterId(doctorId, dateFilter)
+        || await exports.getFirstAvailableSlotByDoctorId(doctorId, dateFilter));
+}
+
 /**
  * Lấy slot AVAILABLE đầu tiên (sớm nhất) trong một ngày cụ thể.
  * @param {*} doctor_id 
@@ -40,9 +45,9 @@ exports.getFirstAvailableSlotByDoctorId = async (doctor_id, date = new Date()) =
         const slot = await Slot.findOne({
             doctor_id,
             status: "AVAILABLE",
-            start_time: { $gte: startOfDay, $lte: endOfDay } 
+            start_time: { $gte: startOfDay, $lte: endOfDay }
         })
-            .sort({ start_time: 1 }) 
+            .sort({ start_time: 1 })
             .lean();
 
         return slot || null;
@@ -97,8 +102,6 @@ exports.getAllListSlotsByDoctorId = async (doctor_id, date, status) => {
         return [];
     }
 };
-
-
 
 exports.getSlotById = async (slot_id) => {
     try {

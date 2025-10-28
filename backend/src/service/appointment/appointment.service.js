@@ -1,8 +1,8 @@
 const Appointment = require("../../model/appointment/Appointment");
-const doctorService = require("./../doctor/doctor.service");
 const slotService = require("../slot/slot.service");
 const Patient = require("../../model/patient/Patient");
 const medical_recordService = require("../medical_record/medicalRecord.service");
+const dateUtils = require("../../utils/date.utils");
 /**
  * Lấy danh sách ID duy nhất của các bệnh nhân đã có lịch hẹn ở trạng thái 'COMPLETED'.
  * @param {mongoose.Types.ObjectId | string} doctorId ID của bác sĩ cần lọc.
@@ -95,27 +95,15 @@ exports.uniquePatientIdsWithAppointmentIsCompleted = async (
 };
 
 exports.getListAppointments = async (req, doctorId) => {
-  const now = new Date();
-  let { date = now } = req.query;
-  date = new Date(date);
-  let dateFilter = new Date(date);
-  dateFilter.setHours(
-    now.getHours(),
-    now.getMinutes(),
-    now.getSeconds(),
-    now.getMilliseconds()
-  );
-  const slotObj = (await slotService.getSlotAtDateByDocterId(doctorId, dateFilter)
-    || await slotService.getFirstAvailableSlotByDoctorId(doctorId, dateFilter));
-
+  let { date = new Date() } = req.query;
   const {
     page = 1,
     limit = 10,
     status = null,
-    slot = slotObj?._id,
+    slot = (await slotService.slotAvaiable(doctorId, dateUtils.changeToDateWithNowHouse(date)))?._id,
   } = req.query;
 
-  const slotNow = await slotService.getSlotById(slot, dateFilter);
+  const slotNow = await slotService.getSlotById(slot, dateUtils.changeToDateWithNowHouse(date));
 
   const currentPage = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);

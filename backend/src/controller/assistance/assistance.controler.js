@@ -1,12 +1,12 @@
 const assistantService = require("../../service/assistant/assistant.service");
 const formatDataUtils = require("../../utils/formatData");
-const patientService = require("../../service/patient/patient.service");
 const resUtils = require("../../utils/responseUtils");
 const appointmentService = require("../../service/appointment/appointment.service");
-const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
 const slotService = require("../../service/slot/slot.service");
-const Slot = require("../../model/appointment/Slot");
+const dateUtils = require("../../utils/date.utils");
+const medical_recordService = require("../../service/medical_record/medicalRecord.service");
 const moment = require("moment-timezone");
+const MedicalRecord = require("../../model/patient/MedicalRecord");
 
 /* ========================= PATIENTS ========================= */
 // GET /patients
@@ -234,12 +234,22 @@ exports.updateAppointmentSlot = async (req, res) => {
 
 
 /* ========================= MEDICAL RECORDS ========================= */
-// GET GET /created/medical-records?page=1
+// GET GET /created/medical-records?page=&limit=&slot&date=&status=
 exports.viewListMedicalRecords = async (req, res) => {
   const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
   if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+  let { date = new Date() } = req.body;
+
+  let {
+    page = 1,
+    limit = 10,
+    slot = await slotService.slotAvaiable(assistance.doctor_id, dateUtils.changeToDateWithNowHouse(date)),
+    status = ""
+  } = req.body;
+
   try {
-    const {} = await assistantService.getMedicalRecordOfAssistant(assistance._id);
+    const { data, pagination } = await assistantService.getMedicalRecordOfAssistant(assistance._id, page, limit, slot, status);
+    return resUtils.paginatedResponse(res, data, pagination, "Lấy danh sách hồ sơ bệnh án thành công")
   } catch (error) {
     console.log(`Error at view list medical record: `, error);
     return resUtils.serverErrorResponse(res, error, "Lỗi không thể lấy giữ liệu hồ sơ bệnh án");
@@ -252,16 +262,140 @@ exports.viewMedicalRecordDetail = async (req, res) => {
   res.json({ message: `View medical record detail with ID ${req.params.recordId}` });
 };
 
+/**
+ * Kiểm tra các trường bắt buộc trong từng Medicine
+ * @param {ObjectArray} medicines 
+ * @returns error if not valid
+ */
+const validMedicines = (medicines) => {
+  for (let i = 0; i < medicines.length; i++) {
+    const med = medicines[i];
+    if (!med.name) {
+      return resUtils.badRequestResponse(res, `Tên thuốc (name) tại vị trí ${i + 1} là bắt buộc.`);
+    }
+    if (!med.dosage) {
+      return resUtils.badRequestResponse(res, `Liều dùng (dosage) cho thuốc ${med.name} là bắt buộc.`);
+    }
+    if (!med.frequency) {
+      return resUtils.badRequestResponse(res, `Tần xuất (frequency) cho thuốc ${med.name} là bắt buộc.`);
+    }
+
+    if (!med.duration) {
+      return resUtils.badRequestResponse(res, `Thời gian dùng (duration) cho thuốc ${med.name} là bắt buộc.`);
+    }
+  }
+}
+
 // PUT /medical-records/:recordId
 exports.updateMedicalRecord = async (req, res) => {
-  res.json({ message: `Update medical record with ID ${req.params.recordId}` });
+  const { recordId } = req.params;
+  const updateData = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(recordId)) {
+    return resUtils.badRequestResponse(res, "ID hồ sơ bệnh án không hợp lệ.");
+  }
+
+  if (updateData.prescription && updateData.prescription.medicines) {
+    if (!Array.isArray(updateData.prescription.medicines)) {
+      return resUtils.badRequestResponse(res, "Trường medicines trong đơn thuốc phải là một mảng.");
+    }
+    // Kiểm tra các trường bắt buộc trong từng Medicine
+    validMedicines(updateData.prescription.medicines);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return resUtils.badRequestResponse(res, "Không có dữ liệu hợp lệ để cập nhật.");
+  }
+
+  try {
+    // 3. Gọi service 1 lần duy nhất
+    const updated = await medical_recordService.updateMedicalRecord(recordId, updateData);
+
+    // 4. Kiểm tra kết quả
+    // Nếu 'updated' là null, có nghĩa là không tìm thấy HOẶC đã bị VERIFIED
+    if (!updated) {
+      return resUtils.notFoundResponse(res, "Không tìm thấy hồ sơ bệnh án hoặc hồ sơ đã được duyệt (không thể cập nhật).");
+    }
+
+    return resUtils.updatedResponse(res, updated, "Cập nhật hồ sơ bệnh án thành công");
+
+  } catch (error) {
+    console.log(`Lỗi tại updateMedicalRecord với id ${recordId} bởi: `, error);
+
+    // Xử lý lỗi Mongoose validation
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return resUtils.badRequestResponse(res, `Lỗi dữ liệu: ${messages.join(', ')}`);
+    }
+
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể cập nhật hồ sơ bệnh án");
+  }
 };
 
-//POST /medical-records/:recordId
+// POST /medical-records/appointment/:appointmentId
 exports.createMedicalRecord = async (req, res) => {
-  res.json({ message: `Create medical record with ID ${req.params.recordId}` });
-};
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    if (!assistance) {
+      return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+    }
+    const created_by = assistance._id;
 
+    const { appointmentId } = req.params;
+    const {
+      diagnosis, symptoms, notes, attachments,
+      prescription,
+      doctor_id, patient_id, status
+    } = req.body;
+    if (!diagnosis || !doctor_id || !patient_id || !prescription) {
+      return resUtils.badRequestResponse(res, "Thiếu thông tin bắt buộc: diagnosis, doctor_id, patient_id, hoặc prescription.");
+    }
+    if (!mongoose.Types.ObjectId.isValid(appointmentId) ||
+      !mongoose.Types.ObjectId.isValid(doctor_id) ||
+      !mongoose.Types.ObjectId.isValid(patient_id)) {
+      return resUtils.badRequestResponse(res, "ID lịch hẹn, bác sĩ hoặc bệnh nhân không hợp lệ.");
+    }
+    if (typeof prescription !== 'object' || prescription === null) {
+      return resUtils.badRequestResponse(res, "Thông tin đơn thuốc (prescription) không hợp lệ.");
+    }
+    const medicines = Array.isArray(prescription.medicines) ? prescription.medicines : [];
+    validMedicines(medicines);
+    const medical_record_data = {
+      diagnosis,
+      symptoms: Array.isArray(symptoms) ? symptoms : [],
+      notes: notes || "",
+      attachments: Array.isArray(attachments) ? attachments : [],
+
+      prescription: {
+        ...prescription,
+        medicines: medicines, // Đã kiểm tra và là array
+      },
+      status: status || "PRIVATE",
+      doctor_id,
+      patient_id,
+      appointment_id: appointmentId,
+      created_by: created_by,
+    };
+
+    const added = await medical_recordService.createMedicalRecord(appointmentId, medical_record_data);
+
+    return resUtils.successResponse(res, { medicalRecord: added }, "Tạo hồ sơ bệnh án thành công.");
+  } catch (error) {
+    console.error("Lỗi tại tạo hồ sơ bệnh án:", error.message || error);
+
+    if (error.message.includes("Lịch hẹn không tồn tại")) {
+      return resUtils.notFoundResponse(res, error.message);
+    }
+    if (error.message.includes("không được phép") || error.message.includes("không diễn ra hôm nay") || error.message.includes("không khớp")) {
+      return resUtils.forbiddenResponse(res, error.message);
+    }
+    if (error.message.includes("đã có hồ sơ bệnh án") || error.message.includes("Lỗi dữ liệu")) {
+      return resUtils.badRequestResponse(res, error.message);
+    }
+
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể tạo hồ sơ bệnh án.");
+  }
+};
 /* ========================= PROFILE ========================= */
 // GET /profile
 exports.viewProfile = async (req, res) => {
