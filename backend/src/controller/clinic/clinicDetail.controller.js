@@ -6,6 +6,7 @@ const { getClinicDetail, getClinicDoctors, getClinicReviews } = require("../../s
 exports.getClinicDetail = async (req, res, next) => {
     try {
         const { clinicId } = req.params;
+
         const data = await getClinicDetail(clinicId);
         return res.json({ success: true, data });
     } catch (err) {
@@ -19,7 +20,9 @@ exports.getClinicDetail = async (req, res, next) => {
 exports.getClinicDoctors = async (req, res, next) => {
     try {
         const { clinicId } = req.params;
+
         const { specialtyId, limit, page } = req.query;
+
         const result = await getClinicDoctors(clinicId, {
             specialtyId,
             limit: limit ? Number(limit) : undefined,
@@ -37,7 +40,9 @@ exports.getClinicDoctors = async (req, res, next) => {
 exports.getClinicReviews = async (req, res, next) => {
     try {
         const { clinicId } = req.params;
+
         const { limit, page } = req.query;
+
         const result = await getClinicReviews(clinicId, {
             limit: limit ? Number(limit) : undefined,
             page: page ? Number(page) : undefined,
