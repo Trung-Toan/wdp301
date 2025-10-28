@@ -36,6 +36,7 @@ async function getClinicDetail(clinicId) {
     const doctorIds = doctors.map((d) => d._id);
 
     const feedbacks = await Feedback.find({ doctor_id: { $in: doctorIds } }).lean();
+
     const avgRating = feedbacks.length > 0
         ? feedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / feedbacks.length
         : 0;
