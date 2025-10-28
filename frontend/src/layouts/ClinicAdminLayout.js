@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
@@ -12,54 +12,85 @@ import {
   Plus,
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
+import { adminclinicAPI } from "../../api/admin_clinic/adminclinicApi";
 
 const ClinicAdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [clinic, setClinic] = useState(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
+  let menuItems = [
     {
       title: "Trang chủ",
       icon: <House size={20} />,
       link: "/admin-clinic/dashboard",
     },
-    {
+  ];
+
+  // Nếu chưa có phòng khám
+  if (!clinic) {
+    menuItems.push({
       title: "Tạo phòng khám",
       icon: <Plus size={20} />,
       link: "/admin-clinic/clinics",
-    },
-    {
-      title: "Quản lý bác sĩ",
-      icon: <People size={20} />,
-      link: "/admin-clinic/manage-doctors",
-    },
-    {
-      title: "Quản lý trợ lý",
-      icon: <UserPlus size={20} />,
-      link: "/admin-clinic/assistants",
-    },
-    {
-      title: "Feedback bệnh nhân",
-      icon: <MessageSquare size={20} />,
-      link: "/admin-clinic/feedback",
-    },
-    {
-      title: "Danh sách đen",
-      icon: <Ban size={20} />,
-      link: "/admin-clinic/blacklist",
-    },
-    {
-      title: "Cảnh báo quá tải",
+    });
+  }
+
+  // Nếu có phòng khám nhưng chưa active
+  else if (clinic.status !== "ACTIVE") {
+    menuItems.push({
+      title: "Phòng khám đang chờ duyệt",
       icon: <ClipboardCheck size={20} />,
-      link: "/admin-clinic/overload-alerts",
-    },
-  ];
+      link: "/admin-clinic/clinics",
+    });
+  }
+
+  // Nếu đã active
+  else {
+    menuItems = [
+      ...menuItems,
+      {
+        title: "Quản lý bác sĩ",
+        icon: <People size={20} />,
+        link: "/admin-clinic/manage-doctors",
+      },
+      {
+        title: "Quản lý trợ lý",
+        icon: <UserPlus size={20} />,
+        link: "/admin-clinic/assistants",
+      },
+      {
+        title: "Feedback bệnh nhân",
+        icon: <MessageSquare size={20} />,
+        link: "/admin-clinic/feedback",
+      },
+      {
+        title: "Danh sách đen",
+        icon: <Ban size={20} />,
+        link: "/admin-clinic/blacklist",
+      },
+      {
+        title: "Cảnh báo quá tải",
+        icon: <ClipboardCheck size={20} />,
+        link: "/admin-clinic/overload-alerts",
+      },
+    ];
+  }
 
   const handleLogout = () => {
     sessionStorage.clear();
     navigate("/login");
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500">Đang tải dữ liệu phòng khám...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
