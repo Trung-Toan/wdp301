@@ -6,6 +6,8 @@ import {
   Search,
   CheckCircle,
   XCircle,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 
@@ -17,6 +19,7 @@ const DoctorManagement = () => {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [specialties, setSpecialties] = useState([]);
   const [searchSpecialty, setSearchSpecialty] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -321,20 +324,30 @@ const DoctorManagement = () => {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Mật khẩu
                 </label>
+
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập mật khẩu"
                 />
+
+                {/* Nút con mắt */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
 
               <div>
