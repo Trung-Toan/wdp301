@@ -30,4 +30,9 @@ export const adminclinicAPI = {
   getClinicByAdmin: () => {
     return axiosInstance.get("/admin_clinic/get_clinic");
   },
+
+  //lấy chi tiết bác sĩ theo id
+  getDoctorById: (doctorId) => {
+    return axiosInstance.get(`/doctor/${doctorId}`);
+  }
 };
