@@ -13,11 +13,11 @@ export const adminclinicAPI = {
 
   //tạo tài khoản bác sĩ
   createAccountDoctor: (data) => {
-    return axiosInstance.post("/admin-clinic/account", data);
+    return axiosInstance.post("/admin_clinic/account", data);
   },
 
   //lấy danh sách bác sĩ của clinic mà admin clinic hiện tại quản lý
   getDoctorsOfAdminClinic: () => {
-    return axiosInstance.get("/admin-clinic/get_doctors");
+    return axiosInstance.get("/admin_clinic/get_doctors");
   },
 };
