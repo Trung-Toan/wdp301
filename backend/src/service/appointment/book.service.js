@@ -5,6 +5,7 @@ const Appointment = require("../../model/appointment/Appointment");
 const Slot = require("../../model/appointment/Slot");
 const Patient = require("../../model/patient/Patient");
 const { sendBookingEmail } = require("../../mail/mail");
+const { createAppointmentNotification } = require("../notification/notification.service");
 
 function randomBookingCode() {
     return `BK${Math.floor(100000 + Math.random() * 900000)}`;
@@ -217,10 +218,20 @@ async function createAsync(payload) {
                 email_error = e?.message || String(e);
             }
 
+            // 8) Tạo notification cho bệnh nhân (không rollback nếu fail)
+            let notification_created = false;
+            try {
+                await createAppointmentNotification(populated);
+                notification_created = true;
+            } catch (e) {
+                console.error("Failed to create notification:", e);
+            }
+
             result = {
                 ...populated,
                 email_sent,
                 email_error,
+                notification_created,
                 slot_info: {
                     slot_id: slot._id,
                     start_time: slot.start_time,
