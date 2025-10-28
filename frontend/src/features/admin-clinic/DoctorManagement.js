@@ -29,18 +29,27 @@ const DoctorManagement = () => {
       try {
         const res = await adminclinicAPI.getDoctorsOfAdminClinic();
         const doctorsData = res.data?.data || [];
-        const transformed = doctorsData.map((doc) => ({
-          id: doc._id,
-          name: doc.user_id?.full_name || "Không rõ",
-          specialty: doc.specialty_id?.name || "N/A",
-          email: doc.user_id?.account_id?.email || "N/A",
-          phone: doc.user_id?.account_id?.phone_number || "N/A",
-          status:
-            doc.user_id?.account_id?.status === "ACTIVE"
-              ? "ACTIVE"
-              : "INACTIVE",
-          doctorData: doc,
-        }));
+        const transformed = doctorsData.map((doc) => {
+          const specialties = Array.isArray(doc.specialty_id)
+            ? doc.specialty_id.map((s) => s.name).join(", ")
+            : "N/A";
+
+          return {
+            id: doc._id,
+            name: doc.user_id?.full_name || "Không rõ",
+            specialty: specialties,
+            email: doc.user_id?.account_id?.email || "N/A",
+            phone: doc.user_id?.account_id?.phone_number || "N/A",
+            status:
+              doc.user_id?.account_id?.status === "ACTIVE"
+                ? "ACTIVE"
+                : "INACTIVE",
+            doctorData: doc,
+          };
+        });
+
+        console.log("Lấy danh sách bác sĩ:", doctorsData);
+
         setDoctors(transformed);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách bác sĩ:", err);
@@ -69,13 +78,15 @@ const DoctorManagement = () => {
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
       if (res.data?.data) {
-        alert("✅ Tạo bác sĩ thành công!");
+        alert("Tạo bác sĩ thành công!");
         setShowModal(false);
         window.location.reload(); // refresh danh sách
       }
     } catch (err) {
       console.error("Lỗi khi tạo bác sĩ:", err);
-      alert("Không thể tạo bác sĩ: " + (err.response?.data?.message || err.message));
+      alert(
+        "Không thể tạo bác sĩ: " + (err.response?.data?.message || err.message)
+      );
     }
   };
 
@@ -166,25 +177,46 @@ const DoctorManagement = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Tên bác sĩ</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Chuyên khoa</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Email</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Điện thoại</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Trạng thái</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Hành động</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Tên bác sĩ
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Chuyên khoa
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Email
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Điện thoại
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Trạng thái
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Hành động
+              </th>
             </tr>
           </thead>
           <tbody>
             {filteredDoctors.map((doctor) => (
-              <tr key={doctor.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 text-sm font-semibold text-gray-900">{doctor.name}</td>
+              <tr
+                key={doctor.id}
+                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                  {doctor.name}
+                </td>
                 <td className="px-4 py-3">
                   <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
                     {doctor.specialty}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">{doctor.email}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {doctor.email}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {doctor.phone}
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => handleToggleStatus(doctor.id)}
@@ -244,60 +276,80 @@ const DoctorManagement = () => {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Tên bác sĩ</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Tên bác sĩ
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, full_name: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập tên bác sĩ"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Tên đăng nhập</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Tên đăng nhập
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập username"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Mật khẩu</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Mật khẩu
+                </label>
                 <input
                   type="password"
                   required
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập mật khẩu"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Điện thoại</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Điện thoại
+                </label>
                 <input
                   type="tel"
                   required
                   value={formData.phone_number}
-                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone_number: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập số điện thoại"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Chuyên khoa ID</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Chuyên khoa ID
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.specialty_id}
-                  onChange={(e) => setFormData({ ...formData, specialty_id: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, specialty_id: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập specialty_id"
                 />
