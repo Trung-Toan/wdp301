@@ -10,19 +10,19 @@ export const adminclinicAPI = {
   createRegistrationRequest: (data) => {
     return axiosInstance.post("/clinic-registration/create", data);
   },
-};
 
-//lấy clinic mà admin clinic hiện tại quản lý
-export const getClinicByAdmin = () => {
-  return axiosInstance.get("/admin-clinic/get_clinic");
-};
+  //lấy clinic mà admin clinic hiện tại quản lý
+  getClinicByAdmin: () => {
+    return axiosInstance.get("/admin-clinic/get_clinic");
+  },
 
-//tạo tài khoản bác sĩ
-export const createAccountDoctor = (data) => {
-  return axiosInstance.post("/admin-clinic/account", data);
-};
+  //tạo tài khoản bác sĩ
+  createAccountDoctor: (data) => {
+    return axiosInstance.post("/admin-clinic/account", data);
+  },
 
-//lấy danh sách bác sĩ của clinic mà admin clinic hiện tại quản lý
-export const getDoctorsOfAdminClinic = () => {
-  return axiosInstance.get("/admin-clinic/get_doctors");
+  //lấy danh sách bác sĩ của clinic mà admin clinic hiện tại quản lý
+  getDoctorsOfAdminClinic: () => {
+    return axiosInstance.get("/admin-clinic/get_doctors");
+  },
 };

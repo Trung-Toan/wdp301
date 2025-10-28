@@ -6,114 +6,89 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  Clock,
 } from "lucide-react";
+import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 
 const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([]);
-
-  useEffect(() => {
-    const transformedDoctors = sampleDoctors.map((doctor) => {
-      const user = sampleUsers.find((u) => u._id === doctor.user_id);
-      const specialties = doctor.specialty_id
-        .map((id) => sampleSpecialties.find((s) => s._id === id))
-        .map((s) => s?.name)
-        .join(", ");
-
-      return {
-        id: doctor._id,
-        name: user?.full_name || "Unknown",
-        specialty: specialties || "N/A",
-        email:
-          sampleAccounts.find((a) => a._id === user?.account_id)?.email ||
-          "N/A",
-        phone:
-          sampleAccounts.find((a) => a._id === user?.account_id)
-            ?.phone_number || "N/A",
-        status: "ACTIVE",
-        licenseStatus: "APPROVED",
-        licenseExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
-        joinDate: new Date(doctor.createdAt).toISOString().split("T")[0],
-        rating: doctor.rating || 4.5,
-        totalPatients: Math.floor(Math.random() * 200) + 50,
-        appointmentsToday: Math.floor(Math.random() * 15) + 1,
-        doctorData: doctor,
-      };
-    });
-    setDoctors(transformedDoctors);
-  }, []);
-
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [formData, setFormData] = useState({
-    name: "",
-    specialty: "",
-    email: "",
-    phone: "",
-    licenseStatus: "PENDING",
+    username: "",
+    password: "",
+    phone_number: "",
+    full_name: "",
+    specialty_id: "",
   });
+
+  //Lấy danh sách bác sĩ từ API
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await adminclinicAPI.get;
+        const doctorsData = res.data?.data || [];
+        const transformed = doctorsData.map((doc) => ({
+          id: doc._id,
+          name: doc.user_id?.full_name || "Không rõ",
+          specialty: doc.specialty_id?.name || "N/A",
+          email: doc.user_id?.account_id?.email || "N/A",
+          phone: doc.user_id?.account_id?.phone_number || "N/A",
+          status:
+            doc.user_id?.account_id?.status === "ACTIVE"
+              ? "ACTIVE"
+              : "INACTIVE",
+          doctorData: doc,
+        }));
+        setDoctors(transformed);
+      } catch (err) {
+        console.error("❌ Lỗi khi lấy danh sách bác sĩ:", err);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
+  // 🟢 Thêm bác sĩ mới (API)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        alert("Chức năng chỉnh sửa đang phát triển");
+        setShowModal(false);
+        return;
+      }
+
+      const payload = {
+        username: formData.username,
+        password: formData.password,
+        phone_number: formData.phone_number,
+        full_name: formData.full_name,
+        specialty_id: formData.specialty_id,
+      };
+
+      const res = await axios.post("/admin_clinic/account", payload);
+      if (res.data?.data) {
+        alert("✅ Tạo bác sĩ thành công!");
+        setShowModal(false);
+        window.location.reload(); // refresh danh sách
+      }
+    } catch (err) {
+      console.error("❌ Lỗi khi tạo bác sĩ:", err);
+      alert("Không thể tạo bác sĩ: " + (err.response?.data?.message || err.message));
+    }
+  };
 
   const handleAddDoctor = () => {
     setEditingId(null);
     setFormData({
-      name: "",
-      specialty: "",
-      email: "",
-      phone: "",
-      licenseStatus: "PENDING",
+      username: "",
+      password: "",
+      phone_number: "",
+      full_name: "",
+      specialty_id: "",
     });
     setShowModal(true);
-  };
-
-  const handleEditDoctor = (doctor) => {
-    setEditingId(doctor.id);
-    setFormData({
-      name: doctor.name,
-      specialty: doctor.specialty,
-      email: doctor.email,
-      phone: doctor.phone,
-      licenseStatus: doctor.licenseStatus,
-    });
-    setShowModal(true);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingId) {
-      setDoctors(
-        doctors.map((doc) =>
-          doc.id === editingId
-            ? {
-                ...doc,
-                ...formData,
-              }
-            : doc
-        )
-      );
-    } else {
-      const newDoctor = {
-        id: Math.max(...doctors.map((d) => d.id), 0) + 1,
-        ...formData,
-        status: "ACTIVE",
-        joinDate: new Date().toISOString().split("T")[0],
-        rating: 0,
-        totalPatients: 0,
-        appointmentsToday: 0,
-      };
-      setDoctors([...doctors, newDoctor]);
-    }
-    setFormData({
-      name: "",
-      specialty: "",
-      email: "",
-      phone: "",
-      licenseStatus: "PENDING",
-    });
-    setShowModal(false);
   };
 
   const handleDeleteDoctor = (id) => {
@@ -142,41 +117,11 @@ const DoctorManagement = () => {
       doc.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter = filterStatus === "ALL" || doc.status === filterStatus;
-
     return matchesSearch && matchesFilter;
   });
 
-  const getExpiringLicenses = () => {
-    const today = new Date();
-    const thirtyDaysFromNow = new Date(
-      today.getTime() + 30 * 24 * 60 * 60 * 1000
-    );
-
-    return doctors.filter((doc) => {
-      const expiryDate = new Date(doc.licenseExpiry);
-      return expiryDate <= thirtyDaysFromNow && expiryDate > today;
-    });
-  };
-
-  const expiringLicenses = getExpiringLicenses();
-
   return (
     <div className="flex flex-col gap-5">
-      {expiringLicenses.length > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-orange-50 border-l-4 border-l-orange-500 rounded-lg">
-          <Clock size={20} className="text-orange-500 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-orange-900">
-              Cảnh báo: Giấy phép sắp hết hạn
-            </p>
-            <p className="text-sm text-orange-700 mt-1">
-              {expiringLicenses.length} bác sĩ có giấy phép sắp hết hạn trong 30
-              ngày tới
-            </p>
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý bác sĩ</h1>
@@ -216,86 +161,30 @@ const DoctorManagement = () => {
         </select>
       </div>
 
+      {/* Bảng */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Tên bác sĩ
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Chuyên khoa
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Email
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Giấy phép
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Đánh giá
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Trạng thái
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Hành động
-              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Tên bác sĩ</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Chuyên khoa</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Email</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Điện thoại</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Trạng thái</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Hành động</th>
             </tr>
           </thead>
           <tbody>
             {filteredDoctors.map((doctor) => (
-              <tr
-                key={doctor.id}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                  {doctor.name}
-                </td>
+              <tr key={doctor.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 text-sm font-semibold text-gray-900">{doctor.name}</td>
                 <td className="px-4 py-3">
                   <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
                     {doctor.specialty}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {doctor.email}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className={`inline-block px-2 py-1 rounded text-xs font-semibold w-fit ${
-                        doctor.licenseStatus === "APPROVED"
-                          ? "bg-green-100 text-green-700"
-                          : doctor.licenseStatus === "PENDING"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {doctor.licenseStatus === "APPROVED"
-                        ? "Phê duyệt"
-                        : doctor.licenseStatus === "PENDING"
-                        ? "Chờ xử lý"
-                        : "Từ chối"}
-                    </span>
-                    {doctor.licenseExpiry && (
-                      <span className="text-xs text-gray-500">
-                        {new Date(doctor.licenseExpiry).toLocaleDateString(
-                          "vi-VN"
-                        )}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-gray-900">
-                      {doctor.rating.toFixed(1)}
-                    </span>
-                    <span className="text-xs text-yellow-500">
-                      {"★".repeat(Math.floor(doctor.rating))}
-                    </span>
-                  </div>
-                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{doctor.email}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone}</td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => handleToggleStatus(doctor.id)}
@@ -307,13 +196,11 @@ const DoctorManagement = () => {
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
-                        <CheckCircle size={16} />
-                        Hoạt động
+                        <CheckCircle size={16} /> Hoạt động
                       </>
                     ) : (
                       <>
-                        <XCircle size={16} />
-                        Không hoạt động
+                        <XCircle size={16} /> Không hoạt động
                       </>
                     )}
                   </button>
@@ -321,7 +208,7 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleEditDoctor(doctor)}
+                      onClick={() => alert("Chỉnh sửa đang phát triển")}
                       className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                       title="Chỉnh sửa"
                     >
@@ -342,6 +229,7 @@ const DoctorManagement = () => {
         </table>
       </div>
 
+      {/* Modal thêm bác sĩ */}
       {showModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -356,84 +244,63 @@ const DoctorManagement = () => {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Tên bác sĩ
-                </label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Tên bác sĩ</label>
                 <input
                   type="text"
                   required
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập tên bác sĩ"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Chuyên khoa
-                </label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Tên đăng nhập</label>
                 <input
                   type="text"
                   required
-                  value={formData.specialty}
-                  onChange={(e) =>
-                    setFormData({ ...formData, specialty: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập chuyên khoa"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập username"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Email
-                </label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Mật khẩu</label>
                 <input
-                  type="email"
+                  type="password"
                   required
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập email"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập mật khẩu"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Điện thoại
-                </label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Điện thoại</label>
                 <input
                   type="tel"
                   required
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Nhập số điện thoại"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Trạng thái giấy phép
-                </label>
-                <select
-                  value={formData.licenseStatus}
-                  onChange={(e) =>
-                    setFormData({ ...formData, licenseStatus: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="PENDING">Chờ xử lý</option>
-                  <option value="APPROVED">Phê duyệt</option>
-                  <option value="REJECTED">Từ chối</option>
-                </select>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Chuyên khoa ID</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.specialty_id}
+                  onChange={(e) => setFormData({ ...formData, specialty_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nhập specialty_id"
+                />
               </div>
 
               <div className="flex gap-3 justify-end pt-4">
