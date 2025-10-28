@@ -20,4 +20,9 @@ export const adminclinicAPI = {
   getDoctorsOfAdminClinic: () => {
     return axiosInstance.get("/admin_clinic/get_doctors");
   },
+
+  //lấy danh sách chuyên khoa
+  getSpecialties: () => {
+    return axiosInstance.get("/clinic-registration/specialties");
+  },
 };
