@@ -10,7 +10,7 @@ const { getDoctorDetailController } = require("../../controller/doctor/getDoctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
 
 /* ========================= PATIENTS ========================= */
-// GET /patients?page=1&limit=10&sarch=""
+// GET /patients?page=1&limit=10&search=""
 // view list patient of doctor with pagination
 router.get("/patients", authRequired, roleRequired("DOCTOR"), DoctorController.viewListPatients);
 
