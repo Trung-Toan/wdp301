@@ -12,7 +12,7 @@ import {
   Plus,
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
-import { adminclinicAPI } from "../../api/admin_clinic/adminclinicApi";
+import { adminclinicAPI } from "../api/admin-clinic/adminclinicAPI";
 
 const ClinicAdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -20,6 +20,27 @@ const ClinicAdminLayout = () => {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+  const fetchClinic = async () => {
+    try {
+      const res = await adminclinicAPI.getClinicByAdmin();
+      console.log("Clinic data fetched:", res?.data?.data);
+      
+      if (res.data?.ok) {
+        setClinic(res?.data?.data);
+      } else {
+        setClinic(null);
+      }
+    } catch (error) {
+      setClinic(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchClinic();
+}, []);
+
 
   let menuItems = [
     {
