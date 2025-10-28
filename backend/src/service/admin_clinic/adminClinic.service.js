@@ -107,6 +107,8 @@ exports.getClinicByAdmin = async (accountId) => {
     const clinic = await Clinic.findOne({ created_by: adminClinic._id });
     if (!clinic) throw new Error("Admin clinic này chưa có phòng khám nào.");
 
+    if (clinic.status !== "ACTIVE") throw new Error("Phòng khám này chưa đăng ký.");
+
     return { ok: true, data: clinic };
   } catch (error) {
     console.error("Lỗi khi lấy clinic của admin:", error);
