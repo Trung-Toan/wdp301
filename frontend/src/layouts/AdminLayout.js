@@ -21,13 +21,41 @@ const AdminLayout = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { title: "Tổng quan hệ thống", icon: <LayoutDashboard size={20} />, link: "/admin/dashboard" },
-    { title: "Quản lý phòng khám", icon: <Building2 size={20} />, link: "/admin/clinics" },
-    { title: "Quản lý tài khoản", icon: <Users size={20} />, link: "/admin/accounts" },
-    { title: "Quản lý giấy phép", icon: <FileText size={20} />, link: "/admin/licenses" },
-    { title: "Xem khiếu nại", icon: <AlertCircle size={20} />, link: "/admin/complaints" },
-    { title: "Tài khoản bị khóa", icon: <Ban size={20} />, link: "/admin/banned" },
-    { title: "Danh sách đen", icon: <Shield size={20} />, link: "/admin/blacklist" },
+    {
+      title: "Tổng quan hệ thống",
+      icon: <LayoutDashboard size={20} />,
+      link: "/admin/dashboard",
+    },
+    {
+      title: "Quản lý phòng khám",
+      icon: <Building2 size={20} />,
+      link: "/admin/clinics",
+    },
+    {
+      title: "Quản lý tài khoản",
+      icon: <Users size={20} />,
+      link: "/admin/accounts",
+    },
+    {
+      title: "Quản lý giấy phép",
+      icon: <FileText size={20} />,
+      link: "/admin/licenses",
+    },
+    {
+      title: "Xem khiếu nại",
+      icon: <AlertCircle size={20} />,
+      link: "/admin/complaints",
+    },
+    {
+      title: "Tài khoản bị khóa",
+      icon: <Ban size={20} />,
+      link: "/admin/banned",
+    },
+    {
+      title: "Danh sách đen",
+      icon: <Shield size={20} />,
+      link: "/admin/blacklist",
+    },
   ];
 
   const handleLogout = () => {
@@ -36,89 +64,138 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="clinic-admin-layout">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`sidebar ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
+        className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-indigo-900 to-indigo-800 text-white transition-all duration-300 z-40 flex flex-col shadow-lg ${
+          sidebarOpen ? "w-64" : "w-20"
+        }`}
       >
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="logo-icon">
-              <Shield size={28} />
+        <div className="border-b border-indigo-700 p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-400 to-pink-400">
+              {/* Sử dụng icon Shield từ AdminLayout */}
+              <Shield size={28} className="text-white" />
             </div>
-            {sidebarOpen && <span className="logo-text">MediCare Admin</span>}
+            {sidebarOpen && (
+              <span className="whitespace-nowrap text-lg font-bold">
+                {/* Sử dụng text từ AdminLayout */}
+                MediCare Admin
+              </span>
+            )}
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="flex-1 overflow-y-auto px-3 py-6">
+          {/* Map qua menuItems của AdminLayout */}
           {menuItems.map((item, index) => (
             <Link
               key={index}
               to={item.link}
-              className={`nav-item ${
-                location.pathname === item.link ? "nav-item-active" : ""
+              className={`mb-2 flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 no-underline ${
+                location.pathname === item.link
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                  : "text-indigo-100 hover:bg-indigo-700 hover:text-white"
               }`}
             >
-              <span className="nav-icon">{item.icon}</span>
-              {sidebarOpen && <span className="nav-text">{item.title}</span>}
+              <span className="flex-shrink-0">{item.icon}</span>
+              {sidebarOpen && (
+                <span className="whitespace-nowrap text-sm font-medium">
+                  {item.title}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
+        <div className="border-t border-indigo-700 p-3">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg bg-red-500/20 px-4 py-3 text-red-300 transition-all duration-200 hover:bg-red-500/30"
+          >
+            {/* Sử dụng icon LogOut từ AdminLayout */}
             <LogOut size={20} />
-            {sidebarOpen && <span>Đăng xuất</span>}
+            {sidebarOpen && (
+              <span className="whitespace-nowrap text-sm font-medium">
+                Đăng xuất
+              </span>
+            )}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="main-content">
+      <div
+        className={`flex flex-1 flex-col transition-all duration-300 ${
+          sidebarOpen ? "ml-64" : "ml-20"
+        }`}
+      >
         {/* Header */}
-        <header className="header">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="toggle-sidebar-btn"
-          >
-            {sidebarOpen ? <X size={24} /> : <List size={24} />}
-          </button>
-
-          <div className="header-right">
-            <button className="notification-btn">
-              <Bell size={20} />
-              <span className="notification-badge">3</span>
+        <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-6 py-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100"
+            >
+              {sidebarOpen ? <X size={24} /> : <List size={24} />}
             </button>
 
-            <div className="user-profile">
-              <UserCircle size={32} />
-              <div className="user-info">
-                <span className="user-name">Quản trị viên</span>
-                <span className="user-role">Admin</span>
+            <div className="flex items-center gap-6">
+              <button className="relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100">
+                <Bell size={20} />
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                  {/* Sử dụng badge "3" từ AdminLayout */}
+                  3
+                </span>
+              </button>
+
+              <div className="flex items-center gap-3 border-l border-gray-200 pl-6">
+                {/* Sử dụng icon UserCircle từ AdminLayout */}
+                <UserCircle size={32} className="text-indigo-600" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-800">
+                    {/* Sử dụng user name từ AdminLayout */}
+                    Quản trị viên
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {/* Sử dụng user role từ AdminLayout */}
+                    Admin
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="page-content">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
 
         {/* Footer */}
-        <footer className="footer">
-          <div className="footer-content">
-            <p className="footer-text">
+        <footer className="border-t border-gray-200 bg-white px-6 py-4">
+          <div className="flex items-center justify-between">
+            <p className="m-0 text-sm text-gray-600">
+              {/* Sử dụng text footer từ AdminLayout */}
               © 2025 MediCare Admin System. All rights reserved.
             </p>
-            <div className="footer-links">
-              <a href="/" className="footer-link">
+            <div className="flex gap-6">
+              <a
+                href="/"
+                className="text-sm text-gray-600 transition-colors hover:text-indigo-600 no-underline"
+              >
                 Điều khoản
               </a>
-              <a href="/" className="footer-link">
+              <a
+                href="/"
+                className="text-sm text-gray-600 transition-colors hover:text-indigo-600 no-underline"
+              >
                 Chính sách
               </a>
-              <a href="/" className="footer-link">
+              <a
+                href="/"
+                className="text-sm text-gray-600 transition-colors hover:text-indigo-600 no-underline"
+              >
                 Hỗ trợ
               </a>
             </div>
@@ -130,4 +207,3 @@ const AdminLayout = () => {
 };
 
 export default memo(AdminLayout);
-    
