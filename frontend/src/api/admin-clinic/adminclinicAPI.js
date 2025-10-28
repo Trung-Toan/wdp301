@@ -11,11 +11,6 @@ export const adminclinicAPI = {
     return axiosInstance.post("/clinic-registration/create", data);
   },
 
-  //lấy clinic mà admin clinic hiện tại quản lý
-  getClinicByAdmin: () => {
-    return axiosInstance.get("/admin-clinic/get_clinic");
-  },
-
   //tạo tài khoản bác sĩ
   createAccountDoctor: (data) => {
     return axiosInstance.post("/admin-clinic/account", data);

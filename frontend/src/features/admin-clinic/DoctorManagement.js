@@ -27,7 +27,7 @@ const DoctorManagement = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const res = await adminclinicAPI.get;
+        const res = await adminclinicAPI.getDoctorsOfAdminClinic();
         const doctorsData = res.data?.data || [];
         const transformed = doctorsData.map((doc) => ({
           id: doc._id,
@@ -43,13 +43,13 @@ const DoctorManagement = () => {
         }));
         setDoctors(transformed);
       } catch (err) {
-        console.error("❌ Lỗi khi lấy danh sách bác sĩ:", err);
+        console.error("Lỗi khi lấy danh sách bác sĩ:", err);
       }
     };
     fetchDoctors();
   }, []);
 
-  // 🟢 Thêm bác sĩ mới (API)
+  //Thêm bác sĩ mới
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -67,14 +67,14 @@ const DoctorManagement = () => {
         specialty_id: formData.specialty_id,
       };
 
-      const res = await axios.post("/admin_clinic/account", payload);
+      const res = await adminclinicAPI.createAccountDoctor(payload);
       if (res.data?.data) {
         alert("✅ Tạo bác sĩ thành công!");
         setShowModal(false);
         window.location.reload(); // refresh danh sách
       }
     } catch (err) {
-      console.error("❌ Lỗi khi tạo bác sĩ:", err);
+      console.error("Lỗi khi tạo bác sĩ:", err);
       alert("Không thể tạo bác sĩ: " + (err.response?.data?.message || err.message));
     }
   };
