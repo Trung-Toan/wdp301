@@ -354,6 +354,40 @@ export const mockAddresses = [
   },
 ]
 
+// SPECIALTY COLLECTION
+// ============================================
+export const sampleSpecialties = [
+  {
+    _id: "65a1b2c3d4e5f6g7h8i9j0k1",
+    name: "Tim mạch",
+    description: "Chuyên khoa tim mạch, điều trị các bệnh về tim và mạch máu",
+    icon_url: "https://example.com/icons/cardiology.png",
+    status: "ACTIVE",
+  },
+  {
+    _id: "65a1b2c3d4e5f6g7h8i9j0k2",
+    name: "Nội khoa",
+    description: "Chuyên khoa nội tổng quát",
+    icon_url: "https://example.com/icons/internal.png",
+    status: "ACTIVE",
+  },
+  {
+    _id: "65a1b2c3d4e5f6g7h8i9j0k3",
+    name: "Nhi khoa",
+    description: "Chuyên khoa nhi, chăm sóc sức khỏe trẻ em",
+    icon_url: "https://example.com/icons/pediatrics.png",
+    status: "ACTIVE",
+  },
+  {
+    _id: "65a1b2c3d4e5f6g7h8i9j0k4",
+    name: "Ngoại khoa",
+    description: "Chuyên khoa ngoại tổng quát",
+    icon_url: "https://example.com/icons/surgery.png",
+    status: "ACTIVE",
+  },
+];
+
+
 // Clinic schema
 export const mockClinics = [
   {
@@ -1704,9 +1738,9 @@ export const getPopulatedDoctor = (doctorId) => {
     ...doctor,
     user: user
       ? {
-          ...user,
-          account_id: account, // Populate account reference
-        }
+        ...user,
+        account_id: account, // Populate account reference
+      }
       : null,
     specialty,
     clinic,
@@ -1725,9 +1759,9 @@ export const getPopulatedPatient = (patientId) => {
     ...patient,
     user: user
       ? {
-          ...user,
-          account_id: account, // Populate account reference
-        }
+        ...user,
+        account_id: account, // Populate account reference
+      }
       : null,
   }
 }

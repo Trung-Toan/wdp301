@@ -5,6 +5,7 @@ import ClinicDashboard from "../features/admin-clinic/ClinicDashboard";
 // import DoctorManagement from "../features/clinic-admin/DoctorManagement";
 import AssistantManagement from "../features/admin-clinic/AssistantManagement";
 import ClinicCreation from "../features/admin-clinic/ClinicCreate";
+import DoctorManagement from "../features/admin-clinic/DoctorManagement";
 // import FeedbackViewer from "../features/clinic-admin/FeedbackViewer";
 // import BlacklistManagement from "../features/clinic-admin/BlacklistManagement";
 // import OverloadAlertsSystem from "../features/clinic-admin/OverloadAlertsSystem";
@@ -23,7 +24,9 @@ const RouterClinicAdmin = () => {
         <Route path="assistants" element={<AssistantManagement />} />
         <Route path="dashboard" element={<ClinicDashboard />} />
         <Route path="clinics" element={<ClinicCreation />} />
+        <Route path="manage-doctors" element={<DoctorManagement />} />
       </Route>
+
     </Routes>
   );
 };
