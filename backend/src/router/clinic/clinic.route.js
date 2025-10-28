@@ -248,4 +248,73 @@ router.get("/:clinicId/statistics/doctors/:doctorId", statisticsCtrl.getDoctorDe
 
 router.get("/allClinic", clinicCtrl.getAllClinic);
 
+// Import clinic detail controller
+const clinicDetailCtrl = require("../../controller/clinic/clinicDetail.controller");
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy thông tin chi tiết clinic
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Thông tin chi tiết clinic
+ */
+router.get("/:clinicId", clinicDetailCtrl.getClinicDetail);
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/doctors:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy danh sách bác sĩ của clinic
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: specialtyId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Danh sách bác sĩ
+ */
+router.get("/:clinicId/doctors", clinicDetailCtrl.getClinicDoctors);
+
+/**
+ * @swagger
+ * /api/clinic/{clinicId}/reviews:
+ *   get:
+ *     tags: [Clinic]
+ *     summary: Lấy đánh giá của clinic
+ *     parameters:
+ *       - in: path
+ *         name: clinicId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Danh sách đánh giá
+ */
+router.get("/:clinicId/reviews", clinicDetailCtrl.getClinicReviews);
+
 module.exports = router;
