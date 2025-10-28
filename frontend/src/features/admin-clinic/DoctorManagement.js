@@ -8,15 +8,8 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
-import {
-  sampleDoctors,
-  sampleUsers,
-  sampleAccounts,
-  sampleSpecialties,
-} from "../../data/mockData";
 
 const DoctorManagement = () => {
-  const [clinicType, setClinicType] = useState("MULTIPLE_DOCTORS");
   const [doctors, setDoctors] = useState([]);
 
   useEffect(() => {
@@ -136,19 +129,6 @@ const DoctorManagement = () => {
           ? {
               ...doc,
               status: doc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-            }
-          : doc
-      )
-    );
-  };
-
-  const handleUpdateLicenseStatus = (id, newStatus) => {
-    setDoctors(
-      doctors.map((doc) =>
-        doc.id === id
-          ? {
-              ...doc,
-              licenseStatus: newStatus,
             }
           : doc
       )
