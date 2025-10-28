@@ -99,19 +99,55 @@ exports.createDoctor = async (payload) => {
 exports.getClinicByAdmin = async (accountId) => {
   try {
     const user = await User.findOne({ account_id: accountId });
-    if (!user) throw new Error("Không tìm thấy user tương ứng với account này.");
+    if (!user)
+      throw new Error("Không tìm thấy user tương ứng với account này.");
 
     const adminClinic = await AdminClinic.findOne({ user_id: user._id });
-    if (!adminClinic) throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
+    if (!adminClinic)
+      throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
 
     const clinic = await Clinic.findOne({ created_by: adminClinic._id });
     if (!clinic) throw new Error("Admin clinic này chưa có phòng khám nào.");
 
-    if (clinic.status !== "ACTIVE") throw new Error("Phòng khám này chưa đăng ký.");
+    if (clinic.status !== "ACTIVE")
+      throw new Error("Phòng khám này chưa đăng ký.");
 
     return { ok: true, data: clinic };
   } catch (error) {
     console.error("Lỗi khi lấy clinic của admin:", error);
     return { ok: false, message: error.message };
+  }
+};
+
+//lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
+exports.getDoctorsByAdminClinic = async (adminAccountId) => {
+  try {
+    //Lấy user tương ứng với account id
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) throw new Error("Không tìm thấy user của admin clinic");
+
+    //Tìm bản ghi AdminClinic tương ứng
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) throw new Error("Không tìm thấy admin clinic");
+
+    //Lấy clinic do admin clinic này tạo
+    const clinics = await Clinic.find({ created_by: adminClinic._id });
+    if (!clinics.length) return [];
+
+    const clinicIds = clinics.map((c) => c._id);
+
+    //Lấy danh sách bác sĩ thuộc các clinic đó
+    const doctors = await Doctor.find({ clinic_id: { $in: clinicIds } })
+      .populate({
+        path: "user_id",
+        populate: { path: "account_id", model: "Account" },
+      })
+      .populate("specialty_id")
+      .populate("clinic_id");
+
+    return doctors;
+  } catch (err) {
+    console.error("Lỗi trong getDoctorsByAdminClinic:", err);
+    throw err;
   }
 };
