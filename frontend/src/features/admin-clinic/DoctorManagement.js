@@ -15,6 +15,8 @@ const DoctorManagement = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [specialties, setSpecialties] = useState([]);
+  const [searchSpecialty, setSearchSpecialty] = useState("");
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -22,6 +24,18 @@ const DoctorManagement = () => {
     full_name: "",
     specialty_id: "",
   });
+
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      try {
+        const res = await adminclinicAPI.getSpecialties();
+        setSpecialties(res.data?.data || []);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách chuyên khoa:", err);
+      }
+    };
+    fetchSpecialties();
+  }, []);
 
   //Lấy danh sách bác sĩ từ API
   useEffect(() => {
@@ -73,7 +87,7 @@ const DoctorManagement = () => {
         password: formData.password,
         phone_number: formData.phone_number,
         full_name: formData.full_name,
-        specialty_id: formData.specialty_id,
+        specialty_id: formData.specialty,
       };
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
@@ -341,18 +355,53 @@ const DoctorManagement = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Chuyên khoa ID
+                  Chuyên khoa
                 </label>
+
+                {/* Ô tìm kiếm */}
                 <input
                   type="text"
-                  required
-                  value={formData.specialty_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, specialty_id: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập specialty_id"
+                  placeholder="Tìm kiếm chuyên khoa..."
+                  value={searchSpecialty}
+                  onChange={(e) => setSearchSpecialty(e.target.value)}
+                  className="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+
+                {/* Dropdown cuộn */}
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg">
+                  {specialties
+                    .filter((s) =>
+                      s.name
+                        .toLowerCase()
+                        .includes(searchSpecialty.toLowerCase())
+                    )
+                    .map((s) => (
+                      <div
+                        key={s._id}
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            specialty: s._id,
+                            specialtyName: s.name,
+                          })
+                        }
+                        className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${
+                          formData.specialty === s._id
+                            ? "bg-blue-100 text-blue-700 font-semibold"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {s.name}
+                      </div>
+                    ))}
+                </div>
+
+                {/* Hiển thị chuyên khoa đã chọn */}
+                {formData.specialtyName && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Đã chọn: <b>{formData.specialtyName}</b>
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 justify-end pt-4">
