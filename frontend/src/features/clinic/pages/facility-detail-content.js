@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Star, Phone, Building2, Calendar, ChevronLeft, Loader2 } from "lucide-react";
+import { Star, Phone, Building2, Calendar, ChevronLeft, Loader2, Send } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { clinicApi } from "../../../api/clinic/clinicApi";
+import { useAuth } from "../../../hooks/useAuth";
 
 export default function FacilityDetail() {
     const { id: clinicId } = useParams();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState("overview");
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedSpecialty, setSelectedSpecialty] = useState("");
@@ -23,6 +25,16 @@ export default function FacilityDetail() {
     const [doctorsLoading, setDoctorsLoading] = useState(false);
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Review form states
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [selectedDoctor, setSelectedDoctor] = useState(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState("");
+    const [isAnonymous, setIsAnonymous] = useState(false);
+    const [submitingReview, setSubmitingReview] = useState(false);
+    const [reviewError, setReviewError] = useState(null);
+    const [reviewSuccess, setReviewSuccess] = useState(null);
 
     // Fetch clinic detail
     useEffect(() => {
@@ -100,6 +112,83 @@ export default function FacilityDetail() {
     useEffect(() => {
         setCurrentPage(1);
     }, [activeTab, selectedSpecialty]);
+
+    // Load doctors when review form is shown
+    useEffect(() => {
+        const loadDoctorsForReview = async () => {
+            if (showReviewForm && doctors.length === 0) {
+                try {
+                    const response = await clinicApi.getClinicDoctors(clinicId, {
+                        page: 1,
+                        limit: 100, // Get all doctors for selection
+                    });
+                    setDoctors(response.data.data);
+                } catch (err) {
+                    console.error("Error loading doctors for review:", err);
+                }
+            }
+        };
+
+        if (showReviewForm) {
+            loadDoctorsForReview();
+        }
+    }, [showReviewForm, clinicId, doctors.length]);
+
+    // Handle submit review
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
+        
+        if (!user) {
+            setReviewError("Bạn cần đăng nhập để đánh giá");
+            return;
+        }
+
+        if (!selectedDoctor) {
+            setReviewError("Vui lòng chọn bác sĩ để đánh giá");
+            return;
+        }
+
+        if (!reviewComment.trim()) {
+            setReviewError("Vui lòng nhập nội dung đánh giá");
+            return;
+        }
+
+        try {
+            setSubmitingReview(true);
+            setReviewError(null);
+            setReviewSuccess(null);
+
+            await clinicApi.submitReview({
+                doctor_id: selectedDoctor,
+                patient_id: user.patient?._id || user._id,
+                rating: reviewRating,
+                comment: reviewComment,
+                is_annonymous: isAnonymous,
+            });
+
+            setReviewSuccess("Cảm ơn bạn đã đánh giá!");
+            setReviewComment("");
+            setReviewRating(5);
+            setIsAnonymous(false);
+            setSelectedDoctor(null);
+            setShowReviewForm(false);
+
+            // Refresh reviews list
+            const response = await clinicApi.getClinicReviews(clinicId, {
+                page: 1,
+                limit: reviewsPerPage,
+            });
+            setReviews(response.data.data);
+            setReviewsMeta(response.data.meta);
+            setCurrentPage(1);
+
+        } catch (err) {
+            console.error("Error submitting review:", err);
+            setReviewError(err.response?.data?.error || "Không thể gửi đánh giá. Vui lòng thử lại sau.");
+        } finally {
+            setSubmitingReview(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -435,6 +524,173 @@ export default function FacilityDetail() {
 
                 {activeTab === "reviews" && (
                     <div>
+                        {/* Write Review Button */}
+                        {user ? (
+                            !showReviewForm ? (
+                                <div className="mb-6">
+                                    <button
+                                        onClick={() => {
+                                            setShowReviewForm(true);
+                                            setReviewError(null);
+                                            setReviewSuccess(null);
+                                        }}
+                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                    >
+                                        <Send className="h-5 w-5" />
+                                        Viết đánh giá
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSubmitReview} className="bg-white p-6 rounded-lg shadow mb-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-semibold">Viết đánh giá của bạn</h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowReviewForm(false);
+                                                setReviewError(null);
+                                                setReviewSuccess(null);
+                                            }}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                    {/* Select Doctor */}
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Chọn bác sĩ đã khám <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            value={selectedDoctor || ""}
+                                            onChange={(e) => setSelectedDoctor(e.target.value)}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                        >
+                                            <option value="">-- Chọn bác sĩ --</option>
+                                            {clinicData?.doctor_count > 0 && doctors.map((doctor) => (
+                                                <option key={doctor._id} value={doctor._id}>
+                                                    {doctor.title} {doctor.user?.full_name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Rating */}
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Đánh giá <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="flex gap-2">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    onClick={() => setReviewRating(star)}
+                                                    className="focus:outline-none transition-transform hover:scale-110"
+                                                >
+                                                    <Star
+                                                        className={`h-8 w-8 ${
+                                                            star <= reviewRating
+                                                                ? "fill-yellow-400 text-yellow-400"
+                                                                : "text-gray-300"
+                                                        }`}
+                                                    />
+                                                </button>
+                                            ))}
+                                            <span className="ml-2 text-gray-600 self-center">
+                                                {reviewRating} sao
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Comment */}
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Nhận xét <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            value={reviewComment}
+                                            onChange={(e) => setReviewComment(e.target.value)}
+                                            placeholder="Chia sẻ trải nghiệm của bạn..."
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            rows="4"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Anonymous */}
+                                    <div className="mb-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={isAnonymous}
+                                                onChange={(e) => setIsAnonymous(e.target.checked)}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Đánh giá ẩn danh</span>
+                                        </label>
+                                    </div>
+
+                                    {/* Error & Success Messages */}
+                                    {reviewError && (
+                                        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                                            {reviewError}
+                                        </div>
+                                    )}
+                                    {reviewSuccess && (
+                                        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+                                            {reviewSuccess}
+                                        </div>
+                                    )}
+
+                                    {/* Submit Button */}
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="submit"
+                                            disabled={submitingReview}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        >
+                                            {submitingReview ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Đang gửi...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Send className="h-4 w-4" />
+                                                    Gửi đánh giá
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowReviewForm(false);
+                                                setReviewError(null);
+                                                setReviewSuccess(null);
+                                            }}
+                                            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                        >
+                                            Hủy
+                                        </button>
+                                    </div>
+                                </form>
+                            )
+                        ) : (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <p className="text-blue-800 text-sm">
+                                    Bạn cần{" "}
+                                    <Link to="/login" className="font-medium underline hover:text-blue-900">
+                                        đăng nhập
+                                    </Link>{" "}
+                                    để viết đánh giá
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Reviews List */}
                         {reviewsLoading ? (
                             <div className="flex justify-center items-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />

@@ -44,4 +44,16 @@ export const clinicApi = {
      * @returns {Promise} - { data: [], meta: { total, page, limit, totalPages } }
      */
     getClinicReviews: (clinicId, params) => axiosInstance.get(`/clinic/${clinicId}/reviews`, { params }),
+
+    /**
+     * Tạo review/feedback cho một bác sĩ
+     * @param {Object} data - Dữ liệu review
+     * @param {string} data.doctor_id - ID của bác sĩ
+     * @param {string} data.patient_id - ID của bệnh nhân
+     * @param {number} data.rating - Đánh giá (1-5)
+     * @param {string} data.comment - Nội dung đánh giá
+     * @param {boolean} data.is_annonymous - Review ẩn danh
+     * @returns {Promise}
+     */
+    submitReview: (data) => axiosInstance.post(`/feedback`, data),
 };
