@@ -25,4 +25,9 @@ export const adminclinicAPI = {
   getSpecialties: () => {
     return axiosInstance.get("/clinic-registration/specialties");
   },
+
+  //lấy clinic mà admin clinic hiện tại quản lý
+  getClinicByAdmin: () => {
+    return axiosInstance.get("/admin_clinic/get_clinic");
+  },
 };
