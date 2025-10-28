@@ -77,8 +77,8 @@ export default function Header() {
         {/* 🔹 Actions */}
         <div className="flex items-center gap-3">
 
-          {/* Notifications */}
-          <NotificationDropdown />
+          {/* Notifications - Chỉ hiện khi đã đăng nhập */}
+          {user && <NotificationDropdown />}
 
           {/* 🔹 User dropdown */}
           {user ? (
