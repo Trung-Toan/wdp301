@@ -153,17 +153,21 @@ export default function Header() {
       {isMenuOpen && (
         <div className="border-t bg-white md:hidden shadow-sm animate-fadeIn">
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
-            {["Trang chủ", "Chuyên khoa", "Bác sĩ", "Cơ sở y tế", "Về chúng tôi"].map(
-              (label, i) => (
-                <Link
-                  key={i}
-                  href="#"
-                  className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
-                >
-                  {label}
-                </Link>
-              )
-            )}
+            {[
+              { label: "Trang chủ", link: "/home" },
+              { label: "Chuyên khoa", link: "/home/specialty" },
+              { label: "Bác sĩ", link: "/home/doctorlist" },
+              { label: "Cơ sở y tế", link: "/home/facility" },
+              { label: "Về chúng tôi", link: "/about" },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                to={item.link}
+                className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
             {user ? (
               <button
                 onClick={onLogout}
