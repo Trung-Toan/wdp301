@@ -11,8 +11,31 @@ export default function AppointmentsPage() {
     const [filter, setFilter] = useState("all"); // all, upcoming, completed, cancelled
 
     useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const patientId = user?.patient?._id || user?._id;
+                if (!patientId) throw new Error("Không tìm thấy thông tin bệnh nhân");
+
+                const params = { page: 1, limit: 50 };
+                if (filter === "upcoming") params.status = "SCHEDULED";
+                else if (filter === "completed") params.status = "COMPLETED";
+                else if (filter === "cancelled") params.status = "CANCELLED";
+
+                const response = await appointmentApi.getAllAppointmentOfPatient(patientId, params);
+                setAppointments(response.data.data || []);
+            } catch (err) {
+                setError(err.message || "Không thể tải danh sách lịch hẹn");
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchAppointments();
-    }, [filter]);
+    }, [filter, user]);
+
 
     const fetchAppointments = async () => {
         try {
@@ -97,11 +120,10 @@ export default function AppointmentsPage() {
                         <button
                             key={item.value}
                             onClick={() => setFilter(item.value)}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                                filter === item.value
+                            className={`px-4 py-2 rounded-xl font-medium transition-all ${filter === item.value
                                     ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md"
                                     : "bg-white text-gray-700 border-2 border-gray-200 hover:border-sky-300"
-                            }`}
+                                }`}
                         >
                             {item.label}
                         </button>
@@ -140,13 +162,12 @@ export default function AppointmentsPage() {
                                 <p className="text-gray-600 mb-6">
                                     {filter === "all"
                                         ? "Bạn chưa có lịch hẹn nào trong hệ thống"
-                                        : `Không có lịch hẹn nào trong danh mục "${
-                                              filter === "upcoming"
-                                                  ? "Sắp tới"
-                                                  : filter === "completed"
-                                                  ? "Đã hoàn thành"
-                                                  : "Đã hủy"
-                                          }"`}
+                                        : `Không có lịch hẹn nào trong danh mục "${filter === "upcoming"
+                                            ? "Sắp tới"
+                                            : filter === "completed"
+                                                ? "Đã hoàn thành"
+                                                : "Đã hủy"
+                                        }"`}
                                 </p>
                                 <a
                                     href="/home/facility"
