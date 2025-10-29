@@ -172,6 +172,17 @@ exports.createAssistant = async (payload) => {
   }
 };
 
+//Lấy danh sách trợ lý theo clinic
+exports.getAssistantsByClinic = async (clinicId) => {
+  return Assistant.find({ clinic_id: clinicId })
+    .populate({
+      path: "user_id",
+      populate: { path: "account_id", select: "username phone_number status" },
+    })
+    .populate("doctor_id", "user_id")
+    .lean();
+};
+
 //Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (accountId) => {
   try {
