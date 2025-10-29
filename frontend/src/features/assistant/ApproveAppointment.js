@@ -11,8 +11,9 @@ import {
   CalendarX,
   FileEarmarkPlus,
   PersonBadge,
-  PersonFill,
-  Clipboard2Pulse // Thêm icon tuổi
+  Clipboard2Pulse,
+  PlusCircle, // === THÊM ICON ===
+  XCircleFill, // === THÊM ICON ===
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
@@ -30,13 +31,24 @@ const getLocalDate = () => {
   const year = today.getFullYear();
   const month = (today.getMonth() + 1).toString().padStart(2, "0");
   const day = today.getDate().toString().padStart(2, "0");
-  return "2025-10-27"; // Hardcode cho mock data
+
+  // === SỬA DÒNG NÀY ===
+  return `${year}-${month}-${day}`;
 };
 
-// Cấu trúc form bệnh án
+// === THAY ĐỔI: Cấu trúc form bệnh án theo Schema ===
 const initialRecordFormData = {
-  diagnosis: "", symptoms: "", notes: "", status: "PRIVATE",
+  diagnosis: "",
+  symptoms: "",
+  notes: "",
+  attachments: "", // Thêm trường attachments từ schema
+  prescription: {
+    instruction: "",
+    medicines: [], // medicines là một mảng
+  },
+  status: "PRIVATE",
 };
+// ===============================================
 
 const ApproveAppointment = () => {
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
@@ -81,7 +93,6 @@ const ApproveAppointment = () => {
     fetchData();
   }, [selectedDate, doctorId]);
 
-  // === CẬP NHẬT HÀM NÀY ===
   const handleUpdateStatus = async (appointmentId, newStatus) => {
     // Tìm appointment gốc để lấy shiftId
     const targetAppointment = appointments.find(apt => apt._id === appointmentId);
@@ -132,7 +143,6 @@ const ApproveAppointment = () => {
       alert("Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.");
     }
   };
-  // ========================
 
   const getStatusBadge = (status) => {
     const config = {
@@ -166,7 +176,9 @@ const ApproveAppointment = () => {
   // --- Hàm cho Modal Bệnh Án ---
   const openCreateRecordModal = (appointment) => {
     setSelectedAptForRecord(appointment);
+    // === THAY ĐỔI: Reset state về cấu trúc MỚI ===
     setRecordFormData(initialRecordFormData);
+    // ============================================
     setRecordModalError("");
     setIsRecordModalOpen(true);
   };
@@ -176,11 +188,71 @@ const ApproveAppointment = () => {
     setSelectedAptForRecord(null);
   };
 
+  // === THAY ĐỔI: Hàm update cho các trường đơn giản ===
   const handleRecordFormChange = (e) => {
     const { name, value } = e.target;
     setRecordFormData((prev) => ({ ...prev, [name]: value }));
   };
+  // ===============================================
 
+  // === THÊM MỚI: Các hàm xử lý cho Đơn thuốc (Prescription) ===
+  const handlePrescriptionInstructionChange = (e) => {
+    const { value } = e.target;
+    setRecordFormData((prev) => ({
+      ...prev,
+      prescription: {
+        ...(prev.prescription || {}), // Đảm bảo prescription không undefined
+        instruction: value,
+      },
+    }));
+  };
+
+  const handleMedicineChange = (index, field, value) => {
+    setRecordFormData((prev) => {
+      // Đọc từ 'prev' và thêm check an toàn
+      const newMedicines = [...(prev.prescription?.medicines || [])];
+      newMedicines[index] = { ...newMedicines[index], [field]: value };
+      return {
+        ...prev,
+        prescription: {
+          ...(prev.prescription || {}),
+          medicines: newMedicines,
+        },
+      };
+    });
+  };
+
+  const addMedicine = () => {
+    setRecordFormData((prev) => ({
+      ...prev,
+      prescription: {
+        ...(prev.prescription || {}),
+        medicines: [
+          ...(prev.prescription?.medicines || []), // Thêm check an toàn
+          { name: "", dosage: "", frequency: "", duration: "", note: "" },
+        ],
+      },
+    }));
+  };
+
+  const removeMedicine = (index) => {
+    setRecordFormData((prev) => {
+      // Đọc từ 'prev' và thêm check an toàn
+      const newMedicines = (prev.prescription?.medicines || []).filter(
+        (_, i) => i !== index
+      );
+      return {
+        ...prev,
+        prescription: {
+          ...(prev.prescription || {}),
+          medicines: newMedicines,
+        },
+      };
+    });
+  };
+  // ========================================================
+
+  // === THAY ĐỔI: Hàm tạo payload mới theo Schema ===
   const handleCreateRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
@@ -189,13 +261,26 @@ const ApproveAppointment = () => {
     setIsSubmitting(true);
     setRecordModalError("");
     try {
+      // Xây dựng payload mới dựa trên schema
       const payload = {
-        ...recordFormData,
+        diagnosis: recordFormData.diagnosis,
         symptoms: recordFormData.symptoms.split(',').map(s => s.trim()).filter(s => s),
+        notes: recordFormData.notes,
+        attachments: recordFormData.attachments.split(',').map(s => s.trim()).filter(s => s),
+        prescription: {
+          instruction: recordFormData.prescription?.instruction || "",
+          // Lọc ra thuốc có tên (đề phòng người dùng add mà ko nhập)
+          medicines: (recordFormData.prescription?.medicines || []).filter(m => m.name && m.name.trim() !== ""),
+        },
+        status: recordFormData.status,
         doctor_id: doctorId,
         patient_id: selectedAptForRecord.patient._id,
         appointment_id: selectedAptForRecord._id,
+        // LƯU Ý: Schema của bạn có 'created_by' (Assistant) là 'required'.
+        // Bạn cần bổ sung logic để lấy ID của Assistant đang đăng nhập và gửi lên
+        // (ví dụ: created_by: "ID_ASSISTANT_DA_DANG_NHAP")
       };
+
       const res = await createMedicalRecord(payload);
       if (res.success) {
         alert("Tạo bệnh án thành công!");
@@ -209,7 +294,7 @@ const ApproveAppointment = () => {
       setIsSubmitting(false);
     }
   };
-  // --------------------------------
+  // ================================================
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -310,18 +395,14 @@ const ApproveAppointment = () => {
                                 <Telephone className="inline mr-1" />
                                 {apt.patient?.phone || "Không rõ"}
                               </p>
-                              {/* === THÊM TUỔI === */}
                               <p className="text-gray-500 text-sm mt-1">
                                 <PersonBadge className="inline mr-1" />
                                 Tuổi: {apt.patient?.age || "N/A"}
                               </p>
-                              {/* ================ */}
-                              {/* === ADDED REASON FOR VISIT === */}
                               <p className="text-gray-500 text-sm mt-1">
                                 <Clipboard2Pulse className="inline mr-1" />
                                 Lý do: {apt.reason || "Không rõ"}
                               </p>
-                              {/* ============================= */}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -348,54 +429,9 @@ const ApproveAppointment = () => {
                                 </button>
                               </>
                             )}
-                            {/* === THAY ĐỔI Ở ĐÂY === */}
                             {apt.status === "APPROVE" && (
-                              <> {/* <- Đổi <div> thành Fragment */}
-                                <button
-                                  onClick={() => openCreateRecordModal(apt)}
-                                  className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                  title="Tạo bệnh án"
-                                >
-                                  <FileEarmarkPlus size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateStatus(apt._id, "COMPLETED")}
-                                  className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
-                                  title="Đã khám xong"
-                                >
-                                  <CheckCircleFill size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateStatus(apt._id, "NO_SHOW")}
-                                  className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
-                                  title="Vắng mặt"
-                                >
-                                  <CalendarX size={16} />
-                                </button>
-                              </> /* <- Đổi </div> thành Fragment */
-                            )}
-                            {/* ===================== */}
-                            {/* {apt.status === "SCHEDULED" && (
                               <>
                                 <button
-                                  onClick={() => handleUpdateStatus(apt._id, "APPROVE")}
-                                  className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
-                                  title="Duyệt"
-                                >
-                                  <CheckCircle size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateStatus(apt._id, "CANCELLED")}
-                                  className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                  title="Hủy"
-                                >
-                                  <XCircle size={16} />
-                                </button>
-                              </>
-                            )} */}
-                            {/* {apt.status === "APPROVE" && (
-                              <div>
-                                <button
                                   onClick={() => openCreateRecordModal(apt)}
                                   className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
                                   title="Tạo bệnh án"
@@ -416,8 +452,8 @@ const ApproveAppointment = () => {
                                 >
                                   <CalendarX size={16} />
                                 </button>
-                              </div>
-                            )} */}
+                              </>
+                            )}
                           </div>
                         </div>
                       );
@@ -435,9 +471,8 @@ const ApproveAppointment = () => {
         )}
       </div>
 
-      {/* MODAL TẠO BỆNH ÁN */}
+      {/* === THAY ĐỔI: MODAL TẠO BỆNH ÁN (LỚN HƠN VÀ FORM MỚI) === */}
       <Transition appear show={isRecordModalOpen} as={Fragment}>
-        {/* ... (Code Modal giữ nguyên) ... */}
         <Dialog as="div" className="relative z-10" onClose={closeRecordModal}>
           <Transition.Child
             as={Fragment}
@@ -461,7 +496,8 @@ const ApproveAppointment = () => {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
+                {/* === THAY ĐỔI: Tăng max-w-lg thành max-w-3xl === */}
+                <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
                   <Dialog.Title
                     as="h3"
                     className="text-xl font-bold text-gray-900 mb-4"
@@ -476,60 +512,154 @@ const ApproveAppointment = () => {
                     </p>
                   )}
 
+                  {/* === THAY ĐỔI: Toàn bộ form mới === */}
                   <div className="flex flex-col gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Chẩn đoán <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="diagnosis"
-                        value={recordFormData.diagnosis}
-                        onChange={handleRecordFormChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                      />
+                    {/* Hàng 1: Chẩn đoán và Triệu chứng */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Chẩn đoán <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="diagnosis"
+                          value={recordFormData.diagnosis}
+                          onChange={handleRecordFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Triệu chứng (cách nhau bởi dấu phẩy)
+                        </label>
+                        <input
+                          type="text"
+                          name="symptoms"
+                          value={recordFormData.symptoms}
+                          onChange={handleRecordFormChange}
+                          placeholder="Vd: Ho, Sốt, Khó thở"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Triệu chứng (cách nhau bởi dấu phẩy)
-                      </label>
-                      <textarea
-                        name="symptoms"
-                        rows={3}
-                        value={recordFormData.symptoms}
-                        onChange={handleRecordFormChange}
-                        placeholder="Vd: Ho, Sốt, Khó thở"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                      />
+
+                    {/* Hàng 2: Ghi chú và Đính kèm */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Ghi chú
+                        </label>
+                        <textarea
+                          name="notes"
+                          rows={4}
+                          value={recordFormData.notes}
+                          onChange={handleRecordFormChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Đính kèm (Links, cách nhau bởi dấu phẩy)
+                        </label>
+                        <textarea
+                          name="attachments"
+                          rows={4}
+                          value={recordFormData.attachments}
+                          onChange={handleRecordFormChange}
+                          placeholder="Vd: https://example.com/xray.jpg"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Ghi chú
-                      </label>
-                      <textarea
-                        name="notes"
-                        rows={4}
-                        value={recordFormData.notes}
-                        onChange={handleRecordFormChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    {/* === THAY ĐỔI BẮT ĐẦU TỪ ĐÂY === */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+
+                    {/* === Khu vực Đơn thuốc (Prescription) === */}
+                    <div className="border-t border-gray-200 pt-4 mt-2">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-3">
                         Đơn thuốc
-                      </label>
-                      <textarea
-                        name="prescription"
-                        rows={4}
-                        value={recordFormData.prescription}
-                        onChange={handleRecordFormChange}
-                        placeholder="Vd: Paracetamol 500mg (2 viên/ngày, sau ăn) trong 3 ngày..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                      />
+                      </h4>
+                      {/* Danh sách thuốc */}
+                      <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
+                        {/* === SỬA LỖI: Thêm ?. và || [] để tránh crash === */}
+                        {(recordFormData.prescription?.medicines || []).map((med, index) => (
+                          <div key={index} className="p-3 border rounded-lg bg-gray-50 relative">
+                            <button
+                              type="button"
+                              onClick={() => removeMedicine(index)}
+                              className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                              title="Xóa thuốc"
+                            >
+                              <XCircleFill size={16} />
+                            </button>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <input
+                                type="text"
+                                placeholder="Tên thuốc"
+                                value={med.name}
+                                onChange={(e) => handleMedicineChange(index, "name", e.target.value)}
+                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Liều lượng (vd: 500mg)"
+                                value={med.dosage}
+                                onChange={(e) => handleMedicineChange(index, "dosage", e.target.value)}
+                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Tần suất (vd: 2 lần/ngày)"
+                                value={med.frequency}
+                                onChange={(e) => handleMedicineChange(index, "frequency", e.target.value)}
+                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Thời hạn (vd: 5 ngày)"
+                                value={med.duration}
+                                onChange={(e) => handleMedicineChange(index, "duration", e.target.value)}
+                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <textarea
+                              placeholder="Ghi chú cho thuốc..."
+                              rows={2}
+                              value={med.note}
+                              onChange={(e) => handleMedicineChange(index, "note", e.target.value)}
+                              className="w-full text-sm mt-3 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Nút thêm thuốc */}
+                      <button
+                        type="button"
+                        onClick={addMedicine}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors text-sm font-medium"
+                      >
+                        <PlusCircle size={16} />
+                        Thêm thuốc
+                      </button>
+
+                      {/* Hướng dẫn chung */}
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Hướng dẫn chung cho đơn thuốc
+                        </label>
+                        <textarea
+                          name="instruction"
+                          rows={3}
+                          value={recordFormData.prescription?.instruction || ""}
+                          onChange={handlePrescriptionInstructionChange}
+                          placeholder="Vd: Uống sau khi ăn, kiêng đồ cay nóng..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
                     </div>
-                    {/* ================================ */}
+                    {/* === Kết thúc khu vực đơn thuốc === */}
                   </div>
+                  {/* ================================ */}
+
 
                   {recordModalError && (
                     <div className="rounded-md bg-red-50 p-3 mt-4">
@@ -563,6 +693,7 @@ const ApproveAppointment = () => {
           </div>
         </Dialog>
       </Transition>
+      {/* ======================================================== */}
     </div>
   );
 };
