@@ -37,10 +37,18 @@ router.get(
 
 //tạo tài khoản trợ lý cho bác sĩ
 router.post(
-  "/assistant",
+  "/create_assistant",
   authRequired,
   roleRequired("ADMIN_CLINIC"),
   adminclinicController.createAccountAssistant
+);
+
+//xoá trợ lý theo clinic mà admin_clinic đang quản lý
+router.delete(
+  "/delete_assistant/:id",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.deleteAssistant
 );
 
 module.exports = router;
