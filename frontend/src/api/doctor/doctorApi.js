@@ -14,23 +14,33 @@ export const doctorApi = {
     axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params } }),
 
   //lay danh sach benh nhan
-  getAllPatient: (page, limit, search) => {
-    const params = new URLSearchParams({ page, limit });
-    if (search?.trim()) params.append("search", search.trim());
-    return axiosInstance.get(`/doctor/patients?${params.toString()}`);
-  },
+  GET_ALL_PATIENT: "/doctor/patients",
+  GET_PATIENT_BY_ID: (id) => `/doctor/patients/${id}`,
+  GET_LIST_APPOINTMENT: "/doctor/appointments",
+  GET_APPOINTMENT_BY_ID: (id) => `/doctor/appointments/${id}`,
+  
+
+  getAllPatient: (page = 1, limit = 10, search = "") =>
+    axiosInstance.get(doctorApi.GET_ALL_PATIENT, {
+      params: {
+        page,
+        limit,
+        ...(search.trim() && { search: search.trim() }),
+      }
+    }),
+
 
   //lay chi tiet benh nhan
   getPatientById: (patientId) =>
-    axiosInstance.get(`/doctor/patients/${patientId}`),
+    axiosInstance.get(doctorApi.GET_PATIENT_BY_ID(patientId)),
 
   //Lấy danh sách lịch hẹn
   getAppointments: (params) =>
-    axiosInstance.get("/doctor/appointments", { params }),
+    axiosInstance.get(doctorApi.GET_LIST_APPOINTMENT, { params }),
 
   //Lấy chi tiết lịch hẹn
   getAppointmentById: (appointmentId) =>
-    axiosInstance.get(`/doctor/appointments/${appointmentId}`),
+    axiosInstance.get(doctorApi.GET_APPOINTMENT_BY_ID(appointmentId)),
 
   //lấy danh sách hồ sơ bệnh án
   getAllMedicalRecords: () => axiosInstance.get("/doctor/medical-records"),
