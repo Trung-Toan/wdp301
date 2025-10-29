@@ -5,6 +5,7 @@ const User = require("../../model/user/User");
 const Doctor = require("../../model/doctor/Doctor");
 const AdminClinic = require("../../model/user/AdminClinic");
 const Clinic = require("../../model/clinic/Clinic");
+const Assistant = require("../../model/user/Assistant");
 
 const SALT_ROUNDS = 12;
 
@@ -91,6 +92,82 @@ exports.createDoctor = async (payload) => {
     return {
       ok: false,
       message: "Không thể tạo bác sĩ: " + error.message,
+    };
+  }
+};
+
+//tạo trợ lý
+exports.createAssistant = async (payload) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { username, password, phone_number, full_name, note, type, doctor_id, clinic_id } = payload;
+
+    //Tạo tài khoản
+    const hashedPassword = await hashPassword(password);
+    const acc = await Account.create(
+      [
+        {
+          username: username.trim(),
+          email: `assistant-${username}@example.com`,
+          phone_number: phone_number?.trim(),
+          password: hashedPassword,
+          role: "ASSISTANT",
+          status: "ACTIVE",
+          email_verified: false,
+        },
+      ],
+      { session }
+    );
+
+    //Tạo User (liên kết Account)
+    const user = await User.create(
+      [
+        {
+          full_name,
+          dob: null,
+          gender: null,
+          address: "",
+          account_id: acc[0]._id,
+        },
+      ],
+      { session }
+    );
+
+    //Tạo Assistant (liên kết User)
+    const assistant = await Assistant.create(
+      [
+        {
+          note,
+          type,
+          doctor_id,
+          clinic_id,
+          user_id: user[0]._id,
+        },
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      ok: true,
+      message: "Tạo trợ lý thành cong",
+      data: {
+        account: acc[0],
+        user: user[0],
+        assistant: assistant[0],
+      },
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Lỗi khi tạo trợ lý:", error);
+    return {
+      ok: false,
+      message: "Không thể tạo trợ lý: " + error.message,
     };
   }
 };
