@@ -17,6 +17,7 @@ import FacilityBooking from "../../features/clinic/pages/facility-booking-conten
 import ClinicSearchPage from "../../features/clinic/pages/ClinicSearchPage";
 import AppointmentsPage from "../../features/patient/pages/AppointmentsPage";
 
+
 export default function UserRoutes() {
     return (
         <Routes>
@@ -37,6 +38,7 @@ export default function UserRoutes() {
                 <Route path="clinics/search" element={<ClinicSearchPage />} />
                 <Route path="clinics/:id" element={<FacilityDetail />} />
                 <Route path="patient/appointments" element={<AppointmentsPage />} />
+
             </Route>
         </Routes>
     );

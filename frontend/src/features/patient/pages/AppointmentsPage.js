@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, MapPin, User, Phone, FileText, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, User, FileText, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import { appointmentApi } from "../../../api/patients/appointmentApi";
 

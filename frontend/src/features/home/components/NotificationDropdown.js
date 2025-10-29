@@ -47,6 +47,8 @@ export default function NotificationDropdown() {
 
     // Handle notification click
     const handleNotificationClick = async (notification) => {
+        console.log("🔍 Notification clicked:", notification);
+        
         // Mark as read
         if (!notification.is_read) {
             await markAsRead(notification._id);
@@ -54,9 +56,13 @@ export default function NotificationDropdown() {
 
         // Navigate to related content
         const link = getNotificationLink(notification);
+        console.log("🔗 Navigation link:", link);
+        
         if (link) {
             navigate(link);
             setOpen(false);
+        } else {
+            console.warn("⚠️ No navigation link for notification:", notification);
         }
     };
 
