@@ -35,4 +35,12 @@ router.get(
   adminclinicController.getAssistants
 );
 
+//tạo tài khoản trợ lý cho bác sĩ
+router.post(
+  "/assistant",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.createAccountAssistant
+);
+
 module.exports = router;
