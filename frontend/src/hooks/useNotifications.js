@@ -28,20 +28,28 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
             setLoading(true);
             setError(null);
 
+            console.log("🔄 Fetching notifications...");
             const response = await notificationApi.getNotifications({
                 page: params.page || meta.page,
                 limit: params.limit || meta.limit,
                 isRead: params.isRead,
             });
 
+            console.log("✅ Notification API Response:", response.data);
+
             if (response.data.success) {
                 setNotifications(response.data.data || []);
                 setMeta(response.data.meta || {});
                 setUnreadCount(response.data.meta?.unread_count || 0);
+                console.log("✅ Set notifications:", response.data.data?.length, "items");
+                console.log("✅ Unread count:", response.data.meta?.unread_count);
             }
         } catch (err) {
-            setError(err.response?.data?.error || "Failed to load notifications");
-            console.error("Error fetching notifications:", err);
+            const errorMsg = err.response?.data?.error || err.message || "Failed to load notifications";
+            setError(errorMsg);
+            console.error("❌ Error fetching notifications:", err);
+            console.error("❌ Error response:", err.response?.data);
+            console.error("❌ Error status:", err.response?.status);
         } finally {
             setLoading(false);
         }

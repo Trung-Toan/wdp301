@@ -6,7 +6,9 @@ const notificationService = require("../../service/notification/notification.ser
  */
 exports.getNotifications = async (req, res) => {
     try {
-        const accountId = req.user.id; // From authRequired middleware
+        const accountId = req.user.sub || req.user.id; // JWT uses 'sub' field
+        console.log("📬 Getting notifications for account:", accountId);
+        
         const { page, limit, isRead } = req.query;
 
         const result = await notificationService.getNotifications(accountId, {
@@ -15,6 +17,8 @@ exports.getNotifications = async (req, res) => {
             isRead: isRead === "true" ? true : isRead === "false" ? false : undefined
         });
 
+        console.log("✅ Found", result.data?.length || 0, "notifications");
+        
         return res.json({
             success: true,
             ...result
@@ -34,7 +38,7 @@ exports.getNotifications = async (req, res) => {
  */
 exports.markAsRead = async (req, res) => {
     try {
-        const accountId = req.user.id;
+        const accountId = req.user.sub || req.user.id; // JWT uses 'sub' field
         const { id } = req.params;
 
         const notification = await notificationService.markAsRead(id, accountId);
@@ -58,7 +62,7 @@ exports.markAsRead = async (req, res) => {
  */
 exports.markAllAsRead = async (req, res) => {
     try {
-        const accountId = req.user.id;
+        const accountId = req.user.sub || req.user.id; // JWT uses 'sub' field
 
         const result = await notificationService.markAllAsRead(accountId);
 
@@ -81,7 +85,7 @@ exports.markAllAsRead = async (req, res) => {
  */
 exports.getUnreadCount = async (req, res) => {
     try {
-        const accountId = req.user.id;
+        const accountId = req.user.sub || req.user.id; // JWT uses 'sub' field
 
         const result = await notificationService.getUnreadCount(accountId);
 
@@ -104,7 +108,7 @@ exports.getUnreadCount = async (req, res) => {
  */
 exports.deleteNotification = async (req, res) => {
     try {
-        const accountId = req.user.id;
+        const accountId = req.user.sub || req.user.id; // JWT uses 'sub' field
         const { id } = req.params;
 
         const result = await notificationService.deleteNotification(id, accountId);
