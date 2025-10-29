@@ -38,27 +38,41 @@ const AssistantManagement = () => {
   const fetchAssistants = async () => {
     try {
       const res = await adminclinicAPI.getAssistantsOfAdminClinic();
-      if (res.data.success) {
-        const data = res.data.data.map((a) => ({
-          id: a._id,
-          name: a.user_id?.full_name,
-          role:
-            roles.find((r) => r.value === a.type)?.label ||
-            a.type ||
-            "Không rõ",
-          phone: a.user_id?.account_id?.phone_number,
-          email: a.user_id?.account_id?.username,
-          assignedDoctor: a.doctor_id?.user_id?.full_name
-            ? `BS. ${a.doctor_id.user_id.full_name}`
-            : "Chưa gán",
-          status: a.user_id?.account_id?.status || "ACTIVE",
-          assistantData: a,
-        }));
-        setAssistants(data);
+      if (res.data.ok) {
+        const transformed = res.data.data.map((assistant) => {
+          const user = assistant.user_id;
+          const acc = user.account_id;
+          const doctor = assistant.doctor_id;
+          const doctorUser = doctor?.user_id;
+
+          return {
+            id: assistant._id,
+            name: user?.full_name || "Chưa có tên",
+            role:
+              assistant.type === "NURSE"
+                ? "Y tá"
+                : assistant.type === "RECEPTIONIST"
+                ? "Lễ tân"
+                : assistant.type === "TECHNICIAN"
+                ? "Kỹ thuật viên"
+                : "Quản lý phòng khám",
+            email: `${acc?.username}@example.com`,
+            phone: acc?.phone_number || "N/A",
+            status: acc?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+            assignedDoctor: doctorUser
+              ? `BS. ${doctorUser.full_name}`
+              : "Chưa gán bác sĩ",
+            assistantData: assistant,
+          };
+        });
+
+        setAssistants(transformed);
+      } else {
+        toast.error(res.data.message || "Không thể tải danh sách trợ lý");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Không thể tải danh sách trợ lý!");
+      toast.error("Lỗi khi tải danh sách trợ lý");
     }
   };
 
