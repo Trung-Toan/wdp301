@@ -12,6 +12,7 @@ export default function FacilityDetail() {
     const [selectedSpecialty, setSelectedSpecialty] = useState("");
     const doctorsPerPage = 10;
     const reviewsPerPage = 10;
+    const tabsRef = React.useRef(null);
 
     // State cho clinic detail
     const [clinicData, setClinicData] = useState(null);
@@ -69,6 +70,8 @@ export default function FacilityDetail() {
                     page: currentPage,
                     limit: doctorsPerPage,
                 });
+                console.log("🩺 Doctors API Response:", response.data.data);
+                console.log("🩺 First doctor:", response.data.data[0]);
                 setDoctors(response.data.data);
                 setDoctorsMeta(response.data.meta);
             } catch (err) {
@@ -334,14 +337,23 @@ export default function FacilityDetail() {
                             </h3>
                             
                             <div className="space-y-3">
-                                <Link 
-                                    to={`/home/facilities/${clinicId}/booking`}
+                                <button 
+                                    onClick={() => {
+                                        setActiveTab("doctors");
+                                        // Scroll to tabs section
+                                        setTimeout(() => {
+                                            tabsRef.current?.scrollIntoView({ 
+                                                behavior: 'smooth', 
+                                                block: 'start' 
+                                            });
+                                        }, 100);
+                                    }}
                                     className="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white py-3.5 rounded-xl hover:from-sky-600 hover:to-blue-700 flex items-center justify-center gap-2 font-medium shadow-md hover:shadow-lg transition-all"
                                 >
                                     <Calendar className="h-5 w-5" />
                                     Đặt lịch ngay
-                                </Link>
-                                
+                            </button>
+
                                 {clinicData.phone && (
                                     <a 
                                         href={`tel:${clinicData.phone}`}
@@ -397,7 +409,7 @@ export default function FacilityDetail() {
             </div>
 
             {/* Tabs */}
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div ref={tabsRef} className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="bg-white rounded-2xl shadow-lg p-2 mb-6 overflow-x-auto">
                     <div className="flex gap-2 min-w-max">
                         {[
@@ -502,10 +514,13 @@ export default function FacilityDetail() {
                         ) : doctors.length > 0 ? (
                             <>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                                    {doctors.map((doctor) => (
+                                    {doctors.map((doctor) => {
+                                        const doctorId = doctor._id || doctor.id;
+                                        console.log("👨‍⚕️ Doctor:", doctor.user?.full_name, "ID:", doctorId);
+                                        return (
                                         <Link
-                                            key={doctor.id}
-                                            to={`/home/doctordetail/${doctor._id}`}
+                                            key={doctorId}
+                                            to={`/home/doctordetail/${doctorId}`}
                                             className="group bg-white p-6 rounded-2xl shadow-lg border-2 border-transparent hover:border-sky-300 hover:shadow-xl transition-all"
                                         >
                                             <div className="flex gap-4 sm:gap-6">
@@ -540,11 +555,12 @@ export default function FacilityDetail() {
                                                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                                                         <span className="text-sm font-bold text-amber-700">{doctor.rating || 0}</span>
                                                         <span className="text-xs text-amber-600">({doctor.review_count || 0})</span>
-                                            </div>
                                         </div>
                                     </div>
+                                </div>
                                         </Link>
-                            ))}
+                                        );
+                                    })}
                         </div>
 
                         {/* Pagination */}
@@ -637,11 +653,14 @@ export default function FacilityDetail() {
                                             required
                                         >
                                             <option value="">-- Chọn bác sĩ --</option>
-                                            {clinicData?.doctor_count > 0 && doctors.map((doctor) => (
-                                                <option key={doctor._id} value={doctor._id}>
+                                            {clinicData?.doctor_count > 0 && doctors.map((doctor) => {
+                                                const doctorId = doctor._id || doctor.id;
+                                                return (
+                                                <option key={doctorId} value={doctorId}>
                                                     {doctor.title} {doctor.user?.full_name}
                                                 </option>
-                                            ))}
+                                                );
+                                            })}
                                         </select>
                                     </div>
 
