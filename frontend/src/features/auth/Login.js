@@ -93,7 +93,10 @@ const Login = () => {
         navigate("/doctor/dashboard");
       }
       else if (account.role === "ADMIN_CLINIC") {
-        navigate("/clinic-admin/dashboard");
+        navigate("/admin-clinic/dashboard");
+      }
+      else if (account.role === "ADMIN_SYSTEM") {
+
       }
       else if (account.role === "ASSISSTANT") {
         navigate("/assistant/dashboard");

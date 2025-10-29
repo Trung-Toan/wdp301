@@ -13,5 +13,5 @@ export const routeConfig = [
   { path: "/doctor/*", element: <DoctorRoutes />, roles: ["DOCTOR"] },
   { path: "/assistant/*", element: <AssistantRoutes />, roles: ["ASSISTANT"] },
   { path: "/owner/*", element: <OwnerRoutes />, roles: ["OWNER"] },
-  { path: "/admin_clinic/*", element: <AdminClinicRoutes />, roles: ["ADMIN_CLINIC"]},
+  { path: "/admin-clinic/*", element: <AdminClinicRoutes />, roles: ["ADMIN_CLINIC"]},
 ];
