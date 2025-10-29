@@ -1,3 +1,4 @@
+import { createAccountAssistant } from "../../../../backend/src/controller/admin_clinic/admin_clinic.controller";
 import { axiosInstance } from "../axiosInstance";
 
 export const adminclinicAPI = {
@@ -34,5 +35,10 @@ export const adminclinicAPI = {
   //lấy chi tiết bác sĩ theo id
   getDoctorById: (doctorId) => {
     return axiosInstance.get(`/doctor/${doctorId}`);
-  }
+  },
+
+  //tạo tài khoản trợ lý cho bác sĩ
+  createAccountAssistant: (data) => {
+    return axiosInstance.post("/admin_clinic/create_assistant", data);
+  },  
 };
