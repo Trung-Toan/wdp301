@@ -40,7 +40,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-blue-100 shadow-sm transition-all duration-300">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        {/* 🔹 Logo */}
+        {/* Logo */}
         <div className="flex items-center gap-8">
           <Link
             to="/home"
@@ -54,7 +54,7 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* 🔹 Menu Desktop */}
+          {/* Menu Desktop */}
           <nav className="hidden md:flex items-center gap-6">
             {[
               { label: "Trang chủ", link: "/home" },
@@ -74,13 +74,13 @@ export default function Header() {
           </nav>
         </div>
 
-        {/* 🔹 Actions */}
+        {/* Actions */}
         <div className="flex items-center gap-3">
 
           {/* Notifications - Chỉ hiện khi đã đăng nhập */}
           {user && <NotificationDropdown />}
 
-          {/* 🔹 User dropdown */}
+          {/* User dropdown */}
           {user ? (
             <Dropdown align="end">
               <Dropdown.Toggle
@@ -139,7 +139,7 @@ export default function Header() {
             </Link>
           )}
 
-          {/* 🔹 Mobile Menu */}
+          {/* Mobile Menu */}
           <button
             className="md:hidden p-2 rounded-xl hover:bg-sky-50 transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -149,7 +149,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* 🔹 Mobile Dropdown */}
+      {/* Mobile Dropdown */}
       {isMenuOpen && (
         <div className="border-t bg-white md:hidden shadow-sm animate-fadeIn">
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
