@@ -4,6 +4,7 @@ const {
   getDoctorsByAdminClinic,
   createAssistant,
   getAssistantsByClinic,
+  deleteAssistant,
 } = require("../../service/admin_clinic/adminClinic.service");
 
 //Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
@@ -94,6 +95,16 @@ exports.getAssistants = async (req, res, next) => {
 
     const result = await getAssistantsByClinic(clinic._id);
     res.status(result.ok ? 200 : 400).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+//xoá trợ lý theo clinic mà admin_clinic đang quản lý
+exports.deleteAssistant = async (req, res, next) => {
+  try {
+    await deleteAssistant(req.params.id);
+    res.status(200).json({ ok: true, message: "Xoá trợ lý thành công." });
   } catch (err) {
     next(err);
   }
