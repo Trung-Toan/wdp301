@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Button from "../../../../components/ui/Button";
 import LocationSelector from "../../components/LocationSelector";
-import { clinicApi, specialtyApi } from "../../../../api";
+import { specialtyApi } from "../../../../api";
 import { useNavigate } from "react-router-dom";
 
 export function HeroSection() {

@@ -21,7 +21,10 @@ const PatientList = () => {
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 5;
+  const limit = 1;
+
+  console.log("patients: ", patients);
+  
 
   // Gọi danh sách bệnh nhân
   useEffect(() => {
@@ -65,7 +68,7 @@ const PatientList = () => {
   };
 
   const handleViewDetails = (patient) => {
-    fetchPatientDetails(patient.patient_id);
+    fetchPatientDetails(patient?.appointment_id);
   };
 
   const handleCloseModal = () => {
@@ -165,7 +168,7 @@ const PatientList = () => {
                       </div>
                     </td>
                     <td>{patient.email || "N/A"}</td>
-                    <td>{patient.phone_number || "N/A"}</td>
+                    <td>{patient?.phone || "N/A"}</td>
                     <td className="text-center">
                       <button
                         onClick={() => handleViewDetails(patient)}

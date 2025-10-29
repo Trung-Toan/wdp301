@@ -259,7 +259,14 @@ exports.viewListMedicalRecords = async (req, res) => {
 
 // GET /medical-records/:recordId
 exports.viewMedicalRecordDetail = async (req, res) => {
-  res.json({ message: `View medical record detail with ID ${req.params.recordId}` });
+  try {
+    const {recordId} = req.params;
+    const record = await medical_recordService.getMedicalRecordById(recordId);
+    return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
+  } catch(error) {
+    console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể lấy giữ liệu");
+  }
 };
 
 /**
