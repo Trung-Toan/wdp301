@@ -46,4 +46,9 @@ export const adminclinicAPI = {
   getAssistantsOfAdminClinic: () => {
     return axiosInstance.get("/admin_clinic/get_assistants");
   },
+
+  //xoá trợ lý theo id
+  deleteAssistant: (assistantId) => {
+    return axiosInstance.delete(`/admin_clinic/delete_assistant/${assistantId}`);
+  },
 };
