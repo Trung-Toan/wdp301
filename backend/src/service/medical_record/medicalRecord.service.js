@@ -582,12 +582,8 @@ exports.getListMedicalRecordsVerify = async (req) => {
   }
 };
 
-exports.getMedicalRecordById = async (req) => {
+exports.getMedicalRecordById = async (recordId) => {
   try {
-    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
-    const doctorId = doctor._id.toString();
-
-    const { recordId } = req.params;
     const medicalRecord = await MedicalRecord
       .findById(recordId)
       .populate({
