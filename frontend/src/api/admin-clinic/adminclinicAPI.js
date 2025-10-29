@@ -41,4 +41,9 @@ export const adminclinicAPI = {
   createAccountAssistant: (data) => {
     return axiosInstance.post("/admin_clinic/create_assistant", data);
   },  
+
+  //lấy danh sách trợ lý của clinic mà admin clinic hiện tại quản lý
+  getAssistantsOfAdminClinic: () => {
+    return axiosInstance.get("/admin_clinic/get_assistants");
+  },
 };
