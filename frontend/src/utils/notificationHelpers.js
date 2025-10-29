@@ -200,16 +200,23 @@ export const filterNotificationsByReadStatus = (notifications, isRead) => {
  * @returns {string|null}
  */
 export const getNotificationLink = (notification) => {
+    // Appointment notification - Navigate to patient appointments page
     if (notification.related_appointment) {
-        return `/appointments/${notification.related_appointment._id || notification.related_appointment}`;
+        // For now, navigate to patient appointments page
+        // In the future, you can create a specific appointment detail page
+        return `/patient/appointments`;
     }
     
+    // Clinic notification - Navigate to clinic detail
     if (notification.related_clinic) {
-        return `/clinic/${notification.related_clinic._id || notification.related_clinic}`;
+        const clinicId = notification.related_clinic._id || notification.related_clinic;
+        return `/home/facilities/${clinicId}`;
     }
     
+    // Doctor notification - Navigate to doctor detail
     if (notification.related_doctor) {
-        return `/doctor/${notification.related_doctor._id || notification.related_doctor}`;
+        const doctorId = notification.related_doctor._id || notification.related_doctor;
+        return `/home/doctordetail/${doctorId}`;
     }
     
     return null;

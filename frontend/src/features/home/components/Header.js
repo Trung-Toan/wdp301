@@ -115,10 +115,10 @@ export default function Header() {
                 <Dropdown.Divider />
                 <Dropdown.Item
                   as={Link}
-                  to="/patient/appointment"
+                  to="/patient/appointments"
                   className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
                 >
-                  <Calendar /> Lịch hẹn
+                  <Calendar /> Lịch hẹn của tôi
                 </Dropdown.Item>
                 <Dropdown.Divider />
                 <Dropdown.Item
