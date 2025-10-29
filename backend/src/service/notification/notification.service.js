@@ -7,21 +7,27 @@ const mongoose = require("mongoose");
  */
 async function createAppointmentNotification(appointmentData) {
     try {
-        // Lấy thông tin patient để lấy account_id
+        // Lấy thông tin patient -> user_id -> account_id
         const patient = await Patient.findById(appointmentData.patient_id)
-            .populate("account_id")
+            .populate({
+                path: "user_id",
+                select: "account_id full_name"
+            })
             .lean();
 
-        if (!patient || !patient.account_id) {
-            console.error("Patient or account_id not found for notification");
+        if (!patient || !patient.user_id || !patient.user_id.account_id) {
+            console.error("Patient, user_id, or account_id not found for notification");
+            console.log("Patient data:", patient);
             return null;
         }
+
+        const accountId = patient.user_id.account_id;
 
         const notification = new Notification({
             title: "Đặt lịch khám thành công",
             type: "APPOINTMENT",
             content: `Bạn đã đặt lịch khám thành công với ${appointmentData.doctor_id?.user_id?.full_name || "bác sĩ"} vào ngày ${new Date(appointmentData.scheduled_date).toLocaleDateString("vi-VN")}. Mã đặt lịch: ${appointmentData.booking_code}`,
-            recipient_id: patient.account_id._id || patient.account_id,
+            recipient_id: accountId,
             recipient_type: "PATIENT",
             related_appointment: appointmentData._id,
             related_clinic: appointmentData.clinic_id,
@@ -36,6 +42,7 @@ async function createAppointmentNotification(appointmentData) {
         });
 
         await notification.save();
+        console.log("✅ Notification created successfully for account:", accountId);
         return notification;
     } catch (error) {
         console.error("Error creating appointment notification:", error);
