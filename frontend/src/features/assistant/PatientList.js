@@ -5,40 +5,26 @@ import { useNavigate } from "react-router-dom";
 // Đã xóa "Eye" khỏi import
 import { Search, FileText, PeopleFill } from "react-bootstrap-icons";
 import { getPatients } from "../../services/assistantService";
-// (Hãy đảm bảo đường dẫn `../../services/assistantService` là chính xác)
+import { useDataByUrl } from "../../utility/data.utils";
+import { PATIENT_API } from "../../api/assistant/assistant.api";
 
 const PatientList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, isLoading, error } = useDataByUrl({
+    url: PATIENT_API.GET_LIST_PATIENT,
+    key: "patients-list",
+    params: { page: 1, limit: 10, search: searchTerm },
+  });
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await getPatients();
-        if (res.success) {
-          setPatients(res.data);
-        } else {
-          setError(res.error || "Không thể tải danh sách bệnh nhân.");
-        }
-      } catch (err) {
-        setError("Đã xảy ra lỗi: " + err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPatients();
-  }, []);
+  const patients = data?.data || [];
+  const pagination = data?.pagination || [];
 
-  const filteredPatients = patients.filter(
+  const filteredPatients = patients?.filter(
     (patient) =>
-      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.phone.includes(searchTerm)
+      patient?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
+      patient?.phone?.includes(searchTerm)
   );
 
   return (
@@ -75,7 +61,7 @@ const PatientList = () => {
         </div>
 
         {/* Bảng dữ liệu */}
-        {loading ? (
+        {isLoading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-600 font-medium">Đang tải dữ liệu...</p>
@@ -96,28 +82,28 @@ const PatientList = () => {
                     <th className="px-6 py-3 font-semibold">Tuổi</th>
                     <th className="px-6 py-3 font-semibold">Giới tính</th>
                     <th className="px-6 py-3 font-semibold">Số điện thoại</th>
-                    <th className="px-6 py-3 font-semibold">Lần khám cuối</th>
-                    <th className="px-6 py-3 font-semibold">Chẩn đoán</th>
+                    {/* <th className="px-6 py-3 font-semibold">Lần khám cuối</th>
+                    <th className="px-6 py-3 font-semibold">Chẩn đoán</th> */}
                     <th className="px-6 py-3 font-semibold">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredPatients.length > 0 ? (
-                    filteredPatients.map((patient) => (
-                      <tr key={patient._id} className="bg-white hover:bg-gray-50">
+                  {patients?.length > 0 ? (
+                    patients?.map((patient) => (
+                      <tr key={patient?._id} className="bg-white hover:bg-gray-50">
                         <td className="px-6 py-4 font-medium text-gray-900">
-                          {patient._id}
+                          {patient?.patient_code}
                         </td>
                         <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                          {patient.name}
+                          {patient?.full_name}
                         </td>
-                        <td className="px-6 py-4">{patient.age}</td>
-                        <td className="px-6 py-4">{patient.gender}</td>
-                        <td className="px-6 py-4">{patient.phone}</td>
+                        <td className="px-6 py-4">{patient?.age}</td>
+                        <td className="px-6 py-4">{patient?.gender}</td>
+                        <td className="px-6 py-4">{patient?.phone_number}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {patient.lastVisit}
+                          {patient?.lastVisit}
                         </td>
-                        <td className="px-6 py-4">{patient.diagnosis}</td>
+                        <td className="px-6 py-4">{patient?.diagnosis}</td>
 
                         {/* === THAY ĐỔI Ở ĐÂY === */}
                         <td className="px-6 py-4">
@@ -125,7 +111,7 @@ const PatientList = () => {
                           <button
                             className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
                             onClick={() =>
-                              navigate(`/doctor/medical-records/${patient._id}`)
+                              navigate(`/doctor/medical-records/${patient?._id}`)
                             }
                             title="Xem bệnh án"
                           >
