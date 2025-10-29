@@ -2,151 +2,138 @@ import { memo, useState, useEffect } from "react";
 import {
   Plus,
   Trash2,
-  Edit2,
   Search,
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import {
-  sampleAssistants,
-  sampleUsers,
-  sampleAccounts,
-  sampleDoctors,
-} from "../../data/mockData";
+import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
+import { toast } from "react-toastify";
 
 const AssistantManagement = () => {
   const [assistants, setAssistants] = useState([]);
-
-  useEffect(() => {
-    const transformedAssistants = sampleAssistants.map((assistant) => {
-      const user = sampleUsers.find((u) => u._id === assistant.user_id);
-      const doctor = sampleDoctors.find((d) => d._id === assistant.doctor_id);
-      const doctorUser = sampleUsers.find((u) => u._id === doctor?.user_id);
-
-      return {
-        id: assistant._id,
-        name: user?.full_name || "Unknown",
-        role: "Y tá",
-        email:
-          sampleAccounts.find((a) => a._id === user?.account_id)?.email ||
-          "N/A",
-        phone:
-          sampleAccounts.find((a) => a._id === user?.account_id)
-            ?.phone_number || "N/A",
-        status: "ACTIVE",
-        assignedDoctor: doctorUser?.full_name
-          ? `BS. ${doctorUser.full_name}`
-          : "N/A",
-        assistantData: assistant,
-      };
-    });
-    setAssistants(transformedAssistants);
-  }, []);
-
+  const [doctors, setDoctors] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
+
   const [formData, setFormData] = useState({
-    name: "",
-    role: "",
-    email: "",
-    phone: "",
-    assignedDoctor: "",
-    shift: "MORNING",
+    username: "",
+    password: "",
+    phone_number: "",
+    full_name: "",
+    note: "",
+    type: "NURSE",
+    doctor_id: "",
+    clinic_id: "",
   });
 
-  const roles = ["Lễ tân", "Y tá", "Kỹ thuật viên", "Quản lý phòng khám"];
-  const doctors = ["BS. Nguyễn Văn A", "BS. Trần Thị B", "BS. Lê Văn C"];
-  const handleAddAssistant = () => {
-    setEditingId(null);
-    setFormData({
-      name: "",
-      role: "",
-      email: "",
-      phone: "",
-      assignedDoctor: "",
-      shift: "MORNING",
-    });
-    setShowModal(true);
+  const roles = [
+    { label: "Y tá", value: "NURSE" },
+    { label: "Lễ tân", value: "RECEPTIONIST" },
+    { label: "Kỹ thuật viên", value: "TECHNICIAN" },
+    { label: "Quản lý phòng khám", value: "ADMINISTRATOR" },
+  ];
+
+  const fetchAssistants = async () => {
+    try {
+      const res = await adminclinicAPI.getAssistantsOfAdminClinic();
+      if (res.data.ok) {
+        const transformed = res.data.data.map((assistant) => {
+          const user = assistant.user_id;
+          const acc = user.account_id;
+          const doctor = assistant.doctor_id;
+          const doctorUser = doctor?.user_id;
+
+          return {
+            id: assistant._id,
+            name: user?.full_name || "Chưa có tên",
+            role:
+              assistant.type === "NURSE"
+                ? "Y tá"
+                : assistant.type === "RECEPTIONIST"
+                ? "Lễ tân"
+                : assistant.type === "TECHNICIAN"
+                ? "Kỹ thuật viên"
+                : "Quản lý phòng khám",
+            email: `${acc?.username}@example.com`,
+            phone: acc?.phone_number || "N/A",
+            status: acc?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+            assignedDoctor: doctorUser
+              ? `BS. ${doctorUser.full_name}`
+              : "Chưa gán bác sĩ",
+            assistantData: assistant,
+          };
+        });
+
+        setAssistants(transformed);
+      } else {
+        toast.error(res.data.message || "Không thể tải danh sách trợ lý");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi tải danh sách trợ lý");
+    }
   };
 
-  const handleEditAssistant = (assistant) => {
-    setEditingId(assistant.id);
-    setFormData({
-      name: assistant.name,
-      role: assistant.role,
-      email: assistant.email,
-      phone: assistant.phone,
-      assignedDoctor: assistant.assignedDoctor,
-      shift: assistant.shift,
-    });
-    setShowModal(true);
+  const fetchDoctors = async () => {
+    try {
+      const res = await adminclinicAPI.getDoctorsOfAdminClinic();
+      if (res.data.success) setDoctors(res.data.data || []);
+    } catch {
+      toast.error("Không thể tải danh sách bác sĩ!");
+    }
   };
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchAssistants();
+    fetchDoctors();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      setAssistants(
-        assistants.map((asst) =>
-          asst.id === editingId
-            ? {
-                ...asst,
-                ...formData,
-              }
-            : asst
-        )
-      );
-    } else {
-      const newAssistant = {
-        id: Math.max(...assistants.map((a) => a.id), 0) + 1,
-        ...formData,
-        status: "ACTIVE",
-        hireDate: new Date().toISOString().split("T")[0],
-        performanceRating: 0,
-        tasksCompleted: 0,
-        certifications: [],
-      };
-      setAssistants([...assistants, newAssistant]);
-    }
-    setFormData({
-      name: "",
-      role: "",
-      email: "",
-      phone: "",
-      assignedDoctor: "",
-      shift: "MORNING",
-    });
-    setShowModal(false);
-  };
 
-  const handleDeleteAssistant = (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) {
-      setAssistants(assistants.filter((asst) => asst.id !== id));
+    try {
+      await adminclinicAPI.createAccountAssistant(formData);
+      toast.success("Tạo trợ lý thành công!");
+      setShowModal(false);
+      setFormData({
+        username: "",
+        password: "",
+        phone_number: "",
+        full_name: "",
+        note: "",
+        type: "NURSE",
+        doctor_id: "",
+        clinic_id: "",
+      });
+      fetchAssistants();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Lỗi khi tạo trợ lý");
     }
   };
 
-  const handleToggleStatus = (id) => {
-    setAssistants(
-      assistants.map((asst) =>
-        asst.id === id
-          ? {
-              ...asst,
-              status: asst.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-            }
-          : asst
-      )
-    );
+
+  const handleDeleteAssistant = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
+    try {
+      await adminclinicAPI.deleteAssistant(id);
+      toast.success("Đã xoá trợ lý");
+      fetchAssistants();
+    } catch (err) {
+      toast.error("Không thể xoá trợ lý");
+    }
   };
 
   const filteredAssistants = assistants.filter((asst) => {
     const matchesSearch =
-      asst.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asst.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asst.assignedDoctor.toLowerCase().includes(searchTerm.toLowerCase());
+      asst.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asst.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asst.assignedDoctor?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = filterRole === "ALL" || asst.role === filterRole;
+    const matchesRole =
+      filterRole === "ALL" ||
+      roles.find((r) => r.label === asst.role)?.value === filterRole;
     const matchesStatus =
       filterStatus === "ALL" || asst.status === filterStatus;
 
@@ -164,7 +151,7 @@ const AssistantManagement = () => {
         </div>
 
         <button
-          onClick={handleAddAssistant}
+          onClick={() => setShowModal(true)}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full md:w-auto"
         >
           <Plus size={20} />
@@ -172,6 +159,7 @@ const AssistantManagement = () => {
         </button>
       </div>
 
+      {/* Bộ lọc */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center flex-wrap">
         <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-300 rounded-lg flex-1 min-w-64">
           <Search size={20} className="text-gray-400" />
@@ -190,9 +178,9 @@ const AssistantManagement = () => {
           className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="ALL">Tất cả chức vụ</option>
-          {roles.map((role) => (
-            <option key={role} value={role}>
-              {role}
+          {roles.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
             </option>
           ))}
         </select>
@@ -208,6 +196,7 @@ const AssistantManagement = () => {
         </select>
       </div>
 
+      {/* Bảng danh sách */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -256,44 +245,32 @@ const AssistantManagement = () => {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => handleToggleStatus(assistant.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
                       assistant.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {assistant.status === "ACTIVE" ? (
                       <>
-                        <CheckCircle size={16} />
-                        Hoạt động
+                        <CheckCircle size={16} /> Hoạt động
                       </>
                     ) : (
                       <>
-                        <XCircle size={16} />
-                        Không hoạt động
+                        <XCircle size={16} /> Ngừng
                       </>
                     )}
-                  </button>
+                  </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditAssistant(assistant)}
-                      className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAssistant(assistant.id)}
-                      className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleDeleteAssistant(assistant.id)}
+                    className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                    title="Xóa"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -301,6 +278,7 @@ const AssistantManagement = () => {
         </table>
       </div>
 
+      {/* Modal thêm trợ lý */}
       {showModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -311,121 +289,99 @@ const AssistantManagement = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold text-gray-900 mb-5">
-              {editingId ? "Chỉnh sửa trợ lý" : "Thêm trợ lý mới"}
+              Thêm trợ lý mới
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Tên trợ lý
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập tên trợ lý"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Chức vụ
-                  </label>
-                  <select
-                    required
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Chọn chức vụ</option>
-                    {roles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <input
+                  type="text"
+                  placeholder="Tên đăng nhập"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                  className="border p-2 rounded"
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="Mật khẩu"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  className="border p-2 rounded"
+                  required
+                />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Điện thoại
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập số điện thoại"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    Bác sĩ phụ trách
-                  </label>
-                  <select
-                    required
-                    value={formData.assignedDoctor}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        assignedDoctor: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Chọn bác sĩ</option>
-                    {doctors.map((doctor) => (
-                      <option key={doctor} value={doctor}>
-                        {doctor}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end pt-4">
+              <input
+                type="text"
+                placeholder="Họ và tên"
+                value={formData.full_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, full_name: e.target.value })
+                }
+                className="border p-2 rounded w-full"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Số điện thoại"
+                value={formData.phone_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone_number: e.target.value })
+                }
+                className="border p-2 rounded w-full"
+                required
+              />
+              <textarea
+                placeholder="Ghi chú"
+                value={formData.note}
+                onChange={(e) =>
+                  setFormData({ ...formData, note: e.target.value })
+                }
+                className="border p-2 rounded w-full"
+              />
+              <select
+                value={formData.type}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                className="border p-2 rounded w-full"
+              >
+                {roles.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={formData.doctor_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, doctor_id: e.target.value })
+                }
+                className="border p-2 rounded w-full"
+              >
+                <option value="">-- Gán bác sĩ --</option>
+                {doctors.map((doc) => (
+                  <option key={doc._id} value={doc._id}>
+                    {doc.user_id?.full_name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-gray-200 rounded"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
                 >
-                  {editingId ? "Cập nhật" : "Thêm trợ lý"}
+                  Tạo
                 </button>
               </div>
             </form>

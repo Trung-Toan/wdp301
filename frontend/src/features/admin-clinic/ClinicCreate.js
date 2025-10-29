@@ -1,16 +1,20 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { Plus, X, MapPin, Clock, FileText } from "lucide-react";
-import { sampleClinics, sampleSpecialties } from "../../data/mockData";
+import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 
 const ClinicCreation = () => {
   const [showModal, setShowModal] = useState(false);
-  const [clinics, setClinics] = useState(sampleClinics);
-  const [clinicType, setClinicType] = useState("MULTIPLE_DOCTORS");
+  const [clinics, setClinics] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(true);
+  const [filteredSpecialties, setFilteredSpecialties] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
     website: "",
+    logo_url: "",
+    banner_url: "",
     description: "",
     registration_number: "",
     opening_hours: "08:00",
@@ -25,6 +29,29 @@ const ClinicCreation = () => {
     specialties: [],
   });
 
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      try {
+        setLoadingSpecialties(true);
+        const res = await adminclinicAPI.getAllSpecialties();
+        if (res.data.ok) {
+          setSpecialties(res.data.data);
+          setFilteredSpecialties(res.data.data);
+        } else {
+          console.error(
+            "Không thể lấy danh sách chuyên khoa:",
+            res.data.message
+          );
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API chuyên khoa:", error);
+      } finally {
+        setLoadingSpecialties(false);
+      }
+    };
+    fetchSpecialties();
+  }, []);
+
   const handleAddClinic = () => {
     setShowModal(true);
     setFormData({
@@ -33,12 +60,14 @@ const ClinicCreation = () => {
       email: "",
       website: "",
       description: "",
+      logo_url: "",
+      banner_url: "",
       registration_number: "",
       opening_hours: "08:00",
       closing_hours: "20:00",
       address: {
-        province: { code: "79", name: "TP. Hồ Chí Minh" },
-        ward: { code: "00001", name: "Phường Bến Nghé" },
+        province: { code: "01", name: "Hà Nội" },
+        ward: { code: "00001", name: "Phường Cửa Đông" },
         houseNumber: "",
         street: "",
         alley: "",
@@ -47,46 +76,28 @@ const ClinicCreation = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newRequest = {
-      _id: `request_${Date.now()}`,
-      ...formData,
-      clinic_type: clinicType,
-      status: "PENDING",
-      requested_by: "68e4fb9303bb8005b8f4c0fe", // Current user ID
-      rejection_reason: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
 
-    // Store request in sessionStorage for demo
-    const requests = JSON.parse(
-      sessionStorage.getItem("clinicRequests") || "[]"
-    );
-    requests.push(newRequest);
-    sessionStorage.setItem("clinicRequests", JSON.stringify(requests));
+    try {
+      const payload = {
+        clinic_info: formData,
+      };
 
-    setShowModal(false);
-    alert("Yêu cầu tạo phòng khám đã được gửi! Vui lòng chờ duyệt.");
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      website: "",
-      description: "",
-      registration_number: "",
-      opening_hours: "08:00",
-      closing_hours: "20:00",
-      address: {
-        province: { code: "79", name: "TP. Hồ Chí Minh" },
-        ward: { code: "00001", name: "Phường Bến Nghé" },
-        houseNumber: "",
-        street: "",
-        alley: "",
-      },
-      specialties: [],
-    });
+      // Gửi yêu cầu duyệt tạo phòng khám
+      const res = await adminclinicAPI.createRegistrationRequest(payload);
+
+      if (res.data.ok) {
+        alert("Yêu cầu tạo phòng khám đã được gửi! Vui lòng chờ duyệt.");
+        setShowModal(false);
+        setClinics([...clinics, res.data.data]);
+      } else {
+        alert("Gửi yêu cầu thất bại: " + res.data.message);
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi yêu cầu tạo phòng khám:", error);
+      alert("Không thể gửi yêu cầu. Vui lòng thử lại.");
+    }
   };
 
   const handleSpecialtyChange = (specialtyId) => {
@@ -127,11 +138,22 @@ const ClinicCreation = () => {
           >
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
               <h3 className="text-lg font-bold">{clinic.name}</h3>
-              <p className="text-sm text-blue-100 mt-1">
-                {clinic.clinic_type === "SINGLE_DOCTOR"
-                  ? "1 bác sĩ"
-                  : "Nhiều bác sĩ"}
-              </p>
+              {/* Hiển thị trạng thái */}
+              {clinic.status === "PENDING" && (
+                <p className="text-sm text-yellow-200 mt-1 italic">
+                  Phòng khám đang chờ duyệt
+                </p>
+              )}
+              {clinic.status === "REJECTED" && (
+                <p className="text-sm text-red-200 mt-1 italic">
+                  Phòng khám bị từ chối
+                </p>
+              )}
+              {clinic.status === "APPROVED" && (
+                <p className="text-sm text-green-200 mt-1 italic">
+                  Phòng khám đã được duyệt
+                </p>
+              )}
             </div>
 
             <div className="p-4 space-y-3">
@@ -142,10 +164,10 @@ const ClinicCreation = () => {
                 />
                 <div className="text-sm">
                   <p className="text-gray-900 font-semibold">
-                    {clinic.address.fullAddress}
+                    {clinic.address?.houseNumber} {clinic.address?.street}
                   </p>
                   <p className="text-gray-600 text-xs mt-1">
-                    {clinic.address.province.name}
+                    {clinic.address?.province?.name}
                   </p>
                 </div>
               </div>
@@ -186,14 +208,17 @@ const ClinicCreation = () => {
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-3">
-                <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-600 rounded font-semibold text-sm hover:bg-blue-200 transition-colors">
-                  Chỉnh sửa
-                </button>
-                <button className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded font-semibold text-sm hover:bg-red-200 transition-colors">
-                  Xóa
-                </button>
-              </div>
+              {/* Nếu PENDING thì không hiển thị nút */}
+              {clinic.status !== "PENDING" && (
+                <div className="flex gap-2 pt-3">
+                  <button className="flex-1 px-3 py-2 bg-blue-100 text-blue-600 rounded font-semibold text-sm hover:bg-blue-200 transition-colors">
+                    Chỉnh sửa
+                  </button>
+                  <button className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded font-semibold text-sm hover:bg-red-200 transition-colors">
+                    Xóa
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -221,43 +246,6 @@ const ClinicCreation = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Clinic Type Selection */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  Loại phòng khám
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setClinicType("SINGLE_DOCTOR")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      clinicType === "SINGLE_DOCTOR"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold text-gray-900">1 bác sĩ</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Phòng khám chỉ có 1 bác sĩ
-                    </p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setClinicType("MULTIPLE_DOCTORS")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      clinicType === "MULTIPLE_DOCTORS"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold text-gray-900">Nhiều bác sĩ</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Phòng khám có nhiều bác sĩ
-                    </p>
-                  </button>
-                </div>
-              </div>
-
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -469,29 +457,66 @@ const ClinicCreation = () => {
                 </div>
               </div>
 
-              {/* Specialties */}
+              {/* Chuyên khoa */}
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4">
                   Chuyên khoa
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {sampleSpecialties.map((specialty) => (
-                    <label
-                      key={specialty._id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
+
+                {loadingSpecialties ? (
+                  <p className="text-gray-500 text-sm">
+                    Đang tải chuyên khoa...
+                  </p>
+                ) : (
+                  <>
+                    {/* Ô tìm kiếm chuyên khoa */}
+                    <div className="mb-3">
                       <input
-                        type="checkbox"
-                        checked={formData.specialties.includes(specialty._id)}
-                        onChange={() => handleSpecialtyChange(specialty._id)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        type="text"
+                        placeholder="Tìm kiếm chuyên khoa..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onChange={(e) => {
+                          const keyword = e.target.value.toLowerCase();
+                          setFilteredSpecialties(
+                            specialties.filter((s) =>
+                              s.name.toLowerCase().includes(keyword)
+                            )
+                          );
+                        }}
                       />
-                      <span className="text-sm text-gray-900">
-                        {specialty.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                    </div>
+
+                    {/* Danh sách rút gọn và có cuộn */}
+                    <div className="max-h-48 overflow-y-auto pr-1">
+                      {filteredSpecialties.length > 0 ? (
+                        filteredSpecialties.map((specialty) => (
+                          <label
+                            key={specialty._id}
+                            className="flex items-center gap-2 py-1 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.specialties.includes(
+                                specialty._id
+                              )}
+                              onChange={() =>
+                                handleSpecialtyChange(specialty._id)
+                              }
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-900">
+                              {specialty.name}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-sm italic">
+                          Không tìm thấy chuyên khoa nào
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Form Actions */}
