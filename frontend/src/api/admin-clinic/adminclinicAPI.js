@@ -1,4 +1,3 @@
-import { createAccountAssistant } from "../../../../backend/src/controller/admin_clinic/admin_clinic.controller";
 import { axiosInstance } from "../axiosInstance";
 
 export const adminclinicAPI = {
