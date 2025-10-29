@@ -174,13 +174,18 @@ exports.createAssistant = async (payload) => {
 
 //Lấy danh sách trợ lý theo clinic
 exports.getAssistantsByClinic = async (clinicId) => {
-  return Assistant.find({ clinic_id: clinicId })
+  const data = await Assistant.find({ clinic_id: clinicId })
     .populate({
       path: "user_id",
       populate: { path: "account_id", select: "username phone_number status" },
     })
-    .populate("doctor_id", "user_id")
+    .populate({
+      path: "doctor_id",
+      populate: { path: "user_id", select: "full_name" },
+    })
     .lean();
+
+  return { ok: true, data };
 };
 
 //xoá trợ lý
