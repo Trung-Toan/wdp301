@@ -4,6 +4,7 @@ const { Types } = mongoose;
 const Appointment = require("../../model/appointment/Appointment");
 const Slot = require("../../model/appointment/Slot");
 const Patient = require("../../model/patient/Patient");
+const Doctor = require("../../model/doctor/Doctor");
 const { sendBookingEmail } = require("../../mail/mail");
 const { createAppointmentNotification } = require("../notification/notification.service");
 
@@ -59,6 +60,72 @@ async function checkSlotAvailability(slotId, targetDate) {
 }
 
 /**
+ * Tự động assign bác sĩ available trong clinic
+ * Tìm bác sĩ có slot trống trong ngày và phù hợp với specialty_id (nếu có)
+ */
+async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, excludeSlotId = null) {
+    try {
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Build doctor filter
+        const doctorFilter = {
+            clinic_id: new Types.ObjectId(clinicId),
+            status: "ACTIVE"
+        };
+        
+        // Add specialty filter if provided
+        if (specialtyId && Types.ObjectId.isValid(specialtyId)) {
+            doctorFilter.specialty_id = new Types.ObjectId(specialtyId);
+        }
+
+        // Lấy danh sách bác sĩ trong phòng khám
+        const doctors = await Doctor.find(doctorFilter).select("_id").lean();
+
+        if (doctors.length === 0) {
+            throw new Error("No doctors found in this clinic");
+        }
+
+        // Tìm bác sĩ có slot available trong ngày
+        for (const doctor of doctors) {
+            const doctorSlots = await Slot.find({
+                doctor_id: doctor._id,
+                start_time: {
+                    $gte: startOfDay,
+                    $lt: endOfDay
+                },
+                status: "AVAILABLE"
+            }).sort({ start_time: 1 }).lean();
+
+            // Check từng slot xem còn chỗ không
+            for (const slot of doctorSlots) {
+                // Skip slot nếu nó đã được chọn (để tránh duplicate với slot đã chọn)
+                if (excludeSlotId && slot._id.toString() === excludeSlotId.toString()) {
+                    continue;
+                }
+
+                const availability = await checkSlotAvailability(slot._id, targetDate);
+                if (availability.isAvailable) {
+                    return {
+                        doctor_id: doctor._id,
+                        slot_id: slot._id,
+                        slot: slot
+                    };
+                }
+            }
+        }
+
+        throw new Error("No available doctors or slots found for this date");
+    } catch (error) {
+        console.error("Error finding available doctor:", error);
+        throw error;
+    }
+}
+
+/**
  * Lấy slots available của bác sĩ trong ngày
  */
 async function getAvailableSlotsForDoctor(doctorId, targetDate) {
@@ -97,15 +164,43 @@ async function getAvailableSlotsForDoctor(doctorId, targetDate) {
 }
 
 async function createAsync(payload) {
-    const {
+    let {
         slot_id, doctor_id, patient_id, specialty_id, clinic_id,
         full_name, phone, email, dob, gender,
         province_code, ward_code, address_text, reason,
         scheduled_date // Thêm scheduled_date để kiểm tra theo ngày
     } = payload;
 
-    // Validate required fields
-    if (!slot_id || !doctor_id || !patient_id || !specialty_id || !full_name || !phone || !email) {
+    // *** LOGIC MỚI: Auto-assign doctor nếu không có doctor_id ***
+    let autoAssignedDoctor = false;
+    if (!doctor_id && clinic_id) {
+        console.log("🤖 Auto-assigning doctor for clinic:", clinic_id);
+        const targetDate = scheduled_date ? new Date(scheduled_date) : new Date();
+        
+        try {
+            const doctorAssignment = await findAvailableDoctorForClinic(
+                clinic_id,
+                specialty_id,
+                targetDate,
+                slot_id // Exclude the chosen slot if any
+            );
+            
+            doctor_id = doctorAssignment.doctor_id;
+            // Nếu không có slot_id được chọn, dùng slot tự động tìm được
+            if (!slot_id) {
+                slot_id = doctorAssignment.slot_id;
+            }
+            
+            autoAssignedDoctor = true;
+            console.log("✅ Auto-assigned doctor:", doctor_id, "slot:", slot_id);
+        } catch (error) {
+            console.error("❌ Failed to auto-assign doctor:", error);
+            throw new Error("Không tìm thấy bác sĩ phù hợp trong phòng khám. Vui lòng chọn bác sĩ cụ thể.");
+        }
+    }
+
+    // Validate required fields (doctor_id bây giờ có thể được auto-assign)
+    if (!slot_id || !doctor_id || !patient_id || !full_name || !phone || !email) {
         throw new Error("Missing required fields");
     }
 
@@ -116,7 +211,7 @@ async function createAsync(payload) {
 
     if (!Types.ObjectId.isValid(patient_id)) throw new Error("Invalid patient_id");
 
-    if (!Types.ObjectId.isValid(specialty_id)) throw new Error("Invalid specialty_id");
+    if (specialty_id && !Types.ObjectId.isValid(specialty_id)) throw new Error("Invalid specialty_id");
 
     if (clinic_id && !Types.ObjectId.isValid(clinic_id)) throw new Error("Invalid clinic_id");
 
@@ -232,6 +327,7 @@ async function createAsync(payload) {
                 email_sent,
                 email_error,
                 notification_created,
+                auto_assigned_doctor: autoAssignedDoctor,
                 slot_info: {
                     slot_id: slot._id,
                     start_time: slot.start_time,
@@ -360,5 +456,6 @@ module.exports = {
     getByIdAsync,
     getAppointmentsByPatient,
     checkSlotAvailability,
-    getAvailableSlotsForDoctor
+    getAvailableSlotsForDoctor,
+    findAvailableDoctorForClinic
 };

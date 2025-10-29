@@ -3,6 +3,7 @@ import { Star, Phone, Building2, Calendar, ChevronLeft, Loader2, Send } from "lu
 import { Link, useParams } from "react-router-dom";
 import { clinicApi } from "../../../api/clinic/clinicApi";
 import { useAuth } from "../../../hooks/useAuth";
+import ClinicBookingForm from "../components/ClinicBookingForm";
 
 export default function FacilityDetail() {
     const { id: clinicId } = useParams();
@@ -36,6 +37,9 @@ export default function FacilityDetail() {
     const [submitingReview, setSubmitingReview] = useState(false);
     const [reviewError, setReviewError] = useState(null);
     const [reviewSuccess, setReviewSuccess] = useState(null);
+
+    // Booking form state
+    const [showBookingForm, setShowBookingForm] = useState(false);
 
     // Fetch clinic detail
     useEffect(() => {
@@ -338,20 +342,11 @@ export default function FacilityDetail() {
                             
                             <div className="space-y-3">
                                 <button 
-                                    onClick={() => {
-                                        setActiveTab("doctors");
-                                        // Scroll to tabs section
-                                        setTimeout(() => {
-                                            tabsRef.current?.scrollIntoView({ 
-                                                behavior: 'smooth', 
-                                                block: 'start' 
-                                            });
-                                        }, 100);
-                                    }}
+                                    onClick={() => setShowBookingForm(true)}
                                     className="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white py-3.5 rounded-xl hover:from-sky-600 hover:to-blue-700 flex items-center justify-center gap-2 font-medium shadow-md hover:shadow-lg transition-all"
                                 >
                                     <Calendar className="h-5 w-5" />
-                                    Đặt lịch ngay
+                                    Đặt lịch khám
                             </button>
 
                                 {clinicData.phone && (
@@ -538,7 +533,7 @@ export default function FacilityDetail() {
                                                     {doctor.degree && (
                                                         <div className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-2 py-1 rounded-md mb-2">
                                                             {doctor.degree}
-                                                        </div>
+                                            </div>
                                                     )}
                                                     {doctor.specialties && doctor.specialties.length > 0 && (
                                                         <p className="text-sm text-gray-600 flex items-center gap-1 mb-1">
@@ -892,6 +887,18 @@ export default function FacilityDetail() {
                     </div>
                 )}
             </div>
+
+            {/* Booking Form Modal */}
+            {showBookingForm && (
+                <ClinicBookingForm 
+                    clinic={clinicData}
+                    onClose={() => setShowBookingForm(false)}
+                    onSuccess={(appointment) => {
+                        console.log("Booking successful:", appointment);
+                        // Optionally refresh data or redirect
+                    }}
+                />
+            )}
         </div>
     );
 }
