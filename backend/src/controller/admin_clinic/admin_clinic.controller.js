@@ -92,8 +92,8 @@ exports.getAssistants = async (req, res, next) => {
 
     const clinic = clinicResult.data;
 
-    const assistants = await getAssistantsByClinic(clinic._id);
-    res.json({ success: true, data: assistants });
+    const result = await getAssistantsByClinic(clinic._id);
+    res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
