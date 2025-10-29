@@ -27,4 +27,12 @@ router.get(
   adminclinicController.getDoctorsOfAdminClinic
 );
 
+//lấy danh sách trợ lý của clinic mà admin clinic hiện tại quản lý
+router.get(
+  "/get_assistants",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getAssistants
+);
+
 module.exports = router;
