@@ -19,7 +19,7 @@ const {
 const DoctorController = require("../../controller/doctor/doctor.controler");
 
 /* ========================= PATIENTS ========================= */
-// GET /patients?page=1&limit=10&sarch=""
+// GET /patients?page=1&limit=10&search=""
 // view list patient of doctor with pagination
 //http://localhost:5000/api/doctor/patients
 router.get(

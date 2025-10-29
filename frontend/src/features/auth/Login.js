@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
@@ -92,9 +92,9 @@ const Login = () => {
       if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
       } 
-      else if(account.role === "ADMIN_CLINIC") {
-        navigate("/admin-clinic/dashboard");
-      }
+      // else if(account.role === "ADMIN_CLINIC") {
+      //   navigate("/admin-clinic/dashboard");
+      // }
       else if (account.role === "ADMIN_CLINIC") {
         navigate("/clinic-admin/dashboard");
       }
