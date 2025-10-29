@@ -1,6 +1,13 @@
 import { axiosInstance } from "../axiosInstance";
 
 export const doctorApi = {
+  GET_ALL_PATIENT: "/doctor/patients",
+  GET_PATIENT_BY_ID: (id) => `/doctor/patients/${id}`,
+  GET_LIST_APPOINTMENT: "/doctor/appointments",
+  GET_APPOINTMENT_BY_ID: (id) => `/doctor/appointments/${id}`,
+  VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD: "/doctor/medical-records/requests/history",
+
+
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
   getDoctorTop: (limit) =>
     axiosInstance.get("/doctor/top", { params: { limit } }),
@@ -14,12 +21,6 @@ export const doctorApi = {
     axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params } }),
 
   //lay danh sach benh nhan
-  GET_ALL_PATIENT: "/doctor/patients",
-  GET_PATIENT_BY_ID: (id) => `/doctor/patients/${id}`,
-  GET_LIST_APPOINTMENT: "/doctor/appointments",
-  GET_APPOINTMENT_BY_ID: (id) => `/doctor/appointments/${id}`,
-  
-
   getAllPatient: (page = 1, limit = 10, search = "") =>
     axiosInstance.get(doctorApi.GET_ALL_PATIENT, {
       params: {
@@ -28,7 +29,6 @@ export const doctorApi = {
         ...(search.trim() && { search: search.trim() }),
       }
     }),
-
 
   //lay chi tiet benh nhan
   getPatientById: (patientId) =>
@@ -61,8 +61,9 @@ export const doctorApi = {
     axiosInstance.get(`/doctor/medical-records?search=${search}`),
 
   //lịch sử yêu cầu truy cập hồ sơ
+  
   getMedicalRecordRequestHistory: () =>
-    axiosInstance.get("/doctor/medical-records/requests/history"),
+    axiosInstance.get(doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD),
 
   //gửi yêu cầu truy cập hồ sơ
   requestMedicalRecordAccess: (patientId, medicalRecordId, reason) =>

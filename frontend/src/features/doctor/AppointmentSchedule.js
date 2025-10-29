@@ -3,10 +3,8 @@ import {
   Calendar,
   Clock,
   Person,
-  Telephone,
   CheckCircle,
   XCircle,
-  Eye,
   ClockHistory,
   X,
 } from "react-bootstrap-icons";
