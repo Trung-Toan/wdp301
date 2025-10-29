@@ -3,6 +3,7 @@ const {
   getClinicByAdmin,
   getDoctorsByAdminClinic,
   createAssistant,
+  getAssistantsByClinic,
 } = require("../../service/admin_clinic/adminClinic.service");
 
 //Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
@@ -81,3 +82,19 @@ exports.createAccountAssistant = async (req, res, next) => {
   }
 };
 
+//lấy danh sách trợ lý theo clinic mà admin_clinic đang quản lý
+exports.getAssistants = async (req, res, next) => {
+  try {
+    const accountId = req.user?.sub;
+
+    const clinicResult = await getClinicByAdmin(accountId);
+    if (!clinicResult.ok) return res.status(400).json(clinicResult);
+
+    const clinic = clinicResult.data;
+
+    const assistants = await getAssistantsByClinic(clinic._id);
+    res.json({ success: true, data: assistants });
+  } catch (err) {
+    next(err);
+  }
+};
