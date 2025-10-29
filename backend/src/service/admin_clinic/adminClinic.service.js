@@ -183,6 +183,15 @@ exports.getAssistantsByClinic = async (clinicId) => {
     .lean();
 };
 
+//xoá trợ lý
+exports.deleteAssistant = async (assistantId) => {
+  const assistant = await Assistant.findById(assistantId);
+  if (!assistant) throw new Error("Assistant not found");
+
+  await Assistant.findByIdAndDelete(assistantId);
+  return true;
+};
+
 //Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (accountId) => {
   try {
