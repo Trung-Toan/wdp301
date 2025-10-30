@@ -2,6 +2,7 @@ const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
 const appointmentService = require("../appointment/appointment.service");
 const patientService = require("../patient/patient.service");
+const License = require("../../model/clinic/License");
 /**
  * Hàm tìm kiếm một bác sĩ dựa trên user_id.
  */
@@ -92,4 +93,25 @@ exports.updateProfile = async (userId, data) => {
   });
 
   return doctor;
+};
+
+//gửi chứng chỉ
+exports.uploadLicense = async (userId, payload) => {
+  const doctor = await Doctor.findOne({ user_id: userId });
+  if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
+
+  const { licenseNumber, issued_by, issued_date, expiry_date, document_url } =
+    payload;
+
+  const license = await License.create({
+    licenseNumber,
+    issued_by,
+    issued_date,
+    expiry_date,
+    document_url,
+    doctor_id: doctor._id,
+    status: "PENDING",
+  });
+
+  return license;
 };
