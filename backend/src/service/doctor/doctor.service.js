@@ -149,8 +149,11 @@ exports.updateProfile = async (accountId, data) => {
 };
 
 //gửi chứng chỉ
-exports.uploadLicense = async (userId, payload) => {
-  const doctor = await Doctor.findOne({ user_id: userId });
+exports.uploadLicense = async (accountId, payload) => {
+  const user = await User.findOne({ account_id: accountId });
+  if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
+
+  const doctor = await Doctor.findOne({ user_id: user._id });
   if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
 
   const { licenseNumber, issued_by, issued_date, expiry_date, document_url } =
