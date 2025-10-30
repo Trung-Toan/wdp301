@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const statusEnum = ["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"];
+const statusEnum = ["SCHEDULED", "COMPLETED", "APPROVE", "CANCELLED", "NO_SHOW"];
 
 const appointmentSchema = new Schema({
   slot_id: { type: Schema.Types.ObjectId, ref: "Slot", required: true, index: true },

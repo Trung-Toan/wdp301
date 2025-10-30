@@ -1,7 +1,7 @@
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
 const appointmentService = require("../appointment/appointment.service");
-
+const patientService = require("../patient/patient.service");
 /**
  * Hàm tìm kiếm một bác sĩ dựa trên user_id.
  */
@@ -47,38 +47,8 @@ exports.getListPatients = async (req) => {
         const doctor = await exports.findDoctorByAccountId(accountId);
         if (!doctor) throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ.');
 
-        // Bước 2: Lấy toàn bộ ID bệnh nhân hợp lệ
-        const allPatientIds = await appointmentService.uniquePatientIdsWithAppointmentIsCompleted(doctor._id, search);
-        const totalPatients = allPatientIds.length;
-
-        if (totalPatients === 0) {
-            return { patients: [], pagination: { totalItems: 0, totalPages: 0, currentPage: 1, limit: parseInt(limit) } };
-        }
-
-        // Bước 3: Lấy ra các ID cho trang hiện tại
-        const pageNumber = parseInt(page);
-        const limitNumber = parseInt(limit);
-        const paginatedPatientIds = getPaginatedIds(allPatientIds, { page: pageNumber, limit: limitNumber });
-
-        // Bước 4: Lấy thông tin user từ các ID đã phân trang
-        const userDocs = await userService.getUsersFromPatientIds(paginatedPatientIds);
-
-        // Bước 5: Tạo đối tượng trả về
-        const totalPages = Math.ceil(totalPatients / limitNumber);
-        return {
-            patients: userDocs,
-            pagination: {
-                totalItems: totalPatients,
-                totalPages: totalPages,
-                currentPage: pageNumber,
-                limit: limitNumber
-            }
-        };
+        return await patientService.getPatientAvailableOfDoctor(doctor._id, parseInt(page), parseInt(limit), search);
     } catch (error) {
         throw error;
     }
-};
-
-exports.registerDoctor = async (req) => {
-    const {} = req.body;
 };

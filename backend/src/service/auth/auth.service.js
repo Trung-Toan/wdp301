@@ -71,6 +71,41 @@ exports.registerPatients = async ({ username, email, password, phone_number, rol
     return sanitizeAccount(acc);
 };
 
+exports.registerClinicOwner = async ({ username, email, password, phone_number, role }) => {
+    const emailNorm = (email || '').trim().toLowerCase();
+    const hash = await hashPassword(password);
+
+    const acc = await Account.create({
+        username: username.trim(),
+        email: emailNorm,
+        phone_number: phone_number?.trim(),
+        password: hash,
+        role: role || 'ADMIN_CLINIC',
+        status: 'PENDING', // Clinic owners need approval
+        email_verified: false,
+    });
+
+    const token = randomToken(32);
+    const tokenHash = await hashOpaque(token);
+
+    await EmailVerification.create({
+        token_hash: tokenHash,
+        expires_at: addDays(new Date(), 1),
+        used: false,
+        account_id: acc._id,
+    });
+
+    const html = buildVerifyEmailTemplate({
+        accountId: String(acc._id),
+        token,
+        apiBaseUrl: APP_BASE_URL,
+    });
+
+    await sendMail(acc.email, 'Xác minh email của bạn', html);
+
+    return sanitizeAccount(acc);
+};
+
 exports.verifyEmail = async ({ token, accountId }) => {
     if (!token) throw new Error('Missing token');
     if (!accountId) throw new Error('Missing accountId');
@@ -171,9 +206,23 @@ exports.login = async ({ email, password, ip, user_agent }) => {
         .select("full_name avatar_url dob gender address")
         .lean();
 
+    console.log("🔍 LOGIN DEBUG - user found:", user);
+
     // Nếu là bệnh nhân, lấy thêm thông tin patient
     if (acc.role === "PATIENT" && user) {
+        console.log("🔍 LOGIN DEBUG - searching for patient with user_id:", user._id);
+        console.log("🔍 LOGIN DEBUG - user._id type:", typeof user._id);
+        console.log("🔍 LOGIN DEBUG - user._id:", user._id);
+
+        // Thử tìm patient
         patient = await Patient.findOne({ user_id: user._id }).lean();
+        console.log("🔍 LOGIN DEBUG - patient found:", patient);
+
+        // Nếu không tìm thấy, thử tìm tất cả patients
+        if (!patient) {
+            const allPatients = await Patient.find({}).lean();
+            console.log("🔍 LOGIN DEBUG - all patients in DB:", allPatients);
+        }
     }
 
     return {

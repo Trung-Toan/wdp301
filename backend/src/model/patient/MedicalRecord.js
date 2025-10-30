@@ -51,6 +51,7 @@ const MedicalRecordSchema = new mongoose.Schema(
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true },
     patient_id: { type: mongoose.Schema.Types.ObjectId, ref: "Patient", required: true },
     appointment_id: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment", required: true },
+    created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Assistant", required: true },
   },
   { timestamps: true }
 );

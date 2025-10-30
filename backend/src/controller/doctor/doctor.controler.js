@@ -37,16 +37,14 @@ exports.viewListPatients = async (req, res) => {
 // GET /patients/:patientId
 exports.viewPatientById = async (req, res) => {
   try {
-    const { patient } = await patientService.getPatientById(req);
-    const { records, pagination } =
-      await medicalRecordService.getListMedicalRecordsByIdPatient(req);
-
+    const {patientId} = req.params;
+    const {appointment} = await appointmentService.getAppointmentById(req, patientId);
+    
     return resUtils.successResponse(
       res,
       {
-        patient: patient,
-        medical_record: records,
-        pagination_: pagination,
+        patient: appointment?.patient,
+        medical_record: appointment?.medical_record,
       },
       "Lấy thông tin bệnh nhân thành công."
     );
@@ -65,12 +63,15 @@ exports.viewPatientById = async (req, res) => {
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
   try {
-    const { appointments, slot, pagination } =
-      await appointmentService.getListAppointments(req);
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return resUtils.forbiddenResponse("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
+    }
+    const { appointments, slot, pagination } = await appointmentService.getListAppointments(req, doctor._id);
 
     return resUtils.paginatedResponse(
       res,
-      { appointments, slot},
+      { appointments, slot },
       pagination,
       "Lấy danh sách cuộc hẹn thành công."
     );
@@ -87,7 +88,8 @@ exports.viewAppointments = async (req, res) => {
 // GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
   try {
-    const { appointment } = await appointmentService.getAppointmentById(req);
+    const {appointmentId} = req.params;
+    const {appointment} = await appointmentService.getAppointmentById(req, appointmentId);
     return resUtils.successResponse(
       res,
       appointment,

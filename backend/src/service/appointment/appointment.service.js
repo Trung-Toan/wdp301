@@ -1,8 +1,8 @@
 const Appointment = require("../../model/appointment/Appointment");
-const doctorService = require("./../doctor/doctor.service");
 const slotService = require("../slot/slot.service");
-const { now } = require("mongoose");
-
+const Patient = require("../../model/patient/Patient");
+const medical_recordService = require("../medical_record/medicalRecord.service");
+const dateUtils = require("../../utils/date.utils");
 /**
  * Lấy danh sách ID duy nhất của các bệnh nhân đã có lịch hẹn ở trạng thái 'COMPLETED'.
  * @param {mongoose.Types.ObjectId | string} doctorId ID của bác sĩ cần lọc.
@@ -94,41 +94,37 @@ exports.uniquePatientIdsWithAppointmentIsCompleted = async (
   return results.map((item) => item.patient_id);
 };
 
-exports.getListAppointments = async (req) => {
-  const accountId = req.user.sub;
-
-  // Tìm bác sĩ theo account_id
-  const doctor = await doctorService.findDoctorByAccountId(accountId);
-  if (!doctor) {
-    throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
-  }
-
-  const slotObj =
-    (await slotService.getSlotAtNowByDocterId(doctor._id)) ||
-    (await slotService.getFirtAvailableSlotByDoctorId(doctor._id));
-
+exports.getListAppointments = async (req, doctorId) => {
+  let { date = new Date() } = req.query;
   const {
     page = 1,
     limit = 10,
     status = null,
-    slot = slotObj?._id,
-    date = new Date(),
+    slot = (await slotService.slotAvaiable(doctorId, dateUtils.changeToDateWithNowHouse(date)))?._id,
   } = req.query;
 
+  const slotNow = await slotService.getSlotById(slot, dateUtils.changeToDateWithNowHouse(date));
 
-  // Ép kiểu số nguyên
   const currentPage = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
-
-  // Tính toán skip
   const skip = (currentPage - 1) * limitNumber;
+
+  // Chuẩn hóa ngày bắt đầu và kết thúc của 1 ngày
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
 
   // Đếm tổng số lịch hẹn
   const totalAppointments = await Appointment.countDocuments({
-    doctor_id: doctor._id,
+    doctor_id: doctorId,
     ...(status ? { status } : {}),
     slot_id: slot,
-    scheduled_date: date,
+    scheduled_date: {
+      $gte: startOfDay,
+      $lt: endOfDay,
+    },
   });
 
   // Tính tổng số trang
@@ -136,10 +132,13 @@ exports.getListAppointments = async (req) => {
 
   // Lấy danh sách lịch hẹn có phân trang
   const appointments = await Appointment.find({
-    doctor_id: doctor._id,
+    doctor_id: doctorId,
     ...(status ? { status } : {}),
     slot_id: slot,
-    scheduled_date: date,
+    scheduled_date: {
+      $gte: startOfDay,
+      $lt: endOfDay,
+    },
   })
     .select(
       "_id slot_id patient_id scheduled_date status created_at phone full_name"
@@ -170,8 +169,6 @@ exports.getListAppointments = async (req) => {
     },
   }));
 
-  console.log("app: ", formData);
-
   // Trả về cùng định dạng bạn đang dùng
   return {
     appointments: formData,
@@ -181,7 +178,7 @@ exports.getListAppointments = async (req) => {
         start_time: slotNow?.start_time,
         end_time: slotNow?.end_time,
       },
-      slot_list: (await slotService.getListSlotsByDoctorId(doctor._id)) || [],
+      slot_list: (await slotService.getListSlotsByDoctorId(doctorId, date)) || [],
     },
     pagination: {
       totalItems: totalAppointments,
@@ -192,50 +189,120 @@ exports.getListAppointments = async (req) => {
   };
 };
 
-exports.getAppointmentById = async (req) => {
+exports.getPatientsWithAppointments = async (
+  doctorId,
+  appointmentStatus = "COMPLETED",
+  pageParam = 1, limitParam = 10, search = ""
+) => {
+  const page = parseInt(pageParam) || 1;
+  const limit = parseInt(limitParam) || 10;
+  const skip = (page - 1) * limit;
+
+  const searchRegex = { $regex: search, $options: "i" };
+
+  const matchingPatients = await Patient.find({
+    patient_code: searchRegex,
+  }).select("_id");
+  const matchingPatientIds = matchingPatients.map((p) => p._id);
+
+  const allAppointments = await Appointment.find({
+    doctor_id: doctorId,
+    status: appointmentStatus,
+    $or: [
+      { full_name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex },
+      { patient_id: { $in: matchingPatientIds } },
+    ],
+  })
+    .populate({
+      path: "patient_id",
+      select: "patient_code",
+    })
+    .lean();
+
+  const uniquePatientsMap = new Map();
+  allAppointments.forEach((app) => {
+    const patientKey = `${app.full_name}|${app.email}|${app.phone}|${app.dob}`;
+    if (!uniquePatientsMap.has(patientKey)) {
+      uniquePatientsMap.set(patientKey, app);
+    }
+  });
+  const uniqueAppointments = Array.from(uniquePatientsMap.values());
+
+  const totalItems = uniqueAppointments.length;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  const paginatedResults = uniqueAppointments.slice(skip, skip + limit);
+
+  const formatData = paginatedResults.map((app) => ({
+    appointment_id: app._id,
+    doctor_id: app.doctor_id,
+    patient_id: app.patient_id._id,
+    specialty_id: app.specialty_id,
+    slot_id: app.slot_id,
+    scheduled_date: app.scheduled_date,
+    patient_code: app.patient_id.patient_code,
+    full_name: app.full_name,
+    email: app.email,
+    phone: app.phone,
+    dob: app.dob,
+    gender: app.gender
+  }));
+
+  const pagination = {
+    totalItems: totalItems,
+    totalPages: totalPages,
+    page: page,
+    limit: limit,
+  };
+
+  return {
+    patients: formatData,
+    pagination: pagination,
+  };
+};
+
+exports.getAppointmentById = async (req, appointmentId) => {
   try {
-    const { appointmentId } = req.params;
+
     const appointment = await Appointment.findById(appointmentId)
       .populate("slot_id", "start_time end_time")
       .populate({
         path: "patient_id",
-        select: "patient_code user_id",
-        populate: {
-          path: "user_id",
-          select: "full_name account_id",
-          populate: {
-            path: "account_id",
-            select: "email phone_number",
-          },
-        },
+        select: "patient_code",
       })
       .populate("specialty_id", "name")
       .lean();
+    const medical_record = await medical_recordService.getMedicalRecordByAppointment_fullname_phone_email_dob(appointment?.doctor_id, appointment?.full_name, appointment?.phone, appointment?.email, appointment?.dob);
     const formattedAppointment = {
       patient: {
-        id: appointment.patient_id._id,
-        patient_code: appointment.patient_id.patient_code,
-        full_name: appointment.patient_id.user_id.full_name,
-        email: appointment.patient_id.user_id.account_id.email,
-        phone_number: appointment.patient_id.user_id.account_id.phone_number,
+        id: appointment?.patient_id?._id || null,
+        patient_code: appointment?.patient_id?.patient_code || null,
+        full_name: appointment?.full_name || null,
+        email: appointment?.email || null,
+        phone_number: appointment?.phone || null,
+        dob: appointment?.dob || null,
+        gender: appointment?.gender || null,
       },
+      medical_record: medical_record || [],
       appointment: {
-        id: appointment._id,
+        id: appointment._id || null,
         slot: {
-          id: appointment.slot_id._id,
-          start_time: appointment.slot_id.start_time,
-          end_time: appointment.slot_id.end_time,
+          id: appointment.slot_id._id || null,
+          start_time: appointment.slot_id.start_time || null,
+          end_time: appointment.slot_id.end_time || null,
         },
-        scheduled_date: appointment.scheduled_date,
-        status: appointment.status,
+        scheduled_date: appointment.scheduled_date || null,
+        status: appointment.status || null,
         specialty: appointment.specialty_id
           ? {
-              id: appointment.specialty_id._id,
-              name: appointment.specialty_id.name,
-            }
+            id: appointment.specialty_id._id || null,
+            name: appointment.specialty_id.name || null,
+          }
           : null,
-        reason: appointment.reason,
-        created_at: appointment.createdAt,
+        reason: appointment.reason || null,
+        created_at: appointment.createdAt || null,
       },
     };
     return { appointment: formattedAppointment };
@@ -244,3 +311,28 @@ exports.getAppointmentById = async (req) => {
     return null;
   }
 };
+
+
+exports.getAppointmentByIdDefault = async (appointmentId) => {
+  try {
+    return await Appointment.findById(appointmentId).lean() || null;
+  } catch (error) {
+    console.log(`Lỗi tại getAppointmentByIdDefault(${appointmentId}): `, erorr);
+    return null;
+  }
+}
+
+
+exports.updateAppointment = async (id, appData) => {
+  try {
+    const updatedApp = await Appointment.findByIdAndUpdate(
+      id,
+      { $set: appData },
+      { new: true }
+    ).lean();
+    return updatedApp || null;
+  } catch (error) {
+    console.log("Lỗi không thể cập nhật app: ", error);
+    return null;
+  }
+}

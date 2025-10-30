@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import "../styles/EditClinicModal.css";
+import "../../styles/admin-system/EditClinicModal.css";
 
 const EditClinicModal = ({ clinic, onSave, onClose }) => {
   const [formData, setFormData] = useState(clinic);
