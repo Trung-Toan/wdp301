@@ -3,6 +3,7 @@ import { Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { doctorApi } from "../../api/doctor/doctorApi";
 import defaultAvatar from "../../assets/images/default-avatar.png";
+import { toast } from "react-toastify";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +42,7 @@ const DoctorProfile = () => {
           },
         });
       } catch (err) {
-        console.error("Lỗi khi lấy hồ sơ bác sĩ:", err);
+        toast.error(err.message);
       } finally {
         setLoading(false);
       }
@@ -85,10 +86,10 @@ const DoctorProfile = () => {
       };
       await doctorApi.updateProfile(payload);
       setIsEditing(false);
-      alert("Cập nhật hồ sơ thành công!");
+      toast.success("Cập nhật thành cong!");
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
-      alert("Cập nhật thất bại, vui lòng thử lại!");
+      toast.error("Không thể cập nhật hồ sơ: " + err.message);
     }
   };
 
