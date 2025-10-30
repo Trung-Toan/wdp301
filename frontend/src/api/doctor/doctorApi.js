@@ -85,4 +85,7 @@ export const doctorApi = {
 
   //lấy chứng chỉ bác sĩ
   getMyLicense: () => axiosInstance.get("/doctor/license"),
+
+  //gửi chứng chỉ bác sĩ chờ duyệt
+  uploadLicense: (data) => axiosInstance.post("/doctor/license", data),
 };
