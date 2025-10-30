@@ -1,32 +1,94 @@
-import { memo, useState } from "react";
-import { Button } from "react-bootstrap";
+import { memo, useState, useEffect } from "react";
+import { Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { doctorApi } from "../../api/doctor/doctorApi";
+import defaultAvatar from "../../assets/images/default-avatar.png";
+import { toast } from "react-toastify";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [doctorProfile, setDoctorProfile] = useState({
-    doctor: {
-      title: "Bác sĩ chuyên khoa II",
-      degree: "Thạc sĩ - Bác sĩ",
-      description: "Bác sĩ có hơn 10 năm kinh nghiệm trong lĩnh vực nội khoa.",
-      experience: "10 năm công tác tại Bệnh viện Trung Ương Huế.",
-      specialties: ["Nội tổng quát", "Tim mạch"],
-    },
-    user: {
-      full_name: "Nguyễn Văn A",
-      dob: "1980-03-15",
-      gender: "Nam",
-      address: "123 Nguyễn Trãi, Hà Nội",
-      avatar_url: "https://via.placeholder.com/150",
-    },
-    account: {
-      username: "dr.nguyenvana",
-      email: "nguyenvana@example.com",
-      phone_number: "0987654321",
-    },
+  const [loading, setLoading] = useState(true);
+  const [doctorProfile, setDoctorProfile] = useState(null);
+  const [newLicense, setNewLicense] = useState({
+    licenseNumber: "",
+    issued_by: "",
+    issued_date: "",
+    expiry_date: "",
+    document_url: "",
   });
-
   const navigate = useNavigate();
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewLicense((prev) => ({
+        ...prev,
+        document_url: file.name,
+      }));
+    }
+  };
+
+  const handleUploadLicense = async () => {
+    try {
+      const payload = { ...newLicense };
+      await doctorApi.uploadLicense(payload);
+      toast.success("Gửi chúng chi thành công!, vui lòng đợi duyệt");
+
+      const res = await doctorApi.getMyLicense();
+      setDoctorProfile((prev) => ({ ...prev, licenses: res.data.data }));
+
+      // reset form
+      setNewLicense({
+        licenseNumber: "",
+        issued_by: "",
+        issued_date: "",
+        expiry_date: "",
+        document_url: "",
+      });
+    } catch (err) {
+      console.error("Lỗi khi gửi chứng chỉ:", err);
+      toast.error("Không thể gửi chúng chi: " + err.message);
+    }
+  };
+
+  // Lấy dữ liệu profile từ API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await doctorApi.getProfile();
+        const d = res.data.data; // dữ liệu BE trả về
+
+        // Chuẩn hóa dữ liệu cho state
+        setDoctorProfile({
+          doctor: {
+            title: d.title,
+            degree: d.degree,
+            description: d.description,
+            experience: d.experience,
+            specialties: d.specialty_id?.map((s) => s.name) || [],
+            clinic: d.clinic_id?.name || "",
+          },
+          user: {
+            full_name: d.user_id?.full_name || "",
+            dob: d.user_id?.dob?.split("T")[0] || "",
+            gender: d.user_id?.gender || "",
+            address: d.user_id?.address || "",
+            avatar_url: d.user_id?.avatar_url || "",
+          },
+          account: {
+            username: d.user_id?.account_id?.username || "",
+            email: d.user_id?.account_id?.email || "",
+            phone_number: d.user_id?.account_id?.phone_number || "",
+          },
+        });
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleChange = (section, field, value) => {
     setDoctorProfile((prev) => ({
@@ -34,6 +96,57 @@ const DoctorProfile = () => {
       [section]: { ...prev[section], [field]: value },
     }));
   };
+
+  // Thay đổi ảnh avatar (chỉ FE)
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const localURL = URL.createObjectURL(file);
+    setDoctorProfile((prev) => ({
+      ...prev,
+      user: { ...prev.user, avatar_url: localURL },
+    }));
+  };
+
+  // Lưu thay đổi
+  const handleSave = async () => {
+    try {
+      const payload = {
+        title: doctorProfile.doctor.title,
+        degree: doctorProfile.doctor.degree,
+        experience: doctorProfile.doctor.experience,
+        description: doctorProfile.doctor.description,
+        gender: doctorProfile.user.gender,
+        dob: doctorProfile.user.dob,
+        address: doctorProfile.user.address,
+        username: doctorProfile.account.username,
+        email: doctorProfile.account.email,
+        phone_number: doctorProfile.account.phone_number,
+      };
+      await doctorApi.updateProfile(payload);
+      setIsEditing(false);
+      toast.success("Cập nhật thành cong!");
+    } catch (err) {
+      console.error("Lỗi khi cập nhật hồ sơ:", err);
+      toast.error("Không thể cập nhật hồ sơ: " + err.message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Spinner animation="border" variant="primary" />
+      </div>
+    );
+  }
+
+  if (!doctorProfile) {
+    return (
+      <div className="text-center text-gray-500 mt-10">
+        Không thể tải dữ liệu hồ sơ bác sĩ.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
@@ -43,7 +156,7 @@ const DoctorProfile = () => {
           <h2 className="text-2xl font-semibold text-blue-700">Hồ sơ bác sĩ</h2>
           <div className="space-x-3">
             <Button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
@@ -58,12 +171,22 @@ const DoctorProfile = () => {
         </div>
 
         {/* Avatar */}
-        <div className="flex justify-center mb-6">
+        <div className="flex flex-col items-center mb-6">
           <img
-            src={doctorProfile.user.avatar_url}
+            src={doctorProfile.user?.avatar_url || defaultAvatar}
             alt="Doctor Avatar"
             className="w-32 h-32 rounded-full border-4 border-blue-300 shadow-md object-cover"
           />
+          {isEditing && (
+            <div className="mt-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="text-sm text-gray-600"
+              />
+            </div>
+          )}
         </div>
 
         {/* Thông tin tài khoản */}
@@ -80,7 +203,7 @@ const DoctorProfile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={doctorProfile.account[field]}
+                    value={doctorProfile.account?.[field] || ""}
                     onChange={(e) =>
                       handleChange("account", field, e.target.value)
                     }
@@ -88,7 +211,7 @@ const DoctorProfile = () => {
                   />
                 ) : (
                   <p className="text-gray-800">
-                    {doctorProfile.account[field]}
+                    {doctorProfile.account?.[field] || ""}
                   </p>
                 )}
               </div>
@@ -115,14 +238,14 @@ const DoctorProfile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={doctorProfile.user[field]}
+                    value={doctorProfile.user?.[field] || ""}
                     onChange={(e) =>
                       handleChange("user", field, e.target.value)
                     }
                     className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   />
                 ) : (
-                  <p className="text-gray-800">{doctorProfile.user[field]}</p>
+                  <p className="text-gray-800">{doctorProfile.user?.[field]}</p>
                 )}
               </div>
             ))}
@@ -148,7 +271,7 @@ const DoctorProfile = () => {
                 {isEditing ? (
                   <textarea
                     rows={field === "description" ? 3 : 1}
-                    value={doctorProfile.doctor[field]}
+                    value={doctorProfile.doctor?.[field] || ""}
                     onChange={(e) =>
                       handleChange("doctor", field, e.target.value)
                     }
@@ -156,7 +279,7 @@ const DoctorProfile = () => {
                   />
                 ) : (
                   <p className="text-gray-800 whitespace-pre-line">
-                    {doctorProfile.doctor[field]}
+                    {doctorProfile.doctor?.[field]}
                   </p>
                 )}
               </div>
@@ -170,7 +293,7 @@ const DoctorProfile = () => {
               {isEditing ? (
                 <input
                   type="text"
-                  value={doctorProfile.doctor.specialties.join(", ")}
+                  value={(doctorProfile.doctor?.specialties || []).join(", ")}
                   onChange={(e) =>
                     handleChange(
                       "doctor",
@@ -182,10 +305,179 @@ const DoctorProfile = () => {
                 />
               ) : (
                 <p className="text-gray-800">
-                  {doctorProfile.doctor.specialties.join(", ")}
+                  {(doctorProfile.doctor?.specialties || []).join(", ")}
                 </p>
               )}
             </div>
+
+            {/* Chứng chỉ hành nghề */}
+            <section className="mt-10">
+              <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
+                Chứng chỉ hành nghề
+              </h3>
+
+              {/* Danh sách chứng chỉ */}
+              <div className="space-y-3 mb-6">
+                {(doctorProfile.licenses || []).length > 0 ? (
+                  doctorProfile.licenses.map((lic, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 border border-blue-100 rounded-lg bg-blue-50 shadow-sm"
+                    >
+                      <p>
+                        <strong>Số hiệu:</strong> {lic.licenseNumber}
+                      </p>
+                      <p>
+                        <strong>Cơ quan cấp:</strong> {lic.issued_by}
+                      </p>
+                      <p>
+                        <strong>Ngày cấp:</strong>{" "}
+                        {new Date(lic.issued_date).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <strong>Ngày hết hạn:</strong>{" "}
+                        {new Date(lic.expiry_date).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <strong>File:</strong>{" "}
+                        <a
+                          href={`/src/assets/licenses/${lic.document_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline"
+                        >
+                          {lic.document_url}
+                        </a>
+                      </p>
+                      <p>
+                        <strong>Trạng thái:</strong>{" "}
+                        <span
+                          className={`font-semibold ${
+                            lic.status === "APPROVED"
+                              ? "text-green-600"
+                              : lic.status === "REJECTED"
+                              ? "text-red-600"
+                              : "text-yellow-600"
+                          }`}
+                        >
+                          {lic.status}
+                        </span>
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">
+                    Chưa có chứng chỉ nào được gửi.
+                  </p>
+                )}
+              </div>
+
+              {/* Form gửi chứng chỉ */}
+              <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
+                <h4 className="text-blue-700 font-semibold mb-4">
+                  Gửi chứng chỉ mới
+                </h4>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    await handleUploadLicense();
+                  }}
+                  className="space-y-3"
+                >
+                  <div>
+                    <label className="block text-gray-600 font-medium mb-1">
+                      Số hiệu chứng chỉ
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                      value={newLicense.licenseNumber}
+                      onChange={(e) =>
+                        setNewLicense({
+                          ...newLicense,
+                          licenseNumber: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-600 font-medium mb-1">
+                      Cơ quan cấp
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                      value={newLicense.issued_by}
+                      onChange={(e) =>
+                        setNewLicense({
+                          ...newLicense,
+                          issued_by: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-1">
+                        Ngày cấp
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        value={newLicense.issued_date}
+                        onChange={(e) =>
+                          setNewLicense({
+                            ...newLicense,
+                            issued_date: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-1">
+                        Ngày hết hạn
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        value={newLicense.expiry_date}
+                        onChange={(e) =>
+                          setNewLicense({
+                            ...newLicense,
+                            expiry_date: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-600 font-medium mb-1">
+                      Tệp chứng chỉ (PDF)
+                    </label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => handleFileChange(e)}
+                      className="text-sm text-gray-600"
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Gửi phê duyệt
+                  </Button>
+                </form>
+              </div>
+            </section>
           </div>
         </section>
       </div>
