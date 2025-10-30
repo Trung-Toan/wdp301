@@ -170,8 +170,11 @@ exports.uploadLicense = async (userId, payload) => {
 };
 
 //lấy chứng chỉ bác sĩ
-exports.getMyLicense = async (userId) => {
-  const doctor = await Doctor.findOne({ user_id: userId });
+exports.getMyLicense = async (accountId) => {
+  const user = await User.findOne({ account_id: accountId });
+  if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
+
+  const doctor = await Doctor.findOne({ user_id: user._id });
   if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
 
   const licenses = await License.find({ doctor_id: doctor._id }).lean();

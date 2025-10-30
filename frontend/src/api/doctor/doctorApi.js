@@ -82,4 +82,7 @@ export const doctorApi = {
 
   //cap nhat profile bác sĩ
   updateProfile: (data) => axiosInstance.put("/doctor/profile", data),
+
+  //lấy chứng chỉ bác sĩ
+  getMyLicense: () => axiosInstance.get("/doctor/license"),
 };
