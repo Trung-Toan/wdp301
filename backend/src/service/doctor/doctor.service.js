@@ -69,3 +69,27 @@ exports.getProfile = async (userId) => {
   if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
   return doctor;
 };
+
+//chỉnh sửa profile
+exports.updateProfile = async (userId, data) => {
+  const doctor = await Doctor.findOne({ user_id: userId });
+  if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
+
+  const { title, degree, experience, description, gender, dob, address } = data;
+
+  // update doctor info
+  doctor.title = title || doctor.title;
+  doctor.degree = degree || doctor.degree;
+  doctor.experience = experience || doctor.experience;
+  doctor.description = description || doctor.description;
+  await doctor.save();
+
+  // update user info
+  await User.findByIdAndUpdate(doctor.user_id, {
+    gender,
+    dob,
+    address,
+  });
+
+  return doctor;
+};
