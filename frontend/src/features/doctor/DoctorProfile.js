@@ -9,7 +9,47 @@ const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [doctorProfile, setDoctorProfile] = useState(null);
+  const [newLicense, setNewLicense] = useState({
+    licenseNumber: "",
+    issued_by: "",
+    issued_date: "",
+    expiry_date: "",
+    document_url: "",
+  });
   const navigate = useNavigate();
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewLicense((prev) => ({
+        ...prev,
+        document_url: file.name,
+      }));
+    }
+  };
+
+  const handleUploadLicense = async () => {
+    try {
+      const payload = { ...newLicense };
+      await doctorApi.uploadLicense(payload);
+      toast.success("Gửi chúng chi thành công!, vui lòng đợi duyệt");
+
+      const res = await doctorApi.getMyLicense();
+      setDoctorProfile((prev) => ({ ...prev, licenses: res.data.data }));
+
+      // reset form
+      setNewLicense({
+        licenseNumber: "",
+        issued_by: "",
+        issued_date: "",
+        expiry_date: "",
+        document_url: "",
+      });
+    } catch (err) {
+      console.error("Lỗi khi gửi chứng chỉ:", err);
+      toast.error("Không thể gửi chúng chi: " + err.message);
+    }
+  };
 
   // Lấy dữ liệu profile từ API
   useEffect(() => {
@@ -50,7 +90,6 @@ const DoctorProfile = () => {
     fetchProfile();
   }, []);
 
-  // Thay đổi text field
   const handleChange = (section, field, value) => {
     setDoctorProfile((prev) => ({
       ...prev,
@@ -270,6 +309,175 @@ const DoctorProfile = () => {
                 </p>
               )}
             </div>
+
+            {/* Chứng chỉ hành nghề */}
+            <section className="mt-10">
+              <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
+                Chứng chỉ hành nghề
+              </h3>
+
+              {/* Danh sách chứng chỉ */}
+              <div className="space-y-3 mb-6">
+                {(doctorProfile.licenses || []).length > 0 ? (
+                  doctorProfile.licenses.map((lic, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 border border-blue-100 rounded-lg bg-blue-50 shadow-sm"
+                    >
+                      <p>
+                        <strong>Số hiệu:</strong> {lic.licenseNumber}
+                      </p>
+                      <p>
+                        <strong>Cơ quan cấp:</strong> {lic.issued_by}
+                      </p>
+                      <p>
+                        <strong>Ngày cấp:</strong>{" "}
+                        {new Date(lic.issued_date).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <strong>Ngày hết hạn:</strong>{" "}
+                        {new Date(lic.expiry_date).toLocaleDateString()}
+                      </p>
+                      <p>
+                        <strong>File:</strong>{" "}
+                        <a
+                          href={`/src/assets/licenses/${lic.document_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline"
+                        >
+                          {lic.document_url}
+                        </a>
+                      </p>
+                      <p>
+                        <strong>Trạng thái:</strong>{" "}
+                        <span
+                          className={`font-semibold ${
+                            lic.status === "APPROVED"
+                              ? "text-green-600"
+                              : lic.status === "REJECTED"
+                              ? "text-red-600"
+                              : "text-yellow-600"
+                          }`}
+                        >
+                          {lic.status}
+                        </span>
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">
+                    Chưa có chứng chỉ nào được gửi.
+                  </p>
+                )}
+              </div>
+
+              {/* Form gửi chứng chỉ */}
+              <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
+                <h4 className="text-blue-700 font-semibold mb-4">
+                  Gửi chứng chỉ mới
+                </h4>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    await handleUploadLicense();
+                  }}
+                  className="space-y-3"
+                >
+                  <div>
+                    <label className="block text-gray-600 font-medium mb-1">
+                      Số hiệu chứng chỉ
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                      value={newLicense.licenseNumber}
+                      onChange={(e) =>
+                        setNewLicense({
+                          ...newLicense,
+                          licenseNumber: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-600 font-medium mb-1">
+                      Cơ quan cấp
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                      value={newLicense.issued_by}
+                      onChange={(e) =>
+                        setNewLicense({
+                          ...newLicense,
+                          issued_by: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-1">
+                        Ngày cấp
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        value={newLicense.issued_date}
+                        onChange={(e) =>
+                          setNewLicense({
+                            ...newLicense,
+                            issued_date: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-1">
+                        Ngày hết hạn
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        value={newLicense.expiry_date}
+                        onChange={(e) =>
+                          setNewLicense({
+                            ...newLicense,
+                            expiry_date: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-600 font-medium mb-1">
+                      Tệp chứng chỉ (PDF)
+                    </label>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => handleFileChange(e)}
+                      className="text-sm text-gray-600"
+                      required
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Gửi phê duyệt
+                  </Button>
+                </form>
+              </div>
+            </section>
           </div>
         </section>
       </div>

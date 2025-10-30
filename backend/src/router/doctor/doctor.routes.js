@@ -188,7 +188,7 @@ router.put(
 // POST /upload-license
 // upload license of doctor
 router.post(
-  "/upload-license",
+  "/license",
   authRequired,
   roleRequired("DOCTOR"),
   DoctorController.uploadLicense
