@@ -1,39 +1,112 @@
-import { memo, useState } from "react";
-import { Button } from "react-bootstrap";
+import { memo, useState, useEffect } from "react";
+import { Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { doctorApi } from "../../api/doctor/doctorApi";
+import defaultAvatar from "../../assets/images/default-avatar.png";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [doctorProfile, setDoctorProfile] = useState({
-    doctor: {
-      title: "Bác sĩ chuyên khoa II",
-      degree: "Thạc sĩ - Bác sĩ",
-      description: "Bác sĩ có hơn 10 năm kinh nghiệm trong lĩnh vực nội khoa.",
-      experience: "10 năm công tác tại Bệnh viện Trung Ương Huế.",
-      specialties: ["Nội tổng quát", "Tim mạch"],
-    },
-    user: {
-      full_name: "Nguyễn Văn A",
-      dob: "1980-03-15",
-      gender: "Nam",
-      address: "123 Nguyễn Trãi, Hà Nội",
-      avatar_url: "https://via.placeholder.com/150",
-    },
-    account: {
-      username: "dr.nguyenvana",
-      email: "nguyenvana@example.com",
-      phone_number: "0987654321",
-    },
-  });
-
+  const [loading, setLoading] = useState(true);
+  const [doctorProfile, setDoctorProfile] = useState(null);
   const navigate = useNavigate();
 
+  // Lấy dữ liệu profile từ API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await doctorApi.getProfile();
+        const d = res.data.data; // dữ liệu BE trả về
+
+        // Chuẩn hóa dữ liệu cho state
+        setDoctorProfile({
+          doctor: {
+            title: d.title,
+            degree: d.degree,
+            description: d.description,
+            experience: d.experience,
+            specialties: d.specialty_id?.map((s) => s.name) || [],
+            clinic: d.clinic_id?.name || "",
+          },
+          user: {
+            full_name: d.user_id?.full_name || "",
+            dob: d.user_id?.dob?.split("T")[0] || "",
+            gender: d.user_id?.gender || "",
+            address: d.user_id?.address || "",
+            avatar_url: d.user_id?.avatar_url || "",
+          },
+          account: {
+            username: d.user_id?.account_id?.username || "",
+            email: d.user_id?.account_id?.email || "",
+            phone_number: d.user_id?.account_id?.phone_number || "",
+          },
+        });
+      } catch (err) {
+        console.error("Lỗi khi lấy hồ sơ bác sĩ:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // Thay đổi text field
   const handleChange = (section, field, value) => {
     setDoctorProfile((prev) => ({
       ...prev,
       [section]: { ...prev[section], [field]: value },
     }));
   };
+
+  // Thay đổi ảnh avatar (chỉ FE)
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const localURL = URL.createObjectURL(file);
+    setDoctorProfile((prev) => ({
+      ...prev,
+      user: { ...prev.user, avatar_url: localURL },
+    }));
+  };
+
+  // Lưu thay đổi
+  const handleSave = async () => {
+    try {
+      const payload = {
+        title: doctorProfile.doctor.title,
+        degree: doctorProfile.doctor.degree,
+        experience: doctorProfile.doctor.experience,
+        description: doctorProfile.doctor.description,
+        gender: doctorProfile.user.gender,
+        dob: doctorProfile.user.dob,
+        address: doctorProfile.user.address,
+        username: doctorProfile.account.username,
+        email: doctorProfile.account.email,
+        phone_number: doctorProfile.account.phone_number,
+      };
+      await doctorApi.updateProfile(payload);
+      setIsEditing(false);
+      alert("Cập nhật hồ sơ thành công!");
+    } catch (err) {
+      console.error("Lỗi khi cập nhật hồ sơ:", err);
+      alert("Cập nhật thất bại, vui lòng thử lại!");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Spinner animation="border" variant="primary" />
+      </div>
+    );
+  }
+
+  if (!doctorProfile) {
+    return (
+      <div className="text-center text-gray-500 mt-10">
+        Không thể tải dữ liệu hồ sơ bác sĩ.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
@@ -43,7 +116,7 @@ const DoctorProfile = () => {
           <h2 className="text-2xl font-semibold text-blue-700">Hồ sơ bác sĩ</h2>
           <div className="space-x-3">
             <Button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
@@ -58,12 +131,22 @@ const DoctorProfile = () => {
         </div>
 
         {/* Avatar */}
-        <div className="flex justify-center mb-6">
+        <div className="flex flex-col items-center mb-6">
           <img
-            src={doctorProfile.user.avatar_url}
+            src={doctorProfile.user?.avatar_url || defaultAvatar}
             alt="Doctor Avatar"
             className="w-32 h-32 rounded-full border-4 border-blue-300 shadow-md object-cover"
           />
+          {isEditing && (
+            <div className="mt-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="text-sm text-gray-600"
+              />
+            </div>
+          )}
         </div>
 
         {/* Thông tin tài khoản */}
@@ -80,7 +163,7 @@ const DoctorProfile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={doctorProfile.account[field]}
+                    value={doctorProfile.account?.[field] || ""}
                     onChange={(e) =>
                       handleChange("account", field, e.target.value)
                     }
@@ -88,7 +171,7 @@ const DoctorProfile = () => {
                   />
                 ) : (
                   <p className="text-gray-800">
-                    {doctorProfile.account[field]}
+                    {doctorProfile.account?.[field] || ""}
                   </p>
                 )}
               </div>
@@ -115,14 +198,14 @@ const DoctorProfile = () => {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={doctorProfile.user[field]}
+                    value={doctorProfile.user?.[field] || ""}
                     onChange={(e) =>
                       handleChange("user", field, e.target.value)
                     }
                     className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   />
                 ) : (
-                  <p className="text-gray-800">{doctorProfile.user[field]}</p>
+                  <p className="text-gray-800">{doctorProfile.user?.[field]}</p>
                 )}
               </div>
             ))}
@@ -148,7 +231,7 @@ const DoctorProfile = () => {
                 {isEditing ? (
                   <textarea
                     rows={field === "description" ? 3 : 1}
-                    value={doctorProfile.doctor[field]}
+                    value={doctorProfile.doctor?.[field] || ""}
                     onChange={(e) =>
                       handleChange("doctor", field, e.target.value)
                     }
@@ -156,7 +239,7 @@ const DoctorProfile = () => {
                   />
                 ) : (
                   <p className="text-gray-800 whitespace-pre-line">
-                    {doctorProfile.doctor[field]}
+                    {doctorProfile.doctor?.[field]}
                   </p>
                 )}
               </div>
@@ -170,7 +253,7 @@ const DoctorProfile = () => {
               {isEditing ? (
                 <input
                   type="text"
-                  value={doctorProfile.doctor.specialties.join(", ")}
+                  value={(doctorProfile.doctor?.specialties || []).join(", ")}
                   onChange={(e) =>
                     handleChange(
                       "doctor",
@@ -182,7 +265,7 @@ const DoctorProfile = () => {
                 />
               ) : (
                 <p className="text-gray-800">
-                  {doctorProfile.doctor.specialties.join(", ")}
+                  {(doctorProfile.doctor?.specialties || []).join(", ")}
                 </p>
               )}
             </div>

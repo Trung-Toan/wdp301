@@ -3,6 +3,8 @@ const userService = require("../user/user.service");
 const appointmentService = require("../appointment/appointment.service");
 const patientService = require("../patient/patient.service");
 const License = require("../../model/clinic/License");
+const User = require("../../model/user/User");
+const Account = require("../../model/auth/Account");
 /**
  * Hàm tìm kiếm một bác sĩ dựa trên user_id.
  */
@@ -60,9 +62,19 @@ exports.getListPatients = async (req) => {
 };
 
 //lấy Profile bác sĩ
-exports.getProfile = async (userId) => {
-  const doctor = await Doctor.findOne({ user_id: userId })
-    .populate("user_id", "full_name dob gender address")
+exports.getProfile = async (accountId) => {
+  const user = await User.findOne({ account_id: accountId });
+  if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
+
+  const doctor = await Doctor.findOne({ user_id: user._id })
+    .populate({
+      path: "user_id",
+      select: "full_name dob gender address avatar_url account_id",
+      populate: {
+        path: "account_id",
+        select: "username email phone_number",
+      },
+    })
     .populate("clinic_id", "name")
     .populate("specialty_id", "name")
     .lean();
@@ -72,27 +84,68 @@ exports.getProfile = async (userId) => {
 };
 
 //chỉnh sửa profile
-exports.updateProfile = async (userId, data) => {
-  const doctor = await Doctor.findOne({ user_id: userId });
-  if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
-
-  const { title, degree, experience, description, gender, dob, address } = data;
-
-  // update doctor info
-  doctor.title = title || doctor.title;
-  doctor.degree = degree || doctor.degree;
-  doctor.experience = experience || doctor.experience;
-  doctor.description = description || doctor.description;
-  await doctor.save();
-
-  // update user info
-  await User.findByIdAndUpdate(doctor.user_id, {
+exports.updateProfile = async (accountId, data) => {
+  const {
+    title,
+    degree,
+    experience,
+    description,
     gender,
     dob,
     address,
-  });
+    avatar_url,
+    username,
+    email,
+    phone_number,
+  } = data;
 
-  return doctor;
+  const user = await User.findOne({ account_id: accountId });
+  if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
+
+  const doctor = await Doctor.findOne({ user_id: user._id });
+  if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
+
+  if (title !== undefined) doctor.title = title;
+  if (degree !== undefined) doctor.degree = degree;
+  if (experience !== undefined) doctor.experience = experience;
+  if (description !== undefined) doctor.description = description;
+  await doctor.save();
+
+  await User.findByIdAndUpdate(
+    doctor.user_id,
+    {
+      ...(gender && { gender }),
+      ...(dob && { dob }),
+      ...(address && { address }),
+      ...(avatar_url && { avatar_url }),
+    },
+    { new: true }
+  );
+
+  await Account.findByIdAndUpdate(
+    accountId,
+    {
+      ...(username && { username }),
+      ...(email && { email }),
+      ...(phone_number && { phone_number }),
+    },
+    { new: true }
+  );
+
+  const updatedDoctor = await Doctor.findById(doctor._id)
+    .populate({
+      path: "user_id",
+      select: "full_name dob gender address avatar_url account_id",
+      populate: {
+        path: "account_id",
+        select: "username email phone_number",
+      },
+    })
+    .populate("clinic_id", "name")
+    .populate("specialty_id", "name")
+    .lean();
+
+  return updatedDoctor;
 };
 
 //gửi chứng chỉ
