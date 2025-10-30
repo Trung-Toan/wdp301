@@ -6,9 +6,7 @@ import { Eye, EyeSlash } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import {
-  setSessionStorage,
-} from "../../hooks/useSessionStorage";
+import { setSessionStorage } from "../../hooks/useSessionStorage";
 import GoogleLoginButton from "./GoogleLoginButton";
 
 import "../../styles/Login.css";
@@ -41,7 +39,6 @@ const Login = () => {
         return;
       }
 
-
       const token = response.tokens?.accessToken;
       const account = response.account;
       const patient = response.patient;
@@ -52,7 +49,7 @@ const Login = () => {
         user,
         patient,
         "patient._id": patient?._id,
-        "patient.id": patient?.id
+        "patient.id": patient?.id,
       });
 
       if (!token || !account) {
@@ -76,7 +73,7 @@ const Login = () => {
         hasAccount: !!account,
         hasUser: !!user,
         hasPatient: !!patient,
-        patientId: patient?._id || patient?.id
+        patientId: patient?._id || patient?.id,
       });
 
       // Then call login to update auth context
@@ -91,20 +88,13 @@ const Login = () => {
 
       if (account.role === "DOCTOR") {
         navigate("/doctor/dashboard");
-      } 
-      else if(account.role === "ADMIN_CLINIC") {
+      } else if (account.role === "ADMIN_CLINIC") {
         navigate("/admin-clinic/dashboard");
-      }
-      }
-      else if (account.role === "ADMIN_CLINIC") {
-        navigate("/clinic-admin/dashboard");
-      }
-      else if (account.role === "ASSISTANT") {
+      } else if (account.role === "ASSISTANT") {
         navigate("/assistant/dashboard");
       } else if (account.role === "ADMIN_SYSTEM") {
         navigate("/admin/dashboard");
-      } 
-      else {
+      } else {
         navigate(redirectTo, { replace: true });
       }
     },
