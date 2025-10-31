@@ -1,6 +1,5 @@
-import Card from "../../../../components/ui/Card"
-import CardContent from "../../../../components/ui/Card"
 import { Clock, Shield, Users, Smartphone } from "lucide-react"
+import "../../../../styles/FeaturesSection.css"
 
 const features = [
     {
@@ -27,27 +26,28 @@ const features = [
 
 export function FeaturesSection() {
     return (
-        <section className="py-16 md:py-24">
-            <div className="container mx-auto px-4">
-                <div className="mb-12 text-center">
-                    <h2 className="mb-4 text-3xl font-bold text-balance md:text-4xl">Tại sao chọn chúng tôi?</h2>
-                    <p className="text-lg text-muted-foreground text-pretty">
+        <section className="features-section-modern">
+            <div className="features-container">
+                <div className="features-header">
+                    <h2 className="features-title">Tại sao chọn chúng tôi?</h2>
+                    <p className="features-subtitle">
                         Trải nghiệm đặt lịch khám bệnh hiện đại và tiện lợi
                     </p>
                 </div>
 
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-                    {features.map((feature) => (
-                        <Card key={feature.title} className="border-none bg-gradient-to-br from-card to-muted/20">
-                            <CardContent className="p-6">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                    <feature.icon className="h-6 w-6" />
+                <div className="features-grid">
+                    {features.map((feature, index) => {
+                        const IconComponent = feature.icon
+                        return (
+                            <div key={feature.title} className="feature-card">
+                                <div className="feature-icon-wrapper">
+                                    <IconComponent size={28} />
                                 </div>
-                                <h3 className="mb-2 font-semibold text-card-foreground">{feature.title}</h3>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                <h3 className="feature-title">{feature.title}</h3>
+                                <p className="feature-description">{feature.description}</p>
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
         </section>
