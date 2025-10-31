@@ -6,6 +6,7 @@ const Doctor = require("../../model/doctor/Doctor");
 const AdminClinic = require("../../model/user/AdminClinic");
 const Clinic = require("../../model/clinic/Clinic");
 const Assistant = require("../../model/user/Assistant");
+const License = require("../../model/clinic/License");
 
 const SALT_ROUNDS = 12;
 
@@ -102,7 +103,16 @@ exports.createAssistant = async (payload) => {
   session.startTransaction();
 
   try {
-    const { username, password, phone_number, full_name, note, type, doctor_id, clinic_id } = payload;
+    const {
+      username,
+      password,
+      phone_number,
+      full_name,
+      note,
+      type,
+      doctor_id,
+      clinic_id,
+    } = payload;
 
     //Tạo tài khoản
     const hashedPassword = await hashPassword(password);
@@ -251,5 +261,91 @@ exports.getDoctorsByAdminClinic = async (adminAccountId) => {
   } catch (err) {
     console.error("Lỗi trong getDoctorsByAdminClinic:", err);
     throw err;
+  }
+};
+
+// Lấy danh sách chứng chỉ (PENDING)
+exports.getPendingDoctorLicenses = async (adminAccountId) => {
+  try {
+    const clinicData = await exports.getClinicByAdmin(adminAccountId);
+    if (!clinicData.ok) {
+      throw new Error(
+        "Không tìm thấy phòng khám của admin: " + clinicData.message
+      );
+    }
+    const clinicId = clinicData.data._id;
+
+    const doctorsInClinic = await Doctor.find({ clinic_id: clinicId }).select(
+      "_id"
+    );
+    const doctorIds = doctorsInClinic.map((doc) => doc._id);
+
+    if (doctorIds.length === 0) {
+      return { ok: true, data: [] };
+    }
+
+    const licenses = await License.find({
+      doctor_id: { $in: doctorIds },
+      status: "PENDING",
+    })
+      .populate({
+        path: "doctor_id",
+        select: "user_id",
+        populate: {
+          path: "user_id",
+          select: "full_name avatar_url",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { ok: true, data: licenses };
+  } catch (error) {
+    console.error("Lỗi khi lấy chứng chỉ chờ duyệt:", error);
+    return { ok: false, message: error.message };
+  }
+};
+
+//cập nhật trạng thái chứng chỉ
+exports.updateLicenseStatus = async (
+  adminAccountId,
+  licenseId,
+  newStatus,
+  rejectionReason = ""
+) => {
+  try {
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) throw new Error("Không tìm thấy user của admin");
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) throw new Error("Không tìm thấy admin clinic");
+
+    const validStatus = ["APPROVED", "REJECTED"];
+    if (!validStatus.includes(newStatus)) {
+      throw new Error("Trạng thái mới không hợp lệ.");
+    }
+
+    const license = await License.findById(licenseId);
+    if (!license) {
+      throw new Error("Không tìm thấy chứng chỉ.");
+    }
+
+    license.status = newStatus;
+
+    if (newStatus === "APPROVED") {
+      license.approved_at = new Date();
+      license.approved_by = adminClinic._id;
+      license.rejected_reason = null;
+    } else if (newStatus === "REJECTED") {
+      license.rejected_reason = rejectionReason;
+      license.approved_at = null;
+      license.approved_by = null;
+    }
+
+    await license.save();
+
+    return { ok: true, data: license };
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái chứng chỉ:", error);
+    return { ok: false, message: error.message };
   }
 };

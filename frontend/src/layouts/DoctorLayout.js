@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react"; // Thêm useEffect
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
@@ -15,14 +15,62 @@ import {
   Bell,
   PersonCircle,
 } from "react-bootstrap-icons";
+import { Button, Spinner } from "react-bootstrap";
+import { toast } from "react-toastify";
+import { doctorApi } from "../api/doctor/doctorApi";
 import "../styles/doctor/DoctorLayout.css";
 
 const DoctorLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-
   const user = JSON.parse(sessionStorage.getItem("user"));
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+
+  useEffect(() => {
+    const fetchProfileAndLicenses = async () => {
+      try {
+        const [profileRes, licenseRes] = await Promise.all([
+          doctorApi.getProfile(),
+          doctorApi.getMyLicense(),
+        ]);
+
+        const profile = profileRes.data.data;
+        const licenses = licenseRes.data.data || [];
+
+        const hasInfo = profile.title && profile.degree && profile.experience;
+        const hasLicense = licenses.length > 0;
+
+        if (hasInfo && hasLicense) {
+          setIsProfileComplete(true);
+        } else {
+          setIsProfileComplete(false);
+        }
+      } catch (err) {
+        console.error("Không thể tải hồ sơ bác sĩ:", err);
+        setIsProfileComplete(false);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfileAndLicenses();
+  }, []);
+
+  useEffect(() => {
+    if (isLoadingProfile) {
+      return;
+    }
+
+    if (!isProfileComplete && location.pathname !== "/doctor/profile") {
+      toast.warn("Vui lòng hoàn tất hồ sơ của bạn trước khi tiếp tục!", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      navigate("/doctor/profile");
+    }
+  }, [isLoadingProfile, isProfileComplete, location.pathname, navigate]);
 
   const menuItems = [
     {
@@ -128,7 +176,9 @@ const DoctorLayout = () => {
             </button>
 
             <div
-              className="user-profile"
+              className={`user-profile ${
+                !isProfileComplete ? "pulse-profile" : ""
+              }`}
               onClick={() => navigate("/doctor/profile")}
               style={{ cursor: "pointer" }}
             >
@@ -143,6 +193,23 @@ const DoctorLayout = () => {
 
         {/* Page Content */}
         <main className="page-content">
+          {!isProfileComplete && location.pathname !== "/doctor/profile" && (
+            <div className="profile-blocker-overlay">
+              <Spinner animation="border" variant="light" className="mb-3" />
+              <h3 className="text-white">Yêu cầu hoàn tất hồ sơ</h3>
+              <p className="text-white-50 mb-4">
+                Bạn cần cập nhật thông tin (Chức danh, Bằng cấp, Kinh nghiệm) và
+                tải lên ít nhất 1 chứng chỉ hành nghề để sử dụng các tính năng
+                khác.
+              </p>
+              <Button
+                variant="light"
+                onClick={() => navigate("/doctor/profile")}
+              >
+                Đi đến trang hồ sơ
+              </Button>
+            </div>
+          )}
           <Outlet />
         </main>
 

@@ -1,6 +1,13 @@
 import { axiosInstance } from "../axiosInstance";
 
 export const doctorApi = {
+  GET_ALL_PATIENT: "/doctor/patients",
+  GET_PATIENT_BY_ID: (id) => `/doctor/patients/${id}`,
+  GET_LIST_APPOINTMENT: "/doctor/appointments",
+  GET_APPOINTMENT_BY_ID: (id) => `/doctor/appointments/${id}`,
+  VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD: "/doctor/medical-records/requests/history",
+
+
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
   getDoctorTop: (limit) =>
     axiosInstance.get("/doctor/top", { params: { limit } }),
@@ -11,26 +18,31 @@ export const doctorApi = {
 
   // Lấy bác sĩ theo chuyên khoa
   getDoctorBySpecialty: (specialtyId, params = {}) =>
-    axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params } }),
+    axiosInstance.get("/doctor/by-specialty", {
+      params: { specialtyId, ...params },
+    }),
 
   //lay danh sach benh nhan
-  getAllPatient: (page, limit, search) => {
-    const params = new URLSearchParams({ page, limit });
-    if (search?.trim()) params.append("search", search.trim());
-    return axiosInstance.get(`/doctor/patients?${params.toString()}`);
-  },
+  getAllPatient: (page = 1, limit = 10, search = "") =>
+    axiosInstance.get(doctorApi.GET_ALL_PATIENT, {
+      params: {
+        page,
+        limit,
+        ...(search.trim() && { search: search.trim() }),
+      }
+    }),
 
   //lay chi tiet benh nhan
   getPatientById: (patientId) =>
-    axiosInstance.get(`/doctor/patients/${patientId}`),
+    axiosInstance.get(doctorApi.GET_PATIENT_BY_ID(patientId)),
 
   //Lấy danh sách lịch hẹn
   getAppointments: (params) =>
-    axiosInstance.get("/doctor/appointments", { params }),
+    axiosInstance.get(doctorApi.GET_LIST_APPOINTMENT, { params }),
 
   //Lấy chi tiết lịch hẹn
   getAppointmentById: (appointmentId) =>
-    axiosInstance.get(`/doctor/appointments/${appointmentId}`),
+    axiosInstance.get(doctorApi.GET_APPOINTMENT_BY_ID(appointmentId)),
 
   //lấy danh sách hồ sơ bệnh án
   getAllMedicalRecords: () => axiosInstance.get("/doctor/medical-records"),
@@ -51,8 +63,9 @@ export const doctorApi = {
     axiosInstance.get(`/doctor/medical-records?search=${search}`),
 
   //lịch sử yêu cầu truy cập hồ sơ
+  
   getMedicalRecordRequestHistory: () =>
-    axiosInstance.get("/doctor/medical-records/requests/history"),
+    axiosInstance.get(doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD),
 
   //gửi yêu cầu truy cập hồ sơ
   requestMedicalRecordAccess: (patientId, medicalRecordId, reason) =>
@@ -62,7 +75,8 @@ export const doctorApi = {
     ),
 
   //lấy danh sách trợ lý
-  getAssistants: (params) => axiosInstance.get("/doctor/assistants", { params }),
+  getAssistants: (params) =>
+    axiosInstance.get("/doctor/assistants", { params }),
 
   //thêm trợ lý
   addAssistant: (data) => axiosInstance.post("/doctor/assistants", data),
@@ -72,7 +86,17 @@ export const doctorApi = {
     axiosInstance.delete(`/doctor/assistants/${assistantId}`),
 
   // Lấy bác sĩ theo ID
-  getDoctorById: (id) =>
-    axiosInstance.get(`/doctor/${id}`),
-};
+  getDoctorById: (id) => axiosInstance.get(`/doctor/${id}`),
 
+  //lấy profile bác sĩ
+  getProfile: () => axiosInstance.get("/doctor/profile"),
+
+  //cap nhat profile bác sĩ
+  updateProfile: (data) => axiosInstance.put("/doctor/profile", data),
+
+  //lấy chứng chỉ bác sĩ
+  getMyLicense: () => axiosInstance.get("/doctor/license"),
+
+  //gửi chứng chỉ bác sĩ chờ duyệt
+  uploadLicense: (data) => axiosInstance.post("/doctor/license", data),
+};

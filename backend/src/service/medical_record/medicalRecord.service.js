@@ -132,13 +132,10 @@ exports.requestViewMedicalRecordById = async (req) => {
 exports.getHistoryMedicalRecordRequests = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
-
     const doctorIdAsObjectId = doctor._id;
 
     const page = parseInt(req.query.page) || 1;
-
     const limit = parseInt(req.query.limit) || 10;
-
     const skip = (page - 1) * limit;
 
     const results = await MedicalRecord.aggregate([
@@ -148,7 +145,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       // 2. Lọc theo đúng bác sĩ
       { $match: { "access_requests.doctor_id": doctorIdAsObjectId } },
 
-      // 3. Tách pipeline: 1 để đếm tổng, 1 để lấy dữ liệu phân trang
+      // 3. Tách pipeline
       {
         $facet: {
           metadata: [{ $count: "totalItems" }],
@@ -156,11 +153,30 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
             { $sort: { "access_requests.requested_at": -1 } },
             { $skip: skip },
             { $limit: limit },
+
+            // === THAY ĐỔI: Dùng $lookup thay vì populate ===
+            {
+              $lookup: {
+                from: "patients", // Tên collection của Patient model
+                localField: "patient_id", // Khóa ở bảng MedicalRecord
+                foreignField: "_id", // Khóa ở bảng Patient
+                as: "patientInfo", // Tên mảng kết quả
+              },
+            },
+            {
+              // $lookup trả về mảng, ta $unwind để lấy object
+              $unwind: {
+                path: "$patientInfo",
+                preserveNullAndEmptyArrays: true, // Giữ lại nếu không tìm thấy patient
+              },
+            },
+            // === KẾT THÚC $lookup ===
+
+            // 4. Định hình lại output (thay thế $project cũ)
             {
               $project: {
                 _id: 0,
-                medical_record: "$_id",
-                patient: "$patient_id",
+                // Lấy các trường từ access_requests
                 status: "$access_requests.status",
                 requested_at: "$access_requests.requested_at",
                 reviewed_at: {
@@ -168,6 +184,25 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
                 },
                 reviewed_by: {
                   $ifNull: ["$access_requests.reviewed_by", null],
+                },
+                
+                patient: {
+                  _id: "$patientInfo._id",
+                  patient_code: "$patientInfo.patient_code",
+                },
+
+                // Lấy thông tin medical_record (chỉ các trường cần thiết)
+                medical_record: {
+                  _id: "$_id",
+                  diagnosis: "$diagnosis",
+                  symptoms: "$symptoms",
+                  notes: "$notes",
+                  attachments: "$attachments",
+                  prescription: "$prescription",
+                  status: "$status",
+                  patient_id: "$patient_id",
+                  createdAt: "$createdAt",
+                  updatedAt: "$updatedAt",
                 },
               },
             },
@@ -182,11 +217,9 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       : 0;
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Populate sau khi aggregate
-    await MedicalRecord.populate(requests, [
-      { path: "patient", model: "Patient" },
-      { path: "medical_record", model: "MedicalRecord" }
-    ]);
+    // === THAY ĐỔI: Bỏ `MedicalRecord.populate` ===
+    // Dữ liệu đã được "populate" bằng $lookup ở trên
+    // await MedicalRecord.populate(requests, [ ... ]);
 
     return {
       requests,

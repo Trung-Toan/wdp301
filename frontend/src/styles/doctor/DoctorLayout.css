@@ -153,3 +153,76 @@
         @apply ml-0;
     }
 }
+
+/* --- THÊM CODE NÀY VÀO CUỐI FILE DoctorLayout.css --- */
+
+/* (1) CSS cho màn hình tải ban đầu */
+.profile-check-loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: #f8f9fa;
+    gap: 1rem;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+/* (2) CSS cho hiệu ứng "pulse" trên nút profile */
+.user-profile.pulse-profile {
+    position: relative;
+    /* Thêm viền đỏ nhấp nháy */
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 1);
+    animation: pulse-animation 2s infinite;
+    border-radius: 50px;
+    /* Làm tròn góc để hiệu ứng đẹp hơn */
+    padding: 4px 8px;
+    /* Thêm padding để viền không quá sát */
+    margin-right: 8px;
+    /* Bù lại cho padding */
+}
+
+@keyframes pulse-animation {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 12px rgba(255, 82, 82, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+    }
+}
+
+/* (3) CSS cho lớp phủ (overlay) chặn nội dung */
+.profile-blocker-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(30, 30, 30, 0.85);
+    /* Màu tối mờ */
+    backdrop-filter: blur(5px);
+    /* Hiệu ứng mờ nền */
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    text-align: center;
+    border-radius: 8px;
+    /* Giữ trong vùng `main` */
+}
+
+/* Đảm bảo `page-content` có position relative
+  để lớp phủ nằm đúng bên trong nó
+*/
+.page-content {
+    position: relative;
+}
