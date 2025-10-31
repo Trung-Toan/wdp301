@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Eye, EyeOff, ArrowLeft, HeartPulse } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff, ArrowLeft, HeartPulse, User, Mail, Phone, Lock, MapPin, Calendar, Users } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { registerPatientsApi } from "../../api/auth/register/registerPatientsApi";
 import Toast from "../../components/ui/Toast";
 import { provinceApi, wardApi } from "../../api";
+import { Spinner } from "react-bootstrap";
+import "../../styles/Register.css";
 
 export default function RegisterForm() {
     const navigate = useNavigate();
@@ -11,6 +13,7 @@ export default function RegisterForm() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [notification, setNotification] = useState({ type: "", message: "" });
     const [errors, setErrors] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
 
     // --- Thêm state cho province & ward ---
     const [provinces, setProvinces] = useState([]);
@@ -106,6 +109,7 @@ export default function RegisterForm() {
             setNotification({ type: "error", message: "Vui lòng kiểm tra lại thông tin." });
             return;
         }
+        setIsLoading(true);
         try {
             // Gộp địa chỉ hoàn chỉnh
             const fullAddress = `${formData.addressDetail}, ${wards.find(w => w.code === formData.ward)?.name || ""}, ${provinces.find(p => p.code === formData.province)?.name || ""}`;
@@ -138,148 +142,242 @@ export default function RegisterForm() {
                 type: "error",
                 message: err.response?.data?.message || "Đăng ký thất bại",
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <main className="flex min-h-screen bg-gradient-to-br from-blue-50 to-white">
-            <div className="flex w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-xl bg-white">
-                <div className="w-full md:w-1/2 p-10">
+        <div className="register-wrapper d-flex align-items-center justify-content-center" style={{ 
+            position: "relative",
+            minHeight: "600px",
+            width: "100%"
+        }}>
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div
+                    className="loading-overlay"
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.6)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div className="loading-card" style={{
+                        padding: "2.5rem",
+                        borderRadius: "20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "1.5rem",
+                    }}>
+                        <Spinner animation="border" variant="primary" style={{ width: "3.5rem", height: "3.5rem", borderWidth: "4px" }} />
+                        <p className="mb-0 fw-semibold" style={{ 
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            backgroundClip: "text",
+                            fontSize: "1.1rem"
+                        }}>
+                            Đang xử lý đăng ký...
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            <div className="register-card p-5" style={{ 
+                maxWidth: "900px", 
+                width: "100%",
+                position: "relative", 
+                zIndex: 1, 
+                opacity: isLoading ? 0.6 : 1 
+            }}>
+                {/* Header */}
+                <div className="register-header text-center">
                     <button
                         onClick={() => navigate(-1)}
-                        className="flex items-center text-gray-500 hover:text-blue-600 transition"
+                        className="back-button"
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <ArrowLeft size={18} />
                         Quay lại
                     </button>
 
-                    <div className="flex items-center gap-2 mt-6 mb-8">
-                        <HeartPulse className="text-blue-600 h-6 w-6" />
-                        <h1 className="text-2xl font-bold text-gray-800">Đăng ký tài khoản</h1>
+                    <div className="register-icon">
+                        <HeartPulse size={40} color="white" />
+                    </div>
+                    <h1 className="register-title">Tạo tài khoản mới</h1>
+                    <p className="register-subtitle">Điền thông tin để bắt đầu sử dụng dịch vụ</p>
                     </div>
 
                     {/* Loại tài khoản */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="form-group-modern">
+                    <label className="form-label-modern">
                             Loại tài khoản *
                         </label>
-                        <div className="flex items-center gap-6">
-                            <label className="flex items-center gap-2">
+                    <div className="radio-group">
+                        <label className="radio-option">
                                 <input
                                     type="radio"
                                     name="accountType"
                                     value="PATIENT"
                                     checked={formData.accountType === "PATIENT"}
                                     onChange={handleChange}
+                                disabled={isLoading}
                                 />
                                 <span>Bệnh nhân</span>
                             </label>
-                            <label className="flex items-center gap-2">
+                        <label className="radio-option">
                                 <input
                                     type="radio"
                                     name="accountType"
                                     value="ADMIN_CLINIC"
                                     checked={formData.accountType === "ADMIN_CLINIC"}
                                     onChange={handleChange}
+                                disabled={isLoading}
                                 />
                                 <span>Chủ phòng khám</span>
                             </label>
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit}>
                         {/* Các input cơ bản */}
                         {[
-                            { id: "username", label: "Tên đăng nhập", type: "text", placeholder: "Nhập tên đăng nhập" },
-                            { id: "email", label: "Email", type: "email", placeholder: "example@gmail.com" },
-                            { id: "phone", label: "Số điện thoại", type: "text", placeholder: "0912345678" },
-                            { id: "fullName", label: "Họ và tên", type: "text", placeholder: "Nguyễn Văn A" },
-                        ].map((input) => (
-                            <div key={input.id}>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                        { id: "username", label: "Tên đăng nhập", type: "text", placeholder: "Nhập tên đăng nhập", icon: User },
+                        { id: "email", label: "Email", type: "email", placeholder: "example@gmail.com", icon: Mail },
+                        { id: "phone", label: "Số điện thoại", type: "text", placeholder: "0912345678", icon: Phone },
+                        { id: "fullName", label: "Họ và tên", type: "text", placeholder: "Nguyễn Văn A", icon: User },
+                    ].map((input) => {
+                        const IconComponent = input.icon;
+                        return (
+                            <div key={input.id} className="form-group-modern">
+                                <label className="form-label-modern">
                                     {input.label} *
                                 </label>
+                                <div className="input-icon-wrapper">
+                                    <IconComponent className="input-icon" size={20} />
                                 <input
                                     id={input.id}
                                     type={input.type}
                                     value={formData[input.id]}
                                     onChange={handleChange}
                                     placeholder={input.placeholder}
-                                    className={`w-full rounded-lg border p-2.5 focus:ring-2 focus:ring-blue-500 ${errors[input.id] ? "border-red-500" : "border-gray-300"}`}
+                                        className={`form-control-modern ${errors[input.id] ? 'is-invalid' : ''}`}
+                                        disabled={isLoading}
                                 />
+                                </div>
                                 {errors[input.id] && (
-                                    <p className="text-red-500 text-xs mt-1">{errors[input.id]}</p>
+                                    <div className="invalid-feedback">{errors[input.id]}</div>
                                 )}
                             </div>
-                        ))}
+                        );
+                    })}
 
                         {/* Mật khẩu */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu *</label>
-                            <div className="relative">
+                    <div className="form-group-modern">
+                        <label className="form-label-modern">Mật khẩu *</label>
+                        <div className="input-icon-wrapper">
+                            <Lock className="input-icon" size={20} />
                                 <input
                                     id="password"
                                     type={showPassword ? "text" : "password"}
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Nhập mật khẩu"
-                                    className={`w-full rounded-lg border p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 ${errors.password ? "border-red-500" : "border-gray-300"}`}
+                                className={`form-control-modern ${errors.password ? 'is-invalid' : ''}`}
+                                style={{ paddingRight: "3rem" }}
+                                disabled={isLoading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                >
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                className="password-toggle-btn"
+                                disabled={isLoading}
+                                style={{
+                                    position: "absolute",
+                                    right: "0.75rem",
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    zIndex: 10
+                                }}
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
-                            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                        {errors.password && <div className="invalid-feedback">{errors.password}</div>}
                         </div>
 
                         {/* Xác nhận mật khẩu */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu *</label>
-                            <div className="relative">
+                    <div className="form-group-modern">
+                        <label className="form-label-modern">Xác nhận mật khẩu *</label>
+                        <div className="input-icon-wrapper">
+                            <Lock className="input-icon" size={20} />
                                 <input
                                     id="confirmPassword"
                                     type={showConfirmPassword ? "text" : "password"}
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="Nhập lại mật khẩu"
-                                    className={`w-full rounded-lg border p-2.5 pr-10 focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
+                                className={`form-control-modern ${errors.confirmPassword ? 'is-invalid' : ''}`}
+                                style={{ paddingRight: "3rem" }}
+                                disabled={isLoading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                                >
-                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                className="password-toggle-btn"
+                                disabled={isLoading}
+                                style={{
+                                    position: "absolute",
+                                    right: "0.75rem",
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    zIndex: 10
+                                }}
+                            >
+                                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
                             {errors.confirmPassword && (
-                                <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+                            <div className="invalid-feedback">{errors.confirmPassword}</div>
                             )}
                         </div>
 
                         {/* Ngày sinh + Giới tính */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh *</label>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <div className="form-group-modern">
+                            <label className="form-label-modern">Ngày sinh *</label>
+                            <div className="input-icon-wrapper">
+                                <Calendar className="input-icon" size={20} />
                                 <input
                                     id="dob"
                                     type="date"
                                     value={formData.dob}
                                     onChange={handleChange}
-                                    className={`w-full rounded-lg border p-2.5 ${errors.dob ? "border-red-500" : "border-gray-300"}`}
+                                    className={`form-control-modern ${errors.dob ? 'is-invalid' : ''}`}
+                                    disabled={isLoading}
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Giới tính *</label>
+                            {errors.dob && <div className="invalid-feedback">{errors.dob}</div>}
+                        </div>
+                        <div className="form-group-modern">
+                            <label className="form-label-modern">Giới tính *</label>
+                            <div className="input-icon-wrapper">
+                                <Users className="input-icon" size={20} />
                                 <select
                                     id="gender"
                                     value={formData.gender}
                                     onChange={handleChange}
-                                    className={`w-full rounded-lg border p-2.5 bg-white ${errors.gender ? "border-red-500" : "border-gray-300"}`}
+                                    className={`select-modern ${errors.gender ? 'is-invalid' : ''}`}
+                                    style={{ paddingLeft: "3rem" }}
+                                    disabled={isLoading}
                                 >
                                     <option value="">-- Chọn giới tính --</option>
                                     <option value="male">Nam</option>
@@ -287,17 +385,23 @@ export default function RegisterForm() {
                                     <option value="other">Khác</option>
                                 </select>
                             </div>
+                            {errors.gender && <div className="invalid-feedback">{errors.gender}</div>}
+                            </div>
                         </div>
 
                         {/* Địa chỉ */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Tỉnh / Thành phố *</label>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <div className="form-group-modern">
+                            <label className="form-label-modern">Tỉnh / Thành phố *</label>
+                            <div className="input-icon-wrapper">
+                                <MapPin className="input-icon" size={20} />
                                 <select
                                     id="province"
                                     value={formData.province}
                                     onChange={handleProvinceChange}
-                                    className="w-full rounded-lg border p-2.5 bg-white focus:ring-2 focus:ring-blue-500 border-gray-300"
+                                    className={`select-modern ${errors.province ? 'is-invalid' : ''}`}
+                                    style={{ paddingLeft: "3rem" }}
+                                    disabled={isLoading}
                                 >
                                     <option value="">-- Chọn tỉnh/thành phố --</option>
                                     {provinces.map((p) => (
@@ -306,18 +410,22 @@ export default function RegisterForm() {
                                         </option>
                                     ))}
                                 </select>
-
-                                {errors.province && (
-                                    <p className="text-red-500 text-xs mt-1">{errors.province}</p>
-                                )}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phường / Xã *</label>
+                            {errors.province && (
+                                <div className="invalid-feedback">{errors.province}</div>
+                            )}
+                        </div>
+                        <div className="form-group-modern">
+                            <label className="form-label-modern">Phường / Xã *</label>
+                            <div className="input-icon-wrapper">
+                                <MapPin className="input-icon" size={20} />
                                 <select
                                     id="ward"
                                     value={formData.ward}
                                     onChange={handleChange}
-                                    className="w-full rounded-lg border p-2.5 bg-white focus:ring-2 focus:ring-blue-500 border-gray-300"
+                                    className={`select-modern ${errors.ward ? 'is-invalid' : ''}`}
+                                    style={{ paddingLeft: "3rem" }}
+                                    disabled={isLoading || !formData.province}
                                 >
                                     <option value="">-- Chọn phường/xã --</option>
                                     {Array.isArray(wards) &&
@@ -327,53 +435,64 @@ export default function RegisterForm() {
                                             </option>
                                         ))}
                                 </select>
-
-                                {errors.ward && (
-                                    <p className="text-red-500 text-xs mt-1">{errors.ward}</p>
-                                )}
+                            </div>
+                            {errors.ward && (
+                                <div className="invalid-feedback">{errors.ward}</div>
+                            )}
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div className="form-group-modern">
+                        <label className="form-label-modern">
                                 Địa chỉ chi tiết *
                             </label>
+                        <div className="input-icon-wrapper">
+                            <MapPin className="input-icon" size={20} />
                             <input
                                 id="addressDetail"
                                 type="text"
                                 value={formData.addressDetail}
                                 onChange={handleChange}
                                 placeholder="Số nhà, đường, khu phố..."
-                                className={`w-full rounded-lg border p-2.5 ${errors.addressDetail ? "border-red-500" : "border-gray-300"}`}
+                                className={`form-control-modern ${errors.addressDetail ? 'is-invalid' : ''}`}
+                                disabled={isLoading}
                             />
-                            {errors.addressDetail && (
-                                <p className="text-red-500 text-xs mt-1">{errors.addressDetail}</p>
-                            )}
+                        </div>
+                        {errors.addressDetail && (
+                            <div className="invalid-feedback">{errors.addressDetail}</div>
+                        )}
                         </div>
 
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium rounded-lg py-2.5 mt-4 hover:opacity-90 transition"
-                        >
-                            Đăng ký ngay
+                        className="btn-register"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Spinner
+                                    as="span"
+                                    animation="border"
+                                    size="sm"
+                                    className="me-2"
+                                    style={{ borderWidth: "2px" }}
+                                />
+                                Đang xử lý...
+                            </>
+                        ) : (
+                            "Đăng ký ngay"
+                        )}
                         </button>
-                    </form>
-                </div>
 
-                {/* IMAGE */}
-                <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-600 to-blue-400 items-center justify-center p-10 text-white">
-                    <div className="text-center space-y-4">
-                        <img
-                            src="/images/doctor_illustration.svg"
-                            alt="Doctor illustration"
-                            className="w-80 mx-auto drop-shadow-lg"
-                        />
-                        <h2 className="text-2xl font-semibold">Đặt lịch khám nhanh chóng</h2>
-                        <p className="text-blue-50 text-sm">
-                            Chăm sóc sức khỏe dễ dàng hơn với hệ thống đặt lịch trực tuyến thông minh
+                    <div className="text-center mt-4" style={{ pointerEvents: isLoading ? "none" : "auto", opacity: isLoading ? 0.6 : 1 }}>
+                        <p className="mb-0" style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            Đã có tài khoản?{" "}
+                            <Link to="/login" className="register-link">
+                                Đăng nhập ngay
+                            </Link>
                         </p>
                     </div>
-                </div>
+                </form>
             </div>
 
             <Toast
@@ -381,6 +500,6 @@ export default function RegisterForm() {
                 type={notification.type}
                 onClose={() => setNotification({ type: "", message: "" })}
             />
-        </main>
+        </div>
     );
 }
