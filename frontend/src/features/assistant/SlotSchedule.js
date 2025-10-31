@@ -5,7 +5,7 @@ import {
   Calendar,
   Plus,
   Pencil,
-  Trash,
+  // Trash, // <-- ĐÃ XÓA
   Clock,
   People,
 } from "react-bootstrap-icons";
@@ -22,6 +22,7 @@ const minutes = Array.from({ length: 12 }, (_, i) =>
 
 const inputRingClasses =
   "block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6";
+const inputDisabledClasses = "disabled:bg-gray-100 disabled:cursor-not-allowed";
 
 const getLocalDate = () => {
   const today = new Date();
@@ -48,7 +49,7 @@ const SlotSchedule = () => {
   const [note, setNote] = useState("");
 
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
-  const [todayString] = useState(getLocalDate()); // todayString này chỉ lấy 1 lần khi load
+  const [todayString] = useState(getLocalDate());
 
   const [Slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,24 +63,29 @@ const SlotSchedule = () => {
   const [endHour, setEndHour] = useState("09");
   const [endMinute, setEndMinute] = useState("00");
   const [maxPatients, setMaxPatients] = useState(1);
-
   const [modalError, setModalError] = useState("");
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [SlotToDelete, setSlotToDelete] = useState(null);
+
+  const [slotStatus, setSlotStatus] = useState("AVAILABLE");
+  const [isTimeLocked, setIsTimeLocked] = useState(false);
 
   const isPastDate = useMemo(() => {
     const selDate = new Date(selectedDate);
-    const todDate = new Date(todayString); // Dùng todayString từ state
+    const todDate = new Date(todayString);
     selDate.setHours(0, 0, 0, 0);
     todDate.setHours(0, 0, 0, 0);
     return selDate < todDate;
   }, [selectedDate, todayString]);
 
-  // Lấy danh sách slot theo bác sĩ và ngày
+  // Lấy danh sách slot
   const fetchSlots = async () => {
     setLoading(true);
     try {
       const res = await SLOT_API.getSlotsByDoctor(selectedDate);
+
+      // === 1. LOG DỮ LIỆU THÔ KHI FETCH ===
+      console.log("--- fetchSlots: Dữ liệu thô nhận về ---", res.data?.data);
+      // ===================================
+
       const sortedSlots = (res.data?.data || []).sort(
         (a, b) => new Date(a.start_time) - new Date(b.start_time)
       );
@@ -98,57 +104,45 @@ const SlotSchedule = () => {
     // eslint-disable-next-line
   }, [selectedDate]);
 
-  // === VALIDATION THỜI GIAN THỰC ===
+  // === (Validation useEffect giữ nguyên) ===
   useEffect(() => {
     if (!modalOpen) {
       setModalError("");
       return;
     }
-
+    if (isTimeLocked) {
+      setModalError("");
+      return;
+    }
     const finalSlotStart = `${startHour}:${startMinute}`;
     const finalSlotEnd = `${endHour}:${endMinute}`;
-
-    // 1. Validate giờ kết thúc > giờ bắt đầu
     if (finalSlotStart >= finalSlotEnd) {
       setModalError("Giờ kết thúc phải sau giờ bắt đầu.");
       return;
     }
-
-    // === THÊM MỚI: Kiểm tra thời gian trong quá khứ (cho ngày hôm nay) ===
     const now = new Date();
-    const currentTodayString = getLocalDate(); // Lấy ngày 'hôm nay' MỚI NHẤT
-
-    // Chỉ kiểm tra nếu ngày đang chọn LÀ ngày hôm nay
+    const currentTodayString = getLocalDate();
     if (selectedDate === currentTodayString) {
-      // Tạo đối tượng Date cho thời gian đã chọn (theo giờ địa phương)
       const selectedStartTime = new Date(
         `${selectedDate}T${startHour}:${startMinute}:00`
       );
-
-      // So sánh thời gian đã chọn với thời gian hiện tại
       if (selectedStartTime < now) {
         setModalError("Không thể tạo ca vào thời điểm đã qua trong ngày.");
         return;
       }
     }
-    // ===================================================================
-
-    // 3. Validate trùng lặp (overlap)
     const otherSlots = Slots.filter(
       (Slot) => Slot._id !== editingSlot?._id
     );
-
     let overlappingSlot = null;
     for (const existingSlot of otherSlots) {
       const existingStart = formatISOTime(existingSlot.start_time);
       const existingEnd = formatISOTime(existingSlot.end_time);
-
       if (finalSlotStart < existingEnd && finalSlotEnd > existingStart) {
         overlappingSlot = existingSlot;
         break;
       }
     }
-
     if (overlappingSlot) {
       const SlotIndex = Slots.findIndex(
         (s) => s._id === overlappingSlot._id
@@ -160,13 +154,9 @@ const SlotSchedule = () => {
       );
       return;
     }
-
-    // 4. Validate trùng giờ BẮT ĐẦU (chuyển sang ISO để so sánh)
-    // Phải dùng new Date(...).toISOString() để xử lý đúng múi giờ
     const startDateTimeISO = new Date(
       `${selectedDate}T${startHour}:${startMinute}:00`
     ).toISOString();
-
     const isDuplicate = otherSlots.some(
       (slot) => slot.start_time === startDateTimeISO
     );
@@ -174,8 +164,6 @@ const SlotSchedule = () => {
       setModalError("Đã có ca làm việc trùng giờ bắt đầu này!");
       return;
     }
-
-    // Nếu không có lỗi
     setModalError("");
   }, [
     startHour,
@@ -186,9 +174,11 @@ const SlotSchedule = () => {
     Slots,
     modalOpen,
     selectedDate,
+    isTimeLocked,
   ]);
   // ===================================
 
+  // === (Hàm openAddModal và openEditModal giữ nguyên) ===
   const openAddModal = () => {
     setEditingSlot(null);
     setStartHour("08");
@@ -196,16 +186,20 @@ const SlotSchedule = () => {
     setEndHour("09");
     setEndMinute("00");
     setMaxPatients(1);
+    setSlotStatus("AVAILABLE");
+    setIsTimeLocked(false);
     setModalError("");
     setModalOpen(true);
   };
-
   const openEditModal = (Slot) => {
     setEditingSlot(Slot);
-
+    const now = new Date();
+    const slotStartTime = new Date(Slot.start_time);
+    const isLocked = slotStartTime < now;
+    setIsTimeLocked(isLocked);
+    setSlotStatus(Slot.status || "AVAILABLE");
     const [sHour, sMin] = formatISOTime(Slot.start_time).split(":");
     const [eHour, eMin] = formatISOTime(Slot.end_time).split(":");
-
     setStartHour(sHour || "08");
     setStartMinute(sMin || "00");
     setEndHour(eHour || "09");
@@ -214,67 +208,81 @@ const SlotSchedule = () => {
     setModalError("");
     setModalOpen(true);
   };
+  // =======================================
 
+  // === CẬP NHẬT: Logic lưu slot (Đã thêm Log) ===
   const handleSaveSlot = async () => {
     if (modalError) {
       toast.error("Vui lòng sửa lỗi trước khi lưu.");
       return;
     }
 
+    // Xây dựng payload trước
+    const startDateTime =
+      isTimeLocked && editingSlot
+        ? editingSlot.start_time
+        : new Date(
+          `${selectedDate}T${startHour}:${startMinute}:00`
+        ).toISOString();
+
+    const endDateTime =
+      isTimeLocked && editingSlot
+        ? editingSlot.end_time
+        : new Date(
+          `${selectedDate}T${endHour}:${endMinute}:00`
+        ).toISOString();
+
+    const payload = {
+      clinic_id: assistantInfo.clinic_id,
+      start_time: startDateTime,
+      end_time: endDateTime,
+      status: slotStatus,
+      fee_amount: feeAmount,
+      max_patients: maxPatients,
+      booked_count: editingSlot ? editingSlot.booked_count : 0,
+      note: note,
+      created_by: assistantInfo.id,
+    };
+
+    // === 2. LOG PAYLOAD GỬI ĐI ===
+    console.log("--- handleSaveSlot: Dữ liệu gửi đi (Payload) ---");
+    console.log(JSON.stringify(payload, null, 2)); // Dùng JSON.stringify để xem rõ
+    // ============================
+
     try {
-      // Chuyển giờ địa phương (vd: 15:00 GMT+7) sang ISO (vd: 08:00Z)
-      const startDateTime = new Date(
-        `${selectedDate}T${startHour}:${startMinute}:00`
-      ).toISOString();
-      const endDateTime = new Date(
-        `${selectedDate}T${endHour}:${endMinute}:00`
-      ).toISOString();
-
-      const payload = {
-        clinic_id: assistantInfo.clinic_id,
-        start_time: startDateTime,
-        end_time: endDateTime,
-        status: "AVAILABLE",
-        fee_amount: feeAmount,
-        max_patients: maxPatients,
-        booked_count: editingSlot ? editingSlot.booked_count : 0,
-        note: note,
-        created_by: assistantInfo.id,
-      };
-
       if (editingSlot) {
+        // --- SỬA ---
+        console.log(`Đang gửi UPDATE cho ID: ${editingSlot._id}`);
         await SLOT_API.updateSlotById(editingSlot._id, payload);
         toast.success("Cập nhật ca thành công!");
       } else {
+        // --- THÊM MỚI ---
+        console.log("Đang gửi CREATE...");
         await SLOT_API.createSlotByDoctor(payload);
         toast.success("Thêm ca mới thành công!");
       }
-      await fetchSlots();
+
+      // 2. Đóng modal
       setModalOpen(false);
-    } catch (error) {
-      console.error(error);
-      toast.error("Đã xảy ra lỗi khi lưu. Vui lòng thử lại.");
-    }
-  };
 
-  const confirmDeleteSlot = (Slot) => {
-    setSlotToDelete(Slot);
-    setDeleteModalOpen(true);
-  };
+      // === 3. LOG TRẠNG THÁI ===
+      console.log("--- handleSaveSlot: Gửi lệnh thành công. Đang fetch lại... ---");
+      // =========================
 
-  const handleDeleteSlot = async () => {
-    if (!SlotToDelete?._id) return;
-    try {
-      await SLOT_API.deleteSlotById(SlotToDelete._id);
-      toast.success("Xóa ca thành công!");
+      // 3. Tải lại toàn bộ danh sách từ server (Đây là nguồn chân lý)
       await fetchSlots();
-      setDeleteModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error("Lỗi khi xóa ca. Vui lòng thử lại.");
+
+    } catch (error) {
+      console.error("--- LỖI KHI LƯU ---", error);
+      toast.error("Đã xảy ra lỗi khi lưu. Vui lòng thử lại.");
+
+      console.log("--- handleSaveSlot: Gửi lệnh thất bại. Đang fetch lại... ---");
+      await fetchSlots();
     }
   };
+  // =================================================
 
+  // === (Phần còn lại của logic giữ nguyên) ===
   const getSlotAvailability = (Slot) => {
     const isAvailable = Slot.status === "AVAILABLE";
     const hasSpace = (Slot.booked_count || 0) < Slot.max_patients;
@@ -290,6 +298,7 @@ const SlotSchedule = () => {
     });
   }, [Slots, statusFilter]);
 
+  // === (Phần JSX return giữ nguyên) ===
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <Toaster position="top-right" reverseOrder={false} />
@@ -313,7 +322,7 @@ const SlotSchedule = () => {
         <div className="bg-white rounded-lg shadow-sm p-5 mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              {/* Date Picker (Vẫn cho phép chọn ngày quá khứ) */}
+              {/* Date Picker */}
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="date-picker"
@@ -356,7 +365,7 @@ const SlotSchedule = () => {
             {/* Add Button */}
             <button
               onClick={openAddModal}
-              disabled={isPastDate} // Vẫn dùng isPastDate để vô hiệu hóa nút
+              disabled={isPastDate}
               className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
                 ${isPastDate
                   ? "bg-gray-400 cursor-not-allowed"
@@ -367,7 +376,6 @@ const SlotSchedule = () => {
             </button>
           </div>
 
-          {/* Thông báo khi xem ngày quá khứ */}
           {isPastDate && (
             <p className="text-sm text-amber-700 font-medium mt-4 pt-4 border-t border-gray-200">
               Bạn đang xem một ngày trong quá khứ. Không thể thêm hoặc sửa ca.
@@ -391,71 +399,86 @@ const SlotSchedule = () => {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {filteredSlots.map((Slot, index) => {
-              const isAvailable = getSlotAvailability(Slot);
-              const statusText = isAvailable ? "Available" : "Unavailable";
-              const statusBadgeColor = isAvailable
-                ? "bg-green-100 text-green-800"
-                : "bg-gray-200 text-gray-700";
-              const statusBorderColor = isAvailable
-                ? "border-l-green-500"
-                : "border-l-gray-400";
+              let statusComponent;
+              const isFullyBooked =
+                (Slot.booked_count || 0) >= Slot.max_patients;
+              const isServiceAvailable = Slot.status === "AVAILABLE";
+
+              if (!isServiceAvailable) {
+                statusComponent = (
+                  <span className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-gray-200 text-gray-700">
+                    <span className="h-2 w-2 rounded-full bg-gray-500"></span>
+                    Unavailable
+                  </span>
+                );
+              } else if (isFullyBooked) {
+                statusComponent = (
+                  <span className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800">
+                    <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                    Full
+                  </span>
+                );
+              } else {
+                statusComponent = (
+                  <span className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-800">
+                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                    Available
+                  </span>
+                );
+              }
+
+              const statusBorderColor = !isServiceAvailable
+                ? "border-l-gray-400"
+                : isFullyBooked
+                  ? "border-l-red-400"
+                  : "border-l-green-500";
 
               return (
                 <div
                   key={Slot._id}
-                  className={`bg-white rounded-lg shadow-sm p-5 border-l-4 ${statusBorderColor} transition-all hover:shadow-md`}
+                  className={`bg-white rounded-lg shadow-sm p-5 border-l-4 ${statusBorderColor} transition-all hover:shadow-md flex flex-col`}
                 >
-                  <div className="flex justify-between items-start">
-                    {/* Thông tin ca */}
-                    <div>
-                      <p className="text-lg font-bold text-gray-800 mb-2">
-                        Ca #{index + 1}
-                      </p>
-                      <div className="flex items-center gap-2 text-gray-700 mb-1">
-                        <Clock size={16} />
-                        <span className="font-medium text-lg">
-                          {formatISOTime(Slot.start_time)} -{" "}
-                          {formatISOTime(Slot.end_time)}
+                  {/* Hàng 1: Tên ca & Trạng thái */}
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-xl font-bold text-gray-800">
+                      Ca #{index + 1}
+                    </p>
+                    {statusComponent}
+                  </div>
+
+                  {/* Hàng 2: Giờ */}
+                  <div className="flex items-center gap-2.5 text-gray-700 mb-4">
+                    <Clock size={20} className="text-blue-600" />
+                    <span className="font-semibold text-2xl text-gray-900 tracking-tight">
+                      {formatISOTime(Slot.start_time)} -{" "}
+                      {formatISOTime(Slot.end_time)}
+                    </span>
+                  </div>
+
+                  {/* Hàng 3: Số lượng & Nút Sửa */}
+                  <div className="flex justify-between items-center mt-auto">
+                    <div className="flex items-center gap-2.5 text-gray-600">
+                      <People size={20} className="text-blue-600" />
+                      <span className="text-base font-medium">
+                        Đã đăng ký:{" "}
+                        <span className="font-bold text-gray-900">
+                          {Slot.booked_count || 0}/{Slot.max_patients}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <People size={16} />
-                        <span className="text-sm">
-                          Đã đăng ký:{" "}
-                          <span className="font-medium">
-                            {Slot.booked_count || 0}/{Slot.max_patients}
-                          </span>
-                        </span>
-                      </div>
+                      </span>
                     </div>
 
-                    {/* Trạng thái & Hành động */}
-                    <div className="flex flex-col items-end gap-3">
-                      <span
-                        className={`px-3 py-1 text-xs font-bold rounded-full ${statusBadgeColor}`}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openEditModal(Slot)}
+                        disabled={isPastDate}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold shadow
+                          ${isPastDate
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-amber-500 hover:bg-amber-600"
+                          }`}
                       >
-                        {statusText}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditModal(Slot)}
-                          disabled={isPastDate}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 text-white rounded-md transition-colors text-sm font-medium shadow-sm
-                            ${isPastDate
-                              ? "bg-gray-400 cursor-not-allowed"
-                              : "bg-amber-500 hover:bg-amber-600"
-                            }`}
-                        >
-                          <Pencil size={14} /> Sửa
-                        </button>
-                        <button
-                          onClick={() => confirmDeleteSlot(Slot)}
-                          disabled={isPastDate}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-colors text-sm font-medium shadow-sm disabled:bg-gray-400"
-                        >
-                          <Trash size={14} /> Xóa
-                        </button>
-                      </div>
+                        <Pencil size={16} /> Sửa
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -498,6 +521,16 @@ const SlotSchedule = () => {
                       {editingSlot ? "Sửa ca làm việc" : "Thêm ca làm việc"}
                     </Dialog.Title>
 
+                    {isTimeLocked && (
+                      <div className="rounded-md bg-amber-50 p-4 mb-5">
+                        <p className="text-sm font-medium text-amber-800">
+                          Ca này đã bắt đầu. Bạn không thể sửa đổi thời gian,
+                          nhưng có thể cập nhật Trạng thái và Số lượng bệnh
+                          nhân.
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex flex-col gap-4">
                       {/* Start Time */}
                       <div>
@@ -508,7 +541,8 @@ const SlotSchedule = () => {
                           <select
                             value={startHour}
                             onChange={(e) => setStartHour(e.target.value)}
-                            className={inputRingClasses}
+                            className={`${inputRingClasses} ${inputDisabledClasses}`}
+                            disabled={isTimeLocked}
                           >
                             {hours.map((h) => (
                               <option key={`start-h-${h}`} value={h}>
@@ -520,7 +554,8 @@ const SlotSchedule = () => {
                           <select
                             value={startMinute}
                             onChange={(e) => setStartMinute(e.target.value)}
-                            className={inputRingClasses}
+                            className={`${inputRingClasses} ${inputDisabledClasses}`}
+                            disabled={isTimeLocked}
                           >
                             {minutes.map((m) => (
                               <option key={`start-m-${m}`} value={m}>
@@ -540,7 +575,8 @@ const SlotSchedule = () => {
                           <select
                             value={endHour}
                             onChange={(e) => setEndHour(e.target.value)}
-                            className={inputRingClasses}
+                            className={`${inputRingClasses} ${inputDisabledClasses}`}
+                            disabled={isTimeLocked}
                           >
                             {hours.map((h) => (
                               <option key={`end-h-${h}`} value={h}>
@@ -552,7 +588,8 @@ const SlotSchedule = () => {
                           <select
                             value={endMinute}
                             onChange={(e) => setEndMinute(e.target.value)}
-                            className={inputRingClasses}
+                            className={`${inputRingClasses} ${inputDisabledClasses}`}
+                            disabled={isTimeLocked}
                           >
                             {minutes.map((m) => (
                               <option key={`end-m-${m}`} value={m}>
@@ -561,6 +598,23 @@ const SlotSchedule = () => {
                             ))}
                           </select>
                         </div>
+                      </div>
+
+                      {/* Trạng thái */}
+                      <div>
+                        <label className="block text-sm font-medium leading-6 text-gray-900 mb-1.5">
+                          Trạng thái
+                        </label>
+                        <select
+                          value={slotStatus}
+                          onChange={(e) => setSlotStatus(e.target.value)}
+                          className={`${inputRingClasses} ${inputDisabledClasses}`}
+                        >
+                          <option value="AVAILABLE">Available (Cho đặt)</option>
+                          <option value="UNAVAILABLE">
+                            Unavailable (Ngưng)
+                          </option>
+                        </select>
                       </div>
 
                       {/* Max Patients */}
@@ -584,7 +638,6 @@ const SlotSchedule = () => {
                       </div>
                     </div>
 
-                    {/* Hiển thị lỗi validation (real-time) */}
                     {modalError && (
                       <div className="rounded-md bg-red-50 p-4 mt-5">
                         <p className="text-sm font-medium text-red-800">
@@ -609,75 +662,6 @@ const SlotSchedule = () => {
                         disabled={!!modalError}
                       >
                         {editingSlot ? "Lưu thay đổi" : "Thêm ca"}
-                      </button>
-                    </div>
-                  </Dialog.Panel>
-                </Transition.Child>
-              </div>
-            </div>
-          </Dialog>
-        </Transition>
-
-        {/* Modal Delete */}
-        <Transition appear show={deleteModalOpen} as={Fragment}>
-          <Dialog
-            as="div"
-            className="relative z-10"
-            onClose={() => setDeleteModalOpen(false)}
-          >
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div className="fixed inset-0 bg-gray-500/25 backdrop-blur-sm" />
-            </Transition.Child>
-            <div className="fixed inset-0 overflow-y-auto">
-              <div className="flex min-h-full items-center justify-center p-4 text-center">
-                <Transition.Child
-                  as={Fragment}
-                  enter="ease-out duration-300"
-                  enterFrom="opacity-0 scale-95"
-                  enterTo="opacity-100 scale-100"
-                  leave="ease-in duration-200"
-                  leaveFrom="opacity-100 scale-100"
-                  leaveTo="opacity-0 scale-95"
-                >
-                  <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
-                    <Dialog.Title className="text-lg font-medium text-gray-900 mb-4">
-                      Xóa ca làm việc
-                    </Dialog.Title>
-                    <p className="text-gray-700 mb-4">
-                      Bạn có chắc muốn xóa ca làm việc
-                      {SlotToDelete ? (
-                        <span className="font-bold">
-                          {" "}
-                          {formatISOTime(SlotToDelete.start_time)} -{" "}
-                          {formatISOTime(SlotToDelete.end_time)}
-                        </span>
-                      ) : (
-                        ""
-                      )}
-                      ?
-                    </p>
-                    <div className="flex justify-end gap-3">
-                      <button
-                        type="button"
-                        className="px-4 py-2 bg-white text-gray-900 rounded-md hover:bg-gray-50 transition-colors font-medium ring-1 ring-inset ring-gray-300 shadow-sm"
-                        onClick={() => setDeleteModalOpen(false)}
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        type="button"
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium shadow-sm"
-                        onClick={handleDeleteSlot}
-                      >
-                        Xóa
                       </button>
                     </div>
                   </Dialog.Panel>
