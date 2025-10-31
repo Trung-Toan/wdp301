@@ -24,19 +24,13 @@ const DoctorLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-
   const user = JSON.parse(sessionStorage.getItem("user"));
-
-  // --- THÊM STATE MỚI ---
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
-  // ---------------------
 
-  // --- THÊM EFFECT (1): TẢI HỒ SƠ ĐỂ KIỂM TRA ---
   useEffect(() => {
     const fetchProfileAndLicenses = async () => {
       try {
-        // Gọi song song 2 API (giống như trang DoctorProfile)
         const [profileRes, licenseRes] = await Promise.all([
           doctorApi.getProfile(),
           doctorApi.getMyLicense(),
@@ -45,7 +39,6 @@ const DoctorLayout = () => {
         const profile = profileRes.data.data;
         const licenses = licenseRes.data.data || [];
 
-        // Điều kiện kiểm tra
         const hasInfo = profile.title && profile.degree && profile.experience;
         const hasLicense = licenses.length > 0;
 
@@ -56,7 +49,6 @@ const DoctorLayout = () => {
         }
       } catch (err) {
         console.error("Không thể tải hồ sơ bác sĩ:", err);
-        // Giả sử nếu lỗi thì hồ sơ chưa hoàn tất
         setIsProfileComplete(false);
       } finally {
         setIsLoadingProfile(false);
@@ -64,24 +56,21 @@ const DoctorLayout = () => {
     };
 
     fetchProfileAndLicenses();
-  }, []); // Chỉ chạy 1 lần khi layout mount
+  }, []);
 
-  // --- THÊM EFFECT (2): KIỂM TRA VÀ CHUYỂN HƯỚNG ---
   useEffect(() => {
     if (isLoadingProfile) {
-      return; // Chưa tải xong, không làm gì cả
+      return;
     }
 
-    // Nếu hồ sơ CHƯA hoàn tất VÀ bác sĩ KHÔNG ở trang profile
     if (!isProfileComplete && location.pathname !== "/doctor/profile") {
       toast.warn("Vui lòng hoàn tất hồ sơ của bạn trước khi tiếp tục!", {
         position: "top-center",
         autoClose: 5000,
       });
-      navigate("/doctor/profile"); // Bắt buộc chuyển về trang profile
+      navigate("/doctor/profile");
     }
   }, [isLoadingProfile, isProfileComplete, location.pathname, navigate]);
-  // ------------------------------------------------
 
   const menuItems = [
     {
@@ -186,7 +175,6 @@ const DoctorLayout = () => {
               <span className="notification-badge">3</span>
             </button>
 
-            {/* CẬP NHẬT Ở ĐÂY: Thêm class "pulse-profile" nếu hồ sơ chưa hoàn tất */}
             <div
               className={`user-profile ${
                 !isProfileComplete ? "pulse-profile" : ""
