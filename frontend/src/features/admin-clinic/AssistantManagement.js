@@ -1,11 +1,5 @@
 import { memo, useState, useEffect } from "react";
-import {
-  Plus,
-  Trash2,
-  Search,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { Plus, Trash2, Search, CheckCircle, XCircle } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
 
@@ -32,7 +26,6 @@ const AssistantManagement = () => {
     { label: "Y tá", value: "NURSE" },
     { label: "Lễ tân", value: "RECEPTIONIST" },
     { label: "Kỹ thuật viên", value: "TECHNICIAN" },
-    { label: "Quản lý phòng khám", value: "ADMINISTRATOR" },
   ];
 
   const fetchAssistants = async () => {
@@ -112,7 +105,6 @@ const AssistantManagement = () => {
       toast.error(err.response?.data?.error || "Lỗi khi tạo trợ lý");
     }
   };
-
 
   const handleDeleteAssistant = async (id) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;

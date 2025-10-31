@@ -1,5 +1,6 @@
 const doctorService = require("../doctor/doctor.service");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
+const Appointment = require(("../../model/appointment/Appointment"));
 
 exports.requestViewMedicalRecord = async (req) => {
   try {
@@ -131,13 +132,10 @@ exports.requestViewMedicalRecordById = async (req) => {
 exports.getHistoryMedicalRecordRequests = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
-
     const doctorIdAsObjectId = doctor._id;
 
     const page = parseInt(req.query.page) || 1;
-
     const limit = parseInt(req.query.limit) || 10;
-
     const skip = (page - 1) * limit;
 
     const results = await MedicalRecord.aggregate([
@@ -147,7 +145,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       // 2. Lọc theo đúng bác sĩ
       { $match: { "access_requests.doctor_id": doctorIdAsObjectId } },
 
-      // 3. Tách pipeline: 1 để đếm tổng, 1 để lấy dữ liệu phân trang
+      // 3. Tách pipeline
       {
         $facet: {
           metadata: [{ $count: "totalItems" }],
@@ -155,11 +153,30 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
             { $sort: { "access_requests.requested_at": -1 } },
             { $skip: skip },
             { $limit: limit },
+
+            // === THAY ĐỔI: Dùng $lookup thay vì populate ===
+            {
+              $lookup: {
+                from: "patients", // Tên collection của Patient model
+                localField: "patient_id", // Khóa ở bảng MedicalRecord
+                foreignField: "_id", // Khóa ở bảng Patient
+                as: "patientInfo", // Tên mảng kết quả
+              },
+            },
+            {
+              // $lookup trả về mảng, ta $unwind để lấy object
+              $unwind: {
+                path: "$patientInfo",
+                preserveNullAndEmptyArrays: true, // Giữ lại nếu không tìm thấy patient
+              },
+            },
+            // === KẾT THÚC $lookup ===
+
+            // 4. Định hình lại output (thay thế $project cũ)
             {
               $project: {
                 _id: 0,
-                medical_record: "$_id",
-                patient: "$patient_id",
+                // Lấy các trường từ access_requests
                 status: "$access_requests.status",
                 requested_at: "$access_requests.requested_at",
                 reviewed_at: {
@@ -167,6 +184,25 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
                 },
                 reviewed_by: {
                   $ifNull: ["$access_requests.reviewed_by", null],
+                },
+                
+                patient: {
+                  _id: "$patientInfo._id",
+                  patient_code: "$patientInfo.patient_code",
+                },
+
+                // Lấy thông tin medical_record (chỉ các trường cần thiết)
+                medical_record: {
+                  _id: "$_id",
+                  diagnosis: "$diagnosis",
+                  symptoms: "$symptoms",
+                  notes: "$notes",
+                  attachments: "$attachments",
+                  prescription: "$prescription",
+                  status: "$status",
+                  patient_id: "$patient_id",
+                  createdAt: "$createdAt",
+                  updatedAt: "$updatedAt",
                 },
               },
             },
@@ -181,11 +217,9 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
       : 0;
     const totalPages = Math.ceil(totalItems / limit);
 
-    // Populate sau khi aggregate
-    await MedicalRecord.populate(requests, [
-      { path: "patient", model: "Patient" },
-      { path: "medical_record", model: "MedicalRecord" }
-    ]);
+    // === THAY ĐỔI: Bỏ `MedicalRecord.populate` ===
+    // Dữ liệu đã được "populate" bằng $lookup ở trên
+    // await MedicalRecord.populate(requests, [ ... ]);
 
     return {
       requests,
@@ -201,7 +235,6 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
     throw error;
   }
 };
-
 
 /**
  * get list medical records by patient id of doctor
@@ -257,6 +290,7 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
 
     // Lấy danh sách hồ sơ theo quyền truy cập + phân trang
     const records = await MedicalRecord.find(query)
+      .populate("appointment_id", "full_name phone email dob gender")
       .skip(skip)
       .limit(limitNumber)
       .lean();
@@ -276,6 +310,67 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
     throw error;
   }
 };
+
+exports.getMedicalRecordByAppointmentId = async (appointmentId) => {
+  try {
+    const medicalRecord = await MedicalRecord.find({ appointment_id: appointmentId }).lean();
+    return medicalRecord || [];
+  } catch (error) {
+    console.error("Error in getMedicalRecordByAppointmentId:", error);
+    return null;
+  }
+};
+
+exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (docter_id, full_name, phone, email, dob) => {
+  try {
+    const accessControlMatch = {
+      $or: [
+        { doctor_id: docter_id }, // 1. Bác sĩ tạo ra bệnh án
+        { status: "PUBLIC" },     // 2. Bệnh án công khai
+        {
+          // 3. Bệnh án riêng tư đã cấp quyền
+          status: "PRIVATE",
+          access_requests: {
+            $elemMatch: {
+              doctor_id: docter_id,
+              status: "VERIFIED",
+            },
+          },
+        },
+      ],
+    };
+
+    const apps = await Appointment
+      .find({
+        doctor_id: docter_id,
+        full_name: full_name,
+        phone: phone,
+        email: email,
+        dob: dob,
+        status: "COMPLETED"
+      })
+      .select("_id")
+      .lean();
+
+    if (apps.length === 0) {
+      console.log("Không tìm thấy cuộc hẹn (appointment) nào khớp.");
+      return [];
+    }
+    const appointmentIds = apps.map(app => app._id);
+    const medicalRecords = await MedicalRecord.find({
+      $and: [
+        { appointment_id: { $in: appointmentIds } },
+        accessControlMatch
+      ]
+    }).lean();
+
+    return medicalRecords || [];
+
+  } catch (err) {
+    console.log("error at getMedicalRecordByAppointment_fullname_phone_email_dob: ", err);
+    return [];
+  }
+}
 
 /**
  * Get list medical records of patients for doctor with pagination and search
@@ -520,13 +615,8 @@ exports.getListMedicalRecordsVerify = async (req) => {
   }
 };
 
-// change 
-exports.getMedicalRecordById = async (req) => {
+exports.getMedicalRecordById = async (recordId) => {
   try {
-    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
-    const doctorId = doctor._id.toString();
-
-    const { recordId } = req.params;
     const medicalRecord = await MedicalRecord
       .findById(recordId)
       .populate({
@@ -597,6 +687,20 @@ exports.getMedicalRecordById = async (req) => {
   }
 };
 
+/**
+ * get medical record by id
+ * @param {String | ObjectId} id - id medical record
+ */
+exports.findById = async (id) => {
+  try {
+    const record = await MedicalRecord.findById(id);
+    return record;
+  } catch (error) {
+    console.error("Lỗi trong service findById: ", error);
+    throw error;
+  }
+}
+
 exports.verifyMedicalRecord = async (req) => {
   try {
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
@@ -626,4 +730,129 @@ exports.verifyMedicalRecord = async (req) => {
     console.error("Error in verifyMedicalRecord:", error);
     throw error;
   }
+};
+
+/**
+ * Tạo hồ sơ bệnh án mới cho một lịch hẹn cụ thể (Bao gồm Validation Nghiệp vụ)
+ * @param {string} appId - ID của lịch hẹn
+ * @param {object} medical_record - Dữ liệu hồ sơ bệnh án
+ */
+exports.createMedicalRecord = async (appId, medical_record) => {
+  // 1. Tìm và Validation Lịch hẹn (Appointment)
+  const appointment = await Appointment.findById(appId);
+
+  if (!appointment) {
+    throw new Error("Lịch hẹn không tồn tại.");
+  }
+
+  // a. Kiểm tra Trạng thái Lịch hẹn: Phải là đã được DUYỆT
+  // Lưu ý: Trong model Appointment của bạn là "APPROVE"
+  if (appointment.status !== "APPROVE") {
+    throw new Error(`Lịch hẹn phải ở trạng thái "APPROVE" để tạo hồ sơ bệnh án. Trạng thái hiện tại: ${appointment.status}.`);
+  }
+
+  // b. Kiểm tra Thời gian Lịch hẹn: Phải diễn ra trong ngày hôm nay hoặc hôm qua
+
+  // Lấy ngày hẹn và đặt về đầu ngày (00:00:00.000)
+  const scheduledDate = new Date(appointment.scheduled_date);
+  scheduledDate.setHours(0, 0, 0, 0);
+  const scheduledTimestamp = scheduledDate.getTime(); // Lấy timestamp của ngày hẹn
+
+  // Lấy ngày hôm nay và đặt về đầu ngày (00:00:00.000)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTimestamp = today.getTime(); // Lấy timestamp của hôm nay
+
+  // Lấy ngày hôm qua và đặt về đầu ngày (00:00:00.000)
+  const yesterday = new Date(); // Bắt đầu từ 'nay'
+  yesterday.setDate(yesterday.getDate() - 1); // Lùi lại 1 ngày
+  yesterday.setHours(0, 0, 0, 0);
+  const yesterdayTimestamp = yesterday.getTime(); // Lấy timestamp của hôm qua
+
+  // Kiểm tra xem ngày hẹn KHÔNG PHẢI là hôm nay VÀ KHÔNG PHẢI là hôm qua
+  if (scheduledTimestamp !== todayTimestamp && scheduledTimestamp !== yesterdayTimestamp) {
+    throw new Error("Chỉ được tạo hồ sơ bệnh án cho lịch hẹn của ngày hôm nay hoặc ngày hôm qua.");
+  }
+
+  // c. Kiểm tra Đồng bộ Dữ liệu Bác sĩ/Bệnh nhân
+  // doctor_id và patient_id trong body PHẢI khớp với Appointment để đảm bảo tính chính xác
+  if (medical_record.doctor_id.toString() !== appointment.doctor_id.toString()) {
+    throw new Error("ID Bác sĩ trong hồ sơ bệnh án không khớp với ID Bác sĩ của Lịch hẹn.");
+  }
+  if (medical_record.patient_id.toString() !== appointment.patient_id.toString()) {
+    throw new Error("ID Bệnh nhân trong hồ sơ bệnh án không khớp với ID Bệnh nhân của Lịch hẹn.");
+  }
+
+  // 2. Kiểm tra Trùng lặp
+  // Chỉ cho phép 1 MedicalRecord cho 1 Appointment (Mối quan hệ 1-1)
+  const existingRecord = await MedicalRecord.findOne({ appointment_id: appId });
+
+  if (existingRecord) {
+    throw new Error(`Lịch hẹn ID: ${appId} đã có hồ sơ bệnh án.`);
+  }
+
+  // 3. Tạo hồ sơ bệnh án
+  const newRecord = new MedicalRecord(medical_record);
+
+  try {
+    const addedRecord = await newRecord.save();
+
+    // Tùy chọn: Cập nhật trạng thái Lịch hẹn sang COMPLETED sau khi có hồ sơ bệnh án
+    await Appointment.findByIdAndUpdate(appId, { status: "COMPLETED" });
+
+    return addedRecord;
+  } catch (e) {
+    // Xử lý lỗi validation của Mongoose (ví dụ: status enum sai, required field thiếu)
+    if (e.name === 'ValidationError') {
+      const messages = Object.values(e.errors).map(val => val.message);
+      throw new Error(`Lỗi dữ liệu: ${messages.join(', ')}`);
+    }
+    throw e;
+  }
+};
+
+/**
+ * Cập nhật hồ sơ bệnh án.
+ * @param {String} id - id medical record
+ * @param {Object} updateData - Dữ liệu hồ sơ bệnh án cần cập nhật
+ */
+exports.updateMedicalRecord = async (id, updateData) => {
+  try {
+    const updatedRecord = await MedicalRecord.findByIdAndUpdate(
+      id,
+      { $set: updateData }, 
+      { new: true, runValidators: true }
+    ).populate('patient') 
+      .populate('doctor');
+    return updatedRecord;
+
+  } catch (error) {
+    console.error("Lỗi trong service updateMedicalRecord: ", error);
+    throw error;
+  }
+};
+
+/**
+ * Cập nhật hồ sơ bệnh án.
+ * @param {String} id - id medical record
+ * @param {Object} updateData - Dữ liệu hồ sơ bệnh án cần cập nhật
+ */
+exports.updateMedicalRecord = async (id, updateData) => {
+    try {
+        const updatedRecord = await MedicalRecord.findOneAndUpdate(
+            {
+                _id: id,
+                "prescription.status": { $ne: "VERIFIED" } 
+            },
+            { $set: updateData }, 
+            { new: true, runValidators: true }
+        )
+        .populate('patient_id') 
+        .populate('doctor_id');  
+        
+        return updatedRecord;
+    } catch (error) {
+        console.error("Lỗi trong service updateMedicalRecord: ", error);
+        throw error;
+    }
 };

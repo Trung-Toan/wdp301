@@ -176,6 +176,33 @@ router.get(
   DoctorController.viewProfile
 );
 
+// PUT /profile
+// update profile of doctor
+router.put(
+  "/profile",
+  authRequired,
+  roleRequired("DOCTOR"),
+  DoctorController.updateProfile
+);
+
+// POST /upload-license
+// upload license of doctor
+router.post(
+  "/license",
+  authRequired,
+  roleRequired("DOCTOR"),
+  DoctorController.uploadLicense
+);
+
+// GET /license
+// view license of doctor
+router.get(
+  "/license",
+  authRequired,
+  roleRequired("DOCTOR"),
+  DoctorController.getLicense
+);
+
 /**
  * @openapi
  * /api/doctor/by-specialty:

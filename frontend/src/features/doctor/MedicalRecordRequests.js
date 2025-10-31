@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react";
+import { memo, useState } from "react"; // Bỏ useEffect
 import {
   UserPlus,
   Send,
@@ -10,35 +10,64 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { doctorApi } from "../../api/doctor/doctorApi";
+// Import hook của bạn
+import { useDataByUrl } from "../../utility/data.utils"; 
 
 const MedicalRecordRequests = () => {
   const [patientCode, setPatientCode] = useState("");
   const [foundPatient, setFoundPatient] = useState(null);
   const [patientRecords, setPatientRecords] = useState([]);
-  const [accessRequests, setAccessRequests] = useState([]);
   const [message, setMessage] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [reason, setReason] = useState("");
+  
+  // State mới cho phân trang
+  const [page, setPage] = useState(1);
+  const limit = 10; // Cấu hình số lượng item mỗi trang
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await doctorApi.getMedicalRecordRequestHistory();
-        if (res.data?.ok) {
-          setAccessRequests(res.data.data.history_request || []);
-        }
-      } catch (error) {
-        console.error("Lỗi khi tải lịch sử yêu cầu:", error);
-      }
-    };
-    fetchHistory();
-  }, []);
+  // --- 1. Thay thế useEffect bằng useDataByUrl ---
+  const { 
+    data: historyData, 
+    isLoading: isHistoryLoading, 
+    error: historyError,
+    refetch: refetchHistory // Lấy hàm refetch
+  } = useDataByUrl({
+    url: doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD,
+    key: ["medical-record-request-history", page], // Key động theo trang
+    params: { page, limit }, // Gửi params phân trang
+  });
 
+  // Lấy danh sách yêu cầu từ data của hook (theo cấu trúc mới)
+  const accessRequests = historyData?.data?.history_request || [];
+  // Lấy dữ liệu phân trang
+  const pagination = historyData?.pagination || { page: 1, totalPages: 1 };
+  const totalPages = pagination.totalPages;
+
+  if (historyError) {
+    console.error("Lỗi khi tải lịch sử yêu cầu:", historyError);
+  }
+  // ---------------------------------------------------
+  
+  // Hàm định dạng ngày
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
+  };
+
+  // Giữ nguyên, vì đây là hành động "tìm kiếm" (imperative)
   const handleFindPatient = async (e) => {
     e.preventDefault();
     if (!patientCode.trim()) return;
 
     try {
+      // ... (Giữ nguyên logic tìm kiếm) ...
       const res = await doctorApi.searchMedicalRecords(patientCode.trim());
       const records = res.data?.data || [];
 
@@ -71,6 +100,7 @@ const MedicalRecordRequests = () => {
     }
   };
 
+  // --- 2. Cập nhật handleSendRequest để dùng refetch ---
   const handleSendRequest = async () => {
     if (!selectedRecord) {
       setMessage({
@@ -97,8 +127,11 @@ const MedicalRecordRequests = () => {
           text: "Đã gửi yêu cầu truy cập hồ sơ thành công.",
         });
 
-        const historyRes = await doctorApi.getMedicalRecordRequestHistory();
-        setAccessRequests(historyRes.data?.data?.history_request || []);
+        // Gọi refetch để tải lại danh sách lịch sử
+        refetchHistory();
+        // Reset về trang 1 nếu bạn muốn
+        if (page !== 1) setPage(1);
+
         setSelectedRecord(null);
         setReason("");
       } else {
@@ -134,13 +167,18 @@ const MedicalRecordRequests = () => {
           </span>
         );
       default:
-        return null;
+        // Thêm trạng thái EXPIRED từ API
+        return (
+          <span className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-medium">
+            <Clock size={14} /> Hết hạn
+          </span>
+        );
     }
   };
 
   return (
     <div className="flex flex-col md:flex-row gap-8 p-6 bg-gray-50 min-h-screen">
-      {/* Cột trái */}
+      {/* Cột trái (Giữ nguyên) */}
       <div className="w-full md:w-1/3 bg-white rounded-2xl shadow p-6 space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-700">
           <UserPlus size={22} /> Tìm bệnh nhân
@@ -193,7 +231,6 @@ const MedicalRecordRequests = () => {
             ) : (
               <ul className="space-y-2">
                 {patientRecords.map((rec) => {
-                  // Đảm bảo _id luôn là string để so sánh chính xác
                   const isSelected =
                     selectedRecord &&
                     String(selectedRecord._id) === String(rec._id);
@@ -268,39 +305,72 @@ const MedicalRecordRequests = () => {
         )}
       </div>
 
-      {/* Cột phải */}
-      <div className="w-full md:w-2/3 bg-white rounded-2xl shadow p-6">
+      {/* Cột phải (Đã cập nhật) */}
+      <div className="w-full md:w-2/3 bg-white rounded-2xl shadow p-6 flex flex-col">
         <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-blue-700">
           <FileText size={22} /> Danh sách yêu cầu đã gửi
         </h2>
 
-        {accessRequests.length === 0 ? (
+        {isHistoryLoading ? (
+          <p className="text-gray-500 italic text-sm">Đang tải lịch sử...</p>
+        ) : accessRequests.length === 0 ? (
           <p className="text-gray-500 italic text-sm">
             Chưa có yêu cầu nào được gửi.
           </p>
         ) : (
-          <div className="space-y-3">
-            {accessRequests.map((req, idx) => (
-              <div
-                key={idx}
-                className="p-4 border border-gray-200 rounded-xl flex justify-between items-center hover:bg-gray-50 transition"
-              >
-                <div>
-                  <p className="font-semibold text-blue-700">
-                    Hồ sơ:{" "}
-                    {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Mã bệnh nhân: {req?.patient?.patient_code || "N/A"}
-                  </p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Calendar size={14} /> Ngày gửi:{" "}
-                    {new Date(req.requested_at).toLocaleDateString("vi-VN")}
-                  </p>
+          // Thêm flex-grow và overflow-auto để phân trang dính xuống dưới
+          <div className="flex flex-col flex-grow justify-between">
+            {/* Danh sách */}
+            <div className="space-y-3">
+              {accessRequests.map((req, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 border border-gray-200 rounded-xl flex justify-between items-center hover:bg-gray-50 transition"
+                >
+                  <div>
+                    <p className="font-semibold text-blue-700">
+                      Hồ sơ:{" "}
+                      {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
+                    </p>
+                    {/* Trường patient_code không có sẵn trong
+                      đối tượng `history_request` (vì `patient` là null).
+                      Bạn có thể hiển thị patient_id nếu muốn:
+                    */}
+                    <p className="text-sm text-gray-600">
+                      Patient code: {req?.patient?.patient_code || "N/A"}
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                      <Calendar size={14} /> Ngày gửi:{" "}
+                      {formatDate(req.requested_at)} {/* Dùng hàm mới */}
+                    </p>
+                  </div>
+                  {getStatusBadge(req.status)}
                 </div>
-                {getStatusBadge(req.status)}
+              ))}
+            </div>
+
+            {/* Phân trang (MỚI) */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-3 mt-6">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || isHistoryLoading}
+                  className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Trang trước
+                </button>
+                <span className="text-sm text-gray-700">
+                  Trang {page} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || isHistoryLoading}
+                  className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Trang sau
+                </button>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>

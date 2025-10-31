@@ -37,16 +37,17 @@ exports.viewListPatients = async (req, res) => {
 // GET /patients/:patientId
 exports.viewPatientById = async (req, res) => {
   try {
-    const { patient } = await patientService.getPatientById(req);
-    const { records, pagination } =
-      await medicalRecordService.getListMedicalRecordsByIdPatient(req);
+    const { patientId } = req.params;
+    const { appointment } = await appointmentService.getAppointmentById(
+      req,
+      patientId
+    );
 
     return resUtils.successResponse(
       res,
       {
-        patient: patient,
-        medical_record: records,
-        pagination_: pagination,
+        patient: appointment?.patient,
+        medical_record: appointment?.medical_record,
       },
       "Lấy thông tin bệnh nhân thành công."
     );
@@ -65,12 +66,18 @@ exports.viewPatientById = async (req, res) => {
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
   try {
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return resUtils.forbiddenResponse(
+        "Truy cập bị từ chối: Không tìm thấy bác sĩ."
+      );
+    }
     const { appointments, slot, pagination } =
-      await appointmentService.getListAppointments(req);
+      await appointmentService.getListAppointments(req, doctor._id);
 
     return resUtils.paginatedResponse(
       res,
-      { appointments, slot},
+      { appointments, slot },
       pagination,
       "Lấy danh sách cuộc hẹn thành công."
     );
@@ -87,7 +94,11 @@ exports.viewAppointments = async (req, res) => {
 // GET /appointments/:appointmentId
 exports.viewAppointmentDetail = async (req, res) => {
   try {
-    const { appointment } = await appointmentService.getAppointmentById(req);
+    const { appointmentId } = req.params;
+    const { appointment } = await appointmentService.getAppointmentById(
+      req,
+      appointmentId
+    );
     return resUtils.successResponse(
       res,
       appointment,
@@ -419,6 +430,46 @@ exports.viewListAssistants = async (req, res) => {
 
 /* ========================= PROFILE ========================= */
 // GET /doctor/profile
-exports.viewProfile = async (req, res) => {
-  res.json({ message: "View doctor profile" });
+exports.viewProfile = async (req, res, next) => {
+  try {
+    const data = await doctorService.getProfile(req.user.sub);
+    console.log("User ID:", req.user.sub);
+    resUtils.successResponse(res, data, "Lấy thống tin tài khoản");
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PUT /doctor/profile
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const data = await doctorService.updateProfile(req.user.sub, req.body);
+    resUtils.successResponse(res, data, "Cập nhật thống tin tài khoản");
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /doctor/upload-license
+exports.uploadLicense = async (req, res, next) => {
+  try {
+    const data = await doctorService.uploadLicense(req.user.sub, req.file);
+    resUtils.successResponse(
+      res,
+      data,
+      "tải chứng chỉ nghề nghiệp, chờ phê duyệt"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /doctor/license
+exports.getLicense = async (req, res, next) => {
+  try {
+    const data = await doctorService.getMyLicense(req.user.sub);
+    resUtils.successResponse(res, data, "lấy chứng chỉ nghề nghiệp");
+  } catch (err) {
+    next(err);
+  }
 };

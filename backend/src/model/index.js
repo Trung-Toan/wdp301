@@ -22,7 +22,6 @@ function loadModels(directory) {
       const model = require(fullPath);
       // Chỉ thêm vào db nếu nó thực sự là một model của Mongoose
       if (model && model.modelName) {
-        console.log(`✅ Model đã được nạp: ${model.modelName}`);
         db[model.modelName] = model;
       }
     }
