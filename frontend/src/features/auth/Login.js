@@ -133,10 +133,45 @@ const Login = () => {
   });
 
   return (
-    <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100 bg-light">
+    <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100 bg-light" style={{ position: "relative" }}>
+      {/* Loading Overlay */}
+      {mutation.isLoading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "2rem",
+              borderRadius: "12px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "1rem",
+            }}
+          >
+            <Spinner animation="border" variant="primary" style={{ width: "3rem", height: "3rem" }} />
+            <p className="mb-0 fw-semibold" style={{ color: "#45c3d2" }}>
+              Đang xử lý đăng nhập...
+            </p>
+          </div>
+        </div>
+      )}
+
       <Container
         className="p-4 bg-white rounded-4 shadow-lg"
-        style={{ maxWidth: "420px" }}
+        style={{ maxWidth: "420px", position: "relative", opacity: mutation.isLoading ? 0.6 : 1 }}
       >
         <div className="text-center mb-4">
           <h3 className="fw-bold text-primary" style={{ color: "#45c3d2" }}>
@@ -161,6 +196,7 @@ const Login = () => {
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               isInvalid={!!formik.errors.username && formik.touched.username}
+              disabled={mutation.isLoading}
             />
             <Form.Control.Feedback type="invalid">
               {formik.errors.username}
@@ -181,10 +217,12 @@ const Login = () => {
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 isInvalid={!!formik.errors.password && formik.touched.password}
+                disabled={mutation.isLoading}
               />
               <Button
                 variant="outline-secondary"
                 onClick={togglePasswordVisibility}
+                disabled={mutation.isLoading}
               >
                 {showPassword ? <EyeSlash /> : <Eye />}
               </Button>
@@ -224,22 +262,22 @@ const Login = () => {
         </Form>
 
         {/* Google login */}
-        <div className="mt-4">
+        <div className="mt-4" style={{ pointerEvents: mutation.isLoading ? "none" : "auto", opacity: mutation.isLoading ? 0.6 : 1 }}>
           <GoogleLoginButton />
         </div>
 
         {/* Links */}
         <p
           className="text-center mt-4 mb-0 text-secondary"
-          style={{ fontSize: "13px" }}
+          style={{ fontSize: "13px", pointerEvents: mutation.isLoading ? "none" : "auto", opacity: mutation.isLoading ? 0.6 : 1 }}
         >
           Chưa có tài khoản?{" "}
-          <Link to="/register" className="text-primary fw-semibold">
+          <Link to="/register" className="text-primary fw-semibold" style={{ pointerEvents: mutation.isLoading ? "none" : "auto" }}>
             Đăng ký ngay
           </Link>
           <br />
           Quên mật khẩu?{" "}
-          <Link to="/forgot_password" className="text-primary fw-semibold">
+          <Link to="/forgot_password" className="text-primary fw-semibold" style={{ pointerEvents: mutation.isLoading ? "none" : "auto" }}>
             Khôi phục tài khoản
           </Link>
         </p>
