@@ -133,7 +133,11 @@ const Login = () => {
   });
 
   return (
-    <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100" style={{ position: "relative" }}>
+    <div className="login-wrapper d-flex align-items-center justify-content-center" style={{ 
+      position: "relative",
+      minHeight: "600px",
+      width: "100%"
+    }}>
       {/* Loading Overlay */}
       {mutation.isLoading && (
         <div
