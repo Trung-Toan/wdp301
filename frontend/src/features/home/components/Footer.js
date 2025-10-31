@@ -1,115 +1,148 @@
-import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { 
+    Facebook, 
+    Twitter, 
+    Instagram, 
+    Youtube, 
+    Phone, 
+    Mail, 
+    MapPin,
+    Calendar,
+    Stethoscope,
+    FileText,
+    Shield,
+    HelpCircle
+} from "lucide-react";
 import { Link } from "react-router-dom";
+import "../../../styles/Footer.css";
 
 export default function Footer() {
     return (
-        <footer className="border-t bg-muted/30">
-            <div className="container mx-auto px-4 py-12">
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <footer className="footer-modern">
+            <div className="footer-container">
+                <div className="footer-grid">
                     {/* Logo + Description */}
-                    <div>
-                        <div className="mb-4 flex items-center gap-2">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                                <span className="text-xl font-bold text-primary-foreground">M+</span>
+                    <div className="footer-section">
+                        <Link to="/home" className="footer-logo-wrapper">
+                            <div className="footer-logo-icon">
+                                <span className="footer-logo-text">M+</span>
                             </div>
-                            <span className="text-xl font-bold">MediSched</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            <span className="footer-logo-name">MediSched</span>
+                        </Link>
+                        <p className="footer-description">
                             Nền tảng đặt lịch khám bệnh trực tuyến hàng đầu Việt Nam, kết nối bạn với các bác sĩ và cơ sở y tế uy tín.
                         </p>
                     </div>
 
                     {/* Services */}
-                    <div>
-                        <h3 className="mb-4 font-semibold">Dịch vụ</h3>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Đặt lịch khám
+                    <div className="footer-section">
+                        <h3 className="footer-section-title">Dịch vụ</h3>
+                        <ul className="footer-links">
+                            <li className="footer-link-item">
+                                <Link to="/home/specialty" className="footer-link">
+                                    <Calendar size={16} />
+                                    <span>Đặt lịch khám</span>
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Tư vấn trực tuyến
+                            <li className="footer-link-item">
+                                <Link to="/home/doctorlist" className="footer-link">
+                                    <Stethoscope size={16} />
+                                    <span>Tư vấn trực tuyến</span>
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Xét nghiệm tại nhà
+                            <li className="footer-link-item">
+                                <Link to="/home/facility" className="footer-link">
+                                    <FileText size={16} />
+                                    <span>Xét nghiệm tại nhà</span>
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Gói khám sức khỏe
+                            <li className="footer-link-item">
+                                <Link to="#" className="footer-link">
+                                    <Stethoscope size={16} />
+                                    <span>Gói khám sức khỏe</span>
                                 </Link>
                             </li>
                         </ul>
                     </div>
 
                     {/* Support */}
-                    <div>
-                        <h3 className="mb-4 font-semibold">Hỗ trợ</h3>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Câu hỏi thường gặp
+                    <div className="footer-section">
+                        <h3 className="footer-section-title">Hỗ trợ</h3>
+                        <ul className="footer-links">
+                            <li className="footer-link-item">
+                                <Link to="#" className="footer-link">
+                                    <HelpCircle size={16} />
+                                    <span>Câu hỏi thường gặp</span>
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Hướng dẫn sử dụng
+                            <li className="footer-link-item">
+                                <Link to="#" className="footer-link">
+                                    <FileText size={16} />
+                                    <span>Hướng dẫn sử dụng</span>
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Chính sách bảo mật
+                            <li className="footer-link-item">
+                                <Link to="#" className="footer-link">
+                                    <Shield size={16} />
+                                    <span>Chính sách bảo mật</span>
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="#" className="hover:text-primary transition-colors">
-                                    Điều khoản sử dụng
+                            <li className="footer-link-item">
+                                <Link to="#" className="footer-link">
+                                    <FileText size={16} />
+                                    <span>Điều khoản sử dụng</span>
                                 </Link>
                             </li>
                         </ul>
                     </div>
 
                     {/* Contact + Socials */}
-                    <div>
-                        <h3 className="mb-4 font-semibold">Liên hệ</h3>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li>Hotline: 1900 xxxx</li>
-                            <li>Email: support@medisched.vn</li>
-                            <li>Địa chỉ: Hà Nội, Việt Nam</li>
+                    <div className="footer-section">
+                        <h3 className="footer-section-title">Liên hệ</h3>
+                        <ul className="footer-contact-list">
+                            <li className="footer-contact-item">
+                                <Phone className="footer-contact-icon" />
+                                <span>Hotline: 1900 xxxx</span>
+                            </li>
+                            <li className="footer-contact-item">
+                                <Mail className="footer-contact-icon" />
+                                <span>support@medisched.vn</span>
+                            </li>
+                            <li className="footer-contact-item">
+                                <MapPin className="footer-contact-icon" />
+                                <span>Hà Nội, Việt Nam</span>
+                            </li>
                         </ul>
 
-                        <div className="mt-4 flex gap-3">
-                            <Link to="#"
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                                <Facebook className="h-4 w-4" />
-                            </Link>
-                            <Link to="#"
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                                <Twitter className="h-4 w-4" />
-                            </Link>
-                            <Link to="#"
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                                <Instagram className="h-4 w-4" />
-                            </Link>
-                            <Link to="#"
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                                <Youtube className="h-4 w-4" />
-                            </Link>
+                        <div className="footer-social-wrapper">
+                            <div className="footer-social-title">Theo dõi chúng tôi</div>
+                            <div className="footer-social-links">
+                                <Link to="#" className="footer-social-link" aria-label="Facebook">
+                                    <Facebook size={20} />
+                                </Link>
+                                <Link to="#" className="footer-social-link" aria-label="Twitter">
+                                    <Twitter size={20} />
+                                </Link>
+                                <Link to="#" className="footer-social-link" aria-label="Instagram">
+                                    <Instagram size={20} />
+                                </Link>
+                                <Link to="#" className="footer-social-link" aria-label="YouTube">
+                                    <Youtube size={20} />
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Copyright */}
-                <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-                    <p>© 2025 MediSched. All rights reserved.</p>
+                {/* Footer Bottom */}
+                <div className="footer-bottom">
+                    <p className="footer-copyright">
+                        © 2025 MediSched. All rights reserved.
+                    </p>
+                    <div className="footer-bottom-links">
+                        <Link to="#" className="footer-bottom-link">Chính sách bảo mật</Link>
+                        <Link to="#" className="footer-bottom-link">Điều khoản sử dụng</Link>
+                        <Link to="#" className="footer-bottom-link">Liên hệ</Link>
+                    </div>
                 </div>
             </div>
         </footer>
