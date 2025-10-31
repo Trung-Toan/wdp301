@@ -56,7 +56,6 @@ const ApproveAppointment = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedShiftId, setSelectedShiftId] = useState(null);
-  const doctorId = "DOC001";
 
   // State cho Modal Bệnh Án
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -64,15 +63,16 @@ const ApproveAppointment = () => {
   const [recordFormData, setRecordFormData] = useState(initialRecordFormData);
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { useDataByUrl } = require("../../utility/data.utils");
+  const { APPOINTMENT_API } = require("../../api/assistant/assistant.api")
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setSelectedShiftId(null);
       try {
         const [shiftsRes, apptsRes] = await Promise.all([
-          getShifts(doctorId, selectedDate),
-          getAppointments({ doctorId: doctorId, date: selectedDate }),
+          getShifts(selectedDate),
+          getAppointments({ date: selectedDate }),
         ]);
         const fetchedShifts = shiftsRes.data || [];
         const fetchedAppts = apptsRes.data || [];
@@ -91,7 +91,25 @@ const ApproveAppointment = () => {
       }
     };
     fetchData();
-  }, [selectedDate, doctorId]);
+  }, [selectedDate]);
+
+  const { data, isLoading, error } = useDataByUrl({
+    url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
+    key: "appointments-list",
+    params: {
+      page: 1,
+      limit: 10,
+      status: "",
+      slot: "",
+      search: "",
+      date: selectedDate,
+    },
+  });
+
+  if (error) console.log("Error fetching appointments:", error);
+
+  console.log("app list: ", data?.data);
+
 
   const handleUpdateStatus = async (appointmentId, newStatus) => {
     // Tìm appointment gốc để lấy shiftId
@@ -273,7 +291,6 @@ const ApproveAppointment = () => {
           medicines: (recordFormData.prescription?.medicines || []).filter(m => m.name && m.name.trim() !== ""),
         },
         status: recordFormData.status,
-        doctor_id: doctorId,
         patient_id: selectedAptForRecord.patient._id,
         appointment_id: selectedAptForRecord._id,
         // LƯU Ý: Schema của bạn có 'created_by' (Assistant) là 'required'.

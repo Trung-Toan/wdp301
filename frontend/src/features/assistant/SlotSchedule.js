@@ -236,7 +236,7 @@ const SlotSchedule = () => {
       clinic_id: assistantInfo.clinic_id,
       start_time: startDateTime,
       end_time: endDateTime,
-      status: slotStatus,
+      status: slotStatus, // <-- Đảm bảo luôn có trường này
       fee_amount: feeAmount,
       max_patients: maxPatients,
       booked_count: editingSlot ? editingSlot.booked_count : 0,
