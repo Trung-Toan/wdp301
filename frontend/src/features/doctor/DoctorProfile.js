@@ -4,17 +4,23 @@ import { useNavigate } from "react-router-dom";
 import { doctorApi } from "../../api/doctor/doctorApi";
 import defaultAvatar from "../../assets/images/default-avatar.png";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:5000/api/file";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [doctorProfile, setDoctorProfile] = useState(null);
+  const [newAvatarFile, setNewAvatarFile] = useState(null);
   const [newLicense, setNewLicense] = useState({
     licenseNumber: "",
     issued_by: "",
     issued_date: "",
     expiry_date: "",
     document_url: "",
+    document_file: null,
   });
   const navigate = useNavigate();
 
@@ -23,42 +29,80 @@ const DoctorProfile = () => {
     if (file) {
       setNewLicense((prev) => ({
         ...prev,
+        document_file: file,
         document_url: file.name,
       }));
     }
   };
 
   const handleUploadLicense = async () => {
+    if (!newLicense.document_file) {
+      toast.error("Vui lòng chọn một tệp chứng chỉ.");
+      return;
+    }
+
     try {
-      const payload = { ...newLicense };
+      const formData = new FormData();
+      formData.append("myFile", newLicense.document_file);
+
+      const uploadResponse = await axios.post(
+        `${API_BASE_URL}/upload`,
+        formData
+      );
+
+      let newLicenseName = null;
+      if (uploadResponse.data.files && uploadResponse.data.files.length > 0) {
+        newLicenseName = uploadResponse.data.files[0].fileName;
+      } else {
+        toast.error("Server upload không trả về tên file.");
+        return;
+      }
+
+      const payload = {
+        licenseNumber: newLicense.licenseNumber,
+        issued_by: newLicense.issued_by,
+        issued_date: newLicense.issued_date,
+        expiry_date: newLicense.expiry_date,
+        document_url: newLicenseName,
+      };
       await doctorApi.uploadLicense(payload);
-      toast.success("Gửi chúng chi thành công!, vui lòng đợi duyệt");
+      toast.success("Gửi chứng chỉ thành công!, vui lòng đợi duyệt");
 
       const res = await doctorApi.getMyLicense();
       setDoctorProfile((prev) => ({ ...prev, licenses: res.data.data }));
 
-      // reset form
       setNewLicense({
         licenseNumber: "",
         issued_by: "",
         issued_date: "",
         expiry_date: "",
         document_url: "",
+        document_file: null,
       });
     } catch (err) {
       console.error("Lỗi khi gửi chứng chỉ:", err);
-      toast.error("Không thể gửi chúng chi: " + err.message);
+      const uploadError = err.response?.data?.error || err.message;
+      toast.error("Không thể gửi chứng chỉ: " + uploadError);
     }
   };
 
-  // Lấy dữ liệu profile từ API
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndLicenses = async () => {
       try {
-        const res = await doctorApi.getProfile();
-        const d = res.data.data; // dữ liệu BE trả về
+        const [profileRes, licenseRes] = await Promise.all([
+          doctorApi.getProfile(),
+          doctorApi.getMyLicense(),
+        ]);
 
-        // Chuẩn hóa dữ liệu cho state
+        const d = profileRes.data.data;
+        const licenses = licenseRes.data.data || [];
+
+        const avatarUrl = d.user_id?.avatar_url
+          ? d.user_id.avatar_url.startsWith("http")
+            ? d.user_id.avatar_url
+            : `${FILE_SERVER_URL}/${d.user_id.avatar_url}`
+          : "";
+
         setDoctorProfile({
           doctor: {
             title: d.title,
@@ -73,13 +117,14 @@ const DoctorProfile = () => {
             dob: d.user_id?.dob?.split("T")[0] || "",
             gender: d.user_id?.gender || "",
             address: d.user_id?.address || "",
-            avatar_url: d.user_id?.avatar_url || "",
+            avatar_url: avatarUrl,
           },
           account: {
             username: d.user_id?.account_id?.username || "",
             email: d.user_id?.account_id?.email || "",
             phone_number: d.user_id?.account_id?.phone_number || "",
           },
+          licenses: licenses,
         });
       } catch (err) {
         toast.error(err.message);
@@ -87,7 +132,7 @@ const DoctorProfile = () => {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchProfileAndLicenses();
   }, []);
 
   const handleChange = (section, field, value) => {
@@ -97,10 +142,12 @@ const DoctorProfile = () => {
     }));
   };
 
-  // Thay đổi ảnh avatar (chỉ FE)
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    setNewAvatarFile(file);
+
     const localURL = URL.createObjectURL(file);
     setDoctorProfile((prev) => ({
       ...prev,
@@ -108,7 +155,6 @@ const DoctorProfile = () => {
     }));
   };
 
-  // Lưu thay đổi
   const handleSave = async () => {
     try {
       const payload = {
@@ -123,12 +169,46 @@ const DoctorProfile = () => {
         email: doctorProfile.account.email,
         phone_number: doctorProfile.account.phone_number,
       };
+
+      let newAvatarName = null;
+
+      if (newAvatarFile) {
+        const formData = new FormData();
+        formData.append("myFile", newAvatarFile);
+
+        const uploadResponse = await axios.post(
+          `${API_BASE_URL}/upload`,
+          formData
+        );
+
+        if (uploadResponse.data.files && uploadResponse.data.files.length > 0) {
+          newAvatarName = uploadResponse.data.files[0].fileName;
+        } else {
+          toast.error("Server upload không trả về tên file.");
+          return;
+        }
+
+        payload.avatar_url = newAvatarName;
+      }
+
       await doctorApi.updateProfile(payload);
       setIsEditing(false);
-      toast.success("Cập nhật thành cong!");
+      toast.success("Cập nhật thành công!");
+
+      if (newAvatarFile && newAvatarName) {
+        setDoctorProfile((prev) => ({
+          ...prev,
+          user: {
+            ...prev.user,
+            avatar_url: `${FILE_SERVER_URL}/${newAvatarName}`,
+          },
+        }));
+      }
+      setNewAvatarFile(null);
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
-      toast.error("Không thể cập nhật hồ sơ: " + err.message);
+      const uploadError = err.response?.data?.error || err.message;
+      toast.error("Không thể cập nhật hồ sơ: " + uploadError);
     }
   };
 
@@ -147,6 +227,24 @@ const DoctorProfile = () => {
       </div>
     );
   }
+
+  const licenses = doctorProfile.licenses || [];
+
+  const hasPendingLicense = licenses.some((lic) => lic.status === "PENDING");
+
+  const hasValidApprovedLicense = licenses.some((lic) => {
+    if (lic.status !== "APPROVED") return false;
+
+    if (!lic.expiry_date) return true;
+
+    const expiry = new Date(lic.expiry_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return expiry >= today;
+  });
+
+  const shouldShowUploadForm = !hasPendingLicense && !hasValidApprovedLicense;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
@@ -173,7 +271,11 @@ const DoctorProfile = () => {
         {/* Avatar */}
         <div className="flex flex-col items-center mb-6">
           <img
-            src={doctorProfile.user?.avatar_url || defaultAvatar}
+            src={
+              doctorProfile.user?.avatar_url
+                ? doctorProfile.user.avatar_url
+                : defaultAvatar
+            }
             alt="Doctor Avatar"
             className="w-32 h-32 rounded-full border-4 border-blue-300 shadow-md object-cover"
           />
@@ -336,12 +438,15 @@ const DoctorProfile = () => {
                       </p>
                       <p>
                         <strong>Ngày hết hạn:</strong>{" "}
-                        {new Date(lic.expiry_date).toLocaleDateString()}
+                        {/* Sửa lỗi crash nếu expiry_date là null */}
+                        {lic.expiry_date
+                          ? new Date(lic.expiry_date).toLocaleDateString()
+                          : "Không có"}
                       </p>
                       <p>
                         <strong>File:</strong>{" "}
                         <a
-                          href={`/src/assets/licenses/${lic.document_url}`}
+                          href={`${FILE_SERVER_URL}/${lic.document_url}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 underline"
@@ -372,111 +477,113 @@ const DoctorProfile = () => {
                 )}
               </div>
 
-              {/* Form gửi chứng chỉ */}
-              <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
-                <h4 className="text-blue-700 font-semibold mb-4">
-                  Gửi chứng chỉ mới
-                </h4>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    await handleUploadLicense();
-                  }}
-                  className="space-y-3"
-                >
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-1">
-                      Số hiệu chứng chỉ
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                      value={newLicense.licenseNumber}
-                      onChange={(e) =>
-                        setNewLicense({
-                          ...newLicense,
-                          licenseNumber: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-1">
-                      Cơ quan cấp
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                      value={newLicense.issued_by}
-                      onChange={(e) =>
-                        setNewLicense({
-                          ...newLicense,
-                          issued_by: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+              {/* Form gửi chứng chỉ (Đã bọc điều kiện) */}
+              {shouldShowUploadForm && (
+                <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
+                  <h4 className="text-blue-700 font-semibold mb-4">
+                    Gửi chứng chỉ mới
+                  </h4>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      await handleUploadLicense();
+                    }}
+                    className="space-y-3"
+                  >
                     <div>
                       <label className="block text-gray-600 font-medium mb-1">
-                        Ngày cấp
+                        Số hiệu chứng chỉ
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                        value={newLicense.issued_date}
+                        value={newLicense.licenseNumber}
                         onChange={(e) =>
                           setNewLicense({
                             ...newLicense,
-                            issued_date: e.target.value,
+                            licenseNumber: e.target.value,
                           })
                         }
                         required
                       />
                     </div>
+
                     <div>
                       <label className="block text-gray-600 font-medium mb-1">
-                        Ngày hết hạn
+                        Cơ quan cấp
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                        value={newLicense.expiry_date}
+                        value={newLicense.issued_by}
                         onChange={(e) =>
                           setNewLicense({
                             ...newLicense,
-                            expiry_date: e.target.value,
+                            issued_by: e.target.value,
                           })
                         }
+                        required
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-1">
-                      Tệp chứng chỉ (PDF)
-                    </label>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={(e) => handleFileChange(e)}
-                      className="text-sm text-gray-600"
-                      required
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-1">
+                          Ngày cấp
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          value={newLicense.issued_date}
+                          onChange={(e) =>
+                            setNewLicense({
+                              ...newLicense,
+                              issued_date: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-1">
+                          Ngày hết hạn
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          value={newLicense.expiry_date}
+                          onChange={(e) =>
+                            setNewLicense({
+                              ...newLicense,
+                              expiry_date: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
 
-                  <Button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Gửi phê duyệt
-                  </Button>
-                </form>
-              </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-1">
+                        Tệp chứng chỉ (PDF)
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => handleFileChange(e)}
+                        className="text-sm text-gray-600"
+                        required
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Gửi phê duyệt
+                    </Button>
+                  </form>
+                </div>
+              )}
             </section>
           </div>
         </section>

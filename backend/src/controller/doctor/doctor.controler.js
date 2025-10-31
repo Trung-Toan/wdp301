@@ -450,10 +450,10 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
-// POST /doctor/upload-license
+// POST /doctor/license
 exports.uploadLicense = async (req, res, next) => {
   try {
-    const data = await doctorService.uploadLicense(req.user.sub, req.file);
+    const data = await doctorService.uploadLicense(req.user.sub, req.body);
     resUtils.successResponse(
       res,
       data,
