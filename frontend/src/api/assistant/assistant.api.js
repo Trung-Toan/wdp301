@@ -2,7 +2,7 @@ import { axiosInstance } from "../axiosInstance";
 
 export const PATIENT_API = {
     GET_LIST_PATIENT: "/assistant/patients",
-    GET_PATIENT_BY_ID: (appointmentId) => `/assistant/patients/${appointmentId}`,
+    GET_APPOINTMENT_BY_PATIENT_ID: (appointmentId) => `/assistant/patients/${appointmentId}`,
     /*************  ``✨ Windsurf Command ⭐  *************/
     /**
      * Lấy danh sách bệnh nhân của trợ lý
@@ -19,7 +19,7 @@ export const PATIENT_API = {
      * @param {number} appointmentId - ID của lịch khám 
      * @returns {Promise<AxiosResponse>}
      */
-    getPatientById: (appointmentId) => axiosInstance.get(PATIENT_API.GET_PATIENT_BY_ID(appointmentId)),
+    getAppointmentByPatientId: (appointmentId) => axiosInstance.get(PATIENT_API.GET_APPOINTMENT_BY_PATIENT_ID(appointmentId)),
 
 };
 

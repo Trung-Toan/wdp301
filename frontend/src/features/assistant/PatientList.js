@@ -7,10 +7,12 @@ import { Search, FileText, PeopleFill } from "react-bootstrap-icons";
 import { getPatients } from "../../services/assistantService";
 import { useDataByUrl } from "../../utility/data.utils";
 import { PATIENT_API } from "../../api/assistant/assistant.api";
+import MedicalRecord from "./MedicalRecord";
 
 const PatientList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
   const { data, isLoading, error } = useDataByUrl({
     url: PATIENT_API.GET_LIST_PATIENT,
@@ -28,6 +30,24 @@ const PatientList = () => {
   );
 
   console.log(patients);
+
+  const handleShowMedicalRecord = async (appointmentId) => {
+    if (!appointmentId) {
+      alert("Không tìm thấy ID cuộc hẹn!");
+      return;
+    }
+    try {
+      const response = await PATIENT_API.getAppointmentByPatientId(appointmentId);
+      const patientDetail = response.data?.data;
+      if (patientDetail?.medical_record && patientDetail.medical_record.length > 0) {
+        setSelectedRecord(patientDetail.medical_record[0]);
+      } else {
+        alert("Không có hồ sơ bệnh án!");
+      }
+    } catch (err) {
+      alert("Lỗi khi lấy hồ sơ bệnh án!");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -94,10 +114,11 @@ const PatientList = () => {
                 <tbody className="divide-y divide-gray-200">
                   {patients?.length > 0 ? (
                     patients?.map((item) => {
-                      // Nếu mỗi item là { patient: {...} }
                       const patient = item.patient || item;
+                      const patientId = patient?.id || patient?._id; // Đảm bảo đúng id
+
                       return (
-                        <tr key={patient?.id || patient?._id} className="bg-white hover:bg-gray-50">
+                        <tr key={patientId} className="bg-white hover:bg-gray-50">
                           <td className="px-6 py-4 font-medium text-gray-900">
                             {patient?.patient_code}
                           </td>
@@ -105,15 +126,13 @@ const PatientList = () => {
                             {patient?.full_name}
                           </td>
                           <td className="px-6 py-4">{patient?.email}</td>
-                          <td className="px-6 py-4">{patient?.phone}</td>
+                          <td className="px-6 py-4">{patient?.phone}</td> {/* Sửa lại trường số điện thoại */}
                           <td className="px-6 py-4">{patient?.dob?.slice(0, 10)}</td>
                           <td className="px-6 py-4">{patient?.gender}</td>
                           <td className="px-6 py-4">
                             <button
                               className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
-                              onClick={() =>
-                                navigate(`/doctor/medical-records/${patient?.id || patient?._id}`)
-                              }
+                              onClick={() => handleShowMedicalRecord(patient?.appointment_id)}
                               title="Xem bệnh án"
                             >
                               <FileText size={16} />
@@ -135,6 +154,12 @@ const PatientList = () => {
               </table>
             </div>
           </div>
+        )}
+        {selectedRecord && (
+          <MedicalRecord
+            record={selectedRecord}
+            onClose={() => setSelectedRecord(null)}
+          />
         )}
       </div>
     </div>
