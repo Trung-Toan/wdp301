@@ -1,8 +1,8 @@
 import { memo, useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Button, Container, Form, InputGroup, Spinner } from "react-bootstrap";
-import { Eye, EyeSlash } from "react-bootstrap-icons";
+import { Container, Form, Spinner } from "react-bootstrap";
+import { Eye, EyeSlash, Envelope, Lock, PersonCircle } from "react-bootstrap-icons";
 import Swal from "sweetalert2";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
@@ -133,36 +133,40 @@ const Login = () => {
   });
 
   return (
-    <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100 bg-light" style={{ position: "relative" }}>
+    <div className="login-wrapper d-flex align-items-center justify-content-center min-vh-100" style={{ position: "relative" }}>
       {/* Loading Overlay */}
       {mutation.isLoading && (
         <div
+          className="loading-overlay"
           style={{
             position: "fixed",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
           }}
         >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "2rem",
-              borderRadius: "12px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "1rem",
-            }}
-          >
-            <Spinner animation="border" variant="primary" style={{ width: "3rem", height: "3rem" }} />
-            <p className="mb-0 fw-semibold" style={{ color: "#45c3d2" }}>
+          <div className="loading-card" style={{
+            padding: "2.5rem",
+            borderRadius: "20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "1.5rem",
+          }}>
+            <Spinner animation="border" variant="primary" style={{ width: "3.5rem", height: "3.5rem", borderWidth: "4px" }} />
+            <p className="mb-0 fw-semibold" style={{ 
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              fontSize: "1.1rem"
+            }}>
               Đang xử lý đăng nhập...
             </p>
           </div>
@@ -170,79 +174,87 @@ const Login = () => {
       )}
 
       <Container
-        className="p-4 bg-white rounded-4 shadow-lg"
-        style={{ maxWidth: "420px", position: "relative", opacity: mutation.isLoading ? 0.6 : 1 }}
+        className="login-card p-5"
+        style={{ maxWidth: "480px", position: "relative", zIndex: 1, opacity: mutation.isLoading ? 0.6 : 1 }}
       >
-        <div className="text-center mb-4">
-          <h3 className="fw-bold text-primary" style={{ color: "#45c3d2" }}>
-            Đăng nhập hệ thống
-          </h3>
-          <p className="text-muted" style={{ fontSize: "14px" }}>
-            Đặt lịch khám nhanh chóng và thuận tiện
-          </p>
+        {/* Header with Icon */}
+        <div className="login-header text-center">
+          <div className="login-icon">
+            <PersonCircle size={40} color="white" />
+          </div>
+          <h1 className="login-title">Chào mừng trở lại</h1>
+          <p className="login-subtitle">Đăng nhập để tiếp tục sử dụng dịch vụ</p>
         </div>
 
         <Form onSubmit={formik.handleSubmit}>
           {/* Email / Username */}
-          <Form.Group className="mb-3" controlId="formUsername">
-            <Form.Label className="fw-semibold text-secondary">
+          <div className="form-group-modern">
+            <label className="form-label-modern">
               Email hoặc Tên đăng nhập
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="username"
-              placeholder="Nhập email hoặc username"
-              value={formik.values.username}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              isInvalid={!!formik.errors.username && formik.touched.username}
-              disabled={mutation.isLoading}
-            />
-            <Form.Control.Feedback type="invalid">
-              {formik.errors.username}
-            </Form.Control.Feedback>
-          </Form.Group>
+            </label>
+            <div className="input-icon-wrapper">
+              <Envelope className="input-icon" size={20} />
+              <input
+                type="text"
+                name="username"
+                className={`form-control-modern ${formik.errors.username && formik.touched.username ? 'is-invalid' : ''}`}
+                placeholder="Nhập email hoặc username"
+                value={formik.values.username}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                disabled={mutation.isLoading}
+              />
+            </div>
+            {formik.errors.username && formik.touched.username && (
+              <div className="invalid-feedback">{formik.errors.username}</div>
+            )}
+          </div>
 
           {/* Password */}
-          <Form.Group className="mb-3" controlId="formPassword">
-            <Form.Label className="fw-semibold text-secondary">
+          <div className="form-group-modern">
+            <label className="form-label-modern">
               Mật khẩu
-            </Form.Label>
-            <InputGroup>
-              <Form.Control
+            </label>
+            <div className="input-icon-wrapper">
+              <Lock className="input-icon" size={20} />
+              <input
                 type={showPassword ? "text" : "password"}
                 name="password"
+                className={`form-control-modern ${formik.errors.password && formik.touched.password ? 'is-invalid' : ''}`}
                 placeholder="Nhập mật khẩu"
                 value={formik.values.password}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                isInvalid={!!formik.errors.password && formik.touched.password}
                 disabled={mutation.isLoading}
+                style={{ paddingRight: "3rem" }}
               />
-              <Button
-                variant="outline-secondary"
+              <button
+                type="button"
+                className="password-toggle-btn"
                 onClick={togglePasswordVisibility}
                 disabled={mutation.isLoading}
+                style={{
+                  position: "absolute",
+                  right: "0.75rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  zIndex: 10
+                }}
               >
-                {showPassword ? <EyeSlash /> : <Eye />}
-              </Button>
-              <Form.Control.Feedback type="invalid">
-                {formik.errors.password}
-              </Form.Control.Feedback>
-            </InputGroup>
-          </Form.Group>
+                {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {formik.errors.password && formik.touched.password && (
+              <div className="invalid-feedback">{formik.errors.password}</div>
+            )}
+          </div>
 
           {/* Nút đăng nhập */}
           <div className="d-grid mt-4">
-            <Button
+            <button
               type="submit"
+              className="btn-login"
               disabled={mutation.isLoading}
-              style={{
-                backgroundColor: "#45c3d2",
-                border: "none",
-                fontWeight: "bold",
-              }}
-              className="py-2"
             >
               {mutation.isLoading ? (
                 <>
@@ -251,36 +263,39 @@ const Login = () => {
                     animation="border"
                     size="sm"
                     className="me-2"
+                    style={{ borderWidth: "2px" }}
                   />
                   Đang đăng nhập...
                 </>
               ) : (
                 "Đăng nhập"
               )}
-            </Button>
+            </button>
           </div>
         </Form>
 
+        {/* Divider */}
+        <div className="divider">hoặc</div>
+
         {/* Google login */}
-        <div className="mt-4" style={{ pointerEvents: mutation.isLoading ? "none" : "auto", opacity: mutation.isLoading ? 0.6 : 1 }}>
+        <div style={{ pointerEvents: mutation.isLoading ? "none" : "auto", opacity: mutation.isLoading ? 0.6 : 1 }}>
           <GoogleLoginButton />
         </div>
 
         {/* Links */}
-        <p
-          className="text-center mt-4 mb-0 text-secondary"
-          style={{ fontSize: "13px", pointerEvents: mutation.isLoading ? "none" : "auto", opacity: mutation.isLoading ? 0.6 : 1 }}
-        >
-          Chưa có tài khoản?{" "}
-          <Link to="/register" className="text-primary fw-semibold" style={{ pointerEvents: mutation.isLoading ? "none" : "auto" }}>
-            Đăng ký ngay
-          </Link>
-          <br />
-          Quên mật khẩu?{" "}
-          <Link to="/forgot_password" className="text-primary fw-semibold" style={{ pointerEvents: mutation.isLoading ? "none" : "auto" }}>
-            Khôi phục tài khoản
-          </Link>
-        </p>
+        <div className="login-links" style={{ pointerEvents: mutation.isLoading ? "none" : "auto", opacity: mutation.isLoading ? 0.6 : 1 }}>
+          <p className="mb-2">
+            Chưa có tài khoản?{" "}
+            <Link to="/register" className="login-link">
+              Đăng ký ngay
+            </Link>
+          </p>
+          <p className="mb-0">
+            <Link to="/forgot_password" className="login-link">
+              Quên mật khẩu?
+            </Link>
+          </p>
+        </div>
       </Container>
     </div>
   );
