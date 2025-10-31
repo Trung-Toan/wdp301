@@ -25,6 +25,7 @@ export function DoctorDetailContent({ doctorId }) {
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [comment, setComment] = useState("");
+    const [isAnonymous, setIsAnonymous] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -71,13 +72,14 @@ export function DoctorDetailContent({ doctorId }) {
                 doctorId: doctorId,
                 rating: rating,
                 comment: comment.trim(),
-                isAnonymous: false
+                isAnonymous: isAnonymous
             });
 
             if (response.data?.success) {
                 setSubmitSuccess(true);
                 setRating(0);
                 setComment("");
+                setIsAnonymous(false);
                 // Reload doctor data to show new feedback
                 const res = await doctorApi.getDoctorById(doctorId);
                 setDoctor(res.data || {});
@@ -317,6 +319,18 @@ export function DoctorDetailContent({ doctorId }) {
                                                         />
                                                     </div>
 
+                                                    <div className="doctor-feedback-anonymous-section">
+                                                        <label className="doctor-feedback-checkbox-label">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="doctor-feedback-checkbox"
+                                                                checked={isAnonymous}
+                                                                onChange={(e) => setIsAnonymous(e.target.checked)}
+                                                            />
+                                                            <span className="doctor-feedback-checkbox-text">Đánh giá ẩn danh</span>
+                                                        </label>
+                                                    </div>
+
                                                     {submitError && (
                                                         <div className="doctor-feedback-error">{submitError}</div>
                                                     )}
@@ -363,12 +377,23 @@ export function DoctorDetailContent({ doctorId }) {
                                                     {d.feedbacks.map((fb) => (
                                                         <div key={fb.id} className="doctor-review-item">
                                                             <div className="doctor-review-header">
-                                                                <img
-                                                                    src={fb.patient?.avatar_url || "/default-avatar.png"}
-                                                                    alt={fb.patient?.full_name}
-                                                                    className="doctor-review-avatar"
-                                                                />
-                                                                <span className="doctor-review-name">{fb.patient?.full_name || "Người dùng"}</span>
+                                                                {fb.is_annonymous ? (
+                                                                    <>
+                                                                        <div className="doctor-review-avatar doctor-review-avatar-anonymous">
+                                                                            <span className="doctor-review-avatar-initial">A</span>
+                                                                        </div>
+                                                                        <span className="doctor-review-name">Người dùng ẩn danh</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <img
+                                                                            src={fb.patient?.user_id?.avatar_url || "/default-avatar.png"}
+                                                                            alt={fb.patient?.user_id?.full_name || "Người dùng"}
+                                                                            className="doctor-review-avatar"
+                                                                        />
+                                                                        <span className="doctor-review-name">{fb.patient?.user_id?.full_name || "Người dùng"}</span>
+                                                                    </>
+                                                                )}
                                                             </div>
 
                                                             <div className="doctor-review-stars">

@@ -399,6 +399,21 @@
   border: 2px solid rgba(102, 126, 234, 0.2);
 }
 
+.doctor-review-avatar-anonymous {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.doctor-review-avatar-initial {
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
 .doctor-review-name {
   font-weight: 700;
   color: #1e293b;
@@ -593,6 +608,39 @@
 .doctor-feedback-login-link:hover {
   color: #764ba2;
   text-decoration: underline;
+}
+
+/* Anonymous Checkbox */
+.doctor-feedback-anonymous-section {
+  display: flex;
+  align-items: center;
+}
+
+.doctor-feedback-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.doctor-feedback-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+  border-radius: 4px;
+}
+
+.doctor-feedback-checkbox-text {
+  font-size: 0.9375rem;
+  color: #475569;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.doctor-feedback-checkbox-label:hover .doctor-feedback-checkbox-text {
+  color: #667eea;
 }
 
 /* Loading & Error States */
