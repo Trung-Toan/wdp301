@@ -115,14 +115,10 @@ exports.deleteAssistant = async (req, res, next) => {
 //lấy danh sách giấy phép bác sĩ đang chờ duyệt
 exports.getPendingLicenses = async (req, res, next) => {
   try {
-    const accountId = req.user?.sub;
+    const adminAccountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
-    if (!clinicResult.ok) return res.status(400).json(clinicResult);
+    const result = await getPendingDoctorLicenses(adminAccountId);
 
-    const clinic = clinicResult.data;
-
-    const result = await getPendingDoctorLicenses(clinic._id);
     res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
@@ -132,7 +128,7 @@ exports.getPendingLicenses = async (req, res, next) => {
 //cập nhật trạng thái giấy phép bác sĩ
 exports.updateLicenseStatus = async (req, res, next) => {
   try {
-    const { licenseId } = req.params;
+    const { id: licenseId } = req.params;
     const { status, rejected_reason } = req.body;
     const adminAccountId = req?.user?.sub;
 

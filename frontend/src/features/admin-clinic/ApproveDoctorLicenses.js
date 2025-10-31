@@ -45,8 +45,6 @@ const ApproveDoctorLicenses = () => {
 
   // Hàm xử lý khi bấm "Duyệt"
   const handleApprove = async (licenseId) => {
-    if (!window.confirm("Bạn có chắc muốn DUYỆT chứng chỉ này?")) return;
-
     try {
       const payload = { status: "APPROVED" };
       await adminclinicAPI.updateLicenseStatus(licenseId, payload);
@@ -140,14 +138,14 @@ const ApproveDoctorLicenses = () => {
           const doctor = lic.doctor_id;
           const user = doctor?.user_id;
 
-          // Xử lý avatar URL (giống DoctorProfile)
+          // Xử lý avatar URL
           const avatarUrl = user?.avatar_url
             ? user.avatar_url.startsWith("http")
               ? user.avatar_url
               : `${FILE_SERVER_URL}/${user.avatar_url}`
             : defaultAvatar;
 
-          // Xử lý file URL (lấy file đầu tiên trong mảng document_url)
+          // Xử lý file URL
           const fileUrl =
             lic.document_url && lic.document_url.length > 0
               ? `${FILE_SERVER_URL}/${lic.document_url[0]}`
@@ -168,11 +166,8 @@ const ApproveDoctorLicenses = () => {
                   />
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-gray-800">
-                      {user?.full_name || "(Không rõ tên)"}
+                      BS. {user?.full_name || "(Không rõ tên)"}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      ID Bác sĩ: {doctor?._id}
-                    </p>
                   </div>
                 </div>
 
