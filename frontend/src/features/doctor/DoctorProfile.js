@@ -87,10 +87,15 @@ const DoctorProfile = () => {
   };
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndLicenses = async () => {
       try {
-        const res = await doctorApi.getProfile();
-        const d = res.data.data;
+        const [profileRes, licenseRes] = await Promise.all([
+          doctorApi.getProfile(),
+          doctorApi.getMyLicense(),
+        ]);
+
+        const d = profileRes.data.data;
+        const licenses = licenseRes.data.data || [];
 
         const avatarUrl = d.user_id?.avatar_url
           ? d.user_id.avatar_url.startsWith("http")
@@ -119,6 +124,7 @@ const DoctorProfile = () => {
             email: d.user_id?.account_id?.email || "",
             phone_number: d.user_id?.account_id?.phone_number || "",
           },
+          licenses: licenses,
         });
       } catch (err) {
         toast.error(err.message);
@@ -126,7 +132,7 @@ const DoctorProfile = () => {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchProfileAndLicenses();
   }, []);
 
   const handleChange = (section, field, value) => {
@@ -221,6 +227,24 @@ const DoctorProfile = () => {
       </div>
     );
   }
+
+  const licenses = doctorProfile.licenses || [];
+
+  const hasPendingLicense = licenses.some((lic) => lic.status === "PENDING");
+
+  const hasValidApprovedLicense = licenses.some((lic) => {
+    if (lic.status !== "APPROVED") return false;
+
+    if (!lic.expiry_date) return true;
+
+    const expiry = new Date(lic.expiry_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return expiry >= today;
+  });
+
+  const shouldShowUploadForm = !hasPendingLicense && !hasValidApprovedLicense;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
@@ -414,7 +438,10 @@ const DoctorProfile = () => {
                       </p>
                       <p>
                         <strong>Ngày hết hạn:</strong>{" "}
-                        {new Date(lic.expiry_date).toLocaleDateString()}
+                        {/* Sửa lỗi crash nếu expiry_date là null */}
+                        {lic.expiry_date
+                          ? new Date(lic.expiry_date).toLocaleDateString()
+                          : "Không có"}
                       </p>
                       <p>
                         <strong>File:</strong>{" "}
@@ -450,111 +477,113 @@ const DoctorProfile = () => {
                 )}
               </div>
 
-              {/* Form gửi chứng chỉ */}
-              <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
-                <h4 className="text-blue-700 font-semibold mb-4">
-                  Gửi chứng chỉ mới
-                </h4>
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    await handleUploadLicense();
-                  }}
-                  className="space-y-3"
-                >
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-1">
-                      Số hiệu chứng chỉ
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                      value={newLicense.licenseNumber}
-                      onChange={(e) =>
-                        setNewLicense({
-                          ...newLicense,
-                          licenseNumber: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-1">
-                      Cơ quan cấp
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                      value={newLicense.issued_by}
-                      onChange={(e) =>
-                        setNewLicense({
-                          ...newLicense,
-                          issued_by: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+              {/* Form gửi chứng chỉ (Đã bọc điều kiện) */}
+              {shouldShowUploadForm && (
+                <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
+                  <h4 className="text-blue-700 font-semibold mb-4">
+                    Gửi chứng chỉ mới
+                  </h4>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      await handleUploadLicense();
+                    }}
+                    className="space-y-3"
+                  >
                     <div>
                       <label className="block text-gray-600 font-medium mb-1">
-                        Ngày cấp
+                        Số hiệu chứng chỉ
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                        value={newLicense.issued_date}
+                        value={newLicense.licenseNumber}
                         onChange={(e) =>
                           setNewLicense({
                             ...newLicense,
-                            issued_date: e.target.value,
+                            licenseNumber: e.target.value,
                           })
                         }
                         required
                       />
                     </div>
+
                     <div>
                       <label className="block text-gray-600 font-medium mb-1">
-                        Ngày hết hạn
+                        Cơ quan cấp
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                        value={newLicense.expiry_date}
+                        value={newLicense.issued_by}
                         onChange={(e) =>
                           setNewLicense({
                             ...newLicense,
-                            expiry_date: e.target.value,
+                            issued_by: e.target.value,
                           })
                         }
+                        required
                       />
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-gray-600 font-medium mb-1">
-                      Tệp chứng chỉ (PDF)
-                    </label>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={(e) => handleFileChange(e)}
-                      className="text-sm text-gray-600"
-                      required
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-1">
+                          Ngày cấp
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          value={newLicense.issued_date}
+                          onChange={(e) =>
+                            setNewLicense({
+                              ...newLicense,
+                              issued_date: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-600 font-medium mb-1">
+                          Ngày hết hạn
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          value={newLicense.expiry_date}
+                          onChange={(e) =>
+                            setNewLicense({
+                              ...newLicense,
+                              expiry_date: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
 
-                  <Button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Gửi phê duyệt
-                  </Button>
-                </form>
-              </div>
+                    <div>
+                      <label className="block text-gray-600 font-medium mb-1">
+                        Tệp chứng chỉ (PDF)
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => handleFileChange(e)}
+                        className="text-sm text-gray-600"
+                        required
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Gửi phê duyệt
+                    </Button>
+                  </form>
+                </div>
+              )}
             </section>
           </div>
         </section>
