@@ -67,11 +67,11 @@ export function DoctorDetailContent({ doctorId }) {
         setSubmitSuccess(false);
 
         try {
-            // Giả định endpoint là /patient/feedback hoặc /feedback
             const response = await axiosInstance.post("/patient/feedback", {
                 doctorId: doctorId,
                 rating: rating,
-                comment: comment.trim()
+                comment: comment.trim(),
+                isAnonymous: false
             });
 
             if (response.data?.success) {
