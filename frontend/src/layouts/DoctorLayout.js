@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react"; // Thêm useEffect
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
@@ -15,6 +15,9 @@ import {
   Bell,
   PersonCircle,
 } from "react-bootstrap-icons";
+import { Button, Spinner } from "react-bootstrap";
+import { toast } from "react-toastify";
+import { doctorApi } from "../api/doctor/doctorApi";
 import "../styles/doctor/DoctorLayout.css";
 
 const DoctorLayout = () => {
@@ -23,6 +26,62 @@ const DoctorLayout = () => {
   const navigate = useNavigate();
 
   const user = JSON.parse(sessionStorage.getItem("user"));
+
+  // --- THÊM STATE MỚI ---
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  // ---------------------
+
+  // --- THÊM EFFECT (1): TẢI HỒ SƠ ĐỂ KIỂM TRA ---
+  useEffect(() => {
+    const fetchProfileAndLicenses = async () => {
+      try {
+        // Gọi song song 2 API (giống như trang DoctorProfile)
+        const [profileRes, licenseRes] = await Promise.all([
+          doctorApi.getProfile(),
+          doctorApi.getMyLicense(),
+        ]);
+
+        const profile = profileRes.data.data;
+        const licenses = licenseRes.data.data || [];
+
+        // Điều kiện kiểm tra
+        const hasInfo = profile.title && profile.degree && profile.experience;
+        const hasLicense = licenses.length > 0;
+
+        if (hasInfo && hasLicense) {
+          setIsProfileComplete(true);
+        } else {
+          setIsProfileComplete(false);
+        }
+      } catch (err) {
+        console.error("Không thể tải hồ sơ bác sĩ:", err);
+        // Giả sử nếu lỗi thì hồ sơ chưa hoàn tất
+        setIsProfileComplete(false);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchProfileAndLicenses();
+  }, []); // Chỉ chạy 1 lần khi layout mount
+
+  // --- THÊM EFFECT (2): KIỂM TRA VÀ CHUYỂN HƯỚNG ---
+  useEffect(() => {
+    if (isLoadingProfile) {
+      return; // Chưa tải xong, không làm gì cả
+    }
+
+    // Nếu hồ sơ CHƯA hoàn tất VÀ bác sĩ KHÔNG ở trang profile
+    if (!isProfileComplete && location.pathname !== "/doctor/profile") {
+      toast.warn("Vui lòng hoàn tất hồ sơ của bạn trước khi tiếp tục!", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      navigate("/doctor/profile"); // Bắt buộc chuyển về trang profile
+    }
+  }, [isLoadingProfile, isProfileComplete, location.pathname, navigate]);
+  // ------------------------------------------------
 
   const menuItems = [
     {
@@ -127,8 +186,11 @@ const DoctorLayout = () => {
               <span className="notification-badge">3</span>
             </button>
 
+            {/* CẬP NHẬT Ở ĐÂY: Thêm class "pulse-profile" nếu hồ sơ chưa hoàn tất */}
             <div
-              className="user-profile"
+              className={`user-profile ${
+                !isProfileComplete ? "pulse-profile" : ""
+              }`}
               onClick={() => navigate("/doctor/profile")}
               style={{ cursor: "pointer" }}
             >
@@ -143,6 +205,23 @@ const DoctorLayout = () => {
 
         {/* Page Content */}
         <main className="page-content">
+          {!isProfileComplete && location.pathname !== "/doctor/profile" && (
+            <div className="profile-blocker-overlay">
+              <Spinner animation="border" variant="light" className="mb-3" />
+              <h3 className="text-white">Yêu cầu hoàn tất hồ sơ</h3>
+              <p className="text-white-50 mb-4">
+                Bạn cần cập nhật thông tin (Chức danh, Bằng cấp, Kinh nghiệm) và
+                tải lên ít nhất 1 chứng chỉ hành nghề để sử dụng các tính năng
+                khác.
+              </p>
+              <Button
+                variant="light"
+                onClick={() => navigate("/doctor/profile")}
+              >
+                Đi đến trang hồ sơ
+              </Button>
+            </div>
+          )}
           <Outlet />
         </main>
 
