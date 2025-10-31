@@ -4,17 +4,23 @@ import { useNavigate } from "react-router-dom";
 import { doctorApi } from "../../api/doctor/doctorApi";
 import defaultAvatar from "../../assets/images/default-avatar.png";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:5000/api/file";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [doctorProfile, setDoctorProfile] = useState(null);
+  const [newAvatarFile, setNewAvatarFile] = useState(null);
   const [newLicense, setNewLicense] = useState({
     licenseNumber: "",
     issued_by: "",
     issued_date: "",
     expiry_date: "",
     document_url: "",
+    document_file: null,
   });
   const navigate = useNavigate();
 
@@ -23,42 +29,75 @@ const DoctorProfile = () => {
     if (file) {
       setNewLicense((prev) => ({
         ...prev,
+        document_file: file,
         document_url: file.name,
       }));
     }
   };
 
   const handleUploadLicense = async () => {
+    if (!newLicense.document_file) {
+      toast.error("Vui lòng chọn một tệp chứng chỉ.");
+      return;
+    }
+
     try {
-      const payload = { ...newLicense };
+      const formData = new FormData();
+      formData.append("myFile", newLicense.document_file);
+
+      const uploadResponse = await axios.post(
+        `${API_BASE_URL}/upload`,
+        formData
+      );
+
+      let newLicenseName = null;
+      if (uploadResponse.data.files && uploadResponse.data.files.length > 0) {
+        newLicenseName = uploadResponse.data.files[0].fileName;
+      } else {
+        toast.error("Server upload không trả về tên file.");
+        return;
+      }
+
+      const payload = {
+        licenseNumber: newLicense.licenseNumber,
+        issued_by: newLicense.issued_by,
+        issued_date: newLicense.issued_date,
+        expiry_date: newLicense.expiry_date,
+        document_url: newLicenseName,
+      };
       await doctorApi.uploadLicense(payload);
-      toast.success("Gửi chúng chi thành công!, vui lòng đợi duyệt");
+      toast.success("Gửi chứng chỉ thành công!, vui lòng đợi duyệt");
 
       const res = await doctorApi.getMyLicense();
       setDoctorProfile((prev) => ({ ...prev, licenses: res.data.data }));
 
-      // reset form
       setNewLicense({
         licenseNumber: "",
         issued_by: "",
         issued_date: "",
         expiry_date: "",
         document_url: "",
+        document_file: null,
       });
     } catch (err) {
       console.error("Lỗi khi gửi chứng chỉ:", err);
-      toast.error("Không thể gửi chúng chi: " + err.message);
+      const uploadError = err.response?.data?.error || err.message;
+      toast.error("Không thể gửi chứng chỉ: " + uploadError);
     }
   };
 
-  // Lấy dữ liệu profile từ API
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await doctorApi.getProfile();
-        const d = res.data.data; // dữ liệu BE trả về
+        const d = res.data.data;
 
-        // Chuẩn hóa dữ liệu cho state
+        const avatarUrl = d.user_id?.avatar_url
+          ? d.user_id.avatar_url.startsWith("http")
+            ? d.user_id.avatar_url
+            : `${FILE_SERVER_URL}/${d.user_id.avatar_url}`
+          : "";
+
         setDoctorProfile({
           doctor: {
             title: d.title,
@@ -73,7 +112,7 @@ const DoctorProfile = () => {
             dob: d.user_id?.dob?.split("T")[0] || "",
             gender: d.user_id?.gender || "",
             address: d.user_id?.address || "",
-            avatar_url: d.user_id?.avatar_url || "",
+            avatar_url: avatarUrl,
           },
           account: {
             username: d.user_id?.account_id?.username || "",
@@ -97,10 +136,12 @@ const DoctorProfile = () => {
     }));
   };
 
-  // Thay đổi ảnh avatar (chỉ FE)
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    setNewAvatarFile(file);
+
     const localURL = URL.createObjectURL(file);
     setDoctorProfile((prev) => ({
       ...prev,
@@ -108,7 +149,6 @@ const DoctorProfile = () => {
     }));
   };
 
-  // Lưu thay đổi
   const handleSave = async () => {
     try {
       const payload = {
@@ -123,12 +163,46 @@ const DoctorProfile = () => {
         email: doctorProfile.account.email,
         phone_number: doctorProfile.account.phone_number,
       };
+
+      let newAvatarName = null;
+
+      if (newAvatarFile) {
+        const formData = new FormData();
+        formData.append("myFile", newAvatarFile);
+
+        const uploadResponse = await axios.post(
+          `${API_BASE_URL}/upload`,
+          formData
+        );
+
+        if (uploadResponse.data.files && uploadResponse.data.files.length > 0) {
+          newAvatarName = uploadResponse.data.files[0].fileName;
+        } else {
+          toast.error("Server upload không trả về tên file.");
+          return;
+        }
+
+        payload.avatar_url = newAvatarName;
+      }
+
       await doctorApi.updateProfile(payload);
       setIsEditing(false);
-      toast.success("Cập nhật thành cong!");
+      toast.success("Cập nhật thành công!");
+
+      if (newAvatarFile && newAvatarName) {
+        setDoctorProfile((prev) => ({
+          ...prev,
+          user: {
+            ...prev.user,
+            avatar_url: `${FILE_SERVER_URL}/${newAvatarName}`,
+          },
+        }));
+      }
+      setNewAvatarFile(null);
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
-      toast.error("Không thể cập nhật hồ sơ: " + err.message);
+      const uploadError = err.response?.data?.error || err.message;
+      toast.error("Không thể cập nhật hồ sơ: " + uploadError);
     }
   };
 
@@ -173,7 +247,11 @@ const DoctorProfile = () => {
         {/* Avatar */}
         <div className="flex flex-col items-center mb-6">
           <img
-            src={doctorProfile.user?.avatar_url || defaultAvatar}
+            src={
+              doctorProfile.user?.avatar_url
+                ? doctorProfile.user.avatar_url
+                : defaultAvatar
+            }
             alt="Doctor Avatar"
             className="w-32 h-32 rounded-full border-4 border-blue-300 shadow-md object-cover"
           />
@@ -341,7 +419,7 @@ const DoctorProfile = () => {
                       <p>
                         <strong>File:</strong>{" "}
                         <a
-                          href={`/src/assets/licenses/${lic.document_url}`}
+                          href={`${FILE_SERVER_URL}/${lic.document_url}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 underline"
