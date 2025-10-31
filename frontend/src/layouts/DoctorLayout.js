@@ -15,14 +15,18 @@ import {
   Bell,
   PersonCircle,
 } from "react-bootstrap-icons";
+import { useAuth } from "../hooks/useAuth";
+import { logoutApi } from "../api/auth/logout/LogoutApt";
 import "../styles/doctor/DoctorLayout.css";
 
 const DoctorLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout, user: authUser } = useAuth();
 
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  // Get user from auth context or sessionStorage as fallback
+  const user = authUser || JSON.parse(sessionStorage.getItem("user") || "null");
 
   const menuItems = [
     {
@@ -67,9 +71,26 @@ const DoctorLayout = () => {
     },
   ];
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    navigate("/home");
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout với refreshToken
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await logoutApi.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+      // Vẫn tiếp tục logout local nếu API thất bại
+    } finally {
+      // Gọi logout từ useAuth để clear auth context
+      logout();
+      // Clear localStorage nếu có
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("refreshToken");
+      // Navigate về trang login
+      navigate("/login");
+    }
   };
 
   return (
@@ -134,7 +155,7 @@ const DoctorLayout = () => {
             >
               <PersonCircle size={32} />
               <div className="user-info">
-                <span className="user-name">{user.username}</span>
+                <span className="user-name">{user?.full_name || user?.name || user?.username || "Bác sĩ"}</span>
                 <span className="user-role">Bác sĩ</span>
               </div>
             </div>
