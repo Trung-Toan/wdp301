@@ -5,6 +5,8 @@ const {
   createAssistant,
   getAssistantsByClinic,
   deleteAssistant,
+  getPendingDoctorLicenses,
+  updateLicenseStatus,
 } = require("../../service/admin_clinic/adminClinic.service");
 
 //Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
@@ -105,6 +107,42 @@ exports.deleteAssistant = async (req, res, next) => {
   try {
     await deleteAssistant(req.params.id);
     res.status(200).json({ ok: true, message: "Xoá trợ lý thành công." });
+  } catch (err) {
+    next(err);
+  }
+};
+
+//lấy danh sách giấy phép bác sĩ đang chờ duyệt
+exports.getPendingLicenses = async (req, res, next) => {
+  try {
+    const accountId = req.user?.sub;
+
+    const clinicResult = await getClinicByAdmin(accountId);
+    if (!clinicResult.ok) return res.status(400).json(clinicResult);
+
+    const clinic = clinicResult.data;
+
+    const result = await getPendingDoctorLicenses(clinic._id);
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+//cập nhật trạng thái giấy phép bác sĩ
+exports.updateLicenseStatus = async (req, res, next) => {
+  try {
+    const { licenseId } = req.params;
+    const { status, rejected_reason } = req.body;
+    const adminAccountId = req?.user?.sub;
+
+    const result = await updateLicenseStatus(
+      adminAccountId,
+      licenseId,
+      status,
+      rejected_reason
+    );
+    res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
