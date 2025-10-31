@@ -46,10 +46,14 @@ export const APPOINTMENT_API = {
 };
 
 export const SLOT_API = {
-    GET_SLOTS_BY_DOCTOR: (doctorId) => `/assistant/doctors/${doctorId}/slots`,
+    GET_SLOTS_BY_DOCTOR: `/assistant/slots/doctor`,
     GET_DETAILS_SLOT: (slotId) => `/assistant/slots/${slotId}`,
     UPDATE_SLOT_BY_ID: (slotId) => `/assistant/slots/${slotId}/doctor`,
-    getSlotsByDoctor: (doctorId, date = "") => axiosInstance.get(SLOT_API.GET_SLOTS_BY_DOCTOR(doctorId), { params: { date } }),
+    CREATE_SLOT_BY_DOCTOR: "/assistant/slots/doctor",
+
+    createSlotByDoctor: (data) => axiosInstance.post(SLOT_API.CREATE_SLOT_BY_DOCTOR, data),
+
+    getSlotsByDoctor: (date = new Date()) => axiosInstance.get(SLOT_API.GET_SLOTS_BY_DOCTOR, { params: { date } }),
 
     getDetailsSlot: (slotId) => axiosInstance.get(SLOT_API.GET_DETAILS_SLOT(slotId)),
 

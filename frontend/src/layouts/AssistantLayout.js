@@ -32,7 +32,7 @@ const DoctorLayout = () => {
     {
       title: "Tạo lịch khám cho bác sĩ",
       icon: <Calendar size={20} />,
-      link: "/assistant/shift-schedule",
+      link: "/assistant/slot-schedule",
     },
     // {
     //   title: "Yêu cầu bệnh án",

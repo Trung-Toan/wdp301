@@ -10,12 +10,8 @@ import {
   People,
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
-import {
-  getShifts,
-  createShift,
-  updateShift,
-  deleteShift,
-} from "../../services/assistantService";
+import { SLOT_API } from "../../api/assistant/assistant.api";
+import toast, { Toaster } from "react-hot-toast";
 
 // --- Helpers cho Modal ---
 const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
@@ -24,10 +20,8 @@ const minutes = Array.from({ length: 12 }, (_, i) =>
 );
 // -----------------------------
 
-// --- Helper class cho Form Inputs ---
 const inputRingClasses =
   "block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6";
-// --------------------------------------------------
 
 const getLocalDate = () => {
   const today = new Date();
@@ -37,188 +31,268 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-const ShiftSchedule = () => {
-  const [selectedDate, setSelectedDate] = useState(getLocalDate());
-  const [todayString] = useState(getLocalDate());
+const formatISOTime = (isoString) => {
+  if (!isoString) return "N/A";
+  return new Date(isoString).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
 
-  const [shifts, setShifts] = useState([]);
+const SlotSchedule = () => {
+  const assistantInfo = JSON.parse(
+    sessionStorage.getItem("assistantInfo") || "{}"
+  );
+  const [feeAmount, setFeeAmount] = useState(500000);
+  const [note, setNote] = useState("");
+
+  const [selectedDate, setSelectedDate] = useState(getLocalDate());
+  const [todayString] = useState(getLocalDate()); // todayString này chỉ lấy 1 lần khi load
+
+  const [Slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState(null);
+  const [editingSlot, setEditingSlot] = useState(null);
   const [startHour, setStartHour] = useState("08");
   const [startMinute, setStartMinute] = useState("00");
   const [endHour, setEndHour] = useState("09");
   const [endMinute, setEndMinute] = useState("00");
   const [maxPatients, setMaxPatients] = useState(1);
 
-  // === THAY ĐỔI 1: State cho lỗi validation ===
   const [modalError, setModalError] = useState("");
-  // ============================================
-
-  // Delete modal
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [shiftToDelete, setShiftToDelete] = useState(null);
+  const [SlotToDelete, setSlotToDelete] = useState(null);
 
   const isPastDate = useMemo(() => {
-    return selectedDate < todayString;
+    const selDate = new Date(selectedDate);
+    const todDate = new Date(todayString); // Dùng todayString từ state
+    selDate.setHours(0, 0, 0, 0);
+    todDate.setHours(0, 0, 0, 0);
+    return selDate < todDate;
   }, [selectedDate, todayString]);
 
-  const fetchShifts = async () => {
+  // Lấy danh sách slot theo bác sĩ và ngày
+  const fetchSlots = async () => {
     setLoading(true);
     try {
-      const res = await getShifts("DOC001", selectedDate);
-      const fetchedShifts = res.data || [];
-      const sortedShifts = fetchedShifts.sort((a, b) => {
-        return a.start_time.localeCompare(b.start_time);
-      });
-      setShifts(sortedShifts);
-    } catch (error) {
-      console.error(error);
-      setShifts([]);
+      const res = await SLOT_API.getSlotsByDoctor(selectedDate);
+      const sortedSlots = (res.data?.data || []).sort(
+        (a, b) => new Date(a.start_time) - new Date(b.start_time)
+      );
+      setSlots(sortedSlots);
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể tải danh sách ca làm việc.");
+      setSlots([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchShifts();
+    fetchSlots();
+    // eslint-disable-next-line
   }, [selectedDate]);
 
-  // === THAY ĐỔI 2: Reset lỗi khi mở modal ===
+  // === VALIDATION THỜI GIAN THỰC ===
+  useEffect(() => {
+    if (!modalOpen) {
+      setModalError("");
+      return;
+    }
+
+    const finalSlotStart = `${startHour}:${startMinute}`;
+    const finalSlotEnd = `${endHour}:${endMinute}`;
+
+    // 1. Validate giờ kết thúc > giờ bắt đầu
+    if (finalSlotStart >= finalSlotEnd) {
+      setModalError("Giờ kết thúc phải sau giờ bắt đầu.");
+      return;
+    }
+
+    // === THÊM MỚI: Kiểm tra thời gian trong quá khứ (cho ngày hôm nay) ===
+    const now = new Date();
+    const currentTodayString = getLocalDate(); // Lấy ngày 'hôm nay' MỚI NHẤT
+
+    // Chỉ kiểm tra nếu ngày đang chọn LÀ ngày hôm nay
+    if (selectedDate === currentTodayString) {
+      // Tạo đối tượng Date cho thời gian đã chọn (theo giờ địa phương)
+      const selectedStartTime = new Date(
+        `${selectedDate}T${startHour}:${startMinute}:00`
+      );
+
+      // So sánh thời gian đã chọn với thời gian hiện tại
+      if (selectedStartTime < now) {
+        setModalError("Không thể tạo ca vào thời điểm đã qua trong ngày.");
+        return;
+      }
+    }
+    // ===================================================================
+
+    // 3. Validate trùng lặp (overlap)
+    const otherSlots = Slots.filter(
+      (Slot) => Slot._id !== editingSlot?._id
+    );
+
+    let overlappingSlot = null;
+    for (const existingSlot of otherSlots) {
+      const existingStart = formatISOTime(existingSlot.start_time);
+      const existingEnd = formatISOTime(existingSlot.end_time);
+
+      if (finalSlotStart < existingEnd && finalSlotEnd > existingStart) {
+        overlappingSlot = existingSlot;
+        break;
+      }
+    }
+
+    if (overlappingSlot) {
+      const SlotIndex = Slots.findIndex(
+        (s) => s._id === overlappingSlot._id
+      );
+      setModalError(
+        `Khung giờ này bị trùng với Ca #${SlotIndex + 1} (${formatISOTime(
+          overlappingSlot.start_time
+        )} - ${formatISOTime(overlappingSlot.end_time)}).`
+      );
+      return;
+    }
+
+    // 4. Validate trùng giờ BẮT ĐẦU (chuyển sang ISO để so sánh)
+    // Phải dùng new Date(...).toISOString() để xử lý đúng múi giờ
+    const startDateTimeISO = new Date(
+      `${selectedDate}T${startHour}:${startMinute}:00`
+    ).toISOString();
+
+    const isDuplicate = otherSlots.some(
+      (slot) => slot.start_time === startDateTimeISO
+    );
+    if (isDuplicate) {
+      setModalError("Đã có ca làm việc trùng giờ bắt đầu này!");
+      return;
+    }
+
+    // Nếu không có lỗi
+    setModalError("");
+  }, [
+    startHour,
+    startMinute,
+    endHour,
+    endMinute,
+    editingSlot,
+    Slots,
+    modalOpen,
+    selectedDate,
+  ]);
+  // ===================================
+
   const openAddModal = () => {
-    setEditingShift(null);
+    setEditingSlot(null);
     setStartHour("08");
     setStartMinute("00");
     setEndHour("09");
     setEndMinute("00");
     setMaxPatients(1);
-    setModalError(""); // Reset lỗi
+    setModalError("");
     setModalOpen(true);
   };
 
-  const openEditModal = (shift) => {
-    setEditingShift(shift);
-    const [sHour, sMin] = shift.start_time.split(":");
-    const [eHour, eMin] = shift.end_time.split(":");
+  const openEditModal = (Slot) => {
+    setEditingSlot(Slot);
 
-    const snapTo5 = (min) => {
-      if (!min) return "00";
-      if (minutes.includes(min)) return min;
-      const rounded = Math.round(Number(min) / 5) * 5;
-      return rounded.toString().padStart(2, "0");
-    };
+    const [sHour, sMin] = formatISOTime(Slot.start_time).split(":");
+    const [eHour, eMin] = formatISOTime(Slot.end_time).split(":");
 
     setStartHour(sHour || "08");
-    setStartMinute(snapTo5(sMin));
+    setStartMinute(sMin || "00");
     setEndHour(eHour || "09");
-    setEndMinute(snapTo5(eMin));
-    setMaxPatients(shift.maxPatients || 1);
-    setModalError(""); // Reset lỗi
+    setEndMinute(eMin || "00");
+    setMaxPatients(Slot.max_patients || 1);
+    setModalError("");
     setModalOpen(true);
   };
-  // ==========================================
 
-  // === THAY ĐỔI 3: Thêm logic Validation ===
-  const handleSaveShift = async () => {
-    setModalError(""); // Xóa lỗi cũ
-    const finalShiftStart = `${startHour}:${startMinute}`;
-    const finalShiftEnd = `${endHour}:${endMinute}`;
-
-    // 1. Validate giờ kết thúc > giờ bắt đầu
-    if (finalShiftStart >= finalShiftEnd) {
-      setModalError("Giờ kết thúc phải sau giờ bắt đầu.");
+  const handleSaveSlot = async () => {
+    if (modalError) {
+      toast.error("Vui lòng sửa lỗi trước khi lưu.");
       return;
     }
 
-    // 2. Validate trùng lặp (overlap)
-    // Lấy tất cả các ca khác, *trừ* ca đang sửa (nếu có)
-    const otherShifts = shifts.filter(
-      (shift) => shift._id !== editingShift?._id
-    );
-
-    let overlappingShift = null;
-    for (const existingShift of otherShifts) {
-      const existingStart = existingShift.start_time;
-      const existingEnd = existingShift.end_time;
-
-      // Điều kiện check overlap:
-      // (Bắt đầu mới < Kết thúc cũ) VÀ (Kết thúc mới > Bắt đầu cũ)
-      if (finalShiftStart < existingEnd && finalShiftEnd > existingStart) {
-        overlappingShift = existingShift;
-        break;
-      }
-    }
-
-    if (overlappingShift) {
-      // Tìm index của ca bị trùng để hiển thị (ví dụ: "trùng với Ca #1")
-      const shiftIndex = shifts.findIndex(
-        (s) => s._id === overlappingShift._id
-      );
-      setModalError(
-        `Khung giờ này bị trùng với Ca #${shiftIndex + 1} (${overlappingShift.start_time
-        } - ${overlappingShift.end_time}).`
-      );
-      return;
-    }
-
-    // 3. Nếu không có lỗi, tiến hành lưu
     try {
+      // Chuyển giờ địa phương (vd: 15:00 GMT+7) sang ISO (vd: 08:00Z)
+      const startDateTime = new Date(
+        `${selectedDate}T${startHour}:${startMinute}:00`
+      ).toISOString();
+      const endDateTime = new Date(
+        `${selectedDate}T${endHour}:${endMinute}:00`
+      ).toISOString();
+
       const payload = {
-        start_time: finalShiftStart,
-        end_time: finalShiftEnd,
-        maxPatients,
+        clinic_id: assistantInfo.clinic_id,
+        start_time: startDateTime,
+        end_time: endDateTime,
+        status: "AVAILABLE",
+        fee_amount: feeAmount,
+        max_patients: maxPatients,
+        booked_count: editingSlot ? editingSlot.booked_count : 0,
+        note: note,
+        created_by: assistantInfo.id,
       };
 
-      if (editingShift) {
-        await updateShift(editingShift._id, payload);
+      if (editingSlot) {
+        await SLOT_API.updateSlotById(editingSlot._id, payload);
+        toast.success("Cập nhật ca thành công!");
       } else {
-        await createShift("DOC001", { date: selectedDate, ...payload });
+        await SLOT_API.createSlotByDoctor(payload);
+        toast.success("Thêm ca mới thành công!");
       }
-      await fetchShifts();
+      await fetchSlots();
       setModalOpen(false);
     } catch (error) {
       console.error(error);
-      setModalError("Đã xảy ra lỗi khi lưu. Vui lòng thử lại.");
+      toast.error("Đã xảy ra lỗi khi lưu. Vui lòng thử lại.");
     }
   };
-  // ==========================================
 
-  const confirmDeleteShift = (shift) => {
-    setShiftToDelete(shift);
+  const confirmDeleteSlot = (Slot) => {
+    setSlotToDelete(Slot);
     setDeleteModalOpen(true);
   };
 
-  const handleDeleteShift = async () => {
-    if (!shiftToDelete) return;
+  const handleDeleteSlot = async () => {
+    if (!SlotToDelete?._id) return;
     try {
-      await deleteShift(shiftToDelete._id);
-      await fetchShifts();
+      await SLOT_API.deleteSlotById(SlotToDelete._id);
+      toast.success("Xóa ca thành công!");
+      await fetchSlots();
       setDeleteModalOpen(false);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi xóa ca. Vui lòng thử lại.");
     }
   };
 
-  const getShiftAvailability = (shift) => {
-    const isBookable = shift.status === "active";
-    const hasSpace = shift.patientsCount < shift.maxPatients;
-    return isBookable && hasSpace;
+  const getSlotAvailability = (Slot) => {
+    const isAvailable = Slot.status === "AVAILABLE";
+    const hasSpace = (Slot.booked_count || 0) < Slot.max_patients;
+    return isAvailable && hasSpace;
   };
 
-  const filteredShifts = useMemo(() => {
-    if (statusFilter === "all") return shifts;
+  const filteredSlots = useMemo(() => {
+    if (statusFilter === "all") return Slots;
     const isFilteringForAvailable = statusFilter === "available";
-    return shifts.filter((shift) => {
-      const isAvailable = getShiftAvailability(shift);
+    return Slots.filter((Slot) => {
+      const isAvailable = getSlotAvailability(Slot);
       return isAvailable === isFilteringForAvailable;
     });
-  }, [shifts, statusFilter]);
+  }, [Slots, statusFilter]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
+      <Toaster position="top-right" reverseOrder={false} />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6 flex items-center gap-4">
@@ -239,7 +313,7 @@ const ShiftSchedule = () => {
         <div className="bg-white rounded-lg shadow-sm p-5 mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
-              {/* Date Picker */}
+              {/* Date Picker (Vẫn cho phép chọn ngày quá khứ) */}
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="date-picker"
@@ -282,7 +356,7 @@ const ShiftSchedule = () => {
             {/* Add Button */}
             <button
               onClick={openAddModal}
-              disabled={isPastDate}
+              disabled={isPastDate} // Vẫn dùng isPastDate để vô hiệu hóa nút
               className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
                 ${isPastDate
                   ? "bg-gray-400 cursor-not-allowed"
@@ -293,6 +367,7 @@ const ShiftSchedule = () => {
             </button>
           </div>
 
+          {/* Thông báo khi xem ngày quá khứ */}
           {isPastDate && (
             <p className="text-sm text-amber-700 font-medium mt-4 pt-4 border-t border-gray-200">
               Bạn đang xem một ngày trong quá khứ. Không thể thêm hoặc sửa ca.
@@ -305,18 +380,18 @@ const ShiftSchedule = () => {
           <div className="text-center py-10">
             <p className="text-gray-500">Đang tải...</p>
           </div>
-        ) : filteredShifts.length === 0 ? (
+        ) : filteredSlots.length === 0 ? (
           <div className="text-center bg-white rounded-lg shadow-sm p-10">
             <p className="text-gray-600 font-medium">
-              {shifts.length === 0
+              {Slots.length === 0
                 ? "Chưa có ca nào trong ngày này"
                 : "Không tìm thấy ca nào phù hợp với bộ lọc"}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {filteredShifts.map((shift, index) => {
-              const isAvailable = getShiftAvailability(shift);
+            {filteredSlots.map((Slot, index) => {
+              const isAvailable = getSlotAvailability(Slot);
               const statusText = isAvailable ? "Available" : "Unavailable";
               const statusBadgeColor = isAvailable
                 ? "bg-green-100 text-green-800"
@@ -327,7 +402,7 @@ const ShiftSchedule = () => {
 
               return (
                 <div
-                  key={shift._id}
+                  key={Slot._id}
                   className={`bg-white rounded-lg shadow-sm p-5 border-l-4 ${statusBorderColor} transition-all hover:shadow-md`}
                 >
                   <div className="flex justify-between items-start">
@@ -338,8 +413,9 @@ const ShiftSchedule = () => {
                       </p>
                       <div className="flex items-center gap-2 text-gray-700 mb-1">
                         <Clock size={16} />
-                        <span className="font-medium">
-                          {shift.start_time} - {shift.end_time}
+                        <span className="font-medium text-lg">
+                          {formatISOTime(Slot.start_time)} -{" "}
+                          {formatISOTime(Slot.end_time)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
@@ -347,7 +423,7 @@ const ShiftSchedule = () => {
                         <span className="text-sm">
                           Đã đăng ký:{" "}
                           <span className="font-medium">
-                            {shift.patientsCount}/{shift.maxPatients}
+                            {Slot.booked_count || 0}/{Slot.max_patients}
                           </span>
                         </span>
                       </div>
@@ -362,7 +438,7 @@ const ShiftSchedule = () => {
                       </span>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => openEditModal(shift)}
+                          onClick={() => openEditModal(Slot)}
                           disabled={isPastDate}
                           className={`flex items-center gap-1.5 px-3 py-1.5 text-white rounded-md transition-colors text-sm font-medium shadow-sm
                             ${isPastDate
@@ -373,8 +449,9 @@ const ShiftSchedule = () => {
                           <Pencil size={14} /> Sửa
                         </button>
                         <button
-                          onClick={() => confirmDeleteShift(shift)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-colors text-sm font-medium shadow-sm"
+                          onClick={() => confirmDeleteSlot(Slot)}
+                          disabled={isPastDate}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 text-white rounded-md hover:bg-rose-600 transition-colors text-sm font-medium shadow-sm disabled:bg-gray-400"
                         >
                           <Trash size={14} /> Xóa
                         </button>
@@ -418,7 +495,7 @@ const ShiftSchedule = () => {
                 >
                   <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
                     <Dialog.Title className="text-xl font-bold text-gray-900 mb-5">
-                      {editingShift ? "Sửa ca làm việc" : "Thêm ca làm việc"}
+                      {editingSlot ? "Sửa ca làm việc" : "Thêm ca làm việc"}
                     </Dialog.Title>
 
                     <div className="flex flex-col gap-4">
@@ -439,9 +516,7 @@ const ShiftSchedule = () => {
                               </option>
                             ))}
                           </select>
-                          <span className="font-semibold text-gray-500">
-                            :
-                          </span>
+                          <span className="font-semibold text-gray-500">:</span>
                           <select
                             value={startMinute}
                             onChange={(e) => setStartMinute(e.target.value)}
@@ -473,9 +548,7 @@ const ShiftSchedule = () => {
                               </option>
                             ))}
                           </select>
-                          <span className="font-semibold text-gray-500">
-                            :
-                          </span>
+                          <span className="font-semibold text-gray-500">:</span>
                           <select
                             value={endMinute}
                             onChange={(e) => setEndMinute(e.target.value)}
@@ -511,7 +584,7 @@ const ShiftSchedule = () => {
                       </div>
                     </div>
 
-                    {/* === THAY ĐỔI 4: Hiển thị lỗi validation === */}
+                    {/* Hiển thị lỗi validation (real-time) */}
                     {modalError && (
                       <div className="rounded-md bg-red-50 p-4 mt-5">
                         <p className="text-sm font-medium text-red-800">
@@ -519,21 +592,23 @@ const ShiftSchedule = () => {
                         </p>
                       </div>
                     )}
-                    {/* ========================================= */}
 
                     {/* Buttons */}
                     <div className="flex justify-end gap-3 mt-6">
                       <button
+                        type="button"
                         className="px-5 py-2.5 bg-white text-gray-900 rounded-md hover:bg-gray-50 transition-colors font-medium ring-1 ring-inset ring-gray-300 shadow-sm"
                         onClick={() => setModalOpen(false)}
                       >
                         Hủy
                       </button>
                       <button
-                        className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm"
-                        onClick={handleSaveShift}
+                        type="button"
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:bg-gray-400"
+                        onClick={handleSaveSlot}
+                        disabled={!!modalError}
                       >
-                        {editingShift ? "Lưu thay đổi" : "Thêm ca"}
+                        {editingSlot ? "Lưu thay đổi" : "Thêm ca"}
                       </button>
                     </div>
                   </Dialog.Panel>
@@ -578,10 +653,11 @@ const ShiftSchedule = () => {
                     </Dialog.Title>
                     <p className="text-gray-700 mb-4">
                       Bạn có chắc muốn xóa ca làm việc
-                      {shiftToDelete ? (
+                      {SlotToDelete ? (
                         <span className="font-bold">
                           {" "}
-                          {shiftToDelete.start_time} - {shiftToDelete.end_time}
+                          {formatISOTime(SlotToDelete.start_time)} -{" "}
+                          {formatISOTime(SlotToDelete.end_time)}
                         </span>
                       ) : (
                         ""
@@ -590,14 +666,16 @@ const ShiftSchedule = () => {
                     </p>
                     <div className="flex justify-end gap-3">
                       <button
+                        type="button"
                         className="px-4 py-2 bg-white text-gray-900 rounded-md hover:bg-gray-50 transition-colors font-medium ring-1 ring-inset ring-gray-300 shadow-sm"
                         onClick={() => setDeleteModalOpen(false)}
                       >
                         Hủy
                       </button>
                       <button
+                        type="button"
                         className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium shadow-sm"
-                        onClick={handleDeleteShift}
+                        onClick={handleDeleteSlot}
                       >
                         Xóa
                       </button>
@@ -613,4 +691,4 @@ const ShiftSchedule = () => {
   );
 };
 
-export default ShiftSchedule;
+export default SlotSchedule;
