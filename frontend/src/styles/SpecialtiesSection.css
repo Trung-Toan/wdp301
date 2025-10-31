@@ -1,0 +1,371 @@
+/* Specialties Section Modern 2025 */
+.specialties-section-modern {
+  position: relative;
+  padding: 4rem 2rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 0.5) 100%);
+  overflow: hidden;
+}
+
+/* Decorative background elements */
+.specialties-section-modern::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: -10%;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.06) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.specialties-section-modern::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.06) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.specialties-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.specialties-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.specialties-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@media (min-width: 768px) {
+  .specialties-title {
+    font-size: 3rem;
+  }
+}
+
+.specialties-subtitle {
+  font-size: 1.0625rem;
+  color: #64748b;
+  line-height: 1.7;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .specialties-subtitle {
+    font-size: 1.125rem;
+  }
+}
+
+/* Specialties Grid */
+.specialties-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 640px) {
+  .specialties-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .specialties-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+/* Specialty Card */
+.specialty-card {
+  position: relative;
+  padding: 2rem 1.5rem;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 2px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.specialty-card:nth-child(1) { animation-delay: 0.1s; }
+.specialty-card:nth-child(2) { animation-delay: 0.2s; }
+.specialty-card:nth-child(3) { animation-delay: 0.3s; }
+.specialty-card:nth-child(4) { animation-delay: 0.4s; }
+.specialty-card:nth-child(5) { animation-delay: 0.5s; }
+.specialty-card:nth-child(6) { animation-delay: 0.6s; }
+.specialty-card:nth-child(7) { animation-delay: 0.7s; }
+.specialty-card:nth-child(8) { animation-delay: 0.8s; }
+
+.specialty-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.specialty-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.specialty-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(102, 126, 234, 0.25), 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: rgba(102, 126, 234, 0.5);
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.specialty-card:hover::before {
+  transform: scaleX(1);
+}
+
+.specialty-card:hover::after {
+  opacity: 1;
+}
+
+/* Icon Wrapper */
+.specialty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  margin-bottom: 1.25rem;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.specialty-icon-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.specialty-icon-wrapper img,
+.specialty-icon-wrapper svg {
+  position: relative;
+  z-index: 1;
+  transition: all 0.4s ease;
+  width: 40px;
+  height: 40px;
+  color: #667eea;
+  filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.2));
+}
+
+.specialty-card:hover .specialty-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+.specialty-card:hover .specialty-icon-wrapper::before {
+  opacity: 1;
+}
+
+.specialty-card:hover .specialty-icon-wrapper img,
+.specialty-card:hover .specialty-icon-wrapper svg {
+  transform: scale(1.1);
+  filter: brightness(0) invert(1);
+}
+
+.specialty-card:hover .specialty-icon-wrapper svg {
+  color: white;
+}
+
+/* Specialty Content */
+.specialty-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.specialty-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  transition: color 0.3s ease;
+}
+
+.specialty-card:hover .specialty-name {
+  color: #667eea;
+}
+
+.specialty-description {
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.3s ease;
+}
+
+.specialty-card:hover .specialty-description {
+  color: #475569;
+}
+
+/* View All Button */
+.specialties-view-all {
+  text-align: center;
+  margin-top: 2rem;
+  animation: fadeInUp 0.8s ease 0.9s forwards;
+  opacity: 0;
+}
+
+.specialties-view-all-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #667eea;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.specialties-view-all-button:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  text-decoration: none;
+}
+
+.specialties-view-all-button:active {
+  transform: translateY(0);
+}
+
+/* Loading State */
+.specialties-loading {
+  text-align: center;
+  padding: 3rem 0;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Empty State */
+.specialties-empty {
+  text-align: center;
+  padding: 3rem 0;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .specialties-section-modern {
+    padding: 3rem 1.5rem;
+  }
+
+  .specialties-header {
+    margin-bottom: 2rem;
+  }
+
+  .specialty-card {
+    padding: 1.5rem 1.25rem;
+    border-radius: 20px;
+  }
+
+  .specialty-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
+  }
+
+  .specialty-icon-wrapper img,
+  .specialty-icon-wrapper svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .specialty-name {
+    font-size: 1rem;
+  }
+
+  .specialty-description {
+    font-size: 0.8125rem;
+  }
+}
+
