@@ -4,31 +4,32 @@ import {
     GraduationCap,
     Stethoscope,
     ChevronLeft,
-    MapPin
+    MapPin,
+    Hospital,
+    Send
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import Button from "../../../../components/ui/Button";
-import Card from "../../../../components/ui/Card";
-import Badge from "../../../../components/ui/Badge";
-import CardHeader from "../../../../components/ui/CardHeader";
-import CardTitle from "../../../../components/ui/CardTitle";
-import CardContent from "../../../../components/ui/CardContent";
-import Tabs from "../../../../components/ui/Tabs";
-import TabsList from "../../../../components/ui/TabsList";
-import TabsTrigger from "../../../../components/ui/TabsTrigger";
-import TabsContent from "../../../../components/ui/TabsContent";
-
 import { DoctorBookingCalendar } from "../../components/DoctorBookingCalendar";
 import { doctorApi } from "../../../../api";
-import { Hospital } from "react-bootstrap-icons";
+import { useAuth } from "../../../../hooks/useAuth";
+import { axiosInstance } from "../../../../api/axiosInstance";
+import "../../../../styles/DoctorDetailContent.css";
 
 export function DoctorDetailContent({ doctorId }) {
     const [doctor, setDoctor] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState("about");
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [comment, setComment] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchDoctor = async () => {
@@ -46,178 +47,350 @@ export function DoctorDetailContent({ doctorId }) {
         fetchDoctor();
     }, [doctorId]);
 
-    if (loading) return <p className="text-center py-10">Đang tải...</p>;
-    if (error) return <p className="text-center py-10 text-red-500">{error}</p>;
-    if (!doctor || Object.keys(doctor).length === 0) return <p className="text-center py-10">Bác sĩ không tồn tại</p>;
+    const handleSubmitFeedback = async (e) => {
+        e.preventDefault();
+        if (!user) {
+            setSubmitError("Vui lòng đăng nhập để đánh giá");
+            return;
+        }
+        if (rating === 0) {
+            setSubmitError("Vui lòng chọn số sao đánh giá");
+            return;
+        }
+        if (!comment.trim()) {
+            setSubmitError("Vui lòng nhập nhận xét");
+            return;
+        }
+
+        setSubmitting(true);
+        setSubmitError(null);
+        setSubmitSuccess(false);
+
+        try {
+            // Giả định endpoint là /patient/feedback hoặc /feedback
+            const response = await axiosInstance.post("/patient/feedback", {
+                doctorId: doctorId,
+                rating: rating,
+                comment: comment.trim()
+            });
+
+            if (response.data?.success) {
+                setSubmitSuccess(true);
+                setRating(0);
+                setComment("");
+                // Reload doctor data to show new feedback
+                const res = await doctorApi.getDoctorById(doctorId);
+                setDoctor(res.data || {});
+                setTimeout(() => setSubmitSuccess(false), 3000);
+            }
+        } catch (err) {
+            setSubmitError(err.response?.data?.message || err.message || "Có lỗi xảy ra khi gửi đánh giá");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    if (loading) return <div className="doctor-loading">Đang tải...</div>;
+    if (error) return <div className="doctor-error">{error}</div>;
+    if (!doctor || Object.keys(doctor).length === 0) return <div className="doctor-not-found">Bác sĩ không tồn tại</div>;
 
     const d = doctor.data;
 
+    // Build address string
+    const buildAddress = () => {
+        if (!d.clinic?.address) return "Chưa rõ địa chỉ";
+        const addr = d.clinic.address;
+        const parts = [
+            addr.houseNumber,
+            addr.street,
+            typeof addr.ward === "object" ? addr.ward.name : addr.ward,
+            typeof addr.district === "object" ? addr.district.name : addr.district,
+            typeof addr.province === "object" ? addr.province.name : addr.province
+        ].filter(Boolean);
+        return parts.join(", ");
+    };
+
     return (
-        <div className="bg-muted/30 min-h-screen">
-            <div className="container mx-auto px-4 py-8">
+        <div className="doctor-detail-modern">
+            <div className="doctor-detail-container">
                 {/* Back button */}
-                <Link to="/home/doctorlist">
-                    <Button variant="ghost" className="mb-6">
-                        <ChevronLeft className="h-4 w-4 mr-2" /> Quay lại danh sách
-                    </Button>
+                <Link to="/home/doctorlist" className="doctor-detail-back-button">
+                    <ChevronLeft className="doctor-detail-back-icon" />
+                    Quay lại danh sách
                 </Link>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="doctor-detail-layout">
                     {/* Main Info */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div>
                         {/* Doctor Info Card */}
-                        <Card>
-                            <CardContent className="p-6 flex flex-col md:flex-row gap-6">
-                                <img
-                                    src={d.avatar_url || "/placeholder.svg"}
-                                    alt={d.name || "Doctor"}
-                                    className="w-40 h-40 rounded-lg object-cover"
-                                />
-                                <div className="flex-1">
-                                    <h1 className="text-3xl font-bold mb-2">
-                                        {d.title} - {d.name || "Không có tên"}
+                        <div className="doctor-info-card">
+                            <div className="doctor-info-content">
+                                <div className="doctor-avatar-wrapper">
+                                    <img
+                                        src={d.avatar_url || "/placeholder.svg"}
+                                        alt={d.name || "Doctor"}
+                                        className="doctor-avatar"
+                                    />
+                                </div>
+                                <div className="doctor-info-wrapper">
+                                    <h1 className="doctor-name-title">
+                                        {d.title} - <span className="doctor-name-title-name">{d.name || "Không có tên"}</span>
                                     </h1>
 
-                                    <Badge variant="secondary" className="mb-3 flex items-center gap-1">
-                                        <Stethoscope className="w-4 h-4 text-blue-600" />
-                                        <strong>Chuyên Khoa: </strong>
+                                    <div className="doctor-specialty-badge">
+                                        <Stethoscope className="doctor-specialty-badge-icon" />
                                         <span>{d.specialties?.[0]?.name || "Chưa có chuyên khoa"}</span>
-                                    </Badge>
+                                    </div>
 
-                                    <div className="space-y-3 text-muted-foreground">
-                                        <div className="flex items-center gap-2">
-                                            <Hospital className="h-4 w-4 text-blue-500" />
-                                            <span>{d.clinic?.name || "Chưa có bệnh viện"}</span>
+                                    <div className="doctor-details-list">
+                                        <div className="doctor-detail-item">
+                                            <Hospital className="doctor-detail-icon" />
+                                            <span className="doctor-detail-text">{d.clinic?.name || "Chưa có bệnh viện"}</span>
                                         </div>
 
                                         {d.clinic?.address && (
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="h-4 w-4 text-red-500" />
-                                                <span>
-                                                    {`${d.clinic.houseNumber ? d.clinic.houseNumber + " " : ""}${d.clinic.street ? d.clinic.street + ", " : ""}${d.clinic.ward || ""}${d.clinic.province ? ", " + d.clinic.province : ""}`}
-                                                </span>
+                                            <div className="doctor-detail-item">
+                                                <MapPin className="doctor-detail-icon" />
+                                                <span className="doctor-detail-text">{buildAddress()}</span>
                                             </div>
                                         )}
 
-                                        <div className="flex items-center gap-2">
-                                            <GraduationCap className="h-5 w-5 text-blue-600" />
-                                            {d.degree || "Chưa có học vị"}
+                                        <div className="doctor-detail-item">
+                                            <GraduationCap className="doctor-detail-icon" />
+                                            <span className="doctor-detail-text">{d.degree || "Chưa có học vị"}</span>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                                            <span className="font-bold text-lg">{d.rating?.average?.toFixed(1) || 0}</span>
-                                            <span className="text-sm text-gray-500">
+                                        <div className="doctor-rating">
+                                            <Star className="doctor-rating-icon" />
+                                            <span>{d.rating?.average?.toFixed(1) || 0}</span>
+                                            <span className="doctor-rating-text">
                                                 ({d.rating?.total || 0} đánh giá)
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
 
                         {/* Tabs */}
-                        <Tabs defaultValue="about" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="about">Giới thiệu</TabsTrigger>
-                                <TabsTrigger value="licenses">Chứng chỉ</TabsTrigger>
-                                <TabsTrigger value="reviews">Đánh giá</TabsTrigger>
-                            </TabsList>
+                        <div className="doctor-detail-tabs">
+                            <div className="doctor-tabs-list">
+                                <button
+                                    className={`doctor-tabs-trigger ${activeTab === "about" ? "active" : ""}`}
+                                    onClick={() => setActiveTab("about")}
+                                >
+                                    Giới thiệu
+                                </button>
+                                <button
+                                    className={`doctor-tabs-trigger ${activeTab === "licenses" ? "active" : ""}`}
+                                    onClick={() => setActiveTab("licenses")}
+                                >
+                                    Chứng chỉ
+                                </button>
+                                <button
+                                    className={`doctor-tabs-trigger ${activeTab === "reviews" ? "active" : ""}`}
+                                    onClick={() => setActiveTab("reviews")}
+                                >
+                                    Đánh giá
+                                </button>
+                            </div>
 
                             {/* About */}
-                            <TabsContent value="about" className="space-y-6">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Stethoscope className="h-5 w-5" /> Về bác sĩ
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {d.description || "Chưa có thông tin về bác sĩ."}
-                                    </CardContent>
-                                </Card>
+                            {activeTab === "about" && (
+                                <div className="doctor-tabs-content">
+                                    <div className="doctor-content-card">
+                                        <div className="doctor-card-header">
+                                            <h3 className="doctor-card-title">
+                                                <Stethoscope className="doctor-card-title-icon" />
+                                                Về bác sĩ
+                                            </h3>
+                                        </div>
+                                        <div className="doctor-card-content">
+                                            {d.description || "Chưa có thông tin về bác sĩ."}
+                                        </div>
+                                    </div>
 
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <GraduationCap className="h-5 w-5" /> Kinh nghiệm
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {d.experience || "Chưa cập nhật kinh nghiệm"}
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
+                                    <div className="doctor-content-card">
+                                        <div className="doctor-card-header">
+                                            <h3 className="doctor-card-title">
+                                                <GraduationCap className="doctor-card-title-icon" />
+                                                Kinh nghiệm
+                                            </h3>
+                                        </div>
+                                        <div className="doctor-card-content">
+                                            {d.experience || "Chưa cập nhật kinh nghiệm"}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Licenses */}
-                            <TabsContent value="licenses">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Award className="h-5 w-5" /> Chứng chỉ hành nghề
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {d.licenses?.length > 0 ? (
-                                            <ul className="space-y-4">
-                                                {d.licenses.map((l) => (
-                                                    <li key={l.id} className="border p-3 rounded-md bg-muted/40">
-                                                        <p><strong>Số chứng chỉ:</strong> {l.licenseNumber}</p>
-                                                        <p><strong>Cấp bởi:</strong> {l.issued_by}</p>
-                                                        <p><strong>Hiệu lực:</strong> {new Date(l.issued_date).toLocaleDateString()} - {new Date(l.expiry_date).toLocaleDateString()}</p>
-                                                        <p><strong>Trạng thái:</strong> {l.status}</p>
-                                                        {l.document_url?.length > 0 && (
-                                                            <a href={l.document_url[0]} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                                                Xem tài liệu
-                                                            </a>
-                                                        )}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <p>Chưa có chứng chỉ.</p>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
-
-                            {/* Reviews */}
-                            <TabsContent value="reviews">
-                                <Card>
-                                    <CardHeader><CardTitle>Đánh giá từ bệnh nhân</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-6">
-                                            {d.feedbacks?.length > 0 ? (
-                                                d.feedbacks.map((fb) => (
-                                                    <div key={fb.id} className="border-b pb-6 last:border-0">
-                                                        <div className="flex items-center gap-3 mb-2">
-                                                            <img
-                                                                src={fb.patient?.avatar_url || "/default-avatar.png"}
-                                                                alt={fb.patient?.full_name}
-                                                                className="w-8 h-8 rounded-full object-cover"
-                                                            />
-                                                            <span className="font-semibold">{fb.patient?.full_name}</span>
+                            {activeTab === "licenses" && (
+                                <div className="doctor-tabs-content">
+                                    <div className="doctor-content-card">
+                                        <div className="doctor-card-header">
+                                            <h3 className="doctor-card-title">
+                                                <Award className="doctor-card-title-icon" />
+                                                Chứng chỉ hành nghề
+                                            </h3>
+                                        </div>
+                                        <div className="doctor-card-content">
+                                            {d.licenses?.length > 0 ? (
+                                                <div className="doctor-licenses-list">
+                                                    {d.licenses.map((l) => (
+                                                        <div key={l.id} className="doctor-license-item">
+                                                            <div className="doctor-license-field">
+                                                                <strong>Số chứng chỉ:</strong> {l.licenseNumber}
+                                                            </div>
+                                                            <div className="doctor-license-field">
+                                                                <strong>Cấp bởi:</strong> {l.issued_by}
+                                                            </div>
+                                                            <div className="doctor-license-field">
+                                                                <strong>Hiệu lực:</strong> {new Date(l.issued_date).toLocaleDateString()} - {new Date(l.expiry_date).toLocaleDateString()}
+                                                            </div>
+                                                            <div className="doctor-license-field">
+                                                                <strong>Trạng thái:</strong> {l.status}
+                                                            </div>
+                                                            {l.document_url?.length > 0 && (
+                                                                <a
+                                                                    href={l.document_url[0]}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="doctor-license-link"
+                                                                >
+                                                                    Xem tài liệu
+                                                                </a>
+                                                            )}
                                                         </div>
-
-                                                        <div className="flex gap-1 mb-2">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={`h-4 w-4 ${i < fb.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                        <p className="text-muted-foreground">{fb.comment}</p>
-                                                    </div>
-                                                ))
+                                                    ))}
+                                                </div>
                                             ) : (
-                                                <p>Chưa có đánh giá nào.</p>
+                                                <p className="doctor-empty-text">Chưa có chứng chỉ.</p>
                                             )}
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
-                        </Tabs>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reviews */}
+                            {activeTab === "reviews" && (
+                                <div className="doctor-tabs-content">
+                                    {/* Feedback Form */}
+                                    {user ? (
+                                        <div className="doctor-content-card">
+                                            <div className="doctor-card-header">
+                                                <h3 className="doctor-card-title">Viết đánh giá</h3>
+                                            </div>
+                                            <div className="doctor-card-content">
+                                                <form onSubmit={handleSubmitFeedback} className="doctor-feedback-form">
+                                                    <div className="doctor-feedback-rating-section">
+                                                        <label className="doctor-feedback-label">Đánh giá của bạn:</label>
+                                                        <div className="doctor-feedback-stars-input">
+                                                            {[...Array(5)].map((_, i) => {
+                                                                const starValue = i + 1;
+                                                                return (
+                                                                    <button
+                                                                        key={i}
+                                                                        type="button"
+                                                                        className={`doctor-feedback-star-button ${starValue <= (hoverRating || rating) ? "active" : ""}`}
+                                                                        onClick={() => setRating(starValue)}
+                                                                        onMouseEnter={() => setHoverRating(starValue)}
+                                                                        onMouseLeave={() => setHoverRating(0)}
+                                                                    >
+                                                                        <Star className="doctor-feedback-star-icon" />
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="doctor-feedback-comment-section">
+                                                        <label htmlFor="comment" className="doctor-feedback-label">Nhận xét:</label>
+                                                        <textarea
+                                                            id="comment"
+                                                            className="doctor-feedback-textarea"
+                                                            placeholder="Chia sẻ trải nghiệm của bạn về bác sĩ..."
+                                                            value={comment}
+                                                            onChange={(e) => setComment(e.target.value)}
+                                                            rows={5}
+                                                            required
+                                                        />
+                                                    </div>
+
+                                                    {submitError && (
+                                                        <div className="doctor-feedback-error">{submitError}</div>
+                                                    )}
+
+                                                    {submitSuccess && (
+                                                        <div className="doctor-feedback-success">Cảm ơn bạn đã đánh giá!</div>
+                                                    )}
+
+                                                    <button
+                                                        type="submit"
+                                                        className="doctor-feedback-submit-button"
+                                                        disabled={submitting || rating === 0 || !comment.trim()}
+                                                    >
+                                                        {submitting ? (
+                                                            <>Đang gửi...</>
+                                                        ) : (
+                                                            <>
+                                                                <Send className="doctor-feedback-submit-icon" />
+                                                                Gửi đánh giá
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="doctor-content-card">
+                                            <div className="doctor-card-content">
+                                                <p className="doctor-feedback-login-message">
+                                                    Vui lòng <Link to="/login" className="doctor-feedback-login-link">đăng nhập</Link> để viết đánh giá.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Reviews List */}
+                                    <div className="doctor-content-card">
+                                        <div className="doctor-card-header">
+                                            <h3 className="doctor-card-title">Đánh giá từ bệnh nhân</h3>
+                                        </div>
+                                        <div className="doctor-card-content">
+                                            {d.feedbacks?.length > 0 ? (
+                                                <div className="doctor-reviews-list">
+                                                    {d.feedbacks.map((fb) => (
+                                                        <div key={fb.id} className="doctor-review-item">
+                                                            <div className="doctor-review-header">
+                                                                <img
+                                                                    src={fb.patient?.avatar_url || "/default-avatar.png"}
+                                                                    alt={fb.patient?.full_name}
+                                                                    className="doctor-review-avatar"
+                                                                />
+                                                                <span className="doctor-review-name">{fb.patient?.full_name || "Người dùng"}</span>
+                                                            </div>
+
+                                                            <div className="doctor-review-stars">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star
+                                                                        key={i}
+                                                                        className={`doctor-review-star ${i < fb.rating ? "filled" : "empty"}`}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <p className="doctor-review-comment">{fb.comment}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="doctor-empty-text">Chưa có đánh giá nào.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Sidebar Booking */}
