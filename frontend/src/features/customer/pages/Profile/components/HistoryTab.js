@@ -47,7 +47,11 @@ export default function HistoryTab() {
             .getListMedicalRecordsByPatientId(pid)
             .then((res) => {
                 const list = res.data?.data?.data || [];
-                setAppointments(list);
+                // Chỉ lấy những lịch sử khám đã completed
+                const completedAppointments = list.filter(
+                    (appointment) => appointment.status === "completed"
+                );
+                setAppointments(completedAppointments);
             })
             .catch((err) => console.error("Lỗi tải lịch hẹn:", err))
             .finally(() => setLoading(false));
@@ -183,8 +187,8 @@ export default function HistoryTab() {
                     <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                         <FileText className="h-10 w-10 text-gray-400" />
                     </div>
-                    <p className="text-gray-700 text-lg font-semibold mb-2">Chưa có lịch sử khám nào</p>
-                    <p className="text-gray-500 text-sm">Lịch sử khám bệnh của bạn sẽ hiển thị tại đây</p>
+                    <p className="text-gray-700 text-lg font-semibold mb-2">Chưa có lịch sử khám đã hoàn thành</p>
+                    <p className="text-gray-500 text-sm">Chỉ các lịch khám đã hoàn thành sẽ hiển thị tại đây</p>
                 </div>
             ) : (
                 <>
@@ -305,8 +309,8 @@ export default function HistoryTab() {
                                     onClick={prevPage}
                                     disabled={currentPage === 1}
                                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 ${currentPage === 1
-                                            ? "bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed"
-                                            : "bg-white text-sky-600 border-2 border-sky-200 hover:bg-sky-50 hover:border-sky-300 shadow-sm hover:shadow-md"
+                                        ? "bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed"
+                                        : "bg-white text-sky-600 border-2 border-sky-200 hover:bg-sky-50 hover:border-sky-300 shadow-sm hover:shadow-md"
                                         }`}
                                 >
                                     <ChevronLeft className="w-4 h-4" />
@@ -317,8 +321,8 @@ export default function HistoryTab() {
                                     onClick={nextPage}
                                     disabled={currentPage === totalPages}
                                     className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 ${currentPage === totalPages
-                                            ? "bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed"
-                                            : "bg-white text-sky-600 border-2 border-sky-200 hover:bg-sky-50 hover:border-sky-300 shadow-sm hover:shadow-md"
+                                        ? "bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed"
+                                        : "bg-white text-sky-600 border-2 border-sky-200 hover:bg-sky-50 hover:border-sky-300 shadow-sm hover:shadow-md"
                                         }`}
                                 >
                                     Sau
