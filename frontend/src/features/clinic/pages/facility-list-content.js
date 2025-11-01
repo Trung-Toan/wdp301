@@ -130,8 +130,8 @@ export default function FacilitiesList() {
                 <div className="max-w-6xl mx-auto px-4 relative z-10">
                     <div className="text-center mb-8">
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-                        Tìm kiếm cơ sở y tế
-                    </h1>
+                            Tìm kiếm cơ sở y tế
+                        </h1>
                         <p className="text-blue-100 text-lg md:text-xl max-w-2xl mx-auto">
                             Khám phá các phòng khám và bệnh viện uy tín tại khu vực của bạn
                         </p>
@@ -140,16 +140,16 @@ export default function FacilitiesList() {
                     <div className="max-w-3xl mx-auto">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Tìm theo tên bệnh viện, phòng khám, địa chỉ..."
+                            <input
+                                type="text"
+                                placeholder="Tìm theo tên bệnh viện, phòng khám, địa chỉ..."
                                 className="w-full pl-12 pr-4 h-14 md:h-16 rounded-2xl shadow-lg border-0 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 outline-none text-gray-800 text-base"
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value);
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
                                     setCurrentPage(1);
-                            }}
-                        />
+                                }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -194,8 +194,8 @@ export default function FacilitiesList() {
                                             setIsMobileFilterOpen(false);
                                         }}
                                         className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all ${selectedLocation === loc
-                                                ? "bg-blue-600 text-white shadow-md"
-                                                : "bg-gray-50 hover:bg-gray-100 text-gray-700"
+                                            ? "bg-blue-600 text-white shadow-md"
+                                            : "bg-gray-50 hover:bg-gray-100 text-gray-700"
                                             }`}
                                     >
                                         {loc}
@@ -221,8 +221,8 @@ export default function FacilitiesList() {
                                     setCurrentPage(1);
                                 }}
                                 className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all duration-200 ${selectedLocation === loc
-                                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md transform scale-[1.02]"
-                                        : "hover:bg-gray-50 text-gray-700 hover:shadow-sm"
+                                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md transform scale-[1.02]"
+                                    : "hover:bg-gray-50 text-gray-700 hover:shadow-sm"
                                     }`}
                             >
                                 {loc}
@@ -235,12 +235,12 @@ export default function FacilitiesList() {
                 <div className="flex-1">
                     <div className="flex items-center justify-between mb-6">
                         <p className="text-gray-600 text-base md:text-lg">
-                        Tìm thấy{" "}
+                            Tìm thấy{" "}
                             <span className="font-bold text-blue-600 text-xl">
-                            {filteredClinics.length}
-                        </span>{" "}
-                        cơ sở y tế
-                    </p>
+                                {filteredClinics.length}
+                            </span>{" "}
+                            cơ sở y tế
+                        </p>
                         {selectedLocation !== "Tất cả" && (
                             <button
                                 onClick={() => {
@@ -274,7 +274,7 @@ export default function FacilitiesList() {
                                     Array.isArray(clinic.specialties) && clinic.specialties.length
                                         ? clinic.specialties
                                         : ["Đa khoa", "Nội tổng hợp"];
-                                
+
                                 const isImageLoaded = loadedImages.has(clinic.id);
                                 const imageSrc = clinic.logo_url || "/modern-hospital-exterior.png";
 
@@ -295,16 +295,15 @@ export default function FacilitiesList() {
                                                             <Building2 className="h-12 w-12 text-gray-400 animate-pulse" />
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Actual Image */}
                                                     <img
                                                         src={imageSrc}
                                                         alt={clinic?.name || "Cơ sở y tế"}
                                                         onLoad={() => handleImageLoad(clinic.id)}
                                                         onError={(e) => handleImageError(e, clinic.id)}
-                                                        className={`w-full h-full object-cover transition-opacity duration-300 ${
-                                                            isImageLoaded ? 'opacity-100' : 'opacity-0'
-                                                        } group-hover:scale-105 transition-transform duration-300 ease-out`}
+                                                        className={`w-full h-full object-cover transition-opacity duration-300 ${isImageLoaded ? 'opacity-100' : 'opacity-0'
+                                                            } group-hover:scale-105 transition-transform duration-300 ease-out`}
                                                         loading="lazy"
                                                         style={{
                                                             backfaceVisibility: 'hidden',
@@ -312,7 +311,7 @@ export default function FacilitiesList() {
                                                             transform: 'translateZ(0)' // Force GPU acceleration
                                                         }}
                                                     />
-                                                    
+
                                                     {/* Hover overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20"></div>
                                                 </div>
@@ -441,16 +440,16 @@ export default function FacilitiesList() {
                                     (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
                                 ) {
                                     return (
-                                <button
+                                        <button
                                             key={pageNum}
                                             onClick={() => handlePageChange(pageNum)}
                                             className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === pageNum
-                                                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md scale-105"
-                                                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm"
+                                                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md scale-105"
+                                                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm"
                                                 }`}
                                         >
                                             {pageNum}
-                                </button>
+                                        </button>
                                     );
                                 } else if (
                                     pageNum === currentPage - 2 ||
