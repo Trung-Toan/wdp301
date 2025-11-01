@@ -120,7 +120,7 @@ export default function FacilitiesList() {
     return (
         <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
             {/* Header tìm kiếm */}
-            <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-600 py-12 md:py-16 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-600 py-12 md:py-16 relative overflow-hidden rounded-3xl mx-4 mt-4">
                 {/* Decorative elements */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -mr-48 -mt-48"></div>
@@ -130,8 +130,8 @@ export default function FacilitiesList() {
                 <div className="max-w-6xl mx-auto px-4 relative z-10">
                     <div className="text-center mb-8">
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-                            Tìm kiếm cơ sở y tế
-                        </h1>
+                        Tìm kiếm cơ sở y tế
+                    </h1>
                         <p className="text-blue-100 text-lg md:text-xl max-w-2xl mx-auto">
                             Khám phá các phòng khám và bệnh viện uy tín tại khu vực của bạn
                         </p>
@@ -140,16 +140,16 @@ export default function FacilitiesList() {
                     <div className="max-w-3xl mx-auto">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Tìm theo tên bệnh viện, phòng khám, địa chỉ..."
-                                className="w-full pl-12 pr-4 h-14 md:h-16 rounded-xl shadow-lg border-0 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 outline-none text-gray-800 text-base"
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
+                        <input
+                            type="text"
+                            placeholder="Tìm theo tên bệnh viện, phòng khám, địa chỉ..."
+                                className="w-full pl-12 pr-4 h-14 md:h-16 rounded-2xl shadow-lg border-0 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 outline-none text-gray-800 text-base"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
                                     setCurrentPage(1);
-                                }}
-                            />
+                            }}
+                        />
                         </div>
                     </div>
                 </div>
@@ -235,12 +235,12 @@ export default function FacilitiesList() {
                 <div className="flex-1">
                     <div className="flex items-center justify-between mb-6">
                         <p className="text-gray-600 text-base md:text-lg">
-                            Tìm thấy{" "}
+                        Tìm thấy{" "}
                             <span className="font-bold text-blue-600 text-xl">
-                                {filteredClinics.length}
-                            </span>{" "}
-                            cơ sở y tế
-                        </p>
+                            {filteredClinics.length}
+                        </span>{" "}
+                        cơ sở y tế
+                    </p>
                         {selectedLocation !== "Tất cả" && (
                             <button
                                 onClick={() => {
@@ -441,7 +441,7 @@ export default function FacilitiesList() {
                                     (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
                                 ) {
                                     return (
-                                        <button
+                                <button
                                             key={pageNum}
                                             onClick={() => handlePageChange(pageNum)}
                                             className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === pageNum
@@ -450,7 +450,7 @@ export default function FacilitiesList() {
                                                 }`}
                                         >
                                             {pageNum}
-                                        </button>
+                                </button>
                                     );
                                 } else if (
                                     pageNum === currentPage - 2 ||
