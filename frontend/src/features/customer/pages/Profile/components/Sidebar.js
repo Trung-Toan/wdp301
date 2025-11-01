@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react"
 import { User, Shield, FileText, Lock, Mail, UserCircle, Camera, Loader2, CheckCircle } from "lucide-react"
+import { toast } from "react-toastify"
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi"
 
 export default function Sidebar({ activeTab, setActiveTab, formData, onAvatarUpdate }) {
@@ -23,23 +24,19 @@ export default function Sidebar({ activeTab, setActiveTab, formData, onAvatarUpd
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            alert('Vui lòng chọn file ảnh')
+            toast.error('Vui lòng chọn file ảnh hợp lệ (JPEG, PNG, GIF)')
             return
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('Kích thước file không được vượt quá 5MB')
+            toast.error('Kích thước file không được vượt quá 5MB')
             return
         }
 
         try {
             setIsUploading(true)
             setUploadSuccess(false)
-
-            // Create FormData
-            const formDataToSend = new FormData()
-            formDataToSend.append('avatar', file)
 
             // Preview image immediately
             const reader = new FileReader()
@@ -50,24 +47,53 @@ export default function Sidebar({ activeTab, setActiveTab, formData, onAvatarUpd
             }
             reader.readAsDataURL(file)
 
-            // Upload to server
-            // Note: You may need to adjust the API endpoint based on your backend
-            const response = await profilePatientApi.updateInformation(formDataToSend)
+            // Step 1: Upload file to server
+            const uploadResponse = await profilePatientApi.uploadFile(file)
             
-            if (response.data) {
+            if (!uploadResponse.data?.files || uploadResponse.data.files.length === 0) {
+                throw new Error('Upload file thất bại')
+            }
+
+            // Step 2: Get file URL
+            const fileName = uploadResponse.data.files[0].fileName
+            const fileUrl = `http://localhost:5000/uploads/${fileName}`
+
+            // Step 3: Update avatar_url in profile
+            const updateResponse = await profilePatientApi.updateInformation({
+                avatar_url: fileUrl
+            })
+
+            if (updateResponse.data) {
                 setUploadSuccess(true)
+                toast.success('Cập nhật ảnh đại diện thành công!')
                 setTimeout(() => setUploadSuccess(false), 3000)
                 
-                // Update avatar URL if returned from server
-                if (response.data.data?.avatar_url) {
+                // Update avatar URL from server response
+                if (updateResponse.data.data?.avatar_url) {
                     if (onAvatarUpdate) {
-                        onAvatarUpdate(response.data.data.avatar_url)
+                        onAvatarUpdate(updateResponse.data.data.avatar_url)
+                    }
+                } else if (fileUrl) {
+                    // Fallback to uploaded file URL
+                    if (onAvatarUpdate) {
+                        onAvatarUpdate(fileUrl)
                     }
                 }
             }
         } catch (error) {
             console.error("Error uploading avatar:", error)
-            alert("Không thể tải ảnh lên. Vui lòng thử lại sau.")
+            const errorMessage = error.response?.data?.error || error.message || "Không thể tải ảnh lên. Vui lòng thử lại sau."
+            toast.error(errorMessage)
+            
+            // Revert to original avatar on error
+            try {
+                const originalResponse = await profilePatientApi.getInformation()
+                if (originalResponse.data?.data?.avatar_url && onAvatarUpdate) {
+                    onAvatarUpdate(originalResponse.data.data.avatar_url)
+                }
+            } catch (revertError) {
+                console.error("Error reverting avatar:", revertError)
+            }
         } finally {
             setIsUploading(false)
             // Reset file input
@@ -82,41 +108,44 @@ export default function Sidebar({ activeTab, setActiveTab, formData, onAvatarUpd
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4 mb-6">
                 <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-blue-600 rounded-full blur-xl opacity-30"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-blue-600 rounded-full blur-xl opacity-30 animate-pulse"></div>
                     <div className="relative">
                         <div className="relative">
                             <img 
                                 src={formData.avatar} 
                                 alt="Avatar" 
-                                className="h-28 w-28 rounded-full border-4 border-white shadow-xl object-cover transition-all group-hover:brightness-90" 
+                                className="h-28 w-28 rounded-full border-4 border-white shadow-xl object-cover transition-all group-hover:brightness-90 group-hover:scale-105" 
+                                onError={(e) => {
+                                    e.target.src = "https://i.pravatar.cc/150?img=12"
+                                }}
                             />
                             {isUploading && (
-                                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-sky-500 to-blue-600 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                                        <Loader2 className="h-8 w-8 animate-spin text-white relative z-10" />
+                                    </div>
                                 </div>
                             )}
                             {uploadSuccess && !isUploading && (
-                                <div className="absolute inset-0 bg-green-500/80 rounded-full flex items-center justify-center">
-                                    <CheckCircle className="h-8 w-8 text-white" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-green-500/90 to-emerald-500/90 backdrop-blur-sm rounded-full flex items-center justify-center animate-fadeIn">
+                                    <CheckCircle className="h-8 w-8 text-white drop-shadow-lg" />
                                 </div>
                             )}
                         </div>
                         <button
                             onClick={handleAvatarClick}
                             disabled={isUploading}
-                            className="absolute -bottom-1 -right-1 p-2.5 bg-gradient-to-r from-sky-500 to-blue-600 rounded-full border-4 border-white shadow-lg hover:from-sky-600 hover:to-blue-700 transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+                            className="absolute -bottom-1 -right-1 p-2.5 bg-gradient-to-r from-sky-500 to-blue-600 rounded-full border-4 border-white shadow-lg hover:from-sky-600 hover:to-blue-700 transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed z-10"
                             title="Thay đổi ảnh đại diện"
                         >
                             <Camera className="h-4 w-4 text-white" />
                         </button>
-                        <div className="absolute -bottom-1 -right-1 p-2 bg-green-500 rounded-full border-4 border-white shadow-lg -z-10">
-                            <div className="w-3 h-3 bg-white rounded-full"></div>
-                        </div>
                     </div>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                         onChange={handleFileChange}
                         className="hidden"
                     />
