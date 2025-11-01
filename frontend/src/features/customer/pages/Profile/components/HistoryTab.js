@@ -67,23 +67,77 @@ export default function HistoryTab() {
         if (currentPage > 1) setCurrentPage(currentPage - 1);
     };
 
-    // Format ngày tháng
+    // Format ngày tháng đẹp hơn
     const formatDate = (dateString) => {
         if (!dateString) return "-";
-        const d = new Date(dateString);
-        return d.toLocaleDateString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-        });
+        try {
+            const d = new Date(dateString);
+            return d.toLocaleDateString("vi-VN", {
+                weekday: "long",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+            });
+        } catch (e) {
+            return dateString;
+        }
+    };
+
+    // Format giờ từ date string
+    const formatTime = (dateString) => {
+        if (!dateString) return null;
+        try {
+            const d = new Date(dateString);
+            return d.toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+
+    // Format ngày ngắn gọn
+    const formatDateShort = (dateString) => {
+        if (!dateString) return "-";
+        try {
+            const d = new Date(dateString);
+            return d.toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+            });
+        } catch (e) {
+            return dateString;
+        }
     };
 
     // Hiển thị địa chỉ nếu là object
     const formatAddress = (address) => {
-        console.log("Address information: ", address);
         if (!address) return "Không rõ";
         if (typeof address === "string") return address;
-        return `${address.houseNumber || ""} ${address.street || ""} ${address.alley || ""}, ${address.ward.name || ""}, ${address.province.name || ""}`;
+
+        const parts = [];
+        if (address.houseNumber) parts.push(address.houseNumber);
+        if (address.alley) parts.push(address.alley);
+        if (address.street) parts.push(address.street);
+
+        if (address.ward) {
+            const wardName = typeof address.ward === 'object' ? address.ward.name : address.ward;
+            if (wardName) parts.push(wardName);
+        }
+
+        if (address.district) {
+            const districtName = typeof address.district === 'object' ? address.district.name : address.district;
+            if (districtName) parts.push(districtName);
+        }
+
+        if (address.province) {
+            const provinceName = typeof address.province === 'object' ? address.province.name : address.province;
+            if (provinceName) parts.push(provinceName);
+        }
+
+        return parts.length > 0 ? parts.join(", ") : "Không rõ";
     };
 
     const handleShowDetails = (appointment) => {
@@ -136,78 +190,108 @@ export default function HistoryTab() {
                 <>
                     {/* Appointments List */}
                     <div className="space-y-4">
-                        {currentAppointments.map((a) => (
-                            <div
-                                key={a._id}
-                                className="group bg-gradient-to-br from-white via-sky-50/30 to-blue-50/30 border-2 border-gray-200 hover:border-sky-300 rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-                            >
-                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                                    {/* Left: Info */}
-                                    <div className="flex-1 space-y-3">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex-shrink-0 p-2.5 bg-gradient-to-br from-sky-100 to-blue-100 rounded-xl">
-                                                <CalendarDays className="h-5 w-5 text-sky-600" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-bold text-lg text-gray-900 mb-1 group-hover:text-sky-700 transition-colors">
-                                                    {a.specialty || "Không rõ chuyên khoa"}
-                                                </h3>
-                                                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Clock className="h-4 w-4 text-gray-400" />
-                                                        <span className="font-medium">{a.date || formatDate(a.scheduled_date)}</span>
+                        {currentAppointments.map((a, index) => {
+                            const displayTime = a.time || formatTime(a.scheduled_date);
+                            const displayDate = a.date || formatDateShort(a.scheduled_date);
+
+                            return (
+                                <div
+                                    key={a._id}
+                                    className="group bg-gradient-to-br from-white via-sky-50/30 to-blue-50/30 border-2 border-gray-200 hover:border-sky-300 rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 animate-fadeIn"
+                                    style={{ animationDelay: `${index * 0.1}s` }}
+                                >
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                        {/* Left: Info */}
+                                        <div className="flex-1 space-y-4">
+                                            {/* Main Info */}
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-shrink-0 p-2.5 bg-gradient-to-br from-sky-100 to-blue-100 rounded-xl group-hover:scale-110 transition-transform">
+                                                    <CalendarDays className="h-5 w-5 text-sky-600" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-bold text-lg sm:text-xl text-gray-900 mb-2 group-hover:text-sky-700 transition-colors">
+                                                        {a.specialty || a.specialty_name || "Không rõ chuyên khoa"}
+                                                    </h3>
+
+                                                    {/* Date & Time */}
+                                                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
+                                                        <div className="flex items-center gap-1.5 bg-white/60 px-3 py-1.5 rounded-lg border border-gray-200">
+                                                            <CalendarDays className="h-3.5 w-3.5 text-sky-500" />
+                                                            <span className="font-semibold text-gray-700">{displayDate}</span>
+                                                        </div>
+                                                        {displayTime && (
+                                                            <div className="flex items-center gap-1.5 bg-white/60 px-3 py-1.5 rounded-lg border border-gray-200">
+                                                                <Clock className="h-3.5 w-3.5 text-sky-500" />
+                                                                <span className="font-medium">{displayTime}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {a.time && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <Clock className="h-4 w-4 text-gray-400" />
-                                                            <span>{a.time}</span>
+
+                                                    {/* Doctor & Hospital Info */}
+                                                    {(a.doctorName || a.doctor_name || a.hospital || a.clinic_name) && (
+                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                                            {a.doctorName || a.doctor_name ? (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <User className="h-3.5 w-3.5 text-gray-400" />
+                                                                    <span className="font-medium">{a.doctorName || a.doctor_name}</span>
+                                                                </div>
+                                                            ) : null}
+                                                            {a.hospital || a.clinic_name ? (
+                                                                <>
+                                                                    <span className="text-gray-300">•</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                                                                        <span>{a.hospital || a.clinic_name}</span>
+                                                                    </div>
+                                                                </>
+                                                            ) : null}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* Status Badge */}
-                                        <div className="flex items-center gap-2">
-                                            <span
-                                                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold w-fit
+                                            {/* Status Badge */}
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold w-fit shadow-sm
                                                     ${a.status === "SCHEDULED"
-                                                        ? "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border border-blue-200"
-                                                        : a.status === "COMPLETED"
-                                                            ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
-                                                            : a.status === "CANCELLED"
-                                                                ? "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"
-                                                                : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200"
-                                                    }`}
-                                            >
-                                                {a.status === "COMPLETED" ? (
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                ) : a.status === "CANCELLED" ? (
-                                                    <XCircle className="w-4 h-4" />
-                                                ) : (
-                                                    <Clock className="w-4 h-4" />
-                                                )}
-                                                {a.status === "SCHEDULED" ? "Đã đặt lịch" : 
-                                                 a.status === "COMPLETED" ? "Hoàn thành" : 
-                                                 a.status === "CANCELLED" ? "Đã hủy" : 
-                                                 a.status || "Không rõ"}
-                                            </span>
+                                                            ? "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border border-blue-200"
+                                                            : a.status === "COMPLETED"
+                                                                ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
+                                                                : a.status === "CANCELLED"
+                                                                    ? "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"
+                                                                    : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-600 border border-gray-200"
+                                                        }`}
+                                                >
+                                                    {a.status === "COMPLETED" ? (
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                    ) : a.status === "CANCELLED" ? (
+                                                        <XCircle className="w-4 h-4" />
+                                                    ) : (
+                                                        <Clock className="w-4 h-4" />
+                                                    )}
+                                                    {a.status === "SCHEDULED" ? "Đã đặt lịch" :
+                                                        a.status === "COMPLETED" ? "Hoàn thành" :
+                                                            a.status === "CANCELLED" ? "Đã hủy" :
+                                                                a.status || "Không rõ"}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Right: Action */}
-                                    <div className="flex-shrink-0">
-                                        <button
-                                            onClick={() => handleShowDetails(a)}
-                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                                        >
-                                            <Info className="h-4 w-4" />
-                                            Chi tiết
-                                        </button>
+                                        {/* Right: Action */}
+                                        <div className="flex-shrink-0">
+                                            <button
+                                                onClick={() => handleShowDetails(a)}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                                            >
+                                                <Info className="h-4 w-4" />
+                                                Chi tiết
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Pagination */}
@@ -220,11 +304,10 @@ export default function HistoryTab() {
                                 <button
                                     onClick={prevPage}
                                     disabled={currentPage === 1}
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 ${
-                                        currentPage === 1
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 ${currentPage === 1
                                             ? "bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed"
                                             : "bg-white text-sky-600 border-2 border-sky-200 hover:bg-sky-50 hover:border-sky-300 shadow-sm hover:shadow-md"
-                                    }`}
+                                        }`}
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                     Trước
@@ -233,11 +316,10 @@ export default function HistoryTab() {
                                 <button
                                     onClick={nextPage}
                                     disabled={currentPage === totalPages}
-                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 ${
-                                        currentPage === totalPages
+                                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 ${currentPage === totalPages
                                             ? "bg-gray-100 text-gray-400 border-2 border-gray-200 cursor-not-allowed"
                                             : "bg-white text-sky-600 border-2 border-sky-200 hover:bg-sky-50 hover:border-sky-300 shadow-sm hover:shadow-md"
-                                    }`}
+                                        }`}
                                 >
                                     Sau
                                     <ChevronRight className="w-4 h-4" />
@@ -296,10 +378,10 @@ export default function HistoryTab() {
                                     ) : (
                                         <Clock className="w-5 h-5" />
                                     )}
-                                    {selectedAppointment.status === "SCHEDULED" ? "Đã đặt lịch" : 
-                                     selectedAppointment.status === "COMPLETED" ? "Hoàn thành" : 
-                                     selectedAppointment.status === "CANCELLED" ? "Đã hủy" : 
-                                     selectedAppointment.status || "Không rõ"}
+                                    {selectedAppointment.status === "SCHEDULED" ? "Đã đặt lịch" :
+                                        selectedAppointment.status === "COMPLETED" ? "Hoàn thành" :
+                                            selectedAppointment.status === "CANCELLED" ? "Đã hủy" :
+                                                selectedAppointment.status || "Không rõ"}
                                 </span>
                             </div>
 
@@ -311,7 +393,7 @@ export default function HistoryTab() {
                                         <User className="h-4 w-4 text-sky-600" />
                                         <p className="text-xs font-semibold text-gray-500 uppercase">Bác sĩ</p>
                                     </div>
-                                    <p className="text-base font-bold text-gray-900">{selectedAppointment.doctorName || "Không rõ"}</p>
+                                    <p className="text-base font-bold text-gray-900">{selectedAppointment.doctorName || selectedAppointment.doctor_name || "Không rõ"}</p>
                                 </div>
 
                                 {/* Chuyên khoa */}
@@ -320,16 +402,16 @@ export default function HistoryTab() {
                                         <Stethoscope className="h-4 w-4 text-sky-600" />
                                         <p className="text-xs font-semibold text-gray-500 uppercase">Chuyên khoa</p>
                                     </div>
-                                    <p className="text-base font-bold text-gray-900">{selectedAppointment.specialty || "Không rõ"}</p>
+                                    <p className="text-base font-bold text-gray-900">{selectedAppointment.specialty || selectedAppointment.specialty_name || "Không rõ"}</p>
                                 </div>
 
                                 {/* Bệnh viện */}
                                 <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Building2 className="h-4 w-4 text-sky-600" />
-                                        <p className="text-xs font-semibold text-gray-500 uppercase">Bệnh viện</p>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Bệnh viện/Phòng khám</p>
                                     </div>
-                                    <p className="text-base font-bold text-gray-900">{selectedAppointment.hospital || "Không rõ"}</p>
+                                    <p className="text-base font-bold text-gray-900">{selectedAppointment.hospital || selectedAppointment.clinic_name || "Không rõ"}</p>
                                 </div>
 
                                 {/* Ngày khám */}
@@ -342,13 +424,13 @@ export default function HistoryTab() {
                                 </div>
 
                                 {/* Giờ khám */}
-                                {selectedAppointment.time && (
+                                {(selectedAppointment.time || formatTime(selectedAppointment.scheduled_date)) && (
                                     <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
                                         <div className="flex items-center gap-2 mb-2">
                                             <Clock className="h-4 w-4 text-sky-600" />
                                             <p className="text-xs font-semibold text-gray-500 uppercase">Giờ khám</p>
                                         </div>
-                                        <p className="text-base font-bold text-gray-900">{selectedAppointment.time}</p>
+                                        <p className="text-base font-bold text-gray-900">{selectedAppointment.time || formatTime(selectedAppointment.scheduled_date)}</p>
                                     </div>
                                 )}
                             </div>
