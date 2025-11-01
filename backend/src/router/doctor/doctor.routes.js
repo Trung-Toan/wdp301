@@ -9,6 +9,10 @@ const {
   getTopDoctorsNearMeController,
 } = require("../../controller/doctor/topDoctor.controller");
 const {
+  getTopDoctorsBySpecialtyController,
+  getTopDoctorsBySingleSpecialtyController,
+} = require("../../controller/doctor/topDoctorsBySpecialty.controller");
+const {
   searchDoctorController,
 } = require("../../controller/doctor/searchDoctors.controller");
 const {
@@ -277,6 +281,119 @@ router.get("/top", getTopDoctorsController);
  *         description: Danh sách bác sĩ nổi bật gần tôi
  */
 router.get("/top/near-me", authRequired, getTopDoctorsNearMeController);
+
+/**
+ * @openapi
+ * /api/doctor/top/by-specialty:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy top bác sĩ được book nhiều nhất theo từng chuyên ngành
+ *     description: Trả về danh sách các chuyên ngành với top bác sĩ được đặt lịch nhiều nhất trong mỗi chuyên ngành
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Số lượng bác sĩ tối đa cho mỗi chuyên ngành (mặc định 10)
+ *       - in: query
+ *         name: statuses
+ *         schema:
+ *           type: string
+ *           example: "SCHEDULED,APPROVE,COMPLETED"
+ *         description: Các trạng thái appointment để đếm, phân cách bằng dấu phẩy (mặc định: SCHEDULED,APPROVE,COMPLETED)
+ *     responses:
+ *       200:
+ *         description: Danh sách các chuyên ngành với top bác sĩ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 totalSpecialties:
+ *                   type: integer
+ *                   example: 5
+ *                 totalDoctors:
+ *                   type: integer
+ *                   example: 50
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       specialty:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           icon_url:
+ *                             type: string
+ *                       doctors:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             _id:
+ *                               type: string
+ *                             full_name:
+ *                               type: string
+ *                             avatar_url:
+ *                               type: string
+ *                             title:
+ *                               type: string
+ *                             degree:
+ *                               type: string
+ *                             bookingCount:
+ *                               type: integer
+ */
+router.get("/top/by-specialty", getTopDoctorsBySpecialtyController);
+
+/**
+ * @openapi
+ * /api/doctor/top/by-specialty/{specialtyId}:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy top bác sĩ được book nhiều nhất cho một chuyên ngành cụ thể
+ *     description: Trả về danh sách top bác sĩ được đặt lịch nhiều nhất trong chuyên ngành được chỉ định
+ *     parameters:
+ *       - in: path
+ *         name: specialtyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của chuyên ngành
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Số lượng bác sĩ tối đa (mặc định 10)
+ *       - in: query
+ *         name: statuses
+ *         schema:
+ *           type: string
+ *           example: "SCHEDULED,APPROVE,COMPLETED"
+ *         description: Các trạng thái appointment để đếm, phân cách bằng dấu phẩy (mặc định: SCHEDULED,APPROVE,COMPLETED)
+ *     responses:
+ *       200:
+ *         description: Thông tin chuyên ngành và danh sách top bác sĩ
+ *       404:
+ *         description: Chuyên ngành không tồn tại
+ */
+router.get("/top/by-specialty/:specialtyId", getTopDoctorsBySingleSpecialtyController);
 
 /**
  * @openapi
