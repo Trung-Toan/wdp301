@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, Fragment } from "react"; // Bỏ useEffect
+import { memo, useState, Fragment } from "react";
 import {
   Calendar,
   Person,
@@ -19,13 +19,10 @@ import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
 
 import {
-  // getShifts, // <-- Không cần nữa
-  // getAppointments, // <-- Không cần nữa
   updateAppointmentStatus,
   createMedicalRecord,
 } from "../../services/assistantService";
 
-// === 1. DI CHUYỂN IMPORT RA NGOÀI ===
 import { useDataByUrl } from "../../utility/data.utils";
 import { APPOINTMENT_API } from "../../api/assistant/assistant.api";
 
@@ -74,11 +71,29 @@ const ApproveAppointment = () => {
   const [selectedSlot, setSelectedSlot] = useState(""); // Lưu _id của slot
   const [searchTerm, setSearchTerm] = useState("");
 
-  // === 2. XÓA STATE CŨ ===
-  // const [shifts, setShifts] = useState([]); // <-- Đã xóa
-  // const [appointments, setAppointments] = useState([]); // <-- Đã xóa
-  // const [loading, setLoading] = useState(true); // <-- Đã xóa
-  // const [selectedShiftId, setSelectedShiftId] = useState(null); // <-- Đã xóa
+  // ==========================================================
+  // === BƯỚC 1: THÊM LOGIC LẤY DOCTOR_ID TỪ SESSION ===
+  // ==========================================================
+  const getDoctorIdFromSession = () => {
+    try {
+      // 1. THAY THẾ 'assistant_user' bằng tên key session/storage của bạn
+      const sessionData = JSON.parse(localStorage.getItem("assistant_user"));
+
+      // 2. THAY THẾ 'managedDoctorId' bằng tên trường chứa ID bác sĩ
+      if (sessionData && sessionData.managedDoctorId) {
+        return sessionData.managedDoctorId;
+      } else {
+        console.error("Lỗi: Không tìm thấy ID bác sĩ trong session.");
+        return null;
+      }
+    } catch (error) {
+      console.error("Lỗi khi đọc session:", error);
+      return null;
+    }
+  };
+
+  const doctorId = getDoctorIdFromSession();
+  // ==========================================================
 
   // State cho Modal Bệnh Án (Giữ nguyên)
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -87,14 +102,16 @@ const ApproveAppointment = () => {
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // === 3. XÓA useEffect fetchData CŨ ===
-  // useEffect(() => { ... fetchData ... }, [selectedDate]); // <-- Đã xóa
-
-  // === 4. SỬA LẠI PARAMS CHO useDataByUrl ===
+  // === SỬA LẠI PARAMS CHO useDataByUrl ===
   const params = {
     page: page,
     limit: limit,
     date: selectedDate,
+    // ==========================================================
+    // === BƯỚC 2: THÊM doctorId VÀO PARAMS GỬI ĐI ===
+    // (Sửa 'doctor_id' nếu API của bạn yêu cầu tên key khác)
+    doctor_id: doctorId,
+    // ==========================================================
     ...(filterStatus && { status: filterStatus }),
     ...(selectedSlot && { slot: selectedSlot }),
     ...(searchTerm && { search: searchTerm }),
@@ -102,29 +119,32 @@ const ApproveAppointment = () => {
 
   const { data, isLoading, error, refetch } = useDataByUrl({
     url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
-    key: ["appointments-list", ...Object.values(params)], // Key động
+
+    // ==========================================================
+    // === BƯỚC 3: THÊM doctorId VÀO KEY (ĐỂ TỰ ĐỘNG CẬP NHẬT) ===
+    key: ["appointments-list", ...Object.values(params), doctorId],
+    // ==========================================================
+
     params: params,
   });
 
   if (error) console.log("Error fetching appointments:", error);
 
-  // === 5. ĐỌC DỮ LIỆU TỪ HOOK (THEO RESPONSE MỚI) ===
+  // === ĐỌC DỮ LIỆU TỪ HOOK (THEO RESPONSE MỚI) ===
   const appointments = data?.data?.appointments || [];
   const slots = data?.data?.slot?.slot_list || [];
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
   const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
   const totalPages = pagination.totalPages;
 
-  // === 6. SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
+  // === SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
   const handleUpdateStatus = async (appointmentId, newStatus) => {
-    // Không cần optimistic update nữa
     try {
       const response = await updateAppointmentStatus(appointmentId, newStatus);
       if (!response.success) {
         alert(response.error || "Cập nhật trạng thái thất bại.");
       } else {
-        // Nếu thành công, chỉ cần tải lại dữ liệu
-        refetch();
+        refetch(); // Tải lại dữ liệu
       }
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -144,11 +164,7 @@ const ApproveAppointment = () => {
     return config[status] || config.SCHEDULED;
   };
 
-  // === 7. XÓA CÁC HÀM HELPER CŨ ===
-  // const getShiftAppointments = (shiftId) => { ... }; // <-- Đã xóa (API tự lọc)
-  // const getSelectedShift = () => { ... }; // <-- Đã xóa (API tự trả về)
-
-  // --- Hàm cho Modal Bệnh Án (Giữ nguyên) ---
+  // --- Hàm cho Modal Bệnh Án ---
   const openCreateRecordModal = (appointment) => {
     setSelectedAptForRecord(appointment);
     setRecordFormData(initialRecordFormData);
@@ -161,14 +177,52 @@ const ApproveAppointment = () => {
     setSelectedAptForRecord(null);
   };
 
-  // (Các hàm form, thuốc, ... giữ nguyên)
-  const handleRecordFormChange = (e) => { /* ... */ };
-  const handlePrescriptionInstructionChange = (e) => { /* ... */ };
-  const handleMedicineChange = (index, field, value) => { /* ... */ };
-  const addMedicine = () => { /* ... */ };
-  const removeMedicine = (index) => { /* ... */ };
+  // === BƯỚC 4: BỔ SUNG LẠI CÁC HÀM XỬ LÝ FORM ===
+  const handleRecordFormChange = (e) => {
+    const { name, value } = e.target;
+    setRecordFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  // === 8. SỬA LẠI handleCreateRecord (DÙNG refetch) ===
+  const handlePrescriptionInstructionChange = (e) => {
+    const { value } = e.target;
+    setRecordFormData((prev) => ({
+      ...prev,
+      prescription: { ...prev.prescription, instruction: value },
+    }));
+  };
+
+  const handleMedicineChange = (index, field, value) => {
+    const updatedMedicines = [...(recordFormData.prescription?.medicines || [])];
+    updatedMedicines[index] = { ...updatedMedicines[index], [field]: value };
+    setRecordFormData((prev) => ({
+      ...prev,
+      prescription: { ...prev.prescription, medicines: updatedMedicines },
+    }));
+  };
+
+  const addMedicine = () => {
+    const newMedicine = { name: "", dosage: "", frequency: "", duration: "", note: "" };
+    setRecordFormData((prev) => ({
+      ...prev,
+      prescription: {
+        ...prev.prescription,
+        medicines: [...(prev.prescription?.medicines || []), newMedicine],
+      },
+    }));
+  };
+
+  const removeMedicine = (index) => {
+    const updatedMedicines = [...(recordFormData.prescription?.medicines || [])];
+    updatedMedicines.splice(index, 1);
+    setRecordFormData((prev) => ({
+      ...prev,
+      prescription: { ...prev.prescription, medicines: updatedMedicines },
+    }));
+  };
+  // === KẾT THÚC BƯỚC 4 ===
+
+
+  // === SỬA LẠI handleCreateRecord (DÙNG refetch) ===
   const handleCreateRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
@@ -177,7 +231,6 @@ const ApproveAppointment = () => {
     setIsSubmitting(true);
     setRecordModalError("");
     try {
-      // Logic payload (giữ nguyên)
       const payload = {
         diagnosis: recordFormData.diagnosis,
         symptoms: recordFormData.symptoms.split(',').map(s => s.trim()).filter(s => s),
@@ -188,16 +241,15 @@ const ApproveAppointment = () => {
           medicines: (recordFormData.prescription?.medicines || []).filter(m => m.name && m.name.trim() !== ""),
         },
         status: recordFormData.status,
-        patient_id: selectedAptForRecord.patient.patient_id, // Lấy ID từ cấu trúc mới
-        appointment_id: selectedAptForRecord.appointment.appointment_id, // Lấy ID từ cấu trúc mới
-        // created_by: "ID_ASSISTANT_DA_DANG_NHAP" // (Vẫn cần xử lý)
+        patient_id: selectedAptForRecord.patient.patient_id,
+        appointment_id: selectedAptForRecord.appointment.appointment_id,
       };
 
       const res = await createMedicalRecord(payload);
       if (res.success) {
         alert("Tạo bệnh án thành công!");
         closeRecordModal();
-        refetch(); // Tải lại danh sách sau khi tạo
+        refetch(); // Tải lại danh sách
       } else {
         setRecordModalError(res.error || "Tạo bệnh án thất bại.");
       }
@@ -208,11 +260,11 @@ const ApproveAppointment = () => {
     }
   };
 
-  // === 9. CẬP NHẬT JSX ===
+  // === CẬP NHẬT JSX ===
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header (Giữ nguyên) */}
+        {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6 flex items-center gap-4">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
             <Calendar className="text-white" size={32} />
@@ -223,7 +275,7 @@ const ApproveAppointment = () => {
           </div>
         </div>
 
-        {/* Khu vực điều khiển (Cập nhật logic state) */}
+        {/* Khu vực điều khiển */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
@@ -238,20 +290,19 @@ const ApproveAppointment = () => {
                 className="pl-2 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            {/* Cập nhật: Hiển thị slots từ hook */}
+            {/* Hiển thị slots từ hook */}
             <div className="flex-1 flex flex-wrap items-center gap-2">
               {isLoading ? (
                 <span className="text-gray-500 text-sm">Đang tải ca...</span>
               ) : slots.length > 0 ? (
-                // Sử dụng Fragment (<>) để bọc nhiều phần tử
                 <>
                   {/* Nút "Tất cả" */}
                   <button
                     onClick={() => {
-                      setSelectedSlot(""); // Set về rỗng (hook sẽ gửi " ")
+                      setSelectedSlot("");
                       setPage(1);
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${!selectedSlot // Điều kiện kiểm tra `selectedSlot` rỗng
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${!selectedSlot
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
@@ -259,7 +310,7 @@ const ApproveAppointment = () => {
                     Tất cả ca
                   </button>
 
-                  {/* Map qua `slots` (Đã di chuyển vào đây) */}
+                  {/* Map qua `slots` */}
                   {slots.map((slot) => (
                     <button
                       key={slot._id}
@@ -272,45 +323,42 @@ const ApproveAppointment = () => {
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                     >
-                      {/* Dùng formatTime (đã sửa múi giờ) */}
                       Ca: {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                     </button>
                   ))}
                 </>
               ) : (
-                // Vế "else" (khi slots.length === 0)
                 <span className="text-gray-500 text-sm">Không có ca nào trong ngày này.</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Khu vực nội dung (Cập nhật logic hiển thị) */}
-        {isLoading ? ( // Dùng isLoading từ hook
+        {/* Khu vực nội dung */}
+        {isLoading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-600 font-medium">Đang tải dữ liệu...</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {/* Shift Header - Hiển thị tên ca (nếu đang lọc) */}
+            {/* Shift Header */}
             {selectedSlotInfo && (
               <div className="bg-blue-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
                 <div className="flex items-center gap-4">
                   <span className="font-bold text-blue-700">
                     Ca: {formatTime(selectedSlotInfo.start_time)} - {formatTime(selectedSlotInfo.end_time)}
                   </span>
-                  {/* (API response không có maxPatients/booked_count trong `slot_select`) */}
                 </div>
               </div>
             )}
 
-            {/* Appointments List - Map qua `appointments` từ hook */}
+            {/* Appointments List */}
             <div className="p-6 space-y-4">
               {appointments.length === 0 ? (
                 <p className="text-gray-500">Không có bệnh nhân nào.</p>
               ) : (
-                appointments.map((item) => { // `item` là { appointment, patient }
+                appointments.map((item) => {
                   const { appointment, patient } = item;
                   const statusInfo = getStatusBadge(appointment.status);
                   let badgeColor = "bg-gray-100 text-gray-700";
@@ -324,7 +372,6 @@ const ApproveAppointment = () => {
                       <div className="flex items-center gap-4 mb-2 sm:mb-0">
                         <Person className="text-blue-600" size={20} />
                         <div>
-                          {/* Đọc từ `patient.patient_name` */}
                           <p className="font-semibold">{patient.patient_name || "Bệnh nhân ẩn"}</p>
                           <p className="text-gray-500 text-sm">
                             <Telephone className="inline mr-1" />
@@ -336,12 +383,12 @@ const ApproveAppointment = () => {
                           </p>
                           <p className="text-gray-500 text-sm mt-1">
                             <Clipboard2Pulse className="inline mr-1" />
-                            Lý do: {appointment.reason || "Không rõ"} {/* (Lý do nằm trong appointment) */}
+                            Lý do: {appointment.reason || "Không rõ"}
                           </p>
                         </div>
                       </div>
 
-                      {/* Nút hành động (Cập nhật logic) */}
+                      {/* Nút hành động */}
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}>{statusInfo.label}</span>
                         {appointment.status === "SCHEDULED" && (
@@ -365,7 +412,7 @@ const ApproveAppointment = () => {
                         {appointment.status === "APPROVE" && (
                           <>
                             <button
-                              onClick={() => openCreateRecordModal(item)} // Gửi cả item
+                              onClick={() => openCreateRecordModal(item)}
                               className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
                               title="Tạo bệnh án"
                             >
@@ -394,7 +441,7 @@ const ApproveAppointment = () => {
               )}
             </div>
 
-            {/* Phân trang (Đọc từ `totalPages` của hook) */}
+            {/* Phân trang */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-3 p-4 border-t">
                 <button
@@ -418,7 +465,7 @@ const ApproveAppointment = () => {
         )}
       </div>
 
-      {/* Modal Tạo Bệnh Án (Cập nhật logic `handleCreateRecord`) */}
+      {/* Modal Tạo Bệnh Án */}
       <Transition appear show={isRecordModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={closeRecordModal}>
           <Transition.Child
@@ -454,14 +501,13 @@ const ApproveAppointment = () => {
                   {selectedAptForRecord && (
                     <p className="text-gray-600 mb-4">
                       Bệnh nhân:{" "}
-                      {/* Đọc từ cấu trúc mới */}
                       <span className="font-semibold">{selectedAptForRecord.patient?.patient_name}</span>
                     </p>
                   )}
 
-                  {/* Form (Giữ nguyên) */}
+                  {/* Form */}
                   <div className="flex flex-col gap-4">
-                    {/* Hàng 1: Chẩn đoán và Triệu chứng */}
+                    {/* Hàng 1 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -490,7 +536,7 @@ const ApproveAppointment = () => {
                       </div>
                     </div>
 
-                    {/* Hàng 2: Ghi chú và Đính kèm */}
+                    {/* Hàng 2 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -519,12 +565,11 @@ const ApproveAppointment = () => {
                       </div>
                     </div>
 
-                    {/* Khu vực Đơn thuốc (Prescription) */}
+                    {/* Đơn thuốc */}
                     <div className="border-t border-gray-200 pt-4 mt-2">
                       <h4 className="text-lg font-semibold text-gray-800 mb-3">
                         Đơn thuốc
                       </h4>
-                      {/* Danh sách thuốc */}
                       <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
                         {(recordFormData.prescription?.medicines || []).map((med, index) => (
                           <div key={index} className="p-3 border rounded-lg bg-gray-50 relative">
@@ -577,7 +622,6 @@ const ApproveAppointment = () => {
                         ))}
                       </div>
 
-                      {/* Nút thêm thuốc */}
                       <button
                         type="button"
                         onClick={addMedicine}
@@ -587,7 +631,6 @@ const ApproveAppointment = () => {
                         Thêm thuốc
                       </button>
 
-                      {/* Hướng dẫn chung */}
                       <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Hướng dẫn chung cho đơn thuốc
