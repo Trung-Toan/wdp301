@@ -1,7 +1,15 @@
 import React, { useState } from "react";
-import { Clock, CheckCircle, XCircle } from "lucide-react";
+import {
+    Clock,
+    CheckCircle,
+    XCircle,
+    Shield,
+    Stethoscope,
+    Building2,
+    MapPin,
+    CalendarDays,
+} from "lucide-react";
 import { medicalRecordPatientApi } from "../../../../../../api/patients/medicalRecordPatientApi";
-import Button from "../../../../../../components/ui/Button";
 
 export default function AccessRequests({ records }) {
     // Luôn khai báo hook ở đầu component
@@ -54,89 +62,175 @@ export default function AccessRequests({ records }) {
             .catch(err => console.error(err));
     };
 
+    // Format ngày tháng đẹp hơn
+    const formatDate = (dateString) => {
+        if (!dateString) return "-";
+        try {
+            const d = new Date(dateString);
+            return d.toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+            });
+        } catch (e) {
+            return dateString;
+        }
+    };
+
+    // Format giờ từ date string
+    const formatTime = (dateString) => {
+        if (!dateString) return null;
+        try {
+            const d = new Date(dateString);
+            return d.toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+
     return (
-        <div className="p-6 border rounded-lg bg-white shadow-sm">
-            <h3 className="text-xl font-semibold mb-6">Yêu cầu truy cập hồ sơ bệnh án</h3>
+        <div className="bg-gradient-to-br from-white via-sky-50/30 to-blue-50/30 border-2 border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-gradient-to-br from-sky-100 to-blue-100 rounded-xl">
+                    <Shield className="h-5 w-5 text-sky-600" />
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    Yêu cầu truy cập hồ sơ bệnh án
+                </h3>
+            </div>
 
+            {/* Requests List */}
             <div className="space-y-4">
-                {requests.map((req) => (
-                    <div
-                        key={req._id}
-                        className={`border rounded-lg p-4 transition-colors ${req.status === "PENDING"
-                                ? "bg-yellow-50 border-yellow-200"
-                                : req.status === "APPROVED"
-                                    ? "bg-green-50 border-green-200"
-                                    : "bg-red-50 border-red-200"
+                {requests.map((req) => {
+                    const displayDate = formatDate(req.requested_at);
+                    const displayTime = formatTime(req.requested_at);
+
+                    return (
+                        <div
+                            key={req._id}
+                            className={`bg-white/60 border-2 rounded-2xl p-5 sm:p-6 transition-all hover:shadow-lg ${
+                                req.status === "PENDING"
+                                    ? "border-yellow-300 bg-gradient-to-br from-yellow-50/60 to-amber-50/60"
+                                    : req.status === "APPROVED"
+                                        ? "border-green-300 bg-gradient-to-br from-green-50/60 to-emerald-50/60"
+                                        : "border-red-300 bg-gradient-to-br from-red-50/60 to-rose-50/60"
                             }`}
-                    >
-                        <div className="flex gap-4">
-                            <img
-                                src={req.avatar}
-                                alt={req.doctorName}
-                                className="h-16 w-16 rounded-full object-cover"
-                            />
-
-                            <div className="flex-1">
-                                <div className="flex items-start justify-between mb-2">
-                                    <div>
-                                        <p className="font-semibold text-lg">{req.doctorName}</p>
-                                        <p className="text-sm text-muted-foreground">{req.specialty}</p>
-                                        <p className="text-sm text-muted-foreground">{req.facility}</p>
-                                        <p className="text-xs text-gray-500">{req.address}</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        {req.status === "PENDING" && (
-                                            <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
-                                                <Clock className="h-3 w-3" />
-                                                Chờ phê duyệt
-                                            </span>
-                                        )}
-                                        {req.status === "APPROVED" && (
-                                            <span className="px-3 py-1 bg-green-200 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
-                                                <CheckCircle className="h-3 w-3" />
-                                                Đã phê duyệt
-                                            </span>
-                                        )}
-                                        {req.status === "REJECTED" && (
-                                            <span className="px-3 py-1 bg-red-200 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
-                                                <XCircle className="h-3 w-3" />
-                                                Đã từ chối
-                                            </span>
-                                        )}
+                        >
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                {/* Avatar */}
+                                <div className="flex-shrink-0">
+                                    <div className="relative">
+                                        <img
+                                            src={req.avatar}
+                                            alt={req.doctorName}
+                                            className="h-20 w-20 rounded-2xl object-cover border-2 border-gray-200 shadow-md"
+                                        />
+                                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center">
+                                            {req.status === "PENDING" && (
+                                                <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                                            )}
+                                            {req.status === "APPROVED" && (
+                                                <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                                            )}
+                                            {req.status === "REJECTED" && (
+                                                <XCircle className="h-3.5 w-3.5 text-red-600" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <p className="text-sm mb-3">
-                                    <span className="text-muted-foreground">Ngày yêu cầu:</span>{" "}
-                                    {new Date(req.requested_at).toLocaleString()}
-                                </p>
+                                {/* Content */}
+                                <div className="flex-1 space-y-4">
+                                    {/* Header with Status */}
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-lg sm:text-xl text-gray-900 mb-2">
+                                                {req.doctorName}
+                                            </h4>
 
-                                {req.status === "PENDING" && (
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            className="gap-2"
-                                            onClick={() => handleAction(req.recordId, req._id, "APPROVE")}
-                                        >
-                                            <CheckCircle className="h-4 w-4" />
-                                            Phê duyệt
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="gap-2"
-                                            onClick={() => handleAction(req.recordId, req._id, "REJECT")}
-                                        >
-                                            <XCircle className="h-4 w-4" />
-                                            Từ chối
-                                        </Button>
+                                            {/* Doctor Info Grid */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                                                <div className="flex items-center gap-2 text-gray-600">
+                                                    <Stethoscope className="h-3.5 w-3.5 text-sky-500 flex-shrink-0" />
+                                                    <span>{req.specialty}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-gray-600">
+                                                    <Building2 className="h-3.5 w-3.5 text-sky-500 flex-shrink-0" />
+                                                    <span>{req.facility}</span>
+                                                </div>
+                                                {req.address && (
+                                                    <div className="flex items-start gap-2 text-gray-600 sm:col-span-2">
+                                                        <MapPin className="h-3.5 w-3.5 text-sky-500 flex-shrink-0 mt-0.5" />
+                                                        <span>{req.address}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Status Badge */}
+                                        <div className="flex-shrink-0">
+                                            {req.status === "PENDING" && (
+                                                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-200 rounded-xl text-sm font-semibold shadow-sm">
+                                                    <Clock className="h-4 w-4" />
+                                                    Chờ phê duyệt
+                                                </span>
+                                            )}
+                                            {req.status === "APPROVED" && (
+                                                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-2 border-green-200 rounded-xl text-sm font-semibold shadow-sm">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                    Đã phê duyệt
+                                                </span>
+                                            )}
+                                            {req.status === "REJECTED" && (
+                                                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-2 border-red-200 rounded-xl text-sm font-semibold shadow-sm">
+                                                    <XCircle className="h-4 w-4" />
+                                                    Đã từ chối
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
+
+                                    {/* Request Date */}
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/60 px-3 py-2 rounded-lg border border-gray-200 w-fit">
+                                        <CalendarDays className="h-3.5 w-3.5 text-sky-500" />
+                                        <span className="font-semibold text-gray-700">Ngày yêu cầu:</span>
+                                        <span>{displayDate}</span>
+                                        {displayTime && (
+                                            <>
+                                                <span className="text-gray-300">•</span>
+                                                <span>{displayTime}</span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    {req.status === "PENDING" && (
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            <button
+                                                onClick={() => handleAction(req.recordId, req._id, "APPROVE")}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                                            >
+                                                <CheckCircle className="h-4 w-4" />
+                                                Phê duyệt
+                                            </button>
+                                            <button
+                                                onClick={() => handleAction(req.recordId, req._id, "REJECT")}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all font-semibold shadow-sm hover:shadow-md transform hover:scale-105 active:scale-95"
+                                            >
+                                                <XCircle className="h-4 w-4" />
+                                                Từ chối
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
