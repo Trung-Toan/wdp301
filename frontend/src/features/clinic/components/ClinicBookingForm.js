@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle, AlertCircle, X, Stethoscope, Sparkles, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle, AlertCircle, X, Stethoscope, Sparkles, CheckCircle2, LogIn } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
 import { useBooking } from "../../../hooks/useBooking";
 import { clinicApi } from "../../../api/clinic/clinicApi";
@@ -119,6 +120,71 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
 
     // Get minimum date (today)
     const today = new Date().toISOString().split('T')[0];
+
+    // Kiểm tra đăng nhập
+    if (!user) {
+        return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-fadeIn">
+                <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col border border-white/50">
+                    {/* Header */}
+                    <div className="sticky top-0 bg-gradient-to-r from-sky-500 via-blue-500 to-purple-600 text-white p-6 sm:p-8 rounded-t-3xl relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-sky-400/20 to-purple-400/20"></div>
+                        <div className="relative flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                                    <Calendar className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl sm:text-3xl font-bold mb-1 drop-shadow-lg">Đặt lịch khám</h2>
+                                    <p className="text-white/90 text-sm font-medium">{clinic.name}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition-all transform hover:scale-110 active:scale-95"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Login Required Content */}
+                    <div className="flex-1 overflow-y-auto p-8 sm:p-12">
+                        <div className="text-center">
+                            <div className="relative inline-block mb-6">
+                                <div className="absolute inset-0 bg-sky-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+                                <div className="relative bg-gradient-to-br from-sky-400 to-blue-500 rounded-full p-6 shadow-2xl">
+                                    <LogIn className="h-16 w-16 text-white" />
+                                </div>
+                            </div>
+                            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                                Đăng nhập để đặt lịch
+                            </h3>
+                            <p className="text-gray-600 mb-8 leading-relaxed max-w-md mx-auto">
+                                Bạn cần đăng nhập để có thể đặt lịch khám tại phòng khám <strong className="text-gray-900">{clinic.name}</strong>. Vui lòng đăng nhập để tiếp tục.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                <Link
+                                    to="/login"
+                                    onClick={onClose}
+                                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                                >
+                                    <LogIn className="h-5 w-5" />
+                                    Đăng nhập ngay
+                                </Link>
+                                <button
+                                    onClick={onClose}
+                                    className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all font-semibold transform hover:scale-105 active:scale-95"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-fadeIn">
