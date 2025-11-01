@@ -9,6 +9,7 @@ import {
     MapPin,
     CalendarDays,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import { medicalRecordPatientApi } from "../../../../../../api/patients/medicalRecordPatientApi";
 
 export default function AccessRequests({ records }) {
@@ -16,8 +17,8 @@ export default function AccessRequests({ records }) {
     const [requests, setRequests] = useState(() => {
         if (!records || records.length === 0) return [];
         // flatten tất cả access requests
-        return records.flatMap(r =>
-            (r.access_requests || []).map(req => {
+        return records.flatMap((r, recordIndex) =>
+            (r.access_requests || []).map((req, reqIndex) => {
                 const doctor = r.doctor_id || {};
                 const user = doctor.user_id || {};
                 const specialty = doctor.specialty_id?.[0];
@@ -31,8 +32,24 @@ export default function AccessRequests({ records }) {
                 ].filter(Boolean);
                 const address = addressParts.join(", ");
 
+                // Tạo unique identifier: 
+                // - Nếu có _id từ DB (requests mới) -> dùng _id
+                // - Nếu không có _id (requests cũ) -> dùng format "INDEX:reqIndex" để backend có thể parse
+                let requestId;
+                if (req._id) {
+                    requestId = req._id.toString();
+                } else if (req.id) {
+                    requestId = req.id.toString();
+                } else {
+                    // Format: "INDEX:0", "INDEX:1" để backend biết đây là index
+                    // Đây là fallback cho các access requests cũ không có _id trong DB
+                    requestId = `INDEX:${reqIndex}`;
+                }
+
                 return {
                     ...req,
+                    _id: requestId, // Đảm bảo luôn có _id
+                    requestIndex: reqIndex, // Lưu index để dùng khi không có _id
                     recordId: r._id,
                     doctorName: user.full_name || "Chưa rõ bác sĩ",
                     avatar: user.avatar_url || `https://i.pravatar.cc/150?u=${user._id}`,
@@ -47,19 +64,43 @@ export default function AccessRequests({ records }) {
     // Nếu không có dữ liệu, không render gì cả
     if (!requests || requests.length === 0) return null;
 
-    const handleAction = (recordId, requestId, action) => {
-        medicalRecordPatientApi
-            .updateAccessRequest(recordId, requestId, action)
-            .then(() => {
-                setRequests(prev =>
-                    prev.map(r =>
-                        r._id === requestId
-                            ? { ...r, status: action === "APPROVE" ? "APPROVED" : "REJECTED" }
-                            : r
-                    )
-                );
-            })
-            .catch(err => console.error(err));
+    const handleAction = async (recordId, requestId, action) => {
+        // Validation
+        if (!recordId || !requestId) {
+            console.error("Missing recordId or requestId:", { recordId, requestId });
+            toast.error("Thông tin không hợp lệ. Vui lòng thử lại.");
+            return;
+        }
+
+        if (!action || !["APPROVE", "REJECT"].includes(action)) {
+            console.error("Invalid action:", action);
+            toast.error("Hành động không hợp lệ.");
+            return;
+        }
+
+        try {
+            await medicalRecordPatientApi.updateAccessRequest(recordId, requestId, action);
+            
+            // Update UI
+            setRequests(prev =>
+                prev.map(r =>
+                    r._id === requestId
+                        ? { ...r, status: action === "APPROVE" ? "APPROVED" : "REJECTED" }
+                        : r
+                )
+            );
+            
+            // Show success message
+            if (action === "APPROVE") {
+                toast.success("Đã phê duyệt yêu cầu truy cập hồ sơ bệnh án");
+            } else {
+                toast.success("Đã từ chối yêu cầu truy cập hồ sơ bệnh án");
+            }
+        } catch (err) {
+            console.error("Error updating access request:", err);
+            const errorMessage = err.response?.data?.error || err.message || "Không thể cập nhật yêu cầu. Vui lòng thử lại sau.";
+            toast.error(errorMessage);
+        }
     };
 
     // Format ngày tháng đẹp hơn
