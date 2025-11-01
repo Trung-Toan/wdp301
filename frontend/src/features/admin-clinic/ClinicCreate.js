@@ -100,8 +100,11 @@ const ClinicCreation = () => {
         );
       }
     } catch (error) {
-      console.error("Lỗi khi gửi yêu cầu tạo phòng khám:", error);
-      toast.error("Lỗi khi gửi yêu cầu tạo phòng khám. Vui lòng thử lại.");
+      console.error(
+        "Lỗi khi gửi yêu cầu tạo phòng khám:",
+        error.response?.data?.message
+      );
+      toast.error(error.response?.data?.message);
     }
   };
 
