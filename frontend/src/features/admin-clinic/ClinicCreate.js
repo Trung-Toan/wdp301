@@ -1,7 +1,10 @@
 import { memo, useState, useEffect } from "react";
-import { Plus, X, MapPin, Clock, FileText } from "lucide-react";
+import { Plus, X, MapPin, Clock, FileText, Image as ImageIcon } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:5000/api/file";
 
 const ClinicCreation = () => {
     const [showModal, setShowModal] = useState(false);
@@ -9,6 +12,11 @@ const ClinicCreation = () => {
     const [specialties, setSpecialties] = useState([]);
     const [loadingSpecialties, setLoadingSpecialties] = useState(true);
     const [filteredSpecialties, setFilteredSpecialties] = useState([]);
+    const [logoFile, setLogoFile] = useState(null);
+    const [bannerFile, setBannerFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState("");
+    const [bannerPreview, setBannerPreview] = useState("");
+    const [uploadingFiles, setUploadingFiles] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
         phone: "",
@@ -69,22 +77,100 @@ const ClinicCreation = () => {
             opening_hours: "08:00",
             closing_hours: "20:00",
             address: {
-                province: { code: "01", name: "Hà Nội" },
-                ward: { code: "00001", name: "Phường Cửa Đông" },
+                province: { code: "79", name: "TP. Hồ Chí Minh" },
+                ward: { code: "00001", name: "Phường Bến Nghé" },
                 houseNumber: "",
                 street: "",
                 alley: "",
             },
             specialties: [],
         });
+        setLogoFile(null);
+        setBannerFile(null);
+        setLogoPreview("");
+        setBannerPreview("");
+    };
+
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            toast.error("Vui lòng chọn file ảnh hợp lệ.");
+            return;
+        }
+
+        setLogoFile(file);
+        const localURL = URL.createObjectURL(file);
+        setLogoPreview(localURL);
+    };
+
+    const handleBannerChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            toast.error("Vui lòng chọn file ảnh hợp lệ.");
+            return;
+        }
+
+        setBannerFile(file);
+        const localURL = URL.createObjectURL(file);
+        setBannerPreview(localURL);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
+            setUploadingFiles(true);
+
+            // Upload logo nếu có
+            let logoFileName = formData.logo_url;
+            if (logoFile) {
+                const logoFormData = new FormData();
+                logoFormData.append("myFile", logoFile);
+
+                const logoUploadResponse = await axios.post(
+                    `${API_BASE_URL}/upload`,
+                    logoFormData
+                );
+
+                if (logoUploadResponse.data.files && logoUploadResponse.data.files.length > 0) {
+                    logoFileName = logoUploadResponse.data.files[0].fileName;
+                } else {
+                    toast.error("Server upload logo không trả về tên file.");
+                    setUploadingFiles(false);
+                    return;
+                }
+            }
+
+            // Upload banner nếu có
+            let bannerFileName = formData.banner_url;
+            if (bannerFile) {
+                const bannerFormData = new FormData();
+                bannerFormData.append("myFile", bannerFile);
+
+                const bannerUploadResponse = await axios.post(
+                    `${API_BASE_URL}/upload`,
+                    bannerFormData
+                );
+
+                if (bannerUploadResponse.data.files && bannerUploadResponse.data.files.length > 0) {
+                    bannerFileName = bannerUploadResponse.data.files[0].fileName;
+                } else {
+                    toast.error("Server upload banner không trả về tên file.");
+                    setUploadingFiles(false);
+                    return;
+                }
+            }
+
             const payload = {
-                clinic_info: formData,
+                clinic_info: {
+                    ...formData,
+                    logo_url: logoFileName,
+                    banner_url: bannerFileName,
+                },
             };
 
             // Gửi yêu cầu duyệt tạo phòng khám
@@ -102,9 +188,11 @@ const ClinicCreation = () => {
         } catch (error) {
             console.error(
                 "Lỗi khi gửi yêu cầu tạo phòng khám:",
-                error.response?.data?.message
+                error.response?.data?.message || error.message
             );
-            toast.error(error.response?.data?.message);
+            toast.error(error.response?.data?.message || "Lỗi khi tạo phòng khám.");
+        } finally {
+            setUploadingFiles(false);
         }
     };
 
@@ -352,6 +440,102 @@ const ClinicCreation = () => {
                                 </div>
                             </div>
 
+                            {/* Logo and Banner Upload */}
+                            <div className="border-t border-gray-200 pt-4">
+                                <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                                    Hình ảnh phòng khám
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Logo Upload */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                            Logo phòng khám
+                                        </label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                                            {logoPreview ? (
+                                                <div className="flex flex-col items-center">
+                                                    <img
+                                                        src={logoPreview}
+                                                        alt="Logo preview"
+                                                        className="w-32 h-32 object-contain rounded-lg mb-3"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setLogoFile(null);
+                                                            setLogoPreview("");
+                                                        }}
+                                                        className="text-sm text-red-600 hover:text-red-700"
+                                                    >
+                                                        Xóa ảnh
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex flex-col items-center cursor-pointer">
+                                                    <ImageIcon
+                                                        size={48}
+                                                        className="text-gray-400 mb-2"
+                                                    />
+                                                    <span className="text-sm text-gray-600">
+                                                        Click để chọn logo
+                                                    </span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleLogoChange}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Banner Upload */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                            Banner phòng khám
+                                        </label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                                            {bannerPreview ? (
+                                                <div className="flex flex-col items-center">
+                                                    <img
+                                                        src={bannerPreview}
+                                                        alt="Banner preview"
+                                                        className="w-full h-32 object-cover rounded-lg mb-3"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setBannerFile(null);
+                                                            setBannerPreview("");
+                                                        }}
+                                                        className="text-sm text-red-600 hover:text-red-700"
+                                                    >
+                                                        Xóa ảnh
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex flex-col items-center cursor-pointer">
+                                                    <ImageIcon
+                                                        size={48}
+                                                        className="text-gray-400 mb-2"
+                                                    />
+                                                    <span className="text-sm text-gray-600">
+                                                        Click để chọn banner
+                                                    </span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleBannerChange}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Address Information */}
                             <div className="border-t border-gray-200 pt-4">
                                 <h3 className="text-sm font-semibold text-gray-900 mb-4">
@@ -538,9 +722,17 @@ const ClinicCreation = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                                    disabled={uploadingFiles}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
-                                    Tạo phòng khám
+                                    {uploadingFiles ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Đang tải lên...
+                                        </>
+                                    ) : (
+                                        "Tạo phòng khám"
+                                    )}
                                 </button>
                             </div>
                         </form>
