@@ -38,6 +38,7 @@ export const APPOINTMENT_API = {
     GET_APPOINTMENT_BY_ID: (appointmentId) => `/assistant/appointments/${appointmentId}`,
     VERIFY_APPOINTMENT: (appointmentId) => `/assistant/verify/appointments/${appointmentId}`,
 
+
     getListAppointments: (page = 1, limit = 10, status = "", slot = "", search = "", date = "") => axiosInstance.get(APPOINTMENT_API.GET_LIST_APPOINTMENTS, { params: { page, limit, status, slot, search, date } }),
 
     getAppointmentById: (appointmentId) => axiosInstance.get(APPOINTMENT_API.GET_APPOINTMENT_BY_ID(appointmentId)),

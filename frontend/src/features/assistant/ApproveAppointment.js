@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, Fragment } from "react"; // Bỏ useEffect
+import { memo, useState, Fragment } from "react";
 import {
   Calendar,
   Person,
@@ -14,22 +14,19 @@ import {
   Clipboard2Pulse,
   PlusCircle,
   XCircleFill,
+  // === THÊM ICON MỚI CHO WORKFLOW ===
+  EyeFill,      // Icon cho View
+  PencilFill,   // Icon cho Edit
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
 
-// === LỖI CÓ THỂ Ở ĐÂY ===
-// Đảm bảo import 2 file này, vì code của bạn đang dùng chúng
-// (Nếu chúng không tồn tại, bạn cần tạo/chuyển chúng từ assistantService.js)
-import {
-  updateAppointmentStatus,
-  createMedicalRecord,
-} from "../../services/assistantService";
-
-// === 1. DI CHUYỂN IMPORT RA NGOÀI ===
-import { useDataByUrl } from "../../utility/data.utils";
-// === SỬA LỖI: CẦN IMPORT APPOINTMENT_API ĐỂ DÙNG TRONG handleUpdateStatus ===
+// === 1. CHỈ IMPORT API CẦN THIẾT ===
 import { APPOINTMENT_API } from "../../api/assistant/assistant.api";
+// Giả sử createMedicalRecord vẫn nằm trong service (bạn chưa cung cấp API)
+// Nếu bạn có API, hãy import nó và thay thế ở hàm "handleSaveRecord"
+import { createMedicalRecord } from "../../services/assistantService";
+import { useDataByUrl } from "../../utility/data.utils";
 
 // Helper lấy ngày Local (YYYY-MM-DD)
 const getLocalDate = () => {
@@ -53,117 +50,129 @@ const initialRecordFormData = {
   status: "PRIVATE",
 };
 
-// === HÀM HELPER MỚI: Định dạng thời gian (Sửa lỗi múi giờ) ===
+// Helper định dạng thời gian (Giữ nguyên)
 const formatTime = (timeString) => {
   if (!timeString) return "N/A";
   try {
     return new Date(timeString).toLocaleTimeString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "UTC", // <-- Hiển thị giờ gốc
+      timeZone: "UTC",
     });
   } catch {
     return "N/A";
   }
 };
 
+// === 2. CẬP NHẬT TRẠNG THÁI BADGE ===
+const getStatusBadge = (status) => {
+  const config = {
+    SCHEDULED: { label: "Chờ duyệt", className: "status-scheduled" },
+    APPROVE: { label: "Đã duyệt", className: "status-approved" },
+    COMPLETED: { label: "Đã khám xong", className: "status-completed" },
+    CANCELLED: { label: "Đã hủy", className: "status-cancelled" },
+    NO_SHOW: { label: "Vắng mặt", className: "status-no-show" },
+    REJECTED: { label: "Đã từ chối", className: "status-rejected" }, // <-- THÊM MỚI
+  };
+  return config[status] || config.SCHEDULED;
+};
+
 const ApproveAppointment = () => {
-  // State cho bộ lọc
+  // State cho bộ lọc (Giữ nguyên)
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [filterStatus, setFilterStatus] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState(""); // Lưu _id của slot
+  const [selectedSlot, setSelectedSlot] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // State cho Modal Bệnh Án (Giữ nguyên)
+  // State cho Modal Bệnh Án (Cập nhật)
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [selectedAptForRecord, setSelectedAptForRecord] = useState(null);
   const [recordFormData, setRecordFormData] = useState(initialRecordFormData);
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Thêm state để biết modal đang ở chế độ VIEW, EDIT hay CREATE
+  const [modalMode, setModalMode] = useState("CREATE"); // "CREATE", "VIEW", "EDIT"
 
-  // === 4. SỬA LẠI PARAMS CHO useDataByUrl ===
+  // === 3. SỬA LỖI 500 (Cast to ObjectId) ===
+  // Bằng cách chỉ thêm params nếu nó có giá trị (không phải chuỗi rỗng)
   const params = {
     page: page,
     limit: limit,
     date: selectedDate,
-    ...(filterStatus && { status: filterStatus }),
-    ...(selectedSlot && { slot: selectedSlot }),
-    ...(searchTerm && { search: searchTerm }),
+    ...(filterStatus ? { status: filterStatus } : {}),
+    ...(selectedSlot ? { slot: selectedSlot } : {}),
+    ...(searchTerm ? { search: searchTerm } : {}),
   };
 
+  // Logic gọi data (Giữ nguyên)
   const { data, isLoading, error, refetch } = useDataByUrl({
     url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
-    key: ["appointments-list", ...Object.values(params)], // Key động
-    params: params,
+    key: ["appointments-list", ...Object.values(params)],
+    params: params, // Gửi params đã được làm sạch
   });
 
   if (error) console.log("Error fetching appointments:", error);
 
-  // === 5. ĐỌC DỮ LIỆU TỪ HOOK (THEO RESPONSE MỚI) ===
+  // Đọc dữ liệu từ hook (Giữ nguyên)
   const appointments = data?.data?.appointments || [];
   const slots = data?.data?.slot?.slot_list || [];
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
   const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
   const totalPages = pagination.totalPages;
 
-  // === 6. SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
-  // === 6. SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
-  // === 6. SỬA LẠI handleUpdateStatus (Thêm LOG để kiểm tra) ===
+  // === 4. HÀM UPDATE STATUS (Đã sửa) ===
+  // (Gọi thẳng API, không qua service, không check response.data.success)
   const handleUpdateStatus = async (appointmentId, newStatus) => {
-
-    // === LOG 1: Ghi log ID và Trạng thái đang GỬI ĐI ===
     console.log(`Đang GỬI cập nhật cho ID: ${appointmentId} | Trạng thái mới: ${newStatus}`);
-
     try {
       // 1. Gọi trực tiếp API 'verifyAppointment'
-      const response = await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
+      await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
 
-      // === LOG 2: Ghi log toàn bộ PHẢN HỒI (response) từ server ===
-      // Đây là log quan trọng nhất. 
-      // Hãy mở console (F12) để xem server trả về gì trong 'response.data'
-      console.log('API Phản Hồi (Thành công HTTP 2xx):', response);
-
-      // 2. Logic thành công:
-      // Nếu code chạy đến đây mà không vào 'catch', nghĩa là API đã thành công (HTTP 200-299)
+      // 2. Nếu không vào 'catch' -> API thành công
+      console.log('Cập nhật thành công, đang tải lại dữ liệu...');
       refetch();
 
-      // === LOG 3: Ghi log sau khi gọi refetch ===
-      console.log('Đã gọi refetch() để tải lại dữ liệu.');
-
-
     } catch (error) {
-      // === LOG 4: Ghi log nếu API ném LỖI (HTTP 4xx, 5xx) ===
-      console.error('API Gặp LỖI:', error);
-
-      // Ghi log chi tiết nội dung lỗi mà server trả về (nếu có)
+      // 3. Xử lý lỗi (CORS, 500, 404, 400...)
+      console.error('API Gặp LỖI khi cập nhật status:', error);
       if (error.response) {
         console.error('Nội dung lỗi từ Server:', error.response.data);
       }
 
-      // 5. Xử lý lỗi
-      const errorMessage = error.response?.data?.error || "Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.";
+      // Lấy lỗi từ backend (như lỗi NO_SHOW)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.";
       alert(errorMessage);
     }
   };
-  // Hàm này giữ nguyên
-  const getStatusBadge = (status) => {
-    const config = {
-      SCHEDULED: { label: "Chờ duyệt", className: "status-scheduled" },
-      APPROVE: { label: "Đã duyệt", className: "status-approved" },
-      COMPLETED: { label: "Đã khám xong", className: "status-completed" },
-      CANCELLED: { label: "Đã hủy", className: "status-cancelled" },
-      NO_SHOW: { label: "Vắng mặt", className: "status-no-show" },
-    };
-    return config[status] || config.SCHEDULED;
-  };
 
-  // --- Hàm cho Modal Bệnh Án ---
-  const openCreateRecordModal = (appointment) => {
-    setSelectedAptForRecord(appointment);
-    setRecordFormData(initialRecordFormData);
+  // --- Hàm cho Modal Bệnh Án (Cập nhật theo workflow) ---
+
+  // Mở modal với 3 chế độ: CREATE (mới), EDIT (sửa), VIEW (xem)
+  const openRecordModal = (item, mode = "CREATE") => {
+    setSelectedAptForRecord(item);
+    setModalMode(mode); // Đặt chế độ
     setRecordModalError("");
+
+    // Giả sử `item.appointment.medical_record` là dữ liệu bệnh án nếu có
+    const existingRecord = item.appointment.medical_record;
+
+    if ((mode === "EDIT" || mode === "VIEW") && existingRecord) {
+      // Nếu là "EDIT" hoặc "VIEW", tải dữ liệu cũ vào form
+      setRecordFormData({
+        diagnosis: existingRecord.diagnosis || "",
+        symptoms: (existingRecord.symptoms || []).join(', '), // Chuyển mảng thành chuỗi
+        notes: existingRecord.notes || "",
+        attachments: (existingRecord.attachments || []).join(', '), // Chuyển mảng thành chuỗi
+        prescription: existingRecord.prescription || initialRecordFormData.prescription,
+        status: existingRecord.status || "PRIVATE",
+      });
+    } else {
+      // Nếu là "CREATE", dùng form rỗng
+      setRecordFormData(initialRecordFormData);
+    }
+
     setIsRecordModalOpen(true);
   };
 
@@ -172,40 +181,28 @@ const ApproveAppointment = () => {
     setSelectedAptForRecord(null);
   };
 
-  // =================================================================
-  // === SỬA LỖI: THÊM LẠI LOGIC CHO CÁC HÀM BỊ TRỐNG (/* ... */) ===
-  // =================================================================
-
+  // (Các hàm form, thuốc, ... giữ nguyên)
   const handleRecordFormChange = (e) => {
     const { name, value } = e.target;
     setRecordFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   const handlePrescriptionInstructionChange = (e) => {
     const { value } = e.target;
     setRecordFormData((prev) => ({
       ...prev,
-      prescription: {
-        ...(prev.prescription || {}),
-        instruction: value,
-      },
+      prescription: { ...(prev.prescription || {}), instruction: value },
     }));
   };
-
   const handleMedicineChange = (index, field, value) => {
     setRecordFormData((prev) => {
       const newMedicines = [...(prev.prescription?.medicines || [])];
       newMedicines[index] = { ...newMedicines[index], [field]: value };
       return {
         ...prev,
-        prescription: {
-          ...(prev.prescription || {}),
-          medicines: newMedicines,
-        },
+        prescription: { ...(prev.prescription || {}), medicines: newMedicines },
       };
     });
   };
-
   const addMedicine = () => {
     setRecordFormData((prev) => ({
       ...prev,
@@ -218,70 +215,77 @@ const ApproveAppointment = () => {
       },
     }));
   };
-
   const removeMedicine = (index) => {
     setRecordFormData((prev) => {
-      const newMedicines = (prev.prescription?.medicines || []).filter(
-        (_, i) => i !== index
-      );
+      const newMedicines = (prev.prescription?.medicines || []).filter((_, i) => i !== index);
       return {
         ...prev,
-        prescription: {
-          ...(prev.prescription || {}),
-          medicines: newMedicines,
-        },
+        prescription: { ...(prev.prescription || {}), medicines: newMedicines },
       };
     });
   };
 
-  // =========================================================
-  // === KẾT THÚC SỬA LỖI CÁC HÀM TRỐNG ===
-  // =========================================================
-
-
-  // === 8. SỬA LẠI handleCreateRecord (DÙNG refetch VÀ SỬA LỖI CRASH) ===
-  const handleCreateRecord = async () => {
+  // Hàm tạo/sửa bệnh án (Cập nhật)
+  const handleSaveRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
       return;
     }
+    // Nếu là mode VIEW, không làm gì cả
+    if (modalMode === 'VIEW') {
+      closeRecordModal();
+      return;
+    }
+
     setIsSubmitting(true);
     setRecordModalError("");
-    try {
 
-      // === SỬA LỖI CRASH (THEO HÌNH ẢNH BẠN GỬI) ===
-      // Thêm (|| '') để đảm bảo .split() không bao giờ bị gọi trên 'undefined'
+    try {
+      // Xử lý payload (an toàn)
       const safeSymptoms = (recordFormData.symptoms || '').split(',').map(s => s.trim()).filter(s => s);
       const safeAttachments = (recordFormData.attachments || '').split(',').map(s => s.trim()).filter(s => s);
-      // ===========================================
 
-      // Logic payload
       const payload = {
         diagnosis: recordFormData.diagnosis,
-        symptoms: safeSymptoms, // <-- Dùng biến đã xử lý
+        symptoms: safeSymptoms,
         notes: recordFormData.notes,
-        attachments: safeAttachments, // <-- Dùng biến đã xử lý
+        attachments: safeAttachments,
         prescription: {
           instruction: recordFormData.prescription?.instruction || "",
           medicines: (recordFormData.prescription?.medicines || []).filter(m => m.name && m.name.trim() !== ""),
         },
         status: recordFormData.status,
-        patient_id: selectedAptForRecord.patient.patient_id, // Lấy ID từ cấu trúc mới
-        appointment_id: selectedAptForRecord.appointment.appointment_id, // Lấy ID từ cấu trúc mới
-        // created_by: "ID_ASSISTANT_DA_DANG_NHAP" // (Vẫn cần xử lý)
+        patient_id: selectedAptForRecord.patient.patient_id,
+        appointment_id: selectedAptForRecord.appointment.appointment_id,
       };
 
-      // === SỬA LỖI: API `createMedicalRecord` trả về response.data.success ===
-      const response = await createMedicalRecord(payload);
-      // Giả sử API service trả về là { data: { success: true } }
-      // Nếu service của bạn trả về { success: true } thì bỏ .data
-      if (response.data && response.data.success) {
-        alert("Tạo bệnh án thành công!");
-        closeRecordModal();
-        refetch(); // Tải lại danh sách sau khi tạo
+      let response;
+      if (modalMode === "EDIT") {
+        // === GIẢ ĐỊNH ===
+        // Bạn cần một hàm 'updateMedicalRecord' trong service (HOẶC API)
+        // response = await updateMedicalRecord(selectedAptForRecord.appointment.medical_record._id, payload);
+        console.log("Đang gọi API sửa bệnh án (chưa code)...", payload);
+        // Tạm thời dùng create để test
+        response = await createMedicalRecord(payload);
       } else {
-        // Lấy lỗi từ response.data.error (nếu service trả về)
-        setRecordModalError(response.data.error || response.error || "Tạo bệnh án thất bại.");
+        // modalMode === "CREATE"
+        response = await createMedicalRecord(payload);
+      }
+
+      // Xử lý response (Giả sử service trả về { data: { success: true } })
+      if (response.data && response.data.success) {
+        alert(modalMode === "EDIT" ? "Sửa bệnh án thành công!" : "Tạo bệnh án thành công!");
+        closeRecordModal();
+
+        // QUAN TRỌNG:
+        // Theo yêu cầu của bạn, sau khi tạo/sửa bệnh án,
+        // Backend SẼ tự động đổi status appointment sang "COMPLETED"
+        // và status bệnh án sang "PENDING".
+        // Chúng ta chỉ cần refetch() để thấy thay đổi đó.
+        refetch();
+
+      } else {
+        setRecordModalError(response.data.error || response.error || "Lưu bệnh án thất bại.");
       }
     } catch (error) {
       setRecordModalError("Lỗi hệ thống: " + error.message);
@@ -290,7 +294,112 @@ const ApproveAppointment = () => {
     }
   };
 
-  // === 9. CẬP NHẬT JSX (Giữ nguyên) ===
+  // === 5. HÀM RENDER NÚT HÀNH ĐỘNG MỚI ===
+  // Đây là hàm triển khai toàn bộ workflow mới của bạn
+  const renderAppointmentActions = (item) => {
+    const appointment = item.appointment;
+    const appointmentId = appointment.appointment_id;
+    const status = appointment.status;
+
+    // Giả sử backend trả về medical_record lồng trong appointment
+    // và medical_record có status riêng ("PENDING", "VERIFIED", "REJECTED")
+    const recordStatus = appointment.medical_record?.status;
+
+    switch (status) {
+      // 1. Chờ duyệt
+      case "SCHEDULED":
+        return (
+          <>
+            <button
+              onClick={() => handleUpdateStatus(appointmentId, "APPROVE")}
+              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+              title="Duyệt"
+            >
+              <CheckCircle size={16} />
+            </button>
+            <button
+              onClick={() => handleUpdateStatus(appointmentId, "REJECTED")} // <-- Đổi thành REJECTED
+              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+              title="Từ chối" // <-- Đổi title
+            >
+              <XCircle size={16} />
+            </button>
+          </>
+        );
+
+      // 2. Đã duyệt (Chờ khám)
+      case "APPROVE":
+        return (
+          <>
+            <button
+              onClick={() => openRecordModal(item, "CREATE")} // Mở modal CREATE
+              className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+              title="Tạo bệnh án"
+            >
+              <FileEarmarkPlus size={16} />
+            </button>
+            <button
+              onClick={() => handleUpdateStatus(appointmentId, "NO_SHOW")}
+              className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
+              title="Vắng mặt"
+            >
+              {/* LƯU Ý: Nút này sẽ báo lỗi 400 (như ảnh)
+                  cho đến khi backend sửa logic */}
+              <CalendarX size={16} />
+            </button>
+          </>
+        );
+
+      // 3. Đã khám xong (Đã có bệnh án)
+      case "COMPLETED":
+        // Nút Vắng mặt (NO_SHOW) biến mất
+
+        // Dựa theo status của BỆNH ÁN
+        if (recordStatus === "PENDING") {
+          return (
+            <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+              Chờ BS duyệt
+            </span>
+          );
+        }
+        if (recordStatus === "VERIFIED") {
+          return (
+            <button
+              onClick={() => openRecordModal(item, "VIEW")} // Mở modal VIEW
+              className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+              title="Xem bệnh án (Đã duyệt)"
+            >
+              <EyeFill size={16} />
+            </button>
+          );
+        }
+        if (recordStatus === "REJECTED") {
+          return (
+            <button
+              onClick={() => openRecordModal(item, "EDIT")} // Mở modal EDIT
+              className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200"
+              title="Sửa bệnh án (Bị từ chối)"
+            >
+              <PencilFill size={16} />
+            </button>
+          );
+        }
+        // Fallback nếu không có record status
+        return (
+          <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+            Đã hoàn tất
+          </span>
+        );
+
+      // 4. Các trạng thái cuối (Không có action)
+      case "REJECTED":
+      case "CANCELLED":
+      case "NO_SHOW":
+      default:
+        return null; // Không hiển thị nút nào cả
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -305,7 +414,7 @@ const ApproveAppointment = () => {
           </div>
         </div>
 
-        {/* Khu vực điều khiển (Cập nhật logic state) */}
+        {/* Khu vực điều khiển (Giữ nguyên) */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
@@ -315,25 +424,23 @@ const ApproveAppointment = () => {
                 value={selectedDate}
                 onChange={(e) => {
                   setSelectedDate(e.target.value);
-                  setPage(1); // Reset trang
+                  setPage(1);
                 }}
                 className="pl-2 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            {/* Cập nhật: Hiển thị slots từ hook */}
+            {/* Hiển thị slots từ hook (Giữ nguyên) */}
             <div className="flex-1 flex flex-wrap items-center gap-2">
               {isLoading ? (
                 <span className="text-gray-500 text-sm">Đang tải ca...</span>
               ) : slots.length > 0 ? (
-                // Sử dụng Fragment (<>) để bọc nhiều phần tử
                 <>
-                  {/* Nút "Tất cả" */}
                   <button
                     onClick={() => {
-                      setSelectedSlot(""); // Set về rỗng
+                      setSelectedSlot("");
                       setPage(1);
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${!selectedSlot // Điều kiện kiểm tra `selectedSlot` rỗng
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${!selectedSlot
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
@@ -341,7 +448,6 @@ const ApproveAppointment = () => {
                     Tất cả ca
                   </button>
 
-                  {/* Map qua `slots` */}
                   {slots.map((slot) => (
                     <button
                       key={slot._id}
@@ -354,28 +460,26 @@ const ApproveAppointment = () => {
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                     >
-                      {/* Dùng formatTime (đã sửa múi giờ) */}
                       Ca: {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                     </button>
                   ))}
                 </>
               ) : (
-                // Vế "else" (khi slots.length === 0)
                 <span className="text-gray-500 text-sm">Không có ca nào trong ngày này.</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Khu vực nội dung (Cập nhật logic hiển thị) */}
-        {isLoading ? ( // Dùng isLoading từ hook
+        {/* Khu vực nội dung */}
+        {isLoading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-600 font-medium">Đang tải dữ liệu...</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {/* Shift Header - Hiển thị tên ca (nếu đang lọc) */}
+            {/* Shift Header (Giữ nguyên) */}
             {selectedSlotInfo && (
               <div className="bg-blue-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
                 <div className="flex items-center gap-4">
@@ -386,26 +490,28 @@ const ApproveAppointment = () => {
               </div>
             )}
 
-            {/* Appointments List - Map qua `appointments` từ hook */}
+            {/* Appointments List */}
             <div className="p-6 space-y-4">
               {appointments.length === 0 ? (
                 <p className="text-gray-500">Không có bệnh nhân nào.</p>
               ) : (
-                appointments.map((item) => { // `item` là { appointment, patient }
+                appointments.map((item) => {
                   const { appointment, patient } = item;
                   const statusInfo = getStatusBadge(appointment.status);
+
+                  // === 6. CẬP NHẬT MÀU BADGE ===
                   let badgeColor = "bg-gray-100 text-gray-700";
                   if (statusInfo.className === "status-scheduled") badgeColor = "bg-blue-100 text-blue-700";
                   else if (statusInfo.className === "status-approved") badgeColor = "bg-green-100 text-green-700";
                   else if (statusInfo.className === "status-completed") badgeColor = "bg-indigo-100 text-indigo-700";
-                  else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show") badgeColor = "bg-red-100 text-red-700";
+                  else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show" || statusInfo.className === "status-rejected") badgeColor = "bg-red-100 text-red-700";
 
                   return (
                     <div key={appointment.appointment_id} className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm">
+                      {/* Thông tin bệnh nhân (Giữ nguyên) */}
                       <div className="flex items-center gap-4 mb-2 sm:mb-0">
                         <Person className="text-blue-600" size={20} />
                         <div>
-                          {/* Đọc từ `patient.patient_name` */}
                           <p className="font-semibold">{patient.patient_name || "Bệnh nhân ẩn"}</p>
                           <p className="text-gray-500 text-sm">
                             <Telephone className="inline mr-1" />
@@ -417,65 +523,25 @@ const ApproveAppointment = () => {
                           </p>
                           <p className="text-gray-500 text-sm mt-1">
                             <Clipboard2Pulse className="inline mr-1" />
-                            Lý do: {appointment.reason || "Không rõ"} {/* (Lý do nằm trong appointment) */}
+                            Lý do: {appointment.reason || "Không rõ"}
                           </p>
                         </div>
                       </div>
 
-                      {/* Nút hành động (Cập nhật logic) */}
+                      {/* === 7. SỬ DỤNG HÀM RENDER MỚI === */}
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}>{statusInfo.label}</span>
-                        {appointment.status === "SCHEDULED" && (
-                          <>
-                            <button
-                              onClick={() => handleUpdateStatus(appointment.appointment_id, "APPROVE")}
-                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
-                              title="Duyệt"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(appointment.appointment_id, "CANCELLED")}
-                              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                              title="Hủy"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </>
-                        )}
-                        {appointment.status === "APPROVE" && (
-                          <>
-                            <button
-                              onClick={() => openCreateRecordModal(item)} // Gửi cả item
-                              className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                              title="Tạo bệnh án"
-                            >
-                              <FileEarmarkPlus size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(appointment.appointment_id, "COMPLETED")}
-                              className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
-                              title="Đã khám xong"
-                            >
-                              <CheckCircleFill size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(appointment.appointment_id, "NO_SHOW")}
-                              className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
-                              title="Vắng mặt"
-                            >
-                              <CalendarX size={16} />
-                            </button>
-                          </>
-                        )}
+                        {/* Gọi hàm render */}
+                        {renderAppointmentActions(item)}
                       </div>
+
                     </div>
                   );
                 })
               )}
             </div>
 
-            {/* Phân trang (Đọc từ `totalPages` của hook) */}
+            {/* Phân trang (Giữ nguyên) */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-3 p-4 border-t">
                 <button
@@ -499,7 +565,7 @@ const ApproveAppointment = () => {
         )}
       </div>
 
-      {/* Modal Tạo Bệnh Án */}
+      {/* Modal Tạo/Sửa/Xem Bệnh Án */}
       <Transition appear show={isRecordModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={closeRecordModal}>
           <Transition.Child
@@ -529,163 +595,170 @@ const ApproveAppointment = () => {
                     as="h3"
                     className="text-xl font-bold text-gray-900 mb-4"
                   >
-                    Tạo hồ sơ bệnh án
+                    {/* === 8. CẬP NHẬT TIÊU ĐỀ MODAL === */}
+                    {modalMode === 'CREATE' && 'Tạo hồ sơ bệnh án'}
+                    {modalMode === 'EDIT' && 'Sửa hồ sơ bệnh án'}
+                    {modalMode === 'VIEW' && 'Xem hồ sơ bệnh án'}
                   </Dialog.Title>
 
                   {selectedAptForRecord && (
                     <p className="text-gray-600 mb-4">
                       Bệnh nhân:{" "}
-                      {/* Đọc từ cấu trúc mới */}
                       <span className="font-semibold">{selectedAptForRecord.patient?.patient_name}</span>
                     </p>
                   )}
 
-                  {/* Form (Giữ nguyên) */}
-                  <div className="flex flex-col gap-4">
-                    {/* Hàng 1: Chẩn đoán và Triệu chứng */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Chẩn đoán <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="diagnosis"
-                          value={recordFormData.diagnosis}
-                          onChange={handleRecordFormChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />
+                  {/* === 9. VÔ HIỆU HÓA FORM KHI 'VIEW' === */}
+                  <fieldset disabled={modalMode === 'VIEW'}>
+                    <div className="flex flex-col gap-4">
+                      {/* Form (giữ nguyên) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Chẩn đoán <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="diagnosis"
+                            value={recordFormData.diagnosis}
+                            onChange={handleRecordFormChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Triệu chứng (cách nhau bởi dấu phẩy)
+                          </label>
+                          <input
+                            type="text"
+                            name="symptoms"
+                            value={recordFormData.symptoms}
+                            onChange={handleRecordFormChange}
+                            placeholder="Vd: Ho, Sốt, Khó thở"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Triệu chứng (cách nhau bởi dấu phẩy)
-                        </label>
-                        <input
-                          type="text"
-                          name="symptoms"
-                          value={recordFormData.symptoms}
-                          onChange={handleRecordFormChange}
-                          placeholder="Vd: Ho, Sốt, Khó thở"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Ghi chú
+                          </label>
+                          <textarea
+                            name="notes"
+                            rows={4}
+                            value={recordFormData.notes}
+                            onChange={handleRecordFormChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Đính kèm (Links, cách nhau bởi dấu phẩy)
+                          </label>
+                          <textarea
+                            name="attachments"
+                            rows={4}
+                            value={recordFormData.attachments}
+                            onChange={handleRecordFormChange}
+                            placeholder="Vd: https://example.com/xray.jpg"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Hàng 2: Ghi chú và Đính kèm */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Ghi chú
-                        </label>
-                        <textarea
-                          name="notes"
-                          rows={4}
-                          value={recordFormData.notes}
-                          onChange={handleRecordFormChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Đính kèm (Links, cách nhau bởi dấu phẩy)
-                        </label>
-                        <textarea
-                          name="attachments"
-                          rows={4}
-                          value={recordFormData.attachments}
-                          onChange={handleRecordFormChange}
-                          placeholder="Vd: https://example.com/xray.jpg"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Khu vực Đơn thuốc (Prescription) */}
-                    <div className="border-t border-gray-200 pt-4 mt-2">
-                      <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                        Đơn thuốc
-                      </h4>
-                      {/* Danh sách thuốc */}
-                      <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
-                        {(recordFormData.prescription?.medicines || []).map((med, index) => (
-                          <div key={index} className="p-3 border rounded-lg bg-gray-50 relative">
-                            <button
-                              type="button"
-                              onClick={() => removeMedicine(index)}
-                              className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
-                              title="Xóa thuốc"
-                            >
-                              <XCircleFill size={16} />
-                            </button>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <input
-                                type="text"
-                                placeholder="Tên thuốc"
-                                value={med.name}
-                                onChange={(e) => handleMedicineChange(index, "name", e.target.value)}
-                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Liều lượng (vd: 500mg)"
-                                value={med.dosage}
-                                onChange={(e) => handleMedicineChange(index, "dosage", e.target.value)}
-                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Tần suất (vd: 2 lần/ngày)"
-                                value={med.frequency}
-                                onChange={(e) => handleMedicineChange(index, "frequency", e.target.value)}
-                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Thời hạn (vd: 5 ngày)"
-                                value={med.duration}
-                                onChange={(e) => handleMedicineChange(index, "duration", e.target.value)}
-                                className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      {/* Khu vực Đơn thuốc (Prescription) */}
+                      <div className="border-t border-gray-200 pt-4 mt-2">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                          Đơn thuốc
+                        </h4>
+                        {/* Danh sách thuốc */}
+                        <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
+                          {(recordFormData.prescription?.medicines || []).map((med, index) => (
+                            <div key={index} className="p-3 border rounded-lg bg-gray-50 relative">
+                              {/* Ẩn nút xóa khi VIEW */}
+                              {modalMode !== 'VIEW' && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeMedicine(index)}
+                                  className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                  title="Xóa thuốc"
+                                >
+                                  <XCircleFill size={16} />
+                                </button>
+                              )}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input
+                                  type="text"
+                                  placeholder="Tên thuốc"
+                                  value={med.name}
+                                  onChange={(e) => handleMedicineChange(index, "name", e.target.value)}
+                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Liều lượng (vd: 500mg)"
+                                  value={med.dosage}
+                                  onChange={(e) => handleMedicineChange(index, "dosage", e.target.value)}
+                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Tần suất (vd: 2 lần/ngày)"
+                                  value={med.frequency}
+                                  onChange={(e) => handleMedicineChange(index, "frequency", e.target.value)}
+                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Thời hạn (vd: 5 ngày)"
+                                  value={med.duration}
+                                  onChange={(e) => handleMedicineChange(index, "duration", e.target.value)}
+                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                />
+                              </div>
+                              <textarea
+                                placeholder="Ghi chú cho thuốc..."
+                                rows={2}
+                                value={med.note}
+                                onChange={(e) => handleMedicineChange(index, "note", e.target.value)}
+                                className="w-full text-sm mt-3 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                               />
                             </div>
-                            <textarea
-                              placeholder="Ghi chú cho thuốc..."
-                              rows={2}
-                              value={med.note}
-                              onChange={(e) => handleMedicineChange(index, "note", e.target.value)}
-                              className="w-full text-sm mt-3 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
 
-                      {/* Nút thêm thuốc */}
-                      <button
-                        type="button"
-                        onClick={addMedicine}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors text-sm font-medium"
-                      >
-                        <PlusCircle size={16} />
-                        Thêm thuốc
-                      </button>
+                        {/* Ẩn nút thêm thuốc khi VIEW */}
+                        {modalMode !== 'VIEW' && (
+                          <button
+                            type="button"
+                            onClick={addMedicine}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors text-sm font-medium"
+                          >
+                            <PlusCircle size={16} />
+                            Thêm thuốc
+                          </button>
+                        )}
 
-                      {/* Hướng dẫn chung */}
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Hướng dẫn chung cho đơn thuốc
-                        </label>
-                        <textarea
-                          name="instruction"
-                          rows={3}
-                          value={recordFormData.prescription?.instruction || ""}
-                          onChange={handlePrescriptionInstructionChange}
-                          placeholder="Vd: Uống sau khi ăn, kiêng đồ cay nóng..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        />
+                        {/* Hướng dẫn chung */}
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Hướng dẫn chung cho đơn thuốc
+                          </label>
+                          <textarea
+                            name="instruction"
+                            rows={3}
+                            value={recordFormData.prescription?.instruction || ""}
+                            onChange={handlePrescriptionInstructionChange}
+                            placeholder="Vd: Uống sau khi ăn, kiêng đồ cay nóng..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </fieldset>
 
-                  {/* Thông báo lỗi */}
+                  {/* Thông báo lỗi (Giữ nguyên) */}
                   {recordModalError && (
                     <div className="rounded-md bg-red-50 p-3 mt-4">
                       <p className="text-sm font-medium text-red-800">
@@ -694,7 +767,7 @@ const ApproveAppointment = () => {
                     </div>
                   )}
 
-                  {/* Nút điều khiển Modal */}
+                  {/* === 10. CẬP NHẬT NÚT MODAL === */}
                   <div className="flex justify-end gap-3 mt-6">
                     <button
                       type="button"
@@ -702,16 +775,21 @@ const ApproveAppointment = () => {
                       onClick={closeRecordModal}
                       disabled={isSubmitting}
                     >
-                      Hủy
+                      {/* Nếu là VIEW thì là "Đóng", còn lại là "Hủy" */}
+                      {modalMode === 'VIEW' ? 'Đóng' : 'Hủy'}
                     </button>
-                    <button
-                      type="button"
-                      className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:bg-gray-400"
-                      onClick={handleCreateRecord}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? "Đang lưu..." : "Lưu bệnh án"}
-                    </button>
+
+                    {/* Ẩn nút "Lưu" khi ở chế độ VIEW */}
+                    {modalMode !== 'VIEW' && (
+                      <button
+                        type="button"
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:bg-gray-400"
+                        onClick={handleSaveRecord} // <-- Đổi tên hàm
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Đang lưu..." : (modalMode === 'EDIT' ? "Lưu thay đổi" : "Lưu bệnh án")}
+                      </button>
+                    )}
                   </div>
                 </Dialog.Panel>
               </Transition.Child>

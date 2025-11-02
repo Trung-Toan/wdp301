@@ -27,6 +27,8 @@ router.get("/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT
 // PUT /verify/appointments/:appointmentId?status=
 // verify appointment
 router.put("/verify/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.verifyAppointment);
+router.put("/update/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateAppointment);
+
 
 /* ========================= Slot ========================= */
 // GET /slots/doctor

@@ -7,6 +7,7 @@ const dateUtils = require("../../utils/date.utils");
 const medical_recordService = require("../../service/medical_record/medicalRecord.service");
 const moment = require("moment-timezone");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
+const mongoose = require("mongoose"); // Thêm dòng này vì bạn dùng mongoose.Types.ObjectId.isValid trong updateAppointment
 
 /* ========================= PATIENTS ========================= */
 // GET /patients
@@ -36,6 +37,7 @@ exports.viewListPatients = async (req, res) => {
 exports.viewPatientById = async (req, res) => {
   try {
     const { patientId } = req.params;
+    // Lưu ý: Có vẻ bạn đang dùng patientId để lấy appointment, nên kiểm tra lại logic này.
     const { appointment } = await appointmentService.getAppointmentById(req, patientId);
 
     return resUtils.successResponse(
@@ -56,6 +58,7 @@ exports.viewPatientById = async (req, res) => {
     );
   }
 };
+
 /* ========================= APPOINTMENTS ========================= */
 // GET /appointments?page=1&limit=10&status=""&slot=""&date=""
 exports.viewAppointments = async (req, res) => {
@@ -120,6 +123,51 @@ exports.verifyAppointment = async (req, res) => {
   }
 };
 
+// PUT /update/appointments/:appointmentId
+// Đã được refactor dựa trên updateMedicalRecord
+exports.updateAppointment = async (req, res) => {
+  const { appointmentId } = req.params;
+  const updateData = req.body;
+  console.log("Received update data for appointment:", appointmentId);
+  if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+    return resUtils.badRequestResponse(res, "ID lịch khám không hợp lệ.");
+  }
+  if (Object.keys(updateData).length === 0) {
+    return resUtils.badRequestResponse(res, "Không có dữ liệu hợp lệ để cập nhật.");
+  }
+  try {
+    const updatedAppointment = await appointmentService.updateAppointment(
+      appointmentId,
+      updateData
+    );
+    if (!updatedAppointment) {
+      return resUtils.notFoundResponse(
+        res,
+        "Không tìm thấy lịch khám hoặc lịch khám không thể cập nhật."
+      );
+    }
+    return resUtils.successResponse(
+      res,
+      updatedAppointment,
+      "Cập nhật lịch khám thành công."
+    );
+  } catch (error) {
+    console.log(`Lỗi update lịch khám tại id ${appointmentId}: `, error);
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return resUtils.badRequestResponse(
+        res,
+        `Lỗi dữ liệu: ${messages.join(", ")}`
+      );
+    }
+    return resUtils.serverErrorResponse(
+      res,
+      error, // Truyền cả đối tượng lỗi để log nếu cần
+      "Lỗi hệ thống không thể cập nhật lịch khám."
+    );
+  }
+}; // <-- ĐÓNG NGOẶC CỦA exports.updateAppointment ĐÃ ĐƯỢC CHUYỂN LÊN ĐÂY
+
 /* ========================= Slot ========================= */
 
 // GET /slots/doctor
@@ -167,10 +215,14 @@ exports.createAppointmentSlot = async (req, res) => {
     start_time = moment.tz(start_time, "Asia/Ho_Chi_Minh").utc().toDate();
     end_time = moment.tz(end_time, "Asia/Ho_Chi_Minh").utc().toDate();
 
-    if (!start_time || !end_time || isNaN(start_time) || isNaN(end_time))
+    if (!start_time || !end_time || isNaN(start_time.getTime()) || isNaN(end_time.getTime())) // Sử dụng getTime() để kiểm tra Date object hợp lệ
       return resUtils.badRequestResponse(res, "Sai định dạng ngày giờ");
 
-    if ((start_time.getHours() * 60 + start_time.getMinutes()) >= (end_time.getHours() * 60 + end_time.getMinutes()))
+    // Lấy giờ và phút (local time) để so sánh
+    const startMinutes = start_time.getHours() * 60 + start_time.getMinutes();
+    const endMinutes = end_time.getHours() * 60 + end_time.getMinutes();
+
+    if (startMinutes >= endMinutes)
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
 
     if (!max_patients || max_patients < 1)
@@ -208,21 +260,38 @@ exports.updateAppointmentSlot = async (req, res) => {
 
     let { fee_amount = 500000, start_time, end_time, max_patients = 10, note = "", status = "" } = req.body;
     console.log("Received update data:", req.body);
-    // Convert string -> Date
-    start_time = moment.tz(start_time, "Asia/Ho_Chi_Minh").utc().toDate();
-    end_time = moment.tz(end_time, "Asia/Ho_Chi_Minh").utc().toDate();
 
-    if (!(start_time || end_time))
-      return resUtils.badRequestResponse(res, "Giờ bắt đầu và giờ kết thúc không được để trống");
-    if ((start_time.getHours() * 60 + start_time.getMinutes()) >= (end_time.getHours() * 60 + end_time.getMinutes()))
+    // Convert string -> Date, kiểm tra sự tồn tại của start_time/end_time trước khi chuyển đổi
+    let updated_start_time = findSlot.start_time;
+    let updated_end_time = findSlot.end_time;
+
+    if (start_time) {
+      updated_start_time = moment.tz(start_time, "Asia/Ho_Chi_Minh").utc().toDate();
+    }
+    if (end_time) {
+      updated_end_time = moment.tz(end_time, "Asia/Ho_Chi_Minh").utc().toDate();
+    }
+
+    // Kiểm tra tính hợp lệ của Date object sau khi chuyển đổi (nếu có)
+    if ((start_time && isNaN(updated_start_time.getTime())) || (end_time && isNaN(updated_end_time.getTime()))) {
+      return resUtils.badRequestResponse(res, "Sai định dạng ngày giờ");
+    }
+
+    // So sánh giờ và phút (local time)
+    const startMinutes = updated_start_time.getHours() * 60 + updated_start_time.getMinutes();
+    const endMinutes = updated_end_time.getHours() * 60 + updated_end_time.getMinutes();
+
+    if (startMinutes >= endMinutes)
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
+
     if (!max_patients || max_patients < 1)
       return resUtils.badRequestResponse(res, "Số lượng người khám trong một slot phải lớn hơn 0");
-    if (!fee_amount || fee_amount < 0)
-      return resUtils.badRequestResponse(res, "Giá không được để trống và phải lớn hơn hoặc bằng 0");
+    if (fee_amount < 0)
+      return resUtils.badRequestResponse(res, "Giá phải lớn hơn hoặc bằng 0");
+
     findSlot.fee_amount = fee_amount;
-    findSlot.start_time = start_time;
-    findSlot.end_time = end_time;
+    findSlot.start_time = updated_start_time;
+    findSlot.end_time = updated_end_time;
     findSlot.max_patients = max_patients;
     findSlot.note = note;
     if (status && (status === "AVAILABLE" || status === "UNAVAILABLE")) {
@@ -238,18 +307,51 @@ exports.updateAppointmentSlot = async (req, res) => {
 
 
 /* ========================= MEDICAL RECORDS ========================= */
+// Hàm validMedicines phải được định nghĩa ở ngoài để các hàm khác có thể sử dụng
+const validMedicines = (res, medicines) => {
+  for (let i = 0; i < medicines.length; i++) {
+    const med = medicines[i];
+    if (!med.name) {
+      return resUtils.badRequestResponse(res, `Tên thuốc (name) tại vị trí ${i + 1} là bắt buộc.`);
+    }
+    if (!med.dosage) {
+      return resUtils.badRequestResponse(res, `Liều dùng (dosage) cho thuốc ${med.name} là bắt buộc.`);
+    }
+    if (!med.frequency) {
+      return resUtils.badRequestResponse(res, `Tần xuất (frequency) cho thuốc ${med.name} là bắt buộc.`);
+    }
+
+    if (!med.duration) {
+      return resUtils.badRequestResponse(res, `Thời gian dùng (duration) cho thuốc ${med.name} là bắt buộc.`);
+    }
+  }
+  return null; // Trả về null nếu hợp lệ
+}
+
+
 // GET GET /created/medical-records?page=&limit=&slot&date=&status=
 exports.viewListMedicalRecords = async (req, res) => {
   const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
   if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
-  let { date = new Date() } = req.body;
+
+  // Lấy giá trị từ query (GET), không phải body
+  let { date } = req.query;
+  // Dùng date hiện tại nếu không có
+  if (!date) {
+    date = new Date();
+  }
 
   let {
     page = 1,
     limit = 10,
-    slot = await slotService.slotAvaiable(assistance.doctor_id, dateUtils.changeToDateWithNowHouse(date)),
+    slot, // Lấy slot từ query nếu có
     status = ""
-  } = req.body;
+  } = req.query;
+
+  // Nếu không có slot trong query, tìm slot availble của bác sĩ
+  if (!slot) {
+    slot = await slotService.slotAvaiable(assistance.doctor_id, dateUtils.changeToDateWithNowHouse(date));
+  }
 
   try {
     const { data, pagination } = await assistantService.getMedicalRecordOfAssistant(assistance._id, page, limit, slot, status);
@@ -273,29 +375,6 @@ exports.viewMedicalRecordDetail = async (req, res) => {
   }
 };
 
-/**
- * Kiểm tra các trường bắt buộc trong từng Medicine
- * @param {ObjectArray} medicines 
- * @returns error if not valid
- */
-const validMedicines = (medicines) => {
-  for (let i = 0; i < medicines.length; i++) {
-    const med = medicines[i];
-    if (!med.name) {
-      return resUtils.badRequestResponse(res, `Tên thuốc (name) tại vị trí ${i + 1} là bắt buộc.`);
-    }
-    if (!med.dosage) {
-      return resUtils.badRequestResponse(res, `Liều dùng (dosage) cho thuốc ${med.name} là bắt buộc.`);
-    }
-    if (!med.frequency) {
-      return resUtils.badRequestResponse(res, `Tần xuất (frequency) cho thuốc ${med.name} là bắt buộc.`);
-    }
-
-    if (!med.duration) {
-      return resUtils.badRequestResponse(res, `Thời gian dùng (duration) cho thuốc ${med.name} là bắt buộc.`);
-    }
-  }
-}
 
 // PUT /medical-records/:recordId
 exports.updateMedicalRecord = async (req, res) => {
@@ -311,7 +390,10 @@ exports.updateMedicalRecord = async (req, res) => {
       return resUtils.badRequestResponse(res, "Trường medicines trong đơn thuốc phải là một mảng.");
     }
     // Kiểm tra các trường bắt buộc trong từng Medicine
-    validMedicines(updateData.prescription.medicines);
+    const validationError = validMedicines(res, updateData.prescription.medicines);
+    if (validationError) {
+      return validationError;
+    }
   }
 
   if (Object.keys(updateData).length === 0) {
@@ -370,7 +452,11 @@ exports.createMedicalRecord = async (req, res) => {
       return resUtils.badRequestResponse(res, "Thông tin đơn thuốc (prescription) không hợp lệ.");
     }
     const medicines = Array.isArray(prescription.medicines) ? prescription.medicines : [];
-    validMedicines(medicines);
+    const validationError = validMedicines(res, medicines);
+    if (validationError) {
+      return validationError;
+    }
+
     const medical_record_data = {
       diagnosis,
       symptoms: Array.isArray(symptoms) ? symptoms : [],
@@ -407,6 +493,7 @@ exports.createMedicalRecord = async (req, res) => {
     return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể tạo hồ sơ bệnh án.");
   }
 };
+
 /* ========================= PROFILE ========================= */
 // GET /profile
 exports.viewProfile = async (req, res) => {
