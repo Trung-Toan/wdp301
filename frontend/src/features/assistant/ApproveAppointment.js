@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, Fragment } from "react";
+import { memo, useState, Fragment } from "react"; // Bỏ useEffect
 import {
   Calendar,
   Person,
@@ -18,12 +18,17 @@ import {
 import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
 
+// === LỖI CÓ THỂ Ở ĐÂY ===
+// Đảm bảo import 2 file này, vì code của bạn đang dùng chúng
+// (Nếu chúng không tồn tại, bạn cần tạo/chuyển chúng từ assistantService.js)
 import {
   updateAppointmentStatus,
   createMedicalRecord,
 } from "../../services/assistantService";
 
+// === 1. DI CHUYỂN IMPORT RA NGOÀI ===
 import { useDataByUrl } from "../../utility/data.utils";
+// === SỬA LỖI: CẦN IMPORT APPOINTMENT_API ĐỂ DÙNG TRONG handleUpdateStatus ===
 import { APPOINTMENT_API } from "../../api/assistant/assistant.api";
 
 // Helper lấy ngày Local (YYYY-MM-DD)
@@ -71,30 +76,6 @@ const ApproveAppointment = () => {
   const [selectedSlot, setSelectedSlot] = useState(""); // Lưu _id của slot
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ==========================================================
-  // === BƯỚC 1: THÊM LOGIC LẤY DOCTOR_ID TỪ SESSION ===
-  // ==========================================================
-  const getDoctorIdFromSession = () => {
-    try {
-      // 1. THAY THẾ 'assistant_user' bằng tên key session/storage của bạn
-      const sessionData = JSON.parse(localStorage.getItem("assistant_user"));
-
-      // 2. THAY THẾ 'managedDoctorId' bằng tên trường chứa ID bác sĩ
-      if (sessionData && sessionData.managedDoctorId) {
-        return sessionData.managedDoctorId;
-      } else {
-        console.error("Lỗi: Không tìm thấy ID bác sĩ trong session.");
-        return null;
-      }
-    } catch (error) {
-      console.error("Lỗi khi đọc session:", error);
-      return null;
-    }
-  };
-
-  const doctorId = getDoctorIdFromSession();
-  // ==========================================================
-
   // State cho Modal Bệnh Án (Giữ nguyên)
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [selectedAptForRecord, setSelectedAptForRecord] = useState(null);
@@ -102,16 +83,11 @@ const ApproveAppointment = () => {
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // === SỬA LẠI PARAMS CHO useDataByUrl ===
+  // === 4. SỬA LẠI PARAMS CHO useDataByUrl ===
   const params = {
     page: page,
     limit: limit,
     date: selectedDate,
-    // ==========================================================
-    // === BƯỚC 2: THÊM doctorId VÀO PARAMS GỬI ĐI ===
-    // (Sửa 'doctor_id' nếu API của bạn yêu cầu tên key khác)
-    doctor_id: doctorId,
-    // ==========================================================
     ...(filterStatus && { status: filterStatus }),
     ...(selectedSlot && { slot: selectedSlot }),
     ...(searchTerm && { search: searchTerm }),
@@ -119,40 +95,58 @@ const ApproveAppointment = () => {
 
   const { data, isLoading, error, refetch } = useDataByUrl({
     url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
-
-    // ==========================================================
-    // === BƯỚC 3: THÊM doctorId VÀO KEY (ĐỂ TỰ ĐỘNG CẬP NHẬT) ===
-    key: ["appointments-list", ...Object.values(params), doctorId],
-    // ==========================================================
-
+    key: ["appointments-list", ...Object.values(params)], // Key động
     params: params,
   });
 
   if (error) console.log("Error fetching appointments:", error);
 
-  // === ĐỌC DỮ LIỆU TỪ HOOK (THEO RESPONSE MỚI) ===
+  // === 5. ĐỌC DỮ LIỆU TỪ HOOK (THEO RESPONSE MỚI) ===
   const appointments = data?.data?.appointments || [];
   const slots = data?.data?.slot?.slot_list || [];
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
   const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
   const totalPages = pagination.totalPages;
-  console.log("selectedSlotInfo: ", selectedSlotInfo);
 
-  // === SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
+  // === 6. SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
+  // === 6. SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
+  // === 6. SỬA LẠI handleUpdateStatus (Thêm LOG để kiểm tra) ===
   const handleUpdateStatus = async (appointmentId, newStatus) => {
+
+    // === LOG 1: Ghi log ID và Trạng thái đang GỬI ĐI ===
+    console.log(`Đang GỬI cập nhật cho ID: ${appointmentId} | Trạng thái mới: ${newStatus}`);
+
     try {
-      const response = await updateAppointmentStatus(appointmentId, newStatus);
-      if (!response.success) {
-        alert(response.error || "Cập nhật trạng thái thất bại.");
-      } else {
-        refetch(); // Tải lại dữ liệu
-      }
+      // 1. Gọi trực tiếp API 'verifyAppointment'
+      const response = await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
+
+      // === LOG 2: Ghi log toàn bộ PHẢN HỒI (response) từ server ===
+      // Đây là log quan trọng nhất. 
+      // Hãy mở console (F12) để xem server trả về gì trong 'response.data'
+      console.log('API Phản Hồi (Thành công HTTP 2xx):', response);
+
+      // 2. Logic thành công:
+      // Nếu code chạy đến đây mà không vào 'catch', nghĩa là API đã thành công (HTTP 200-299)
+      refetch();
+
+      // === LOG 3: Ghi log sau khi gọi refetch ===
+      console.log('Đã gọi refetch() để tải lại dữ liệu.');
+
+
     } catch (error) {
-      console.error("Failed to update status:", error);
-      alert("Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.");
+      // === LOG 4: Ghi log nếu API ném LỖI (HTTP 4xx, 5xx) ===
+      console.error('API Gặp LỖI:', error);
+
+      // Ghi log chi tiết nội dung lỗi mà server trả về (nếu có)
+      if (error.response) {
+        console.error('Nội dung lỗi từ Server:', error.response.data);
+      }
+
+      // 5. Xử lý lỗi
+      const errorMessage = error.response?.data?.error || "Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.";
+      alert(errorMessage);
     }
   };
-
   // Hàm này giữ nguyên
   const getStatusBadge = (status) => {
     const config = {
@@ -178,7 +172,10 @@ const ApproveAppointment = () => {
     setSelectedAptForRecord(null);
   };
 
-  // === BƯỚC 4: BỔ SUNG LẠI CÁC HÀM XỬ LÝ FORM ===
+  // =================================================================
+  // === SỬA LỖI: THÊM LẠI LOGIC CHO CÁC HÀM BỊ TRỐNG (/* ... */) ===
+  // =================================================================
+
   const handleRecordFormChange = (e) => {
     const { name, value } = e.target;
     setRecordFormData((prev) => ({ ...prev, [name]: value }));
@@ -188,42 +185,61 @@ const ApproveAppointment = () => {
     const { value } = e.target;
     setRecordFormData((prev) => ({
       ...prev,
-      prescription: { ...prev.prescription, instruction: value },
+      prescription: {
+        ...(prev.prescription || {}),
+        instruction: value,
+      },
     }));
   };
 
   const handleMedicineChange = (index, field, value) => {
-    const updatedMedicines = [...(recordFormData.prescription?.medicines || [])];
-    updatedMedicines[index] = { ...updatedMedicines[index], [field]: value };
-    setRecordFormData((prev) => ({
-      ...prev,
-      prescription: { ...prev.prescription, medicines: updatedMedicines },
-    }));
+    setRecordFormData((prev) => {
+      const newMedicines = [...(prev.prescription?.medicines || [])];
+      newMedicines[index] = { ...newMedicines[index], [field]: value };
+      return {
+        ...prev,
+        prescription: {
+          ...(prev.prescription || {}),
+          medicines: newMedicines,
+        },
+      };
+    });
   };
 
   const addMedicine = () => {
-    const newMedicine = { name: "", dosage: "", frequency: "", duration: "", note: "" };
     setRecordFormData((prev) => ({
       ...prev,
       prescription: {
-        ...prev.prescription,
-        medicines: [...(prev.prescription?.medicines || []), newMedicine],
+        ...(prev.prescription || {}),
+        medicines: [
+          ...(prev.prescription?.medicines || []),
+          { name: "", dosage: "", frequency: "", duration: "", note: "" },
+        ],
       },
     }));
   };
 
   const removeMedicine = (index) => {
-    const updatedMedicines = [...(recordFormData.prescription?.medicines || [])];
-    updatedMedicines.splice(index, 1);
-    setRecordFormData((prev) => ({
-      ...prev,
-      prescription: { ...prev.prescription, medicines: updatedMedicines },
-    }));
+    setRecordFormData((prev) => {
+      const newMedicines = (prev.prescription?.medicines || []).filter(
+        (_, i) => i !== index
+      );
+      return {
+        ...prev,
+        prescription: {
+          ...(prev.prescription || {}),
+          medicines: newMedicines,
+        },
+      };
+    });
   };
-  // === KẾT THÚC BƯỚC 4 ===
+
+  // =========================================================
+  // === KẾT THÚC SỬA LỖI CÁC HÀM TRỐNG ===
+  // =========================================================
 
 
-  // === SỬA LẠI handleCreateRecord (DÙNG refetch) ===
+  // === 8. SỬA LẠI handleCreateRecord (DÙNG refetch VÀ SỬA LỖI CRASH) ===
   const handleCreateRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
@@ -232,27 +248,40 @@ const ApproveAppointment = () => {
     setIsSubmitting(true);
     setRecordModalError("");
     try {
+
+      // === SỬA LỖI CRASH (THEO HÌNH ẢNH BẠN GỬI) ===
+      // Thêm (|| '') để đảm bảo .split() không bao giờ bị gọi trên 'undefined'
+      const safeSymptoms = (recordFormData.symptoms || '').split(',').map(s => s.trim()).filter(s => s);
+      const safeAttachments = (recordFormData.attachments || '').split(',').map(s => s.trim()).filter(s => s);
+      // ===========================================
+
+      // Logic payload
       const payload = {
         diagnosis: recordFormData.diagnosis,
-        symptoms: recordFormData.symptoms.split(',').map(s => s.trim()).filter(s => s),
+        symptoms: safeSymptoms, // <-- Dùng biến đã xử lý
         notes: recordFormData.notes,
-        attachments: recordFormData.attachments.split(',').map(s => s.trim()).filter(s => s),
+        attachments: safeAttachments, // <-- Dùng biến đã xử lý
         prescription: {
           instruction: recordFormData.prescription?.instruction || "",
           medicines: (recordFormData.prescription?.medicines || []).filter(m => m.name && m.name.trim() !== ""),
         },
         status: recordFormData.status,
-        patient_id: selectedAptForRecord.patient.patient_id,
-        appointment_id: selectedAptForRecord.appointment.appointment_id,
+        patient_id: selectedAptForRecord.patient.patient_id, // Lấy ID từ cấu trúc mới
+        appointment_id: selectedAptForRecord.appointment.appointment_id, // Lấy ID từ cấu trúc mới
+        // created_by: "ID_ASSISTANT_DA_DANG_NHAP" // (Vẫn cần xử lý)
       };
 
-      const res = await createMedicalRecord(payload);
-      if (res.success) {
+      // === SỬA LỖI: API `createMedicalRecord` trả về response.data.success ===
+      const response = await createMedicalRecord(payload);
+      // Giả sử API service trả về là { data: { success: true } }
+      // Nếu service của bạn trả về { success: true } thì bỏ .data
+      if (response.data && response.data.success) {
         alert("Tạo bệnh án thành công!");
         closeRecordModal();
-        refetch(); // Tải lại danh sách
+        refetch(); // Tải lại danh sách sau khi tạo
       } else {
-        setRecordModalError(res.error || "Tạo bệnh án thất bại.");
+        // Lấy lỗi từ response.data.error (nếu service trả về)
+        setRecordModalError(response.data.error || response.error || "Tạo bệnh án thất bại.");
       }
     } catch (error) {
       setRecordModalError("Lỗi hệ thống: " + error.message);
@@ -261,11 +290,11 @@ const ApproveAppointment = () => {
     }
   };
 
-  // === CẬP NHẬT JSX ===
+  // === 9. CẬP NHẬT JSX (Giữ nguyên) ===
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Header (Giữ nguyên) */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6 flex items-center gap-4">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
             <Calendar className="text-white" size={32} />
@@ -276,7 +305,7 @@ const ApproveAppointment = () => {
           </div>
         </div>
 
-        {/* Khu vực điều khiển */}
+        {/* Khu vực điều khiển (Cập nhật logic state) */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
@@ -291,19 +320,20 @@ const ApproveAppointment = () => {
                 className="pl-2 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            {/* Hiển thị slots từ hook */}
+            {/* Cập nhật: Hiển thị slots từ hook */}
             <div className="flex-1 flex flex-wrap items-center gap-2">
               {isLoading ? (
                 <span className="text-gray-500 text-sm">Đang tải ca...</span>
               ) : slots.length > 0 ? (
+                // Sử dụng Fragment (<>) để bọc nhiều phần tử
                 <>
                   {/* Nút "Tất cả" */}
                   <button
                     onClick={() => {
-                      setSelectedSlot("");
+                      setSelectedSlot(""); // Set về rỗng
                       setPage(1);
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${!selectedSlot
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${!selectedSlot // Điều kiện kiểm tra `selectedSlot` rỗng
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
@@ -324,26 +354,28 @@ const ApproveAppointment = () => {
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                     >
+                      {/* Dùng formatTime (đã sửa múi giờ) */}
                       Ca: {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                     </button>
                   ))}
                 </>
               ) : (
+                // Vế "else" (khi slots.length === 0)
                 <span className="text-gray-500 text-sm">Không có ca nào trong ngày này.</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Khu vực nội dung */}
-        {isLoading ? (
+        {/* Khu vực nội dung (Cập nhật logic hiển thị) */}
+        {isLoading ? ( // Dùng isLoading từ hook
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-600 font-medium">Đang tải dữ liệu...</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {/* Shift Header */}
+            {/* Shift Header - Hiển thị tên ca (nếu đang lọc) */}
             {selectedSlotInfo && (
               <div className="bg-blue-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
                 <div className="flex items-center gap-4">
@@ -354,12 +386,12 @@ const ApproveAppointment = () => {
               </div>
             )}
 
-            {/* Appointments List */}
+            {/* Appointments List - Map qua `appointments` từ hook */}
             <div className="p-6 space-y-4">
               {appointments.length === 0 ? (
                 <p className="text-gray-500">Không có bệnh nhân nào.</p>
               ) : (
-                appointments.map((item) => {
+                appointments.map((item) => { // `item` là { appointment, patient }
                   const { appointment, patient } = item;
                   const statusInfo = getStatusBadge(appointment.status);
                   let badgeColor = "bg-gray-100 text-gray-700";
@@ -373,6 +405,7 @@ const ApproveAppointment = () => {
                       <div className="flex items-center gap-4 mb-2 sm:mb-0">
                         <Person className="text-blue-600" size={20} />
                         <div>
+                          {/* Đọc từ `patient.patient_name` */}
                           <p className="font-semibold">{patient.patient_name || "Bệnh nhân ẩn"}</p>
                           <p className="text-gray-500 text-sm">
                             <Telephone className="inline mr-1" />
@@ -384,12 +417,12 @@ const ApproveAppointment = () => {
                           </p>
                           <p className="text-gray-500 text-sm mt-1">
                             <Clipboard2Pulse className="inline mr-1" />
-                            Lý do: {appointment.reason || "Không rõ"}
+                            Lý do: {appointment.reason || "Không rõ"} {/* (Lý do nằm trong appointment) */}
                           </p>
                         </div>
                       </div>
 
-                      {/* Nút hành động */}
+                      {/* Nút hành động (Cập nhật logic) */}
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}>{statusInfo.label}</span>
                         {appointment.status === "SCHEDULED" && (
@@ -413,7 +446,7 @@ const ApproveAppointment = () => {
                         {appointment.status === "APPROVE" && (
                           <>
                             <button
-                              onClick={() => openCreateRecordModal(item)}
+                              onClick={() => openCreateRecordModal(item)} // Gửi cả item
                               className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
                               title="Tạo bệnh án"
                             >
@@ -442,7 +475,7 @@ const ApproveAppointment = () => {
               )}
             </div>
 
-            {/* Phân trang */}
+            {/* Phân trang (Đọc từ `totalPages` của hook) */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-3 p-4 border-t">
                 <button
@@ -502,13 +535,14 @@ const ApproveAppointment = () => {
                   {selectedAptForRecord && (
                     <p className="text-gray-600 mb-4">
                       Bệnh nhân:{" "}
+                      {/* Đọc từ cấu trúc mới */}
                       <span className="font-semibold">{selectedAptForRecord.patient?.patient_name}</span>
                     </p>
                   )}
 
-                  {/* Form */}
+                  {/* Form (Giữ nguyên) */}
                   <div className="flex flex-col gap-4">
-                    {/* Hàng 1 */}
+                    {/* Hàng 1: Chẩn đoán và Triệu chứng */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -537,7 +571,7 @@ const ApproveAppointment = () => {
                       </div>
                     </div>
 
-                    {/* Hàng 2 */}
+                    {/* Hàng 2: Ghi chú và Đính kèm */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -566,11 +600,12 @@ const ApproveAppointment = () => {
                       </div>
                     </div>
 
-                    {/* Đơn thuốc */}
+                    {/* Khu vực Đơn thuốc (Prescription) */}
                     <div className="border-t border-gray-200 pt-4 mt-2">
                       <h4 className="text-lg font-semibold text-gray-800 mb-3">
                         Đơn thuốc
                       </h4>
+                      {/* Danh sách thuốc */}
                       <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
                         {(recordFormData.prescription?.medicines || []).map((med, index) => (
                           <div key={index} className="p-3 border rounded-lg bg-gray-50 relative">
@@ -623,6 +658,7 @@ const ApproveAppointment = () => {
                         ))}
                       </div>
 
+                      {/* Nút thêm thuốc */}
                       <button
                         type="button"
                         onClick={addMedicine}
@@ -632,6 +668,7 @@ const ApproveAppointment = () => {
                         Thêm thuốc
                       </button>
 
+                      {/* Hướng dẫn chung */}
                       <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Hướng dẫn chung cho đơn thuốc

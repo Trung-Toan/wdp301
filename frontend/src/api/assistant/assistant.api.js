@@ -43,7 +43,8 @@ export const APPOINTMENT_API = {
     getAppointmentById: (appointmentId) => axiosInstance.get(APPOINTMENT_API.GET_APPOINTMENT_BY_ID(appointmentId)),
 
     verifyAppointment: (appointmentId, status) =>
-        axiosInstance.put(APPOINTMENT_API.VERIFY_APPOINTMENT(appointmentId), null, { params: { status } }),
+        // Thay thế 'null' bằng một đối tượng rỗng '{}'
+        axiosInstance.put(APPOINTMENT_API.VERIFY_APPOINTMENT(appointmentId), {}, { params: { status } }),
 
 };
 
