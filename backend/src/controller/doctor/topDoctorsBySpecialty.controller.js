@@ -54,6 +54,7 @@ async function getTopDoctorsBySpecialtyController(req, res) {
 async function getTopDoctorsBySingleSpecialtyController(req, res) {
     try {
         const { specialtyId } = req.params;
+
         const { limit = 10, statuses } = req.query;
 
         if (!specialtyId) {
@@ -65,6 +66,7 @@ async function getTopDoctorsBySingleSpecialtyController(req, res) {
 
         // Parse statuses nếu có
         let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'];
+
         if (statuses) {
             parsedStatuses = typeof statuses === 'string'
                 ? statuses.split(',').map(s => s.trim())
