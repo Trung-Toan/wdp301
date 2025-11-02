@@ -57,6 +57,7 @@ const DoctorManagement = () => {
           return {
             id: doc._id,
             name: doc.user_id?.full_name || "Không rõ",
+            avatar: doc.user_id?.avatar_url || null,
             specialty: specialties,
             email: doc.user_id?.account_id?.email || "N/A",
             phone: doc.user_id?.account_id?.phone_number || "N/A",

@@ -253,6 +253,7 @@ exports.getDoctorsByAdminClinic = async (adminAccountId) => {
       .populate({
         path: "user_id",
         populate: { path: "account_id", model: "Account" },
+        select: "full_name avatar_url",
       })
       .populate("specialty_id")
       .populate("clinic_id");

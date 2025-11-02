@@ -4,6 +4,7 @@ import { doctorApi } from "../../../../api";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../hooks/useAuth";
 import "../../../../styles/FeaturedDoctorsSection.css";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 export function FeaturedDoctorsSection() {
     const [doctors, setDoctors] = useState([]);
@@ -71,7 +72,11 @@ export function FeaturedDoctorsSection() {
                                     {/* Doctor Image */}
                                     <div className="doctor-image-wrapper">
                                         <img
-                                            src={doctor.avatar_url || "/placeholder.svg"}
+                                            src={doctor.avatar_url 
+                                                ? doctor.avatar_url.startsWith("http")
+                                                    ? doctor.avatar_url
+                                                    : `${FILE_SERVER_URL}/${doctor.avatar_url}`
+                                                : "/placeholder.svg"}
                                             alt={doctor.full_name || "Bác sĩ"}
                                             className="doctor-image"
                                         />
