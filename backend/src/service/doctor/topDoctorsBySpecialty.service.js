@@ -5,10 +5,6 @@ const Specialty = require("../../model/clinic/Specialty");
 
 /**
  * Lấy top bác sĩ được book nhiều nhất theo từng chuyên ngành
- * @param {Object} options - Các tùy chọn
- * @param {number} options.limit - Số lượng bác sĩ tối đa cho mỗi chuyên ngành (mặc định: 10)
- * @param {Array<string>} options.statuses - Các trạng thái appointment để đếm (mặc định: ['SCHEDULED', 'APPROVE', 'COMPLETED'])
- * @returns {Promise<Array>} Danh sách các chuyên ngành với top bác sĩ
  */
 async function getTopDoctorsBySpecialty({ limit = 10, statuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'] } = {}) {
     try {
@@ -194,11 +190,6 @@ async function getTopDoctorsBySpecialty({ limit = 10, statuses = ['SCHEDULED', '
 
 /**
  * Lấy top bác sĩ được book nhiều nhất cho một chuyên ngành cụ thể
- * @param {string} specialtyId - ID của chuyên ngành
- * @param {Object} options - Các tùy chọn
- * @param {number} options.limit - Số lượng bác sĩ tối đa (mặc định: 10)
- * @param {Array<string>} options.statuses - Các trạng thái appointment để đếm (mặc định: ['SCHEDULED', 'APPROVE', 'COMPLETED'])
- * @returns {Promise<Object>} Thông tin chuyên ngành và danh sách top bác sĩ
  */
 async function getTopDoctorsBySingleSpecialty(specialtyId, { limit = 10, statuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'] } = {}) {
     try {
