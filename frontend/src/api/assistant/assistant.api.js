@@ -2,7 +2,7 @@ import { axiosInstance } from "../axiosInstance";
 
 export const PATIENT_API = {
     GET_LIST_PATIENT: "/assistant/patients",
-    GET_PATIENT_BY_ID: (appointmentId) => `/assistant/patients/${appointmentId}`,
+    GET_APPOINTMENT_BY_PATIENT_ID: (appointmentId) => `/assistant/patients/${appointmentId}`,
     /*************  ``✨ Windsurf Command ⭐  *************/
     /**
      * Lấy danh sách bệnh nhân của trợ lý
@@ -19,7 +19,7 @@ export const PATIENT_API = {
      * @param {number} appointmentId - ID của lịch khám 
      * @returns {Promise<AxiosResponse>}
      */
-    getPatientById: (appointmentId) => axiosInstance.get(PATIENT_API.GET_PATIENT_BY_ID(appointmentId)),
+    getAppointmentByPatientId: (appointmentId) => axiosInstance.get(PATIENT_API.GET_APPOINTMENT_BY_PATIENT_ID(appointmentId)),
 
 };
 
@@ -35,21 +35,25 @@ export const MEDICAL_RECORD_API = {
 
 export const APPOINTMENT_API = {
     GET_LIST_APPOINTMENTS: "/assistant/appointments",
-    GET_APPOINTMENT_BY_ID: (appointmentId) => `/assistant/appointments/${appointmentId}`,
-    VERIFY_APPOINTMENT: (appointmentId) => `/assistant/verify/appointments/${appointmentId}`,
     getListAppointments: (page = 1, limit = 10, status = "", slot = "", search = "", date = "") => axiosInstance.get(APPOINTMENT_API.GET_LIST_APPOINTMENTS, { params: { page, limit, status, slot, search, date } }),
 
     getAppointmentById: (appointmentId) => axiosInstance.get(APPOINTMENT_API.GET_APPOINTMENT_BY_ID(appointmentId)),
+    GET_APPOINTMENT_BY_ID: (appointmentId) => `/assistant/appointments/${appointmentId}`,
 
     verifyAppointment: (appointmentId, status) =>
         axiosInstance.put(APPOINTMENT_API.VERIFY_APPOINTMENT(appointmentId), null, { params: { status } }),
+    VERIFY_APPOINTMENT: (appointmentId) => `/assistant/verify/appointments/${appointmentId}`,
 };
 
 export const SLOT_API = {
-    GET_SLOTS_BY_DOCTOR: (doctorId) => `/assistant/doctors/${doctorId}/slots`,
+    GET_SLOTS_BY_DOCTOR: `/assistant/slots/doctor`,
     GET_DETAILS_SLOT: (slotId) => `/assistant/slots/${slotId}`,
     UPDATE_SLOT_BY_ID: (slotId) => `/assistant/slots/${slotId}/doctor`,
-    getSlotsByDoctor: (doctorId, date = "") => axiosInstance.get(SLOT_API.GET_SLOTS_BY_DOCTOR(doctorId), { params: { date } }),
+    CREATE_SLOT_BY_DOCTOR: "/assistant/slots/doctor",
+
+    createSlotByDoctor: (data) => axiosInstance.post(SLOT_API.CREATE_SLOT_BY_DOCTOR, data),
+
+    getSlotsByDoctor: (date = new Date()) => axiosInstance.get(SLOT_API.GET_SLOTS_BY_DOCTOR, { params: { date } }),
 
     getDetailsSlot: (slotId) => axiosInstance.get(SLOT_API.GET_DETAILS_SLOT(slotId)),
 
