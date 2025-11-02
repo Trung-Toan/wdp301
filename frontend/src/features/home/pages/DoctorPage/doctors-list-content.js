@@ -3,6 +3,7 @@ import { Search, MapPin, Star, Hospital, Award, Stethoscope } from "lucide-react
 import { Link } from "react-router-dom";
 import { doctorApi } from "../../../../api";
 import "../../../../styles/DoctorsListContent.css";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 export default function DoctorsListContent() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -201,7 +202,11 @@ export default function DoctorsListContent() {
                                                 <div className="doctor-card-avatar-wrapper">
                                                     <Link to={`/home/doctordetail/${doctor.id}`}>
                                                         <img
-                                                            src={doctor.image}
+                                                            src={doctor.image
+                                                                ? doctor.image.startsWith("http")
+                                                                    ? doctor.image
+                                                                    : `${FILE_SERVER_URL}/${doctor.image}`
+                                                                : "/placeholder.svg"}
                                                             alt={doctor.fullname}
                                                             className="doctor-card-avatar"
                                                         />
