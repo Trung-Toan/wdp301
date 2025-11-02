@@ -16,6 +16,8 @@ import { doctorApi } from "../../../../api";
 import { useAuth } from "../../../../hooks/useAuth";
 import { axiosInstance } from "../../../../api/axiosInstance";
 import "../../../../styles/DoctorDetailContent.css";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
 
 export function DoctorDetailContent({ doctorId }) {
     const [doctor, setDoctor] = useState(null);
@@ -129,7 +131,10 @@ export function DoctorDetailContent({ doctorId }) {
                             <div className="doctor-info-content">
                                 <div className="doctor-avatar-wrapper">
                                     <img
-                                        src={d.avatar_url || "/placeholder.svg"}
+                                        src={d.avatar_url ? d.avatar_url.startsWith("http")
+                                            ? d.avatar_url
+                                            : `${FILE_SERVER_URL}/${d.avatar_url}`
+                                            : "/placeholder.svg"}
                                         alt={d.name || "Doctor"}
                                         className="doctor-avatar"
                                     />
