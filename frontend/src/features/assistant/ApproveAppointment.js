@@ -136,6 +136,7 @@ const ApproveAppointment = () => {
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
   const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
   const totalPages = pagination.totalPages;
+  console.log("selectedSlotInfo: ", selectedSlotInfo);
 
   // === SỬA LẠI handleUpdateStatus (DÙNG refetch) ===
   const handleUpdateStatus = async (appointmentId, newStatus) => {

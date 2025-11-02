@@ -82,10 +82,6 @@ const SlotSchedule = () => {
     try {
       const res = await SLOT_API.getSlotsByDoctor(selectedDate);
 
-      // === 1. LOG DỮ LIỆU THÔ KHI FETCH ===
-      console.log("--- fetchSlots: Dữ liệu thô nhận về ---", res.data?.data);
-      // ===================================
-
       const sortedSlots = (res.data?.data || []).sort(
         (a, b) => new Date(a.start_time) - new Date(b.start_time)
       );
@@ -98,6 +94,8 @@ const SlotSchedule = () => {
       setLoading(false);
     }
   };
+
+  console.log("Slots hiện tại:", Slots);
 
   useEffect(() => {
     fetchSlots();
