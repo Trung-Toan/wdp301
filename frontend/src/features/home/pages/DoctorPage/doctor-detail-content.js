@@ -432,7 +432,17 @@ export function DoctorDetailContent({ doctorId }) {
                                 clinicId: slot.clinic?._id,
                                 specialtyId: slot.specialty?._id,
                             };
-                            navigate("/booking", { state: { selectedSlot: slotToSend, doctorId: d.id } });
+                            navigate("/booking", { 
+                                state: { 
+                                    selectedSlot: slotToSend, 
+                                    doctorId: d.id,
+                                    doctorName: d.name,
+                                    specialty: d.specialties?.[0]?.name || "Chưa có chuyên khoa",
+                                    hospital: d.clinic?.name || "Chưa có phòng khám",
+                                    price: slotToSend.fee || d.pricing?.minFee || "Chưa có giá",
+                                    doctorAvatar: d.avatar_url || null,
+                                } 
+                            });
                         }}
                     />
                 </div>

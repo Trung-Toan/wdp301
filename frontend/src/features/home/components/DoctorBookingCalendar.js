@@ -91,7 +91,7 @@ export function DoctorBookingCalendar({ doctor }) {
                         ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
                         : "Chưa có giá",
                 time: selectedSlot?.time,
-                image: doctor.avatar_url || "/placeholder.svg",
+                doctorAvatar: doctor.avatar_url || null,
                 doctorId: id,
                 clinicId: selectedSlot?.clinicId,
                 specialtyId: selectedSlot?.specialtyId,

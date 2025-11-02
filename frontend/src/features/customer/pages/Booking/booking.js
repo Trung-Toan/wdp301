@@ -5,10 +5,13 @@ import BookingSuccess from "./bookingSuccess";
 import { patientsApi } from "../../../../api/patients/patientsApi";
 import { provinceApi } from "../../../../api/address/provinceApi";
 import { wardApi } from "../../../../api/address/wardApi";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 export function BookingContent() {
     const location = useLocation();
-    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId } = location.state || {};
+    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar } = location.state || {};
+
+    console.log("doctorAvatar:", doctorAvatar);
 
     const [formData, setFormData] = useState({
         fullName: "",
@@ -203,7 +206,7 @@ export function BookingContent() {
         date: selectedDate || "Chưa chọn ngày",
         time: selectedSlot?.time || "Chưa chọn giờ",
         price: price || "Chưa có giá",
-        image: "/doctor-portrait-male.jpg",
+        image: doctorAvatar || null,
     };
 
     if (!selectedSlot) return <p className="p-4">Vui lòng chọn lịch khám trước</p>;
@@ -371,7 +374,10 @@ export function BookingContent() {
                             <h3 className="font-semibold mb-4">Thông tin lịch khám</h3>
                             <div className="flex gap-4">
                                 <img
-                                    src={sidebarInfo.image}
+                                    src={sidebarInfo.image ? sidebarInfo.image.startsWith("http")
+                                        ? sidebarInfo.image
+                                        : `${FILE_SERVER_URL}/${sidebarInfo.image}`
+                                        : "/placeholder.svg"}
                                     alt={sidebarInfo.doctorName}
                                     className="w-20 h-20 rounded-lg object-cover"
                                 />
