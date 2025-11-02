@@ -637,6 +637,20 @@ const SlotSchedule = () => {
                           className={inputRingClasses}
                         />
                       </div>
+
+                      {/* Note */}
+                      <div>
+                        <label className="block text-sm font-medium leading-6 text-gray-900 mb-1.5">
+                          Ghi chú (tùy chọn)
+                        </label>
+                        <textarea
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          rows={3}
+                          placeholder="Nhập ghi chú cho ca làm việc..."
+                          className={inputRingClasses}
+                        />
+                      </div>
                     </div>
 
                     {modalError && (
