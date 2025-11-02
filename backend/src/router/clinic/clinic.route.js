@@ -46,22 +46,15 @@ router.get("/search", getClinicsByFilters);
  *   get:
  *     tags: [Clinic]
  *     summary: Lấy top phòng khám được book nhiều nhất
- *     description: "Trả về danh sách các phòng khám được đặt lịch nhiều nhất, sắp xếp theo số lượng booking giảm dần"
  *     parameters:
  *       - in: query
  *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *           minimum: 1
- *           maximum: 100
- *         description: Số lượng phòng khám tối đa (mặc định 10)
+ *         schema: { type: integer, default: 10, minimum: 1, maximum: 100 }
+ *         description: Số lượng phòng khám tối đa
  *       - in: query
  *         name: statuses
- *         schema:
- *           type: string
- *           example: "SCHEDULED,APPROVE,COMPLETED"
- *         description: "Các trạng thái appointment để đếm, phân cách bằng dấu phẩy (mặc định: SCHEDULED,APPROVE,COMPLETED)"
+ *         schema: { type: string, example: "SCHEDULED,APPROVE,COMPLETED" }
+ *         description: Các trạng thái appointment để đếm
  *     responses:
  *       200:
  *         description: Danh sách top phòng khám
