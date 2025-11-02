@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { clinicApi } from "../../../api/clinic/clinicApi";
 import { useAuth } from "../../../hooks/useAuth";
 import ClinicBookingForm from "../components/ClinicBookingForm";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 export default function FacilityDetail() {
     const { id: clinicId } = useParams();
@@ -21,7 +22,7 @@ export default function FacilityDetail() {
     const [reviews, setReviews] = useState([]);
     const [doctorsMeta, setDoctorsMeta] = useState(null);
     const [reviewsMeta, setReviewsMeta] = useState(null);
-    
+
     // Loading states
     const [loading, setLoading] = useState(true);
     const [doctorsLoading, setDoctorsLoading] = useState(false);
@@ -66,7 +67,7 @@ export default function FacilityDetail() {
     useEffect(() => {
         const fetchDoctors = async () => {
             if (activeTab !== "doctors") return;
-            
+
             try {
                 setDoctorsLoading(true);
                 const response = await clinicApi.getClinicDoctors(clinicId, {
@@ -94,7 +95,7 @@ export default function FacilityDetail() {
     useEffect(() => {
         const fetchReviews = async () => {
             if (activeTab !== "reviews") return;
-            
+
             try {
                 setReviewsLoading(true);
                 const response = await clinicApi.getClinicReviews(clinicId, {
@@ -144,7 +145,7 @@ export default function FacilityDetail() {
     // Handle submit review
     const handleSubmitReview = async (e) => {
         e.preventDefault();
-        
+
         if (!user) {
             setReviewError("Bạn cần đăng nhập để đánh giá");
             return;
@@ -218,8 +219,8 @@ export default function FacilityDetail() {
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy</h2>
                     <p className="text-red-600 mb-6">{error || "Không tìm thấy phòng khám"}</p>
-                    <Link 
-                        to="/home/facility" 
+                    <Link
+                        to="/home/facility"
                         className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-medium shadow-lg hover:shadow-xl"
                     >
                         <ChevronLeft className="h-5 w-5" />
@@ -235,8 +236,8 @@ export default function FacilityDetail() {
             {/* Back Button */}
             <div className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md shadow-sm">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <Link 
-                        to="/home/facility" 
+                    <Link
+                        to="/home/facility"
                         className="inline-flex items-center gap-2 text-gray-700 hover:text-sky-600 transition-all group font-medium"
                     >
                         <div className="p-1.5 rounded-lg bg-gray-100 group-hover:bg-sky-100 transition-colors">
@@ -255,19 +256,19 @@ export default function FacilityDetail() {
                         {/* Banner */}
                         {clinicData.banner_url && (
                             <div className="relative overflow-hidden rounded-3xl shadow-2xl group">
-                                <img 
-                                    src={clinicData.banner_url} 
-                                    alt={clinicData.name} 
-                                    className="w-full h-52 sm:h-72 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700" 
+                                <img
+                                    src={clinicData.banner_url}
+                                    alt={clinicData.name}
+                                    className="w-full h-52 sm:h-72 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                                 <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
                                     <div className="flex items-center gap-3 mb-2">
                                         {clinicData.logo_url && (
-                                            <img 
-                                                src={clinicData.logo_url} 
-                                                alt={`${clinicData.name} logo`} 
-                                                className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-2xl border-4 border-white/90 bg-white p-2 shadow-lg" 
+                                            <img
+                                                src={clinicData.logo_url}
+                                                alt={`${clinicData.name} logo`}
+                                                className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-2xl border-4 border-white/90 bg-white p-2 shadow-lg"
                                             />
                                         )}
                                         <div>
@@ -301,10 +302,10 @@ export default function FacilityDetail() {
                                         <div className="flex-shrink-0">
                                             <div className="relative">
                                                 <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-blue-600 rounded-2xl blur-lg opacity-30"></div>
-                                                <img 
-                                                    src={clinicData.logo_url} 
-                                                    alt={`${clinicData.name} logo`} 
-                                                    className="relative w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-2xl border-4 border-white shadow-xl bg-white p-3" 
+                                                <img
+                                                    src={clinicData.logo_url}
+                                                    alt={`${clinicData.name} logo`}
+                                                    className="relative w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-2xl border-4 border-white shadow-xl bg-white p-3"
                                                 />
                                             </div>
                                         </div>
@@ -313,7 +314,7 @@ export default function FacilityDetail() {
                                         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">
                                             {clinicData.name}
                                         </h1>
-                                        
+
                                         {/* Stats */}
                                         <div className="flex flex-wrap items-center gap-3">
                                             <div className="flex items-center gap-2 bg-gradient-to-r from-amber-50 to-amber-100 px-4 py-2 rounded-xl border border-amber-200 shadow-sm">
@@ -330,7 +331,7 @@ export default function FacilityDetail() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {clinicData.description && (
                                     <div className="border-t border-gray-200 pt-6 mt-6">
                                         <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3 flex items-center gap-2">
@@ -344,29 +345,43 @@ export default function FacilityDetail() {
                                 )}
 
                                 {clinicData.address && (() => {
-                                // Nếu address là object, build địa chỉ từ các parts
-                                if (typeof clinicData.address === 'object' && clinicData.address !== null) {
-                                    const parts = [];
-                                    if (clinicData.address.houseNumber) parts.push(clinicData.address.houseNumber);
-                                    if (clinicData.address.alley) parts.push(clinicData.address.alley);
-                                    if (clinicData.address.street) parts.push(clinicData.address.street);
-                                    if (clinicData.address.ward) {
-                                        parts.push(typeof clinicData.address.ward === 'object' 
-                                            ? clinicData.address.ward.name 
-                                            : clinicData.address.ward);
+                                    // Nếu address là object, build địa chỉ từ các parts
+                                    if (typeof clinicData.address === 'object' && clinicData.address !== null) {
+                                        const parts = [];
+                                        if (clinicData.address.houseNumber) parts.push(clinicData.address.houseNumber);
+                                        if (clinicData.address.alley) parts.push(clinicData.address.alley);
+                                        if (clinicData.address.street) parts.push(clinicData.address.street);
+                                        if (clinicData.address.ward) {
+                                            parts.push(typeof clinicData.address.ward === 'object'
+                                                ? clinicData.address.ward.name
+                                                : clinicData.address.ward);
+                                        }
+                                        if (clinicData.address.district) {
+                                            parts.push(typeof clinicData.address.district === 'object'
+                                                ? clinicData.address.district.name
+                                                : clinicData.address.district);
+                                        }
+                                        if (clinicData.address.province) {
+                                            parts.push(typeof clinicData.address.province === 'object'
+                                                ? clinicData.address.province.name
+                                                : clinicData.address.province);
+                                        }
+                                        const addressString = parts.join(", ");
+
+                                        return (
+                                            <div className="mt-6 flex items-start gap-3 text-gray-700 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
+                                                <div className="flex-shrink-0 p-2 bg-sky-100 rounded-lg">
+                                                    <MapPin className="h-5 w-5 text-sky-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Địa chỉ</p>
+                                                    <span className="text-sm font-medium">{addressString}</span>
+                                                </div>
+                                            </div>
+                                        );
                                     }
-                                    if (clinicData.address.district) {
-                                        parts.push(typeof clinicData.address.district === 'object' 
-                                            ? clinicData.address.district.name 
-                                            : clinicData.address.district);
-                                    }
-                                    if (clinicData.address.province) {
-                                        parts.push(typeof clinicData.address.province === 'object' 
-                                            ? clinicData.address.province.name 
-                                            : clinicData.address.province);
-                                    }
-                                    const addressString = parts.join(", ");
-                                    
+
+                                    // Nếu address là string thì hiển thị trực tiếp
                                     return (
                                         <div className="mt-6 flex items-start gap-3 text-gray-700 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
                                             <div className="flex-shrink-0 p-2 bg-sky-100 rounded-lg">
@@ -374,25 +389,11 @@ export default function FacilityDetail() {
                                             </div>
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Địa chỉ</p>
-                                                <span className="text-sm font-medium">{addressString}</span>
+                                                <span className="text-sm font-medium">{clinicData.address}</span>
                                             </div>
                                         </div>
                                     );
-                                }
-                                
-                                // Nếu address là string thì hiển thị trực tiếp
-                                return (
-                                    <div className="mt-6 flex items-start gap-3 text-gray-700 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
-                                        <div className="flex-shrink-0 p-2 bg-sky-100 rounded-lg">
-                                            <MapPin className="h-5 w-5 text-sky-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Địa chỉ</p>
-                                            <span className="text-sm font-medium">{clinicData.address}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
+                                })()}
                             </div>
                         )}
 
@@ -412,29 +413,43 @@ export default function FacilityDetail() {
                                 )}
 
                                 {clinicData.address && (() => {
-                                // Nếu address là object, build địa chỉ từ các parts
-                                if (typeof clinicData.address === 'object' && clinicData.address !== null) {
-                                    const parts = [];
-                                    if (clinicData.address.houseNumber) parts.push(clinicData.address.houseNumber);
-                                    if (clinicData.address.alley) parts.push(clinicData.address.alley);
-                                    if (clinicData.address.street) parts.push(clinicData.address.street);
-                                    if (clinicData.address.ward) {
-                                        parts.push(typeof clinicData.address.ward === 'object' 
-                                            ? clinicData.address.ward.name 
-                                            : clinicData.address.ward);
+                                    // Nếu address là object, build địa chỉ từ các parts
+                                    if (typeof clinicData.address === 'object' && clinicData.address !== null) {
+                                        const parts = [];
+                                        if (clinicData.address.houseNumber) parts.push(clinicData.address.houseNumber);
+                                        if (clinicData.address.alley) parts.push(clinicData.address.alley);
+                                        if (clinicData.address.street) parts.push(clinicData.address.street);
+                                        if (clinicData.address.ward) {
+                                            parts.push(typeof clinicData.address.ward === 'object'
+                                                ? clinicData.address.ward.name
+                                                : clinicData.address.ward);
+                                        }
+                                        if (clinicData.address.district) {
+                                            parts.push(typeof clinicData.address.district === 'object'
+                                                ? clinicData.address.district.name
+                                                : clinicData.address.district);
+                                        }
+                                        if (clinicData.address.province) {
+                                            parts.push(typeof clinicData.address.province === 'object'
+                                                ? clinicData.address.province.name
+                                                : clinicData.address.province);
+                                        }
+                                        const addressString = parts.join(", ");
+
+                                        return (
+                                            <div className="flex items-start gap-3 text-gray-700 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
+                                                <div className="flex-shrink-0 p-2 bg-sky-100 rounded-lg">
+                                                    <MapPin className="h-5 w-5 text-sky-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Địa chỉ</p>
+                                                    <span className="text-sm font-medium">{addressString}</span>
+                                                </div>
+                                            </div>
+                                        );
                                     }
-                                    if (clinicData.address.district) {
-                                        parts.push(typeof clinicData.address.district === 'object' 
-                                            ? clinicData.address.district.name 
-                                            : clinicData.address.district);
-                                    }
-                                    if (clinicData.address.province) {
-                                        parts.push(typeof clinicData.address.province === 'object' 
-                                            ? clinicData.address.province.name 
-                                            : clinicData.address.province);
-                                    }
-                                    const addressString = parts.join(", ");
-                                    
+
+                                    // Nếu address là string thì hiển thị trực tiếp
                                     return (
                                         <div className="flex items-start gap-3 text-gray-700 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
                                             <div className="flex-shrink-0 p-2 bg-sky-100 rounded-lg">
@@ -442,25 +457,11 @@ export default function FacilityDetail() {
                                             </div>
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Địa chỉ</p>
-                                                <span className="text-sm font-medium">{addressString}</span>
+                                                <span className="text-sm font-medium">{clinicData.address}</span>
                                             </div>
                                         </div>
                                     );
-                                }
-                                
-                                // Nếu address là string thì hiển thị trực tiếp
-                                return (
-                                    <div className="flex items-start gap-3 text-gray-700 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
-                                        <div className="flex-shrink-0 p-2 bg-sky-100 rounded-lg">
-                                            <MapPin className="h-5 w-5 text-sky-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Địa chỉ</p>
-                                            <span className="text-sm font-medium">{clinicData.address}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
+                                })()}
                             </div>
                         )}
                     </div>
@@ -474,9 +475,9 @@ export default function FacilityDetail() {
                                 </div>
                                 Liên hệ & Đặt lịch
                             </h3>
-                            
+
                             <div className="space-y-3">
-                                <button 
+                                <button
                                     onClick={() => setShowBookingForm(true)}
                                     className="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white py-4 rounded-xl hover:from-sky-600 hover:to-blue-700 flex items-center justify-center gap-2 font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                                 >
@@ -485,7 +486,7 @@ export default function FacilityDetail() {
                                 </button>
 
                                 {clinicData.phone && (
-                                    <a 
+                                    <a
                                         href={`tel:${clinicData.phone}`}
                                         className="w-full border-2 border-sky-200 bg-sky-50 text-sky-700 py-4 rounded-xl hover:bg-sky-100 hover:border-sky-300 flex items-center justify-center gap-2 font-semibold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                                     >
@@ -516,9 +517,9 @@ export default function FacilityDetail() {
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Website</p>
-                                            <a 
-                                                href={clinicData.website.startsWith('http') ? clinicData.website : `https://${clinicData.website}`} 
-                                                target="_blank" 
+                                            <a
+                                                href={clinicData.website.startsWith('http') ? clinicData.website : `https://${clinicData.website}`}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-sm text-sky-600 hover:text-sky-700 hover:underline break-all font-medium"
                                             >
@@ -561,19 +562,18 @@ export default function FacilityDetail() {
                             { key: "doctors", label: "Bác sĩ", icon: Users },
                             { key: "reviews", label: "Đánh giá", icon: Star }
                         ].map(({ key, label, icon: Icon }) => (
-                        <button
+                            <button
                                 key={key}
                                 onClick={() => setActiveTab(key)}
-                                className={`px-6 py-3.5 rounded-xl font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
-                                    activeTab === key
-                                        ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg transform scale-105"
-                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                }`}
+                                className={`px-6 py-3.5 rounded-xl font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === key
+                                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg transform scale-105"
+                                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                    }`}
                             >
                                 {Icon && <Icon className={`h-5 w-5 ${activeTab === key ? 'text-white' : ''}`} />}
                                 {label}
-                        </button>
-                    ))}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -590,17 +590,17 @@ export default function FacilityDetail() {
                             {clinicData.specialties && clinicData.specialties.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {clinicData.specialties.map((sp) => (
-                                        <div 
-                                            key={sp.id} 
+                                        <div
+                                            key={sp.id}
                                             className="group bg-gradient-to-br from-sky-50 via-blue-50 to-purple-50 border-2 border-sky-200 px-5 py-5 rounded-2xl hover:shadow-xl hover:border-sky-400 hover:-translate-y-1 transition-all cursor-pointer"
                                         >
                                             <div className="flex items-start gap-3">
                                                 {sp.icon_url && (
                                                     <div className="flex-shrink-0 p-2 bg-white rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
-                                                        <img 
-                                                            src={sp.icon_url} 
-                                                            alt={sp.name} 
-                                                            className="w-10 h-10 group-hover:scale-110 transition-transform" 
+                                                        <img
+                                                            src={sp.icon_url}
+                                                            alt={sp.name}
+                                                            className="w-10 h-10 group-hover:scale-110 transition-transform"
                                                         />
                                                     </div>
                                                 )}
@@ -616,15 +616,15 @@ export default function FacilityDetail() {
                                                 </div>
                                             </div>
                                         </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
                             ) : (
                                 <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
                                     <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Stethoscope className="h-8 w-8 text-gray-400" />
                                     </div>
                                     <p className="text-gray-600 font-medium">Chưa có thông tin chuyên khoa</p>
-                        </div>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -666,82 +666,85 @@ export default function FacilityDetail() {
                                         const doctorId = doctor._id || doctor.id;
                                         console.log("👨‍⚕️ Doctor:", doctor.user?.full_name, "ID:", doctorId);
                                         return (
-                                        <Link
-                                            key={doctorId}
-                                            to={`/home/doctordetail/${doctorId}`}
-                                            className="group bg-white p-6 rounded-2xl shadow-lg border-2 border-transparent hover:border-sky-300 hover:shadow-xl transition-all"
-                                        >
-                                            <div className="flex gap-4 sm:gap-6">
-                                                <div className="flex-shrink-0">
-                                                    <img 
-                                                        src={doctor.user?.avatar_url || "/default-avatar.png"} 
-                                                        alt={doctor.user?.full_name} 
-                                                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover ring-4 ring-sky-50 group-hover:ring-sky-100 transition-all" 
-                                                    />
+                                            <Link
+                                                key={doctorId}
+                                                to={`/home/doctordetail/${doctorId}`}
+                                                className="group bg-white p-6 rounded-2xl shadow-lg border-2 border-transparent hover:border-sky-300 hover:shadow-xl transition-all"
+                                            >
+                                                <div className="flex gap-4 sm:gap-6">
+                                                    <div className="flex-shrink-0">
+                                                        <img
+                                                            src={doctor.user?.avatar_url
+                                                                ? doctor.user?.avatar_url.startsWith("http")
+                                                                    ? doctor.user?.avatar_url
+                                                                    : `${FILE_SERVER_URL}/${doctor.user?.avatar_url}`
+                                                                : "/placeholder.svg"}
+                                                            alt={doctor.user?.full_name}
+                                                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover ring-4 ring-sky-50 group-hover:ring-sky-100 transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="font-bold text-lg sm:text-xl text-gray-900 group-hover:text-sky-700 transition-colors mb-1">
+                                                            {doctor.title} {doctor.user?.full_name}
+                                                        </h4>
+                                                        {doctor.degree && (
+                                                            <div className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-2 py-1 rounded-md mb-2">
+                                                                {doctor.degree}
+                                                            </div>
+                                                        )}
+                                                        {doctor.specialties && doctor.specialties.length > 0 && (
+                                                            <p className="text-sm text-gray-600 flex items-center gap-1 mb-1">
+                                                                <Building2 className="h-3.5 w-3.5" />
+                                                                {doctor.specialties.map(s => s.name).join(", ")}
+                                                            </p>
+                                                        )}
+                                                        {doctor.experience && (
+                                                            <p className="text-sm text-gray-500 mb-2">
+                                                                ⏱️ {doctor.experience} năm kinh nghiệm
+                                                            </p>
+                                                        )}
+                                                        <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-lg w-fit">
+                                                            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                                            <span className="text-sm font-bold text-amber-700">{doctor.rating || 0}</span>
+                                                            <span className="text-xs text-amber-600">({doctor.review_count || 0})</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-bold text-lg sm:text-xl text-gray-900 group-hover:text-sky-700 transition-colors mb-1">
-                                                        {doctor.title} {doctor.user?.full_name}
-                                                    </h4>
-                                                    {doctor.degree && (
-                                                        <div className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-2 py-1 rounded-md mb-2">
-                                                            {doctor.degree}
-                                            </div>
-                                                    )}
-                                                    {doctor.specialties && doctor.specialties.length > 0 && (
-                                                        <p className="text-sm text-gray-600 flex items-center gap-1 mb-1">
-                                                            <Building2 className="h-3.5 w-3.5" />
-                                                            {doctor.specialties.map(s => s.name).join(", ")}
-                                                        </p>
-                                                    )}
-                                                    {doctor.experience && (
-                                                        <p className="text-sm text-gray-500 mb-2">
-                                                            ⏱️ {doctor.experience} năm kinh nghiệm
-                                                        </p>
-                                                    )}
-                                                    <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-lg w-fit">
-                                                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                                                        <span className="text-sm font-bold text-amber-700">{doctor.rating || 0}</span>
-                                                        <span className="text-xs text-amber-600">({doctor.review_count || 0})</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                        </Link>
+                                            </Link>
                                         );
                                     })}
-                        </div>
+                                </div>
 
-                        {/* Pagination */}
+                                {/* Pagination */}
                                 {doctorsMeta && doctorsMeta.totalPages > 1 && (
                                     <div className="flex flex-wrap justify-center gap-2 mt-8">
-                            <button
-                                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                                disabled={currentPage === 1}
+                                        <button
+                                            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                                            disabled={currentPage === 1}
                                             className="px-4 py-2.5 border-2 border-sky-200 rounded-xl hover:bg-sky-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-gray-700 transition-all"
-                            >
+                                        >
                                             ← Trước
-                            </button>
+                                        </button>
                                         {[...Array(doctorsMeta.totalPages)].map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                                className={`px-4 py-2.5 rounded-xl font-semibold transition-all ${
-                                                    currentPage === i + 1 
-                                                        ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md" 
-                                                        : "border-2 border-gray-200 text-gray-700 hover:bg-gray-50"
-                                        }`}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
-                            <button
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentPage(i + 1)}
+                                                className={`px-4 py-2.5 rounded-xl font-semibold transition-all ${currentPage === i + 1
+                                                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md"
+                                                    : "border-2 border-gray-200 text-gray-700 hover:bg-gray-50"
+                                                    }`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                        <button
                                             onClick={() => setCurrentPage((p) => Math.min(p + 1, doctorsMeta.totalPages))}
                                             disabled={currentPage === doctorsMeta.totalPages}
                                             className="px-4 py-2.5 border-2 border-sky-200 rounded-xl hover:bg-sky-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-gray-700 transition-all"
                                         >
                                             Sau →
-                            </button>
-                        </div>
+                                        </button>
+                                    </div>
                                 )}
                             </>
                         ) : (
@@ -804,9 +807,9 @@ export default function FacilityDetail() {
                                             {clinicData?.doctor_count > 0 && doctors.map((doctor) => {
                                                 const doctorId = doctor._id || doctor.id;
                                                 return (
-                                                <option key={doctorId} value={doctorId}>
-                                                    {doctor.title} {doctor.user?.full_name}
-                                                </option>
+                                                    <option key={doctorId} value={doctorId}>
+                                                        {doctor.title} {doctor.user?.full_name}
+                                                    </option>
                                                 );
                                             })}
                                         </select>
@@ -826,11 +829,10 @@ export default function FacilityDetail() {
                                                     className="focus:outline-none transition-transform hover:scale-125"
                                                 >
                                                     <Star
-                                                        className={`h-10 w-10 ${
-                                                            star <= reviewRating
-                                                                ? "fill-amber-400 text-amber-400"
-                                                                : "text-gray-300"
-                                                        }`}
+                                                        className={`h-10 w-10 ${star <= reviewRating
+                                                            ? "fill-amber-400 text-amber-400"
+                                                            : "text-gray-300"
+                                                            }`}
                                                     />
                                                 </button>
                                             ))}
@@ -921,8 +923,8 @@ export default function FacilityDetail() {
                                 <p className="text-sky-900 font-medium mb-2">
                                     Bạn cần đăng nhập để viết đánh giá
                                 </p>
-                                <Link 
-                                    to="/login" 
+                                <Link
+                                    to="/login"
                                     className="inline-block px-6 py-2.5 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition-colors font-medium mt-2"
                                 >
                                     Đăng nhập ngay
@@ -945,9 +947,9 @@ export default function FacilityDetail() {
                                                 <div className="flex items-start gap-3">
                                                     <div className="flex-shrink-0">
                                                         {review.patient?.avatar ? (
-                                                            <img 
-                                                                src={review.patient.avatar} 
-                                                                alt={review.patient.name} 
+                                                            <img
+                                                                src={review.patient.avatar}
+                                                                alt={review.patient.name}
                                                                 className="w-12 h-12 rounded-full object-cover ring-2 ring-sky-100"
                                                             />
                                                         ) : (
@@ -977,17 +979,16 @@ export default function FacilityDetail() {
                                                 </div>
                                                 <div className="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-full w-fit">
                                                     {Array.from({ length: 5 }).map((_, i) => (
-                                                        <Star 
-                                                            key={i} 
-                                                            className={`h-4 w-4 ${
-                                                                i < review.rating 
-                                                                    ? "text-amber-400 fill-amber-400" 
-                                                                    : "text-gray-300"
-                                                            }`} 
+                                                        <Star
+                                                            key={i}
+                                                            className={`h-4 w-4 ${i < review.rating
+                                                                ? "text-amber-400 fill-amber-400"
+                                                                : "text-gray-300"
+                                                                }`}
                                                         />
-                            ))}
-                        </div>
-                    </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                             {review.comment && (
                                                 <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
                                                     "{review.comment}"
@@ -1011,11 +1012,10 @@ export default function FacilityDetail() {
                                             <button
                                                 key={i}
                                                 onClick={() => setCurrentPage(i + 1)}
-                                                className={`px-4 py-2.5 rounded-xl font-semibold transition-all ${
-                                                    currentPage === i + 1 
-                                                        ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md" 
-                                                        : "border-2 border-gray-200 text-gray-700 hover:bg-gray-50"
-                                                }`}
+                                                className={`px-4 py-2.5 rounded-xl font-semibold transition-all ${currentPage === i + 1
+                                                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md"
+                                                    : "border-2 border-gray-200 text-gray-700 hover:bg-gray-50"
+                                                    }`}
                                             >
                                                 {i + 1}
                                             </button>
@@ -1043,7 +1043,7 @@ export default function FacilityDetail() {
 
             {/* Booking Form Modal */}
             {showBookingForm && (
-                <ClinicBookingForm 
+                <ClinicBookingForm
                     clinic={clinicData}
                     onClose={() => setShowBookingForm(false)}
                     onSuccess={(appointment) => {
