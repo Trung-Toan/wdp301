@@ -5,6 +5,8 @@ const authMiddleware = require("../../middleware/auth");
 
 // Middleware xác thực cho admin clinic
 const adminClinicAuth = authMiddleware.authenticateAdminClinic;
+// Middleware xác thực cho admin system
+const adminSystemAuth = authMiddleware.authenticateAdminSystem;
 
 /**
  * @swagger
@@ -226,5 +228,135 @@ router.post("/create", adminClinicAuth, clinicRegistrationController.createRegis
  *                     $ref: '#/components/schemas/Specialty'
  */
 router.get("/specialties", clinicRegistrationController.getSpecialties);
+
+/**
+ * @swagger
+ * /api/clinic-registration/pending:
+ *   get:
+ *     tags: [Clinic Registration]
+ *     summary: Lấy danh sách phòng khám chờ duyệt (Admin System)
+ *     description: Admin System xem danh sách các yêu cầu đăng ký phòng khám đang chờ duyệt
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách phòng khám chờ duyệt thành công"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Clinic'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/pending", adminSystemAuth, clinicRegistrationController.getPendingClinics);
+
+/**
+ * @swagger
+ * /api/clinic-registration/approve/{clinic_id}:
+ *   put:
+ *     tags: [Clinic Registration]
+ *     summary: Duyệt phòng khám (Admin System)
+ *     description: Admin System duyệt yêu cầu đăng ký phòng khám
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: clinic_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của phòng khám cần duyệt
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               review_notes:
+ *                 type: string
+ *                 example: "Phòng khám đạt yêu cầu"
+ *     responses:
+ *       200:
+ *         description: Duyệt thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Duyệt phòng khám thành công"
+ *                 data:
+ *                   $ref: '#/components/schemas/Clinic'
+ *       400:
+ *         description: Lỗi dữ liệu
+ *       401:
+ *         description: Unauthorized
+ */
+router.put("/approve/:clinic_id", adminSystemAuth, clinicRegistrationController.approveClinic);
+
+/**
+ * @swagger
+ * /api/clinic-registration/reject/{clinic_id}:
+ *   put:
+ *     tags: [Clinic Registration]
+ *     summary: Từ chối phòng khám (Admin System)
+ *     description: Admin System từ chối yêu cầu đăng ký phòng khám
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: clinic_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của phòng khám cần từ chối
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rejection_reason:
+ *                 type: string
+ *                 example: "Thiếu giấy phép hoạt động"
+ *     responses:
+ *       200:
+ *         description: Từ chối thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Từ chối phòng khám thành công"
+ *                 data:
+ *                   $ref: '#/components/schemas/Clinic'
+ *       400:
+ *         description: Lỗi dữ liệu
+ *       401:
+ *         description: Unauthorized
+ */
+router.put("/reject/:clinic_id", adminSystemAuth, clinicRegistrationController.rejectClinic);
 
 module.exports = router;

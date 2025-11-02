@@ -162,7 +162,13 @@ async function authenticateAdminSystem(req, res, next) {
         }
 
         // Lấy admin_system_id từ database
-        const adminSystem = await AdminSystem.findOne({ user_id: req.user.sub });
+        // req.user.sub là Account ID, cần tìm User qua account_id
+        const user = await User.findOne({ account_id: req.user.sub });
+        if (!user) {
+            return res.status(404).json({ ok: false, message: 'User not found' });
+        }
+
+        const adminSystem = await AdminSystem.findOne({ user_id: user._id });
         if (!adminSystem) {
             return res.status(404).json({ ok: false, message: 'Admin System not found' });
         }
