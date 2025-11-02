@@ -63,7 +63,7 @@ const DoctorProfile = () => {
         issued_by: newLicense.issued_by,
         issued_date: newLicense.issued_date,
         expiry_date: newLicense.expiry_date,
-        document_url: newLicenseName,
+        document_url: [newLicenseName],
       };
       await doctorApi.uploadLicense(payload);
       toast.success("Gửi chứng chỉ thành công!, vui lòng đợi duyệt");

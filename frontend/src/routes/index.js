@@ -8,19 +8,18 @@ import RouterAdminSystem from "./RouterAdminSystem";
 import RouterClinicAdmin from "./RouterClinicAdmin";
 
 export default function AllRouter() {
-    return (
-        <Routes>
-            {/* Khi vào "/", tự động chuyển sang /home */}
-            <Route path="/" element={<Navigate to="/home" replace />} />
+  return (
+    <Routes>
+      {/* Khi vào "/", tự động chuyển sang /home */}
+      <Route path="/" element={<Navigate to="/home" replace />} />
 
-            {/* Các nhóm route */}
-            <Route path="/*" element={<RouterUser />} />
-            <Route path="/owner/*" element={<RouterOwner />} />
-            <Route path="/doctor/*" element={<RouterDoctor />} />
-            <Route path="/assistant/*" element={<RouterAssistant />} />
-            <Route path="/doctor-dashboard-test" element={<DoctorLayout />} />
-            <Route path="/admin/*" element={<RouterAdminSystem />} />
-            <Route path="/clinic-admin/*" element={<RouterClinicAdmin />} />
-        </Routes>
-    );
+      {/* Các nhóm route */}
+      <Route path="/*" element={<RouterUser />} />
+      <Route path="/owner/*" element={<RouterOwner />} />
+      <Route path="/doctor/*" element={<RouterDoctor />} />
+      <Route path="/assistant/*" element={<RouterAssistant />} />
+      <Route path="/admin/*" element={<RouterAdminSystem />} />
+      <Route path="/admin-clinic/*" element={<RouterClinicAdmin />} />
+    </Routes>
+  );
 }
