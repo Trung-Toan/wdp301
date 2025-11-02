@@ -57,7 +57,9 @@ export const SLOT_API = {
 
     getDetailsSlot: (slotId) => axiosInstance.get(SLOT_API.GET_DETAILS_SLOT(slotId)),
 
-    updateSlotById: (slotId, data) =>
-        axiosInstance.put(SLOT_API.UPDATE_SLOT_BY_ID(slotId), data),
+    updateSlotById: (slotId, data) => {
+        console.log("Updating slot with data:", data);
+        return axiosInstance.put(SLOT_API.UPDATE_SLOT_BY_ID(slotId), data);
+    }
 };
 

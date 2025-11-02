@@ -206,7 +206,8 @@ exports.updateAppointmentSlot = async (req, res) => {
     const findSlot = await slotService.getSlotById(slotId);
     if (!findSlot) return resUtils.badRequestResponse(res, "Không tìm thấy slot để update");
 
-    let { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
+    let { fee_amount = 500000, start_time, end_time, max_patients = 10, note = "", status = "" } = req.body;
+    console.log("Received update data:", req.body);
     // Convert string -> Date
     start_time = moment.tz(start_time, "Asia/Ho_Chi_Minh").utc().toDate();
     end_time = moment.tz(end_time, "Asia/Ho_Chi_Minh").utc().toDate();
@@ -224,6 +225,9 @@ exports.updateAppointmentSlot = async (req, res) => {
     findSlot.end_time = end_time;
     findSlot.max_patients = max_patients;
     findSlot.note = note;
+    if (status && (status === "AVAILABLE" || status === "UNAVAILABLE")) {
+      findSlot.status = status;
+    }
     const slotUpdate = await slotService.updateSlotById(findSlot._id, findSlot);
     return resUtils.updatedResponse(res, slotUpdate, "Cập nhật slot thành công");
   } catch (error) {
@@ -260,10 +264,10 @@ exports.viewListMedicalRecords = async (req, res) => {
 // GET /medical-records/:recordId
 exports.viewMedicalRecordDetail = async (req, res) => {
   try {
-    const {recordId} = req.params;
+    const { recordId } = req.params;
     const record = await medical_recordService.getMedicalRecordById(recordId);
     return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
-  } catch(error) {
+  } catch (error) {
     console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);
     return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể lấy giữ liệu");
   }

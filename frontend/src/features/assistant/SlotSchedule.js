@@ -253,13 +253,13 @@ const SlotSchedule = () => {
       if (editingSlot) {
         // --- SỬA ---
         console.log(`Đang gửi UPDATE cho ID: ${editingSlot._id}`);
-        await SLOT_API.updateSlotById(editingSlot._id, payload);
-        toast.success("Cập nhật ca thành công!");
+        const response = await SLOT_API.updateSlotById(editingSlot._id, payload);
+        toast.success("Cập nhật ca thành công!", response?.data);
       } else {
         // --- THÊM MỚI ---
         console.log("Đang gửi CREATE...");
-        await SLOT_API.createSlotByDoctor(payload);
-        toast.success("Thêm ca mới thành công!");
+        const response = await SLOT_API.createSlotByDoctor(payload);
+        toast.success("Thêm ca mới thành công! ", response?.data);
       }
 
       // 2. Đóng modal
