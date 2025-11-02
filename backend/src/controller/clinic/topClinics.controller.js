@@ -9,6 +9,7 @@ async function getTopClinicsController(req, res) {
 
         // Parse statuses nếu có (ví dụ: "SCHEDULED,APPROVE,COMPLETED")
         let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED']; // Default
+
         if (statuses) {
             parsedStatuses = typeof statuses === 'string'
                 ? statuses.split(',').map(s => s.trim())
