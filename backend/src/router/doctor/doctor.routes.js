@@ -22,6 +22,13 @@ const {
 // Import controller for doctor
 const DoctorController = require("../../controller/doctor/doctor.controler");
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Doctor
+ *     description: APIs for doctor management and search
+ */
+
 /* ========================= PATIENTS ========================= */
 // GET /patients?page=1&limit=10&search=""
 // view list patient of doctor with pagination
@@ -306,7 +313,7 @@ router.get("/top/near-me", authRequired, getTopDoctorsNearMeController);
  *           example: "SCHEDULED,APPROVE,COMPLETED"
  *         description: Các trạng thái appointment để đếm, phân cách bằng dấu phẩy (mặc định: SCHEDULED,APPROVE,COMPLETED)
  *     responses:
- *       200:
+ *       '200':
  *         description: Danh sách các chuyên ngành với top bác sĩ
  *         content:
  *           application/json:
@@ -388,9 +395,9 @@ router.get("/top/by-specialty", getTopDoctorsBySpecialtyController);
  *           example: "SCHEDULED,APPROVE,COMPLETED"
  *         description: Các trạng thái appointment để đếm, phân cách bằng dấu phẩy (mặc định: SCHEDULED,APPROVE,COMPLETED)
  *     responses:
- *       200:
+ *       '200':
  *         description: Thông tin chuyên ngành và danh sách top bác sĩ
- *       404:
+ *       '404':
  *         description: Chuyên ngành không tồn tại
  */
 router.get("/top/by-specialty/:specialtyId", getTopDoctorsBySingleSpecialtyController);
