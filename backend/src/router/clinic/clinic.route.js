@@ -5,6 +5,8 @@ const ctrl = require("../../controller/clinic/specialty.controller");
 const clinicCtrl = require("../../controller/clinic/clinic.controller");
 const statisticsCtrl = require("../../controller/clinic/statistics.controller");
 const { getTopClinicsController } = require("../../controller/clinic/topClinics.controller");
+const clinicBookingCtrl = require("../../controller/clinic/clinicBooking.controller");
+const { validateClinicBooking } = require("../../middleware/validateAppointment");
 
 /**
  * @swagger
@@ -60,6 +62,113 @@ router.get("/search", getClinicsByFilters);
  *         description: Danh sách top phòng khám
  */
 router.get("/top", getTopClinicsController);
+
+/**
+ * @swagger
+ * /api/clinic/book:
+ *   post:
+ *     tags: [Clinic]
+ *     summary: Đặt lịch khám tại phòng khám
+ *     description: "Đặt lịch khám với các trường từ form. Hỗ trợ auto-assign doctor và slot nếu auto_assign = true"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [clinic_id, specialty_id, scheduled_date, patient_id, full_name, phone, email]
+ *             properties:
+ *               clinic_id:
+ *                 type: string
+ *                 description: ID của phòng khám
+ *                 example: "670d29117f9f1b2c3d4e5901"
+ *               specialty_id:
+ *                 type: string
+ *                 description: ID của chuyên khoa
+ *                 example: "670d299e7f9f1b2c3d4e59ff"
+ *               scheduled_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Ngày khám (YYYY-MM-DD)
+ *                 example: "2025-10-21"
+ *               patient_id:
+ *                 type: string
+ *                 description: ID của bệnh nhân
+ *                 example: "670d2c4a7f9f1b2c3d4e5b34"
+ *               auto_assign:
+ *                 type: boolean
+ *                 description: "Để phòng khám tự động chọn bác sĩ và slot. Nếu true, doctor_id và slot_id không bắt buộc"
+ *                 default: false
+ *                 example: true
+ *               doctor_id:
+ *                 type: string
+ *                 description: "ID của bác sĩ (bắt buộc nếu auto_assign = false)"
+ *                 example: "670d2a1f7f9f1b2c3d4e5a12"
+ *               slot_id:
+ *                 type: string
+ *                 description: "ID của slot (bắt buộc nếu auto_assign = false, sẽ tự động tìm nếu auto_assign = true)"
+ *                 example: "670d2f5f7f9f1b2c3d4e5f60"
+ *               full_name:
+ *                 type: string
+ *                 description: Họ tên bệnh nhân
+ *                 example: "Nguyễn Nam Phong"
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại
+ *                 example: "0985843234"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email
+ *                 example: "patient@example.com"
+ *               reason:
+ *                 type: string
+ *                 description: Lý do khám (tùy chọn)
+ *                 example: "Đau đầu, mỏi mắt"
+ *     responses:
+ *       201:
+ *         description: Đặt lịch thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     booking_code:
+ *                       type: string
+ *                       example: "BK123456"
+ *                     status:
+ *                       type: string
+ *                       example: "SCHEDULED"
+ *                     auto_assigned_doctor:
+ *                       type: boolean
+ *                       example: true
+ *                     auto_assigned_slot:
+ *                       type: boolean
+ *                       example: true
+ *                     doctor_id:
+ *                       type: object
+ *                     clinic_id:
+ *                       type: object
+ *                     specialty_id:
+ *                       type: object
+ *                     slot_info:
+ *                       type: object
+ *       400:
+ *         description: Lỗi validation hoặc dữ liệu không hợp lệ
+ *       404:
+ *         description: Không tìm thấy bác sĩ hoặc slot phù hợp
+ *       409:
+ *         description: Trùng đặt lịch
+ */
+router.post("/book", validateClinicBooking, clinicBookingCtrl.createClinicBooking);
 
 /**
  * @swagger
