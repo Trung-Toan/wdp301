@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 export default function AppointmentsContent() {
     const [selectedTab, setSelectedTab] = useState("upcoming");
@@ -156,26 +157,25 @@ export default function AppointmentsContent() {
                                 </p>
                             </div>
                         </div>
-                <button
-                    onClick={() => navigate(-1)}
+                        <button
+                            onClick={() => navigate(-1)}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 border-2 border-blue-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all font-medium shadow-sm hover:shadow-md"
-                >
+                        >
                             <ArrowLeft className="h-4 w-4" />
                             Quay lại
-                </button>
+                        </button>
                     </div>
 
-                {/* Tabs */}
+                    {/* Tabs */}
                     <div className="flex flex-wrap gap-3 mb-6">
-                    {["upcoming", "completed", "cancelled"].map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setSelectedTab(tab)}
-                                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${
-                                    selectedTab === tab
+                        {["upcoming", "completed", "cancelled"].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setSelectedTab(tab)}
+                                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${selectedTab === tab
                                         ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
                                         : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
-                                }`}
+                                    }`}
                             >
                                 {tab === "upcoming" && (
                                     <>
@@ -195,8 +195,8 @@ export default function AppointmentsContent() {
                                         Đã hủy
                                     </>
                                 )}
-                        </button>
-                    ))}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -222,36 +222,40 @@ export default function AppointmentsContent() {
                 ) : (
                     <div className="space-y-4">
                         {filteredAppointments.map((appointment) => (
-                        <div
-                            key={appointment.id}
+                            <div
+                                key={appointment.id}
                                 className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-                        >
-                            <div className="flex flex-col md:flex-row gap-6">
+                            >
+                                <div className="flex flex-col md:flex-row gap-6">
                                     <div className="relative flex-shrink-0">
-                                <img
-                                    src={appointment.image || "/placeholder.svg"}
-                                    alt={appointment.doctorName}
+                                        <img
+                                            src={appointment.image
+                                                ? appointment.image.startsWith("http")
+                                                    ? appointment.image
+                                                    : `${FILE_SERVER_URL}/${appointment.image}`
+                                                : "/placeholder.svg"}
+                                            alt={appointment.doctorName}
                                             className="w-24 h-24 md:w-28 md:h-28 rounded-xl object-cover border-2 border-gray-200 shadow-md"
-                                />
+                                        />
                                         <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center shadow-md">
                                             <Stethoscope className="h-4 w-4 text-blue-600" />
                                         </div>
                                     </div>
-                                <div className="flex-1">
+                                    <div className="flex-1">
                                         <div className="flex justify-between items-start mb-4">
-                                        <div>
+                                            <div>
                                                 <h3 className="text-xl font-bold text-gray-900 mb-1">
-                                                {appointment.doctorName}
-                                            </h3>
+                                                    {appointment.doctorName}
+                                                </h3>
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Stethoscope className="h-4 w-4 text-blue-500" />
                                                     <p className="text-gray-600 text-sm">
-                                                {appointment.specialty}
-                                            </p>
+                                                        {appointment.specialty}
+                                                    </p>
                                                 </div>
-                                            {getStatusBadge(appointment.status)}
+                                                {getStatusBadge(appointment.status)}
+                                            </div>
                                         </div>
-                                    </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                             {appointment.hospital && (
@@ -280,43 +284,43 @@ export default function AppointmentsContent() {
                                                 appointment.location?.ward?.name,
                                                 appointment.location?.province?.name
                                             ].filter(Boolean).length > 0 && (
-                                                <div className="flex items-start gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 md:col-span-2">
-                                                    <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                                                    <span className="text-sm text-gray-700">
-                                            {[
-                                                appointment.location?.alley,
-                                                appointment.location?.houseNumber,
-                                                appointment.location?.ward?.name,
-                                                appointment.location?.province?.name
-                                            ]
-                                                .filter(Boolean)
-                                                .join(' - ')}
-                                                    </span>
-                                        </div>
-                                            )}
+                                                    <div className="flex items-start gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 md:col-span-2">
+                                                        <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                                                        <span className="text-sm text-gray-700">
+                                                            {[
+                                                                appointment.location?.alley,
+                                                                appointment.location?.houseNumber,
+                                                                appointment.location?.ward?.name,
+                                                                appointment.location?.province?.name
+                                                            ]
+                                                                .filter(Boolean)
+                                                                .join(' - ')}
+                                                        </span>
+                                                    </div>
+                                                )}
                                         </div>
 
                                         <div className="flex flex-wrap gap-3">
-                                        <button
-                                            onClick={() => setSelectedAppointment(appointment)}
-                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-md hover:shadow-lg"
-                                        >
-                                                <Info className="h-4 w-4" />
-                                            Xem chi tiết
-                                        </button>
-                                        {appointment.status === "upcoming" && (
                                             <button
-                                                onClick={() => handleCancelAppointment(appointment)}
-                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all font-semibold"
+                                                onClick={() => setSelectedAppointment(appointment)}
+                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-md hover:shadow-lg"
                                             >
-                                                    <XCircle className="h-4 w-4" />
-                                                Hủy lịch
+                                                <Info className="h-4 w-4" />
+                                                Xem chi tiết
                                             </button>
-                                        )}
+                                            {appointment.status === "upcoming" && (
+                                                <button
+                                                    onClick={() => handleCancelAppointment(appointment)}
+                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all font-semibold"
+                                                >
+                                                    <XCircle className="h-4 w-4" />
+                                                    Hủy lịch
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
                         ))}
                     </div>
                 )}
@@ -338,12 +342,12 @@ export default function AppointmentsContent() {
                                             <p className="text-white/90 text-sm">Thông tin đầy đủ về cuộc hẹn</p>
                                         </div>
                                     </div>
-                            <button
-                                onClick={() => setSelectedAppointment(null)}
+                                    <button
+                                        onClick={() => setSelectedAppointment(null)}
                                         className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/20 transition-all"
-                            >
+                                    >
                                         <XCircle className="h-5 w-5" />
-                            </button>
+                                    </button>
                                 </div>
                             </div>
 
@@ -379,21 +383,21 @@ export default function AppointmentsContent() {
                                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
                                                 <Building2 className="h-4 w-4 text-blue-600" />
                                                 <span className="text-sm text-gray-700">{selectedAppointment.hospital}</span>
-                                        </div>
+                                            </div>
                                         )}
                                         {selectedAppointment.date && (
                                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
-                                            <Calendar className="h-4 w-4 text-blue-600" />
+                                                <Calendar className="h-4 w-4 text-blue-600" />
                                                 <span className="text-sm font-semibold text-gray-700">{selectedAppointment.date}</span>
-                                        </div>
+                                            </div>
                                         )}
                                         {(selectedAppointment.time || selectedAppointment.end_time) && (
                                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg sm:col-span-2">
-                                            <Clock className="h-4 w-4 text-blue-600" />
+                                                <Clock className="h-4 w-4 text-blue-600" />
                                                 <span className="text-sm text-gray-700">
-                                            {selectedAppointment.time || "?"} - {selectedAppointment.end_time || "?"}
+                                                    {selectedAppointment.time || "?"} - {selectedAppointment.end_time || "?"}
                                                 </span>
-                                        </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -415,7 +419,7 @@ export default function AppointmentsContent() {
                                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
                                                 <Phone className="h-4 w-4 text-gray-500" />
                                                 <span className="text-sm text-gray-700">{selectedAppointment.phone}</span>
-                                        </div>
+                                            </div>
                                         )}
                                         {selectedAppointment.reason && (
                                             <div className="flex items-start gap-2 bg-white px-3 py-2 rounded-lg">
@@ -423,8 +427,8 @@ export default function AppointmentsContent() {
                                                 <div>
                                                     <span className="text-sm font-semibold text-gray-700">Lý do khám: </span>
                                                     <span className="text-sm text-gray-700">{selectedAppointment.reason}</span>
-                                        </div>
-                                        </div>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -456,25 +460,25 @@ export default function AppointmentsContent() {
                                     </div>
                                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Xác nhận hủy lịch hẹn</h2>
                                     <p className="text-gray-600 text-sm leading-relaxed">
-                                Bạn có chắc chắn muốn hủy lịch hẹn với{" "}
+                                        Bạn có chắc chắn muốn hủy lịch hẹn với{" "}
                                         <span className="font-semibold text-gray-900">{appointmentToCancel?.doctorName}</span> vào{" "}
                                         <span className="font-semibold text-gray-900">{appointmentToCancel?.date}</span> lúc{" "}
                                         <span className="font-semibold text-gray-900">{appointmentToCancel?.time}</span>?
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                <button
-                                    onClick={() => setCancelDialogOpen(false)}
+                                    <button
+                                        onClick={() => setCancelDialogOpen(false)}
                                         className="flex-1 px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all font-semibold"
-                                >
-                                    Không
-                                </button>
-                                <button
-                                    onClick={confirmCancel}
+                                    >
+                                        Không
+                                    </button>
+                                    <button
+                                        onClick={confirmCancel}
                                         className="flex-1 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all font-semibold shadow-md hover:shadow-lg"
-                                >
-                                    Xác nhận hủy
-                                </button>
+                                    >
+                                        Xác nhận hủy
+                                    </button>
                                 </div>
                             </div>
                         </div>
