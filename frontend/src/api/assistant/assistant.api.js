@@ -25,12 +25,16 @@ export const PATIENT_API = {
 
 export const MEDICAL_RECORD_API = {
     GET_LIST_MEDICAL_RECORDS: "/assistant/created/medical-records",
+    CREATE_MEDICAL_RECORD: "/assistant/medical-records/appointment/:appointmentId",
     /**
      * Lấy danh sách hồ sơ bệnh án do trợ lý tạo
      * @param {number} [page=1] - Trang hiện tại
      * @returns {Promise<AxiosResponse>}
      */
     getListMedicalRecords: (page = 1) => axiosInstance.get(MEDICAL_RECORD_API.GET_LIST_MEDICAL_RECORDS, { params: { page } }),
+
+    createMedicalRecord: (appointmentId, data) => axiosInstance.post(MEDICAL_RECORD_API.CREATE_MEDICAL_RECORD.replace(':appointmentId', appointmentId), data),
+
 };
 
 export const APPOINTMENT_API = {

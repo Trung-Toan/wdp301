@@ -334,6 +334,7 @@ exports.viewListMedicalRecords = async (req, res) => {
   const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
   if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
 
+
   // Lấy giá trị từ query (GET), không phải body
   let { date } = req.query;
   // Dùng date hiện tại nếu không có

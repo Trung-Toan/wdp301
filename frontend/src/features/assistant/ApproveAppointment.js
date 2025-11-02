@@ -147,7 +147,7 @@ const ApproveAppointment = () => {
     }
   };
 
-  // --- Hàm cho Modal Bệnh Án (Cập nhật theo workflow) ---
+
 
   // Mở modal với 3 chế độ: CREATE (mới), EDIT (sửa), VIEW (xem)
   const openRecordModal = (item, mode = "CREATE") => {
