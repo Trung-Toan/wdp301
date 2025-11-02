@@ -4,10 +4,6 @@ const Clinic = require("../../model/clinic/Clinic");
 
 /**
  * Lấy top phòng khám được book nhiều nhất
- * @param {Object} options - Các tùy chọn
- * @param {number} options.limit - Số lượng phòng khám tối đa (mặc định: 10)
- * @param {Array<string>} options.statuses - Các trạng thái appointment để đếm (mặc định: ['SCHEDULED', 'APPROVE', 'COMPLETED'])
- * @returns {Promise<Array>} Danh sách top phòng khám với thông tin booking count
  */
 async function getTopClinics({ limit = 10, statuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'] } = {}) {
     try {
