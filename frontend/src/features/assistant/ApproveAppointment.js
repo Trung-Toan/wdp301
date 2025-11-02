@@ -23,6 +23,7 @@ import "../../styles/assistant/appointment-schedule.css";
 
 // === 1. CHỈ IMPORT API CẦN THIẾT ===
 import { APPOINTMENT_API } from "../../api/assistant/assistant.api";
+import { MEDICAL_RECORD_API } from "../../api/assistant/assistant.api";
 // Giả sử createMedicalRecord vẫn nằm trong service (bạn chưa cung cấp API)
 // Nếu bạn có API, hãy import nó và thay thế ở hàm "handleSaveRecord"
 import { createMedicalRecord } from "../../services/assistantService";
@@ -85,6 +86,7 @@ const ApproveAppointment = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const { MEDICAL_RECORD_API } = require("./../../api/assistant/assistant.api");
 
   // State cho Modal Bệnh Án (Cập nhật)
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -95,8 +97,6 @@ const ApproveAppointment = () => {
   // Thêm state để biết modal đang ở chế độ VIEW, EDIT hay CREATE
   const [modalMode, setModalMode] = useState("CREATE"); // "CREATE", "VIEW", "EDIT"
 
-  // === 3. SỬA LỖI 500 (Cast to ObjectId) ===
-  // Bằng cách chỉ thêm params nếu nó có giá trị (không phải chuỗi rỗng)
   const params = {
     page: page,
     limit: limit,
@@ -106,7 +106,6 @@ const ApproveAppointment = () => {
     ...(searchTerm ? { search: searchTerm } : {}),
   };
 
-  // Logic gọi data (Giữ nguyên)
   const { data, isLoading, error, refetch } = useDataByUrl({
     url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
     key: ["appointments-list", ...Object.values(params)],
@@ -122,32 +121,40 @@ const ApproveAppointment = () => {
   const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
   const totalPages = pagination.totalPages;
 
-  // === 4. HÀM UPDATE STATUS (Đã sửa) ===
-  // (Gọi thẳng API, không qua service, không check response.data.success)
-  const handleUpdateStatus = async (appointmentId, newStatus) => {
-    console.log(`Đang GỬI cập nhật cho ID: ${appointmentId} | Trạng thái mới: ${newStatus}`);
+  const handleVerifyStatus = async (appointmentId, newStatus) => {
+    console.log(`Đang GỬI XÁC MINH (Verify) cho ID: ${appointmentId} | Trạng thái mới: ${newStatus}`);
     try {
-      // 1. Gọi trực tiếp API 'verifyAppointment'
       await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
-
-      // 2. Nếu không vào 'catch' -> API thành công
-      console.log('Cập nhật thành công, đang tải lại dữ liệu...');
+      console.log('Xác minh thành công, đang tải lại dữ liệu...');
       refetch();
 
     } catch (error) {
-      // 3. Xử lý lỗi (CORS, 500, 404, 400...)
-      console.error('API Gặp LỖI khi cập nhật status:', error);
+      console.error('API Gặp LỖI khi xác minh (verify) status:', error);
       if (error.response) {
         console.error('Nội dung lỗi từ Server:', error.response.data);
       }
-
-      // Lấy lỗi từ backend (như lỗi NO_SHOW)
-      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi hệ thống khi cập nhật trạng thái.";
+      const errorMessage = error.response?.data?.message || "Lỗi khi xác minh lịch hẹn.";
       alert(errorMessage);
     }
   };
 
 
+  const handleUpdateStatus = async (appointmentId, newStatus) => {
+    console.log(`Đang GỬI CẬP NHẬT (Update) cho ID: ${appointmentId} | Trạng thái mới: ${newStatus}`);
+    const payload = { data: { status: newStatus } };
+    try {
+      await APPOINTMENT_API.updateAppointment(appointmentId, payload);
+      console.log('Cập nhật thành công, đang tải lại dữ liệu...');
+      refetch();
+    } catch (error) {
+      console.error('API Gặp LỖI khi cập nhật (update) status:', error);
+      if (error.response) {
+        console.error('Nội dung lỗi từ Server:', error.response.data);
+      }
+      const errorMessage = error.response?.data?.message || "Lỗi khi cập nhật trạng thái.";
+      alert(errorMessage);
+    }
+  };
 
   // Mở modal với 3 chế độ: CREATE (mới), EDIT (sửa), VIEW (xem)
   const openRecordModal = (item, mode = "CREATE") => {
@@ -261,29 +268,17 @@ const ApproveAppointment = () => {
 
       let response;
       if (modalMode === "EDIT") {
-        // === GIẢ ĐỊNH ===
-        // Bạn cần một hàm 'updateMedicalRecord' trong service (HOẶC API)
-        // response = await updateMedicalRecord(selectedAptForRecord.appointment.medical_record._id, payload);
         console.log("Đang gọi API sửa bệnh án (chưa code)...", payload);
-        // Tạm thời dùng create để test
         response = await createMedicalRecord(payload);
       } else {
-        // modalMode === "CREATE"
-        response = await createMedicalRecord(payload);
+        const { appointment_id, ...rest } = payload;
+        response = await MEDICAL_RECORD_API.createMedicalRecord(appointment_id, rest);
       }
 
-      // Xử lý response (Giả sử service trả về { data: { success: true } })
       if (response.data && response.data.success) {
         alert(modalMode === "EDIT" ? "Sửa bệnh án thành công!" : "Tạo bệnh án thành công!");
         closeRecordModal();
-
-        // QUAN TRỌNG:
-        // Theo yêu cầu của bạn, sau khi tạo/sửa bệnh án,
-        // Backend SẼ tự động đổi status appointment sang "COMPLETED"
-        // và status bệnh án sang "PENDING".
-        // Chúng ta chỉ cần refetch() để thấy thay đổi đó.
         refetch();
-
       } else {
         setRecordModalError(response.data.error || response.error || "Lưu bệnh án thất bại.");
       }
@@ -296,13 +291,11 @@ const ApproveAppointment = () => {
 
   // === 5. HÀM RENDER NÚT HÀNH ĐỘNG MỚI ===
   // Đây là hàm triển khai toàn bộ workflow mới của bạn
+  // === 3. CẬP NHẬT HÀM RENDER ACTIONS ===
   const renderAppointmentActions = (item) => {
     const appointment = item.appointment;
     const appointmentId = appointment.appointment_id;
     const status = appointment.status;
-
-    // Giả sử backend trả về medical_record lồng trong appointment
-    // và medical_record có status riêng ("PENDING", "VERIFIED", "REJECTED")
     const recordStatus = appointment.medical_record?.status;
 
     switch (status) {
@@ -311,16 +304,16 @@ const ApproveAppointment = () => {
         return (
           <>
             <button
-              onClick={() => handleUpdateStatus(appointmentId, "APPROVE")}
+              onClick={() => handleVerifyStatus(appointmentId, "APPROVE")} // <-- Dùng hàm Verify
               className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
               title="Duyệt"
             >
               <CheckCircle size={16} />
             </button>
             <button
-              onClick={() => handleUpdateStatus(appointmentId, "REJECTED")} // <-- Đổi thành REJECTED
+              onClick={() => handleVerifyStatus(appointmentId, "CANCELLED")} // <-- Dùng hàm Verify
               className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-              title="Từ chối" // <-- Đổi title
+              title="Từ chối"
             >
               <XCircle size={16} />
             </button>
@@ -332,19 +325,28 @@ const ApproveAppointment = () => {
         return (
           <>
             <button
-              onClick={() => openRecordModal(item, "CREATE")} // Mở modal CREATE
+              onClick={() => openRecordModal(item, "CREATE")}
               className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
               title="Tạo bệnh án"
             >
               <FileEarmarkPlus size={16} />
             </button>
+
+            {/* NÚT COMPLETED: Dùng hàm Update */}
             <button
-              onClick={() => handleUpdateStatus(appointmentId, "NO_SHOW")}
+              onClick={() => handleUpdateStatus(appointmentId, "COMPLETED")} // <-- Dùng hàm Update
+              className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+              title="Đã khám xong"
+            >
+              <CheckCircleFill size={16} />
+            </button>
+
+            {/* NÚT NO_SHOW: Dùng hàm Update */}
+            <button
+              onClick={() => handleUpdateStatus(appointmentId, "NO_SHOW")} // <-- Dùng hàm Update
               className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
               title="Vắng mặt"
             >
-              {/* LƯU Ý: Nút này sẽ báo lỗi 400 (như ảnh)
-                  cho đến khi backend sửa logic */}
               <CalendarX size={16} />
             </button>
           </>
@@ -352,9 +354,6 @@ const ApproveAppointment = () => {
 
       // 3. Đã khám xong (Đã có bệnh án)
       case "COMPLETED":
-        // Nút Vắng mặt (NO_SHOW) biến mất
-
-        // Dựa theo status của BỆNH ÁN
         if (recordStatus === "PENDING") {
           return (
             <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
@@ -365,7 +364,7 @@ const ApproveAppointment = () => {
         if (recordStatus === "VERIFIED") {
           return (
             <button
-              onClick={() => openRecordModal(item, "VIEW")} // Mở modal VIEW
+              onClick={() => openRecordModal(item, "VIEW")}
               className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
               title="Xem bệnh án (Đã duyệt)"
             >
@@ -373,10 +372,10 @@ const ApproveAppointment = () => {
             </button>
           );
         }
-        if (recordStatus === "REJECTED") {
+        if (recordStatus === "CANCELLED") {
           return (
             <button
-              onClick={() => openRecordModal(item, "EDIT")} // Mở modal EDIT
+              onClick={() => openRecordModal(item, "EDIT")}
               className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200"
               title="Sửa bệnh án (Bị từ chối)"
             >
@@ -384,7 +383,6 @@ const ApproveAppointment = () => {
             </button>
           );
         }
-        // Fallback nếu không có record status
         return (
           <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
             Đã hoàn tất
@@ -396,7 +394,7 @@ const ApproveAppointment = () => {
       case "CANCELLED":
       case "NO_SHOW":
       default:
-        return null; // Không hiển thị nút nào cả
+        return null;
     }
   };
 
