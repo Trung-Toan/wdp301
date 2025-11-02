@@ -26,7 +26,8 @@ const DoctorManagement = () => {
     password: "",
     phone_number: "",
     full_name: "",
-    specialty_id: "",
+    specialty: "",
+    specialtyName: "",
   });
 
   useEffect(() => {
@@ -91,7 +92,7 @@ const DoctorManagement = () => {
         password: formData.password,
         phone_number: formData.phone_number,
         full_name: formData.full_name,
-        specialty_id: formData.specialty,
+        specialty: formData.specialty,
       };
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
@@ -113,7 +114,8 @@ const DoctorManagement = () => {
       password: "",
       phone_number: "",
       full_name: "",
-      specialty_id: "",
+      specialty: "",
+      specialtyName: "",
     });
     setShowModal(true);
   };
