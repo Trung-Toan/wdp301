@@ -50,7 +50,7 @@ router.put("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), Ass
 /* ========================= MEDICAL RECORDS ========================= */
 // GET /created/medical-records?page=1
 // view list medical record of patient with pagination
-router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewListMedicalRecords);
+router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.createMedicalRecord);
 
 // GET /medical-records/:recordId
 // view detail medical record by recordId

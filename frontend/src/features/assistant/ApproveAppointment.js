@@ -4,7 +4,7 @@ import { memo, useState, Fragment } from "react";
 import {
   Calendar,
   Person,
-  Telephone,
+  Telephone, // <-- Đảm bảo đã import
   CheckCircle,
   XCircle,
   CheckCircleFill,
@@ -232,14 +232,12 @@ const ApproveAppointment = () => {
     });
   };
 
-  // Hàm tạo/sửa bệnh án (Cập nhật)
   const handleSaveRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
       return;
     }
-    // Nếu là mode VIEW, không làm gì cả
-    if (modalMode === 'VIEW') {
+    if (modalMode === "VIEW") {
       closeRecordModal();
       return;
     }
@@ -248,46 +246,59 @@ const ApproveAppointment = () => {
     setRecordModalError("");
 
     try {
-      // Xử lý payload (an toàn)
-      const safeSymptoms = (recordFormData.symptoms || '').split(',').map(s => s.trim()).filter(s => s);
-      const safeAttachments = (recordFormData.attachments || '').split(',').map(s => s.trim()).filter(s => s);
+      const safeSymptoms = (recordFormData.symptoms || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
+      const safeAttachments = (recordFormData.attachments || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
 
-      const payload = {
+      const appointment_id = selectedAptForRecord.appointment.appointment_id;
+      const patient_id = selectedAptForRecord.patient.patient_id;
+
+      const requestBody = {
         diagnosis: recordFormData.diagnosis,
         symptoms: safeSymptoms,
         notes: recordFormData.notes,
         attachments: safeAttachments,
         prescription: {
           instruction: recordFormData.prescription?.instruction || "",
-          medicines: (recordFormData.prescription?.medicines || []).filter(m => m.name && m.name.trim() !== ""),
+          medicines: (recordFormData.prescription?.medicines || [])
+            .filter((m) => m.name && m.name.trim() !== "")
+            .map((med) => ({
+              name: med.name,
+              dosage: med.dosage,
+              frequency: med.frequency,
+              duration: med.duration,
+              note: med.note || "",
+            })),
         },
-        status: recordFormData.status,
-        patient_id: selectedAptForRecord.patient.patient_id,
-        appointment_id: selectedAptForRecord.appointment.appointment_id,
+        status: recordFormData.status || "PRIVATE",
+        patient_id,
       };
 
-      let response;
-      if (modalMode === "EDIT") {
-        console.log("Đang gọi API sửa bệnh án (chưa code)...", payload);
-        response = await createMedicalRecord(payload);
-      } else {
-        const { appointment_id, ...rest } = payload;
-        response = await MEDICAL_RECORD_API.createMedicalRecord(appointment_id, rest);
-      }
+      console.log("📦 Payload gửi backend:", requestBody);
 
-      if (response.data && response.data.success) {
-        alert(modalMode === "EDIT" ? "Sửa bệnh án thành công!" : "Tạo bệnh án thành công!");
+      const response = await MEDICAL_RECORD_API.createMedicalRecord(appointment_id, requestBody);
+      console.log("res: ", response);
+
+      if (response?.data?.ok) {
+        alert("Tạo hồ sơ bệnh án thành công!");
         closeRecordModal();
         refetch();
       } else {
-        setRecordModalError(response.data.error || response.error || "Lưu bệnh án thất bại.");
+        setRecordModalError(response.message || "Tạo hồ sơ thất bại.");
       }
     } catch (error) {
-      setRecordModalError("Lỗi hệ thống: " + error.message);
+      console.error("❌ Lỗi tạo hồ sơ:", error);
+      setRecordModalError("Lỗi hệ thống: " + (error.message || "Không xác định"));
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   // === 5. HÀM RENDER NÚT HÀNH ĐỘNG MỚI ===
   // Đây là hàm triển khai toàn bộ workflow mới của bạn
@@ -321,6 +332,7 @@ const ApproveAppointment = () => {
         );
 
       // 2. Đã duyệt (Chờ khám)
+      // === THAY ĐỔI 1: CHỈ GIỮ NÚT TẠO BỆNH ÁN ===
       case "APPROVE":
         return (
           <>
@@ -331,26 +343,10 @@ const ApproveAppointment = () => {
             >
               <FileEarmarkPlus size={16} />
             </button>
-
-            {/* NÚT COMPLETED: Dùng hàm Update */}
-            <button
-              onClick={() => handleUpdateStatus(appointmentId, "COMPLETED")} // <-- Dùng hàm Update
-              className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
-              title="Đã khám xong"
-            >
-              <CheckCircleFill size={16} />
-            </button>
-
-            {/* NÚT NO_SHOW: Dùng hàm Update */}
-            <button
-              onClick={() => handleUpdateStatus(appointmentId, "NO_SHOW")} // <-- Dùng hàm Update
-              className="p-2 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200"
-              title="Vắng mặt"
-            >
-              <CalendarX size={16} />
-            </button>
+            {/* Đã xóa nút "COMPLETED" và "NO_SHOW" theo yêu cầu */}
           </>
         );
+      // === KẾT THÚC THAY ĐỔI 1 ===
 
       // 3. Đã khám xong (Đã có bệnh án)
       case "COMPLETED":
@@ -599,12 +595,21 @@ const ApproveAppointment = () => {
                     {modalMode === 'VIEW' && 'Xem hồ sơ bệnh án'}
                   </Dialog.Title>
 
+                  {/* === THAY ĐỔI 2: CẬP NHẬT KHUNG THÔNG TIN BỆNH NHÂN === */}
                   {selectedAptForRecord && (
-                    <p className="text-gray-600 mb-4">
-                      Bệnh nhân:{" "}
-                      <span className="font-semibold">{selectedAptForRecord.patient?.patient_name}</span>
-                    </p>
+                    <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+                      <p className="text-sm text-gray-600 mb-1">Bệnh nhân:</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {selectedAptForRecord.patient?.patient_name}
+                      </p>
+                      <p className="text-gray-700 text-sm mt-1">
+                        <Telephone className="inline mr-2" size={14} />
+                        {selectedAptForRecord.patient?.phone_number || "Không rõ"}
+                      </p>
+                    </div>
                   )}
+                  {/* === KẾT THÚC THAY ĐỔI 2 === */}
+
 
                   {/* === 9. VÔ HIỆU HÓA FORM KHI 'VIEW' === */}
                   <fieldset disabled={modalMode === 'VIEW'}>

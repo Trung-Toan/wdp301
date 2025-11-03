@@ -438,14 +438,12 @@ exports.createMedicalRecord = async (req, res) => {
     const { appointmentId } = req.params;
     const {
       diagnosis, symptoms, notes, attachments,
-      prescription,
-      doctor_id, patient_id, status
+      prescription, patient_id, status
     } = req.body;
-    if (!diagnosis || !doctor_id || !patient_id || !prescription) {
-      return resUtils.badRequestResponse(res, "Thiếu thông tin bắt buộc: diagnosis, doctor_id, patient_id, hoặc prescription.");
+    if (!diagnosis || !patient_id || !prescription) {
+      return resUtils.badRequestResponse(res, "Thiếu thông tin bắt buộc: diagnosis, patient_id, hoặc prescription.");
     }
     if (!mongoose.Types.ObjectId.isValid(appointmentId) ||
-      !mongoose.Types.ObjectId.isValid(doctor_id) ||
       !mongoose.Types.ObjectId.isValid(patient_id)) {
       return resUtils.badRequestResponse(res, "ID lịch hẹn, bác sĩ hoặc bệnh nhân không hợp lệ.");
     }
@@ -458,8 +456,12 @@ exports.createMedicalRecord = async (req, res) => {
       return validationError;
     }
 
+    console.log("assistance?.doctor_id: ", assistance?.doctor_id);
+
+
     const medical_record_data = {
       diagnosis,
+      doctor_id: assistance?.doctor_id,
       symptoms: Array.isArray(symptoms) ? symptoms : [],
       notes: notes || "",
       attachments: Array.isArray(attachments) ? attachments : [],
@@ -469,7 +471,6 @@ exports.createMedicalRecord = async (req, res) => {
         medicines: medicines, // Đã kiểm tra và là array
       },
       status: status || "PRIVATE",
-      doctor_id,
       patient_id,
       appointment_id: appointmentId,
       created_by: created_by,
