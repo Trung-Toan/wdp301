@@ -3,7 +3,8 @@ const ConfirmModal = ({
   message,
   onConfirm,
   onCancel,
-  isLoading = false
+  isLoading = false,
+  children
 }) => {
   return (
     <div
@@ -22,6 +23,7 @@ const ConfirmModal = ({
         {/* Body */}
         <div className="px-6 py-5 text-gray-700 text-center">
           <p>{message}</p>
+          {children}
         </div>
 
         {/* Footer */}
