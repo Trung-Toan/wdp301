@@ -165,6 +165,7 @@ exports.uploadLicense = async (accountId, payload) => {
     issued_date,
     expiry_date,
     document_url,
+    rejected_reason: "",
     doctor_id: doctor._id,
     status: "PENDING",
   });

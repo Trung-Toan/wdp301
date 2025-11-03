@@ -10,6 +10,7 @@ import {
   List,
   Bell,
   Plus,
+  ShieldCheck,
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
 import { adminclinicAPI } from "../api/admin-clinic/adminclinicAPI";
@@ -22,25 +23,24 @@ const ClinicAdminLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-  const fetchClinic = async () => {
-    try {
-      const res = await adminclinicAPI.getClinicByAdmin();
-      console.log("Clinic data fetched:", res?.data?.data);
-      
-      if (res.data?.ok) {
-        setClinic(res?.data?.data);
-      } else {
-        setClinic(null);
-      }
-    } catch (error) {
-      setClinic(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchClinic();
-}, []);
+    const fetchClinic = async () => {
+      try {
+        const res = await adminclinicAPI.getClinicByAdmin();
+        console.log("Clinic data fetched:", res?.data?.data);
 
+        if (res.data?.ok) {
+          setClinic(res?.data?.data);
+        } else {
+          setClinic(null);
+        }
+      } catch (error) {
+        setClinic(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClinic();
+  }, []);
 
   let menuItems = [
     {
@@ -76,6 +76,11 @@ const ClinicAdminLayout = () => {
         title: "Quản lý bác sĩ",
         icon: <People size={20} />,
         link: "/admin-clinic/manage-doctors",
+      },
+      {
+        title: "Duyệt chứng chỉ bác sĩ",
+        icon: <ShieldCheck size={20} />,
+        link: "/admin-clinic/approve-licenses",
       },
       {
         title: "Quản lý trợ lý",
