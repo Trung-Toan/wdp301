@@ -23,8 +23,8 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
         specialty_id: "",
         scheduled_date: "",
         slot_id: "",
-        full_name: user?.full_name || "",
-        phone: user?.phone || "",
+        full_name: user?.full_name || user?.name || "",
+        phone: user?.phone_number || "",
         email: user?.email || "",
         reason: "",
     });
@@ -33,7 +33,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
 
     const loadDoctors = async () => {
         try {
-            const response = await clinicApi.getClinicDoctors(clinic._id, {
+            const response = await clinicApi.getClinicDoctors(clinic?.id || clinic?._id, {
                 specialtyId: formData.specialty_id,
                 limit: 100,
             });
@@ -59,7 +59,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
             // Backend should handle this better
             if (autoAssignDoctor) {
                 // Get any doctor from clinic
-                const response = await clinicApi.getClinicDoctors(clinic._id, {
+                const response = await clinicApi.getClinicDoctors(clinic?.id || clinic?._id, {
                     specialtyId: formData.specialty_id,
                     limit: 1,
                 });
@@ -107,7 +107,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
             setRequestSuccess(false);
 
             const bookingData = {
-                clinic_id: clinic._id,
+                clinic_id: clinic?.id || clinic?._id,
                 specialty_id: formData.specialty_id,
                 scheduled_date: formData.scheduled_date,
                 patient_id: user?.patient?._id || user?._id,
@@ -124,6 +124,14 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                 bookingData.slot_id = formData.slot_id;
             }
 
+            console.log("📤 Booking data being sent:", bookingData);
+            console.log("📋 Form validation check:");
+            console.log("  - specialty_id:", formData.specialty_id || "❌ MISSING");
+            console.log("  - scheduled_date:", formData.scheduled_date || "❌ MISSING");
+            console.log("  - patient_id:", bookingData.patient_id || "❌ MISSING");
+            console.log("  - auto_assign:", autoAssignDoctor);
+            console.log("  - clinic_id:", bookingData.clinic_id || "❌ MISSING");
+
             let result;
             
             // Use clinic booking API when auto-assign is true, or use regular appointment API
@@ -132,7 +140,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                 result = response.data.data;
             } else {
                 // For manual booking, add clinic_id to appointment data
-                bookingData.clinic_id = clinic._id;
+                bookingData.clinic_id = clinic?.id || clinic?._id;
                 result = await createBooking(bookingData);
             }
             
@@ -310,14 +318,14 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                                     <Stethoscope className="h-4 w-4 text-sky-600" />
-                                    Chuyên khoa {!autoAssignDoctor && <span className="text-red-500">*</span>}
+                                    Chuyên khoa <span className="text-red-500">*</span>
                                 </label>
                                 <div className="relative">
                                     <select
                                         value={formData.specialty_id}
                                         onChange={(e) => handleChange("specialty_id", e.target.value)}
                                         className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-white font-medium appearance-none cursor-pointer hover:border-sky-300 transition-colors"
-                                        required={!autoAssignDoctor}
+                                        required
                                     >
                                         <option value="">-- Chọn chuyên khoa --</option>
                                         {clinic.specialties.map((sp) => (
