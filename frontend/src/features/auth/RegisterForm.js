@@ -115,7 +115,7 @@ export default function RegisterForm() {
             const fullAddress = `${formData.addressDetail}, ${wards.find(w => w.code === formData.ward)?.name || ""}, ${provinces.find(p => p.code === formData.province)?.name || ""}`;
 
             // Map form data to backend expected format
-            const role = formData.accountType === "patient" ? "PATIENT" : "ADMIN_CLINIC";
+            const role = formData.accountType === "PATIENT" ? "PATIENT" : "ADMIN_CLINIC";
 
             await registerPatientsApi.register({
                 username: formData.username,
