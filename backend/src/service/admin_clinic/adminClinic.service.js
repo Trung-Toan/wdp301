@@ -218,7 +218,9 @@ exports.getClinicByAdmin = async (accountId) => {
     if (!adminClinic)
       throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
 
-    const clinic = await Clinic.findOne({ created_by: adminClinic._id });
+    const clinic = await Clinic.findOne({
+      created_by: adminClinic._id,
+    }).populate("specialties");
     if (!clinic) throw new Error("Admin clinic này chưa có phòng khám nào.");
 
     if (clinic.status !== "ACTIVE")
