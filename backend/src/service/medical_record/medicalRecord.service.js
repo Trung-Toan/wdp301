@@ -615,7 +615,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
   }
 };
 
-exports.getMedicalRecordById = async (recordId) => {
+exports.getMedicalRecordById = async (recordId, doctorId) => {
   try {
     const medicalRecord = await MedicalRecord
       .findById(recordId)
@@ -653,34 +653,7 @@ exports.getMedicalRecordById = async (recordId) => {
         gender: appointment_id.gender
       },
     };
-
-    if (!medicalRecord) {
-      throw new Error("Bệnh án không tồn tại");
-    }
-
-    // 1. Kiểm tra xem bệnh án có phải của bác sĩ hiện tại không
-    if (medicalRecord.doctor_id?.toString() === doctorId) {
-      return data;
-    }
-
-    // 2. Nếu không phải của bác sĩ -> kiểm tra PUBLIC
-    if (medicalRecord.status === "PUBLIC") {
-      return data;
-    }
-
-    // 3. Nếu không PUBLIC -> kiểm tra quyền trong access_requests
-    const hasApprovedAccess = (medicalRecord.access_requests || []).some(
-      (reqItem) =>
-        reqItem.doctor_id?.toString() === doctorId &&
-        reqItem.status === "APPROVED"
-    );
-
-    if (hasApprovedAccess) {
-      return data;
-    }
-
-    // 4. Không thoả điều kiện nào -> không có quyền
-    throw new Error("Bạn không có quyền truy cập bệnh án này");
+    return data;
   } catch (error) {
     console.error("Error in getMedicalRecordById:", error);
     throw error;
