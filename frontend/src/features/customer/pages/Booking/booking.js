@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, Clock, MapPin, User, FileText, ChevronLeft } from "lucide-react";
+import { Calendar, Clock, MapPin, User, FileText, ChevronLeft, AlertCircle, CheckCircle } from "lucide-react";
 import BookingSuccess from "./bookingSuccess";
 import { patientsApi } from "../../../../api/patients/patientsApi";
 import { provinceApi } from "../../../../api/address/provinceApi";
 import { wardApi } from "../../../../api/address/wardApi";
+import { clinicApi } from "../../../../api/clinic/clinicApi";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 export function BookingContent() {
     const location = useLocation();
-    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar } = location.state || {};
+    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId } = location.state || {};
 
     console.log("doctorAvatar:", doctorAvatar);
 
@@ -31,6 +32,12 @@ export function BookingContent() {
 
     const [provinces, setProvinces] = useState([]);
     const [wards, setWards] = useState([]);
+    
+    // Location warning states
+    const [locationWarning, setLocationWarning] = useState(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingSubmit, setPendingSubmit] = useState(false);
+    const [clinicData, setClinicData] = useState(null);
 
     const [storedAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
     const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
@@ -132,9 +139,108 @@ export function BookingContent() {
                 dateOfBirth: dobFormatted,
                 gender: storedUser.gender || "Nam",
                 address: storedUser.address || "",
+                // Gán province từ storedUser nếu có
+                province: storedUser.address?.province?.code || 
+                          storedPatient?.address?.province?.code || 
+                          prev.province || "",
             }));
         }
-    }, [storedUser, storedAccount]);
+    }, [storedUser, storedAccount, storedPatient]);
+
+    // Fetch clinic data nếu có clinicId
+    useEffect(() => {
+        const fetchClinicData = async () => {
+            if (clinicId) {
+                try {
+                    const response = await clinicApi.getClinicDetail(clinicId);
+                    setClinicData(response.data?.data || null);
+                } catch (err) {
+                    console.error("Error fetching clinic data:", err);
+                }
+            }
+        };
+        fetchClinicData();
+    }, [clinicId]);
+
+    // Hàm lấy tên tỉnh/thành phố từ province code
+    const getProvinceName = (provinceCode) => {
+        if (!provinceCode) return null;
+        const province = provinces.find(p => p.value === provinceCode);
+        return province?.label || null;
+    };
+
+    // Kiểm tra cảnh báo địa điểm
+    useEffect(() => {
+        if (!formData.province) {
+            setLocationWarning(null);
+            return;
+        }
+
+        const patientProvinceName = getProvinceName(formData.province);
+        let clinicProvinceName = null;
+
+        // Lấy địa chỉ clinic từ clinicData hoặc từ storedUser/patient
+        if (clinicData?.address?.province?.name) {
+            clinicProvinceName = clinicData.address.province.name;
+        } else if (typeof clinicData?.address?.province === 'string') {
+            clinicProvinceName = clinicData.address.province;
+        }
+
+        if (!patientProvinceName || !clinicProvinceName) {
+            setLocationWarning(null);
+            return;
+        }
+
+        console.log("🔍 Location check:", {
+            patientProvince: patientProvinceName,
+            clinicProvince: clinicProvinceName,
+            clinicData: clinicData
+        });
+
+        // Chuẩn hóa tên tỉnh/thành phố để so sánh
+        const normalizeProvince = (province) => {
+            const lower = province.toLowerCase().trim();
+            // HCM
+            if (lower.includes('hồ chí minh') || lower.includes('hcm') || lower.includes('tp. hồ chí minh') || 
+                lower.includes('tp hồ chí minh') || lower === 'thành phố hồ chí minh' ||
+                lower.includes('thành phố hồ chí minh')) {
+                return 'HCM';
+            }
+            // Hà Nội
+            if (lower.includes('hà nội') || lower.includes('hanoi') || lower === 'thành phố hà nội' ||
+                lower.includes('thành phố hà nội')) {
+                return 'Hanoi';
+            }
+            return lower;
+        };
+
+        const normalizedClinic = normalizeProvince(clinicProvinceName);
+        const normalizedPatient = normalizeProvince(patientProvinceName);
+
+        console.log("🔍 Normalized:", {
+            clinic: normalizedClinic,
+            patient: normalizedPatient,
+            isDifferent: normalizedClinic !== normalizedPatient
+        });
+
+        // Nếu khác nhau, hiển thị cảnh báo
+        if (normalizedClinic !== normalizedPatient) {
+            const isCrossCity = (normalizedClinic === 'HCM' && normalizedPatient === 'Hanoi') || 
+                               (normalizedClinic === 'Hanoi' && normalizedPatient === 'HCM');
+            console.log("⚠️ Location warning detected:", {
+                clinic: clinicProvinceName,
+                patient: patientProvinceName,
+                isCrossCity
+            });
+            setLocationWarning({
+                clinic: clinicProvinceName,
+                patient: patientProvinceName,
+                isCrossCity
+            });
+        } else {
+            setLocationWarning(null);
+        }
+    }, [formData.province, clinicData, provinces]);
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
@@ -153,6 +259,17 @@ export function BookingContent() {
             return;
         }
 
+        // Kiểm tra cảnh báo chéo thành phố và yêu cầu xác nhận
+        if (locationWarning?.isCrossCity && !pendingSubmit) {
+            setShowConfirmModal(true);
+            return;
+        }
+
+        // Tiếp tục submit nếu đã xác nhận hoặc không có cảnh báo
+        await performSubmit();
+    };
+
+    const performSubmit = async () => {
         try {
             const genderMap = {
                 "Nam": "MALE",
@@ -178,13 +295,16 @@ export function BookingContent() {
                 reason: formData.reason,
             };
 
+            setShowConfirmModal(false);
             console.log("📤 Đang gửi đặt lịch với patient_id:", patientId);
             const response = await patientsApi.createAppointment(payload);
             console.log("✅ Đặt lịch thành công!");
             setBookingInfo(response.data);
             setIsSubmitted(true);
+            setPendingSubmit(false);
         } catch (err) {
             console.error("❌ Lỗi khi đặt lịch:", err);
+            setPendingSubmit(false);
             if (err.response) {
                 console.error("🔍 Chi tiết lỗi từ API:", err.response.data);
                 alert(`Lỗi: ${JSON.stringify(err.response.data, null, 2)}`);
@@ -212,6 +332,79 @@ export function BookingContent() {
     if (!selectedSlot) return <p className="p-4">Vui lòng chọn lịch khám trước</p>;
 
     return (
+        <>
+            {/* Confirmation Modal for Cross-City Booking */}
+            {showConfirmModal && locationWarning?.isCrossCity && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-amber-300 animate-fadeIn">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-orange-400/20"></div>
+                            <div className="relative flex items-center gap-4">
+                                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                                    <AlertCircle className="h-8 w-8" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold mb-1 drop-shadow-lg">Xác nhận đặt lịch</h3>
+                                    <p className="text-white/90 text-sm">Khoảng cách xa giữa hai thành phố</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-amber-900">
+                                        <MapPin className="h-5 w-5" />
+                                        <span className="font-semibold">Địa chỉ của bạn:</span>
+                                        <span className="font-bold">{locationWarning.patient}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-amber-900">
+                                        <MapPin className="h-5 w-5" />
+                                        <span className="font-semibold">Địa chỉ phòng khám:</span>
+                                        <span className="font-bold">{locationWarning.clinic}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                                <p className="text-blue-900 text-sm leading-relaxed">
+                                    <strong className="font-bold">Lưu ý quan trọng:</strong> Khoảng cách giữa <strong>{locationWarning.patient}</strong> và <strong>{locationWarning.clinic}</strong> rất xa (hơn 1,700km). 
+                                    Bạn có chắc chắn muốn tiếp tục đặt lịch không? Hãy đảm bảo bạn có thể sắp xếp thời gian và phương tiện di chuyển.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowConfirmModal(false);
+                                    setPendingSubmit(false);
+                                }}
+                                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 hover:border-gray-400 transition-all font-semibold transform hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    setPendingSubmit(true);
+                                    setShowConfirmModal(false);
+                                    await performSubmit();
+                                }}
+                                className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                            >
+                                <CheckCircle className="h-5 w-5" />
+                                Xác nhận đặt lịch
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         <div className="min-h-screen py-12 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
             <div className="container mx-auto px-4 max-w-7xl">
                 <Link to={`/home/doctordetail/${doctorId}`}>
@@ -230,6 +423,45 @@ export function BookingContent() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-8">
+                            {/* Location Warning */}
+                            {locationWarning && (
+                                <div className={`flex items-start gap-3 p-5 rounded-2xl shadow-sm border-2 ${
+                                    locationWarning.isCrossCity 
+                                        ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300' 
+                                        : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300'
+                                }`}>
+                                    <div className={`flex-shrink-0 p-2 rounded-xl ${
+                                        locationWarning.isCrossCity ? 'bg-amber-100' : 'bg-blue-100'
+                                    }`}>
+                                        <AlertCircle className={`h-6 w-6 ${
+                                            locationWarning.isCrossCity ? 'text-amber-600' : 'text-blue-600'
+                                        }`} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className={`font-bold mb-2 text-lg ${
+                                            locationWarning.isCrossCity ? 'text-amber-900' : 'text-blue-900'
+                                        }`}>
+                                            {locationWarning.isCrossCity ? '⚠️ Cảnh báo khoảng cách' : 'ℹ️ Thông tin địa điểm'}
+                                        </p>
+                                        <p className={`text-sm leading-relaxed ${
+                                            locationWarning.isCrossCity ? 'text-amber-800' : 'text-blue-800'
+                                        }`}>
+                                            {locationWarning.isCrossCity ? (
+                                                <>
+                                                    Bạn đang ở <strong>{locationWarning.patient}</strong> nhưng đặt lịch khám tại phòng khám ở <strong>{locationWarning.clinic}</strong>. 
+                                                    Khoảng cách giữa hai thành phố rất xa, bạn có chắc chắn muốn tiếp tục đặt lịch không?
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Bạn đang ở <strong>{locationWarning.patient}</strong> và đặt lịch tại phòng khám ở <strong>{locationWarning.clinic}</strong>. 
+                                                    Vui lòng đảm bảo bạn có thể đến đúng giờ hẹn.
+                                                </>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Thông tin cá nhân */}
                             <div className="space-y-6 p-6 bg-blue-50/50 rounded-xl border border-blue-100">
                                 <h3 className="text-xl font-bold flex items-center gap-3 text-gray-900">
@@ -434,6 +666,7 @@ export function BookingContent() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 
