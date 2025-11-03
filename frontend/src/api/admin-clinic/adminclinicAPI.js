@@ -39,7 +39,7 @@ export const adminclinicAPI = {
   //tạo tài khoản trợ lý cho bác sĩ
   createAccountAssistant: (data) => {
     return axiosInstance.post("/admin_clinic/create_assistant", data);
-  },  
+  },
 
   //lấy danh sách trợ lý của clinic mà admin clinic hiện tại quản lý
   getAssistantsOfAdminClinic: () => {
@@ -48,6 +48,21 @@ export const adminclinicAPI = {
 
   //xoá trợ lý theo id
   deleteAssistant: (assistantId) => {
-    return axiosInstance.delete(`/admin_clinic/delete_assistant/${assistantId}`);
+    return axiosInstance.delete(
+      `/admin_clinic/delete_assistant/${assistantId}`
+    );
+  },
+
+  //lấy danh sách giấy phép bác sĩ đang chờ duyệt
+  getPendingLicenses: () => {
+    return axiosInstance.get("/admin_clinic/pending_licenses");
+  },
+
+  //cập nhật trạng thái giấy phép bác sĩ
+  updateLicenseStatus: (licenseId, data) => {
+    return axiosInstance.put(
+      `/admin_clinic/update_license_status/${licenseId}`,
+      data
+    );
   },
 };

@@ -3,7 +3,7 @@ require("./model");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const path = require('path');
+const path = require("path");
 
 const connectDB = require("./config/db");
 const authRoutes = require("./router/auth/auth.routes");
@@ -42,14 +42,14 @@ app.use(
 );
 
 app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/doctor", require("./router/doctor/doctor.routes"));
 app.use("/api/assistant", require("./router/assistance/assistance.routes"));
 app.use("/api/locations", locationRoutes);
-app.use("/api/clinic", clinicRoutes);
 app.use("/api/clinic-registration", clinicRegistrationRoutes);
+app.use("/api/clinic", clinicRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/patient", patientRoutes);
 app.use("/api/patient", medicalRecordRoutes);
@@ -66,7 +66,7 @@ app.use('/api/patient', medicalRecordRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/api/admin_clinic", adminClinic);
-app.use('/api/file', uploadRoutes);
+app.use("/api/file", uploadRoutes);
 
 app.get("/", (_req, res) => res.json({ message: "Welcome to WDP301!" }));
 

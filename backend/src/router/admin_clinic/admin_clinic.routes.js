@@ -51,4 +51,20 @@ router.delete(
   adminclinicController.deleteAssistant
 );
 
+//lấy danh sách chứng chỉ bác sĩ chờ duyệt
+router.get(
+  "/pending_licenses",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getPendingLicenses
+);
+
+//cập nhật trạng thái chứng chỉ bác sĩ
+router.put(
+  "/update_license_status/:id",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateLicenseStatus
+);
+
 module.exports = router;

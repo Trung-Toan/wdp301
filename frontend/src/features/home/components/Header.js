@@ -1,8 +1,7 @@
-import { Calendar, Menu } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Calendar, Menu, X, Home, Stethoscope, Users, Building2, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
-import { Dropdown } from "react-bootstrap";
 import {
   PersonCircle,
   BoxArrowRight,
@@ -11,181 +10,250 @@ import {
 import NotificationDropdown from "./NotificationDropdown";
 import { logoutApi } from "../../../api/auth/logout/LogoutApt";
 import { useAuth } from "../../../hooks/useAuth";
+import "../../../styles/Header.css";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
   const { user: authUser } = useAuth();
   const sessionUser = useSessionStorage("user");
-  const user = authUser || sessionUser; // Prioritize authUser from context
+  const user = authUser || sessionUser;
   const navigate = useNavigate();
-  console.log("information: ", user);
   const { logout } = useAuth();
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+
+    if (isUserDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isUserDropdownOpen]);
+
   const onLogout = async () => {
     try {
       const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
-      await logoutApi.logout(refreshToken); // gọi API logout với refreshToken
+      await logoutApi.logout(refreshToken);
       logout();
-      localStorage.removeItem("token"); // xóa token (nếu bạn lưu token ở đây)
-      localStorage.removeItem("user");  // xóa thông tin người dùng (nếu có)
-      navigate("/login"); // điều hướng về trang đăng nhập
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
     } catch (error) {
       console.error("Đăng xuất thất bại:", error);
-      // Vẫn logout local nếu API thất bại
       logout();
       navigate("/login");
     }
   };
 
+  const navItems = [
+    { label: "Trang chủ", link: "/home", icon: Home },
+    { label: "Chuyên khoa", link: "/home/specialty", icon: Stethoscope },
+    { label: "Bác sĩ", link: "/home/doctorlist", icon: Users },
+    { label: "Cơ sở y tế", link: "/home/facility", icon: Building2 },
+  ];
+
+  const isActive = (path) => {
+    if (path === "/home") {
+      return location.pathname === "/home" || location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
+  };
+
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-blue-100 shadow-sm transition-all duration-300">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
+    <header className={`header-modern ${scrolled ? 'header-scrolled' : ''}`}>
+      <div className="header-container">
         {/* Logo */}
-        <div className="flex items-center gap-8">
+        <div className="header-logo-section">
           <Link
             to="/home"
-            className="flex items-center gap-2 group transition-transform duration-200 hover:scale-[1.02]"
+            className="header-logo-link"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-sm">
-              <span className="text-xl font-extrabold text-white">M+</span>
+            <div className="header-logo-icon">
+              <span className="header-logo-text">M+</span>
             </div>
-            <span className="text-xl font-bold text-gray-800 group-hover:text-sky-600 transition-colors">
-              MediSched
-            </span>
+            <span className="header-logo-name">MediSched</span>
           </Link>
 
           {/* Menu Desktop */}
-          <nav className="hidden md:flex items-center gap-6">
-            {[
-              { label: "Trang chủ", link: "/home" },
-              { label: "Chuyên khoa", link: "/home/specialty" },
-              { label: "Bác sĩ", link: "/home/doctorlist" },
-              { label: "Cơ sở y tế", link: "/home/facility" },
-              { label: "Về chúng tôi", link: "/about" },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                to={item.link}
-                className="text-sm font-medium text-gray-600 hover:text-sky-600 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="header-nav-desktop">
+            {navItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  to={item.link}
+                  className={`header-nav-link ${isActive(item.link) ? 'active' : ''}`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <IconComponent size={18} className="header-nav-icon" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
-
+        <div className="header-actions">
           {/* Notifications - Chỉ hiện khi đã đăng nhập */}
           {user && <NotificationDropdown />}
 
           {/* User dropdown */}
           {user ? (
-            <Dropdown align="end">
-              <Dropdown.Toggle
-                variant="outline-light"
-                id="dropdown-basic"
-                className="flex items-center gap-2 bg-sky-50 text-sky-700 border-none hover:bg-sky-100 rounded-xl px-3 py-1 transition-all shadow-sm"
+            <div className="header-user-dropdown-wrapper" ref={dropdownRef}>
+              <button
+                className={`header-user-toggle ${isUserDropdownOpen ? 'active' : ''}`}
+                onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                aria-label="User menu"
               >
-                <PersonCircle size={22} />
-                <span className="hidden sm:block font-medium">
-                  {user?.full_name || "User"}
+                <div className="header-user-avatar">
+                  <PersonCircle size={22} />
+                </div>
+                <span className="header-user-name">
+                  {user?.full_name || user?.name || "User"}
                 </span>
-              </Dropdown.Toggle>
+                <ChevronDown 
+                  size={16} 
+                  className={`header-dropdown-chevron ${isUserDropdownOpen ? 'rotate' : ''}`}
+                />
+              </button>
 
-              <Dropdown.Menu
-                className="rounded-xl shadow-lg border border-blue-100 mt-2 overflow-hidden"
-                style={{
-                  backgroundColor: "white",
-                  border: "1px solid #e0f2fe", // sky-100
-                }}
-              >
-                <Dropdown.Header className="text-center text-gray-700">
-                  Xin chào, <span className="font-semibold">{user?.full_name}</span> 👋
-                </Dropdown.Header>
-                <Dropdown.Divider />
-                <Dropdown.Item
-                  as={Link}
+              <div className={`header-dropdown-menu ${isUserDropdownOpen ? 'show' : ''}`}>
+                <div className="header-dropdown-header">
+                  <div className="header-dropdown-greeting">Xin chào,</div>
+                  <div className="header-dropdown-name">
+                    {user?.full_name || user?.name || "User"}
+                  </div>
+                </div>
+                <div className="header-dropdown-divider"></div>
+                <Link
                   to="/patient/profile"
-                  className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
+                  className="header-dropdown-item"
+                  onClick={() => setIsUserDropdownOpen(false)}
                 >
-                  <InfoCircle /> Thông tin cá nhân
-                </Dropdown.Item>
-                <Dropdown.Divider />
-                <Dropdown.Item
-                  as={Link}
+                  <InfoCircle size={18} />
+                  <span>Thông tin cá nhân</span>
+                </Link>
+                <div className="header-dropdown-divider"></div>
+                <Link
                   to="/patient/appointments"
-                  className="flex items-center gap-2 text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition-colors duration-150"
+                  className="header-dropdown-item"
+                  onClick={() => setIsUserDropdownOpen(false)}
                 >
-                  <Calendar /> Lịch hẹn của tôi
-                </Dropdown.Item>
-                <Dropdown.Divider />
-                <Dropdown.Item
-                  onClick={onLogout}
-                  className="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors duration-150"
+                  <Calendar size={18} />
+                  <span>Lịch hẹn của tôi</span>
+                </Link>
+                <div className="header-dropdown-divider"></div>
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setIsUserDropdownOpen(false);
+                  }}
+                  className="header-dropdown-item header-dropdown-item-logout"
                 >
-                  <BoxArrowRight /> Đăng xuất
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
+                  <BoxArrowRight size={18} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            </div>
 
           ) : (
             <Link
               to="/login"
-              className="hidden md:flex px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium shadow-sm hover:shadow-md transition-all duration-300"
+              className="header-login-btn"
             >
               Đăng nhập
             </Link>
           )}
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu Toggle */}
           <button
-            className="md:hidden p-2 rounded-xl hover:bg-sky-50 transition-colors"
+            className="header-mobile-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
           >
-            <Menu className="h-6 w-6 text-gray-700" />
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
       {/* Mobile Dropdown */}
-      {isMenuOpen && (
-        <div className="border-t bg-white md:hidden shadow-sm animate-fadeIn">
-          <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
-            {[
-              { label: "Trang chủ", link: "/home" },
-              { label: "Chuyên khoa", link: "/home/specialty" },
-              { label: "Bác sĩ", link: "/home/doctorlist" },
-              { label: "Cơ sở y tế", link: "/home/facility" },
-              { label: "Về chúng tôi", link: "/about" },
-            ].map((item) => (
+      <div className={`header-mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+        <nav className="header-mobile-nav">
+          {navItems.map((item) => {
+            const IconComponent = item.icon;
+            return (
               <Link
                 key={item.label}
                 to={item.link}
-                className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
+                className={`header-mobile-link ${isActive(item.link) ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
               >
-                {item.label}
+                <IconComponent size={20} />
+                <span>{item.label}</span>
               </Link>
-            ))}
-            {user ? (
-              <button
-                onClick={onLogout}
-                className="w-full px-4 py-2 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-all"
-              >
-                Đăng xuất
-              </button>
-            ) : (
+            );
+          })}
+          {user ? (
+            <>
               <Link
-                to="/login"
-                className="w-full px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium hover:shadow-md transition-all"
+                to="/patient/profile"
+                className="header-mobile-link"
+                onClick={() => setIsMenuOpen(false)}
               >
-                Đăng nhập
+                <InfoCircle size={20} />
+                <span>Thông tin cá nhân</span>
               </Link>
-            )}
-          </nav>
-        </div>
-      )}
+              <Link
+                to="/patient/appointments"
+                className="header-mobile-link"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Calendar size={20} />
+                <span>Lịch hẹn của tôi</span>
+              </Link>
+              <button
+                onClick={() => {
+                  onLogout();
+                  setIsMenuOpen(false);
+                }}
+                className="header-mobile-logout"
+              >
+                <BoxArrowRight size={20} />
+                <span>Đăng xuất</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="header-mobile-login"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Đăng nhập
+            </Link>
+          )}
+        </nav>
+      </div>
     </header>
   );
 }

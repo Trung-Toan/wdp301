@@ -121,22 +121,71 @@ exports.updateAccessRequest = async (req, res) => {
 
         const { action } = req.body;
 
+        if (!action || !['APPROVE', 'REJECT'].includes(action)) {
+            return fail(res, new Error("Invalid action. Must be 'APPROVE' or 'REJECT'"), 400);
+        }
+
         const status = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
 
         const rec = await MedicalRecord.findById(id);
 
         if (!rec) return fail(res, new Error("Record not found"), 404);
 
-        const reqItem = rec.access_requests.id?.(requestId) || rec.access_requests[requestId];
+        // Tìm access request bằng _id hoặc index
+        let reqItem = null;
+        
+        // Nếu requestId có format "INDEX:X" (cho các request cũ không có _id)
+        if (requestId.startsWith('INDEX:')) {
+            const index = parseInt(requestId.replace('INDEX:', ''));
+            if (!isNaN(index) && index >= 0 && index < rec.access_requests.length) {
+                reqItem = rec.access_requests[index];
+            }
+        } else {
+            // Thử tìm bằng _id (nếu là ObjectId)
+            if (rec.access_requests.id) {
+                reqItem = rec.access_requests.id(requestId);
+            }
+            
+            // Nếu không tìm thấy, thử tìm bằng index (nếu requestId là số)
+            if (!reqItem && !isNaN(requestId)) {
+                const index = parseInt(requestId);
+                if (index >= 0 && index < rec.access_requests.length) {
+                    reqItem = rec.access_requests[index];
+                }
+            }
+            
+            // Nếu vẫn không tìm thấy, tìm bằng string comparison của _id
+            if (!reqItem) {
+                reqItem = rec.access_requests.find(req => 
+                    req._id && req._id.toString() === requestId
+                );
+            }
+        }
 
         if (!reqItem) return fail(res, new Error("Access request not found"), 404);
+        
+        // Đảm bảo reason không bị mất khi update
+        if (!reqItem.reason) {
+            reqItem.reason = "Yêu cầu truy cập hồ sơ bệnh án";
+        }
+        
         reqItem.status = status;
 
         if (status === 'APPROVED') reqItem.approved_at = new Date();
 
+        // Đảm bảo tất cả các access requests khác cũng có reason để tránh validation error
+        rec.access_requests.forEach((ar) => {
+            if (!ar.reason) {
+                ar.reason = "Yêu cầu truy cập hồ sơ bệnh án";
+            }
+        });
+
         await rec.save();
         return ok(res, rec.toObject());
-    } catch (err) { return fail(res, err); }
+    } catch (err) { 
+        console.error("Error in updateAccessRequest:", err);
+        return fail(res, err); 
+    }
 };
 
 

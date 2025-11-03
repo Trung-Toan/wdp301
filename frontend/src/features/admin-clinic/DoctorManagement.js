@@ -26,7 +26,8 @@ const DoctorManagement = () => {
     password: "",
     phone_number: "",
     full_name: "",
-    specialty_id: "",
+    specialty: "",
+    specialtyName: "",
   });
 
   useEffect(() => {
@@ -56,6 +57,7 @@ const DoctorManagement = () => {
           return {
             id: doc._id,
             name: doc.user_id?.full_name || "Không rõ",
+            avatar: doc.user_id?.avatar_url || null,
             specialty: specialties,
             email: doc.user_id?.account_id?.email || "N/A",
             phone: doc.user_id?.account_id?.phone_number || "N/A",
@@ -91,7 +93,7 @@ const DoctorManagement = () => {
         password: formData.password,
         phone_number: formData.phone_number,
         full_name: formData.full_name,
-        specialty_id: formData.specialty,
+        specialty: formData.specialty,
       };
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
@@ -113,7 +115,8 @@ const DoctorManagement = () => {
       password: "",
       phone_number: "",
       full_name: "",
-      specialty_id: "",
+      specialty: "",
+      specialtyName: "",
     });
     setShowModal(true);
   };
@@ -129,9 +132,9 @@ const DoctorManagement = () => {
       doctors.map((doc) =>
         doc.id === id
           ? {
-              ...doc,
-              status: doc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-            }
+            ...doc,
+            status: doc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+          }
           : doc
       )
     );
@@ -236,11 +239,10 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => handleToggleStatus(doctor.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${
-                      doctor.status === "ACTIVE"
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${doctor.status === "ACTIVE"
                         ? "bg-green-100 text-green-700 hover:bg-green-200"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
+                      }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -399,11 +401,10 @@ const DoctorManagement = () => {
                             specialtyName: s.name,
                           })
                         }
-                        className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${
-                          formData.specialty === s._id
+                        className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${formData.specialty === s._id
                             ? "bg-blue-100 text-blue-700 font-semibold"
                             : "text-gray-700"
-                        }`}
+                          }`}
                       >
                         {s.name}
                       </div>

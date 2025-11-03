@@ -1771,6 +1771,9 @@ export const getPopulatedAppointment = (appointmentId) => {
   const appointment = mockAppointments.find((a) => a._id === appointmentId)
   if (!appointment) return null
 
+
+
+
   const doctor = getPopulatedDoctor(appointment.doctor_id)
   const patient = getPopulatedPatient(appointment.patient_id)
   const slot = mockSlots.find((s) => s._id === appointment.slot_id)
