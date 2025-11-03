@@ -13,6 +13,9 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
     const [doctors, setDoctors] = useState([]);
     const [availableSlots, setAvailableSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
+    const [requestLoading, setRequestLoading] = useState(false);
+    const [requestError, setRequestError] = useState(null);
+    const [requestSuccess, setRequestSuccess] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState({
@@ -98,19 +101,51 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const bookingData = {
-            ...formData,
-            clinic_id: clinic._id,
-            patient_id: user?.patient?._id || user?._id,
-            // If auto-assign, don't send doctor_id and slot_id (backend will auto-assign)
-            doctor_id: autoAssignDoctor ? undefined : formData.doctor_id,
-            slot_id: autoAssignDoctor ? undefined : formData.slot_id,
-        };
+        try {
+            setRequestLoading(true);
+            setRequestError(null);
+            setRequestSuccess(false);
 
-        const result = await createBooking(bookingData);
-        
-        if (result) {
-            if (onSuccess) onSuccess(result);
+            const bookingData = {
+                clinic_id: clinic._id,
+                specialty_id: formData.specialty_id,
+                scheduled_date: formData.scheduled_date,
+                patient_id: user?.patient?._id || user?._id,
+                auto_assign: autoAssignDoctor,
+                full_name: formData.full_name,
+                phone: formData.phone,
+                email: formData.email,
+                reason: formData.reason,
+            };
+
+            // If not auto-assign, add doctor_id and slot_id
+            if (!autoAssignDoctor) {
+                bookingData.doctor_id = formData.doctor_id;
+                bookingData.slot_id = formData.slot_id;
+            }
+
+            let result;
+            
+            // Use clinic booking API when auto-assign is true, or use regular appointment API
+            if (autoAssignDoctor) {
+                const response = await clinicApi.createClinicBooking(bookingData);
+                result = response.data.data;
+            } else {
+                // For manual booking, add clinic_id to appointment data
+                bookingData.clinic_id = clinic._id;
+                result = await createBooking(bookingData);
+            }
+            
+            if (result) {
+                setRequestSuccess(true);
+                if (onSuccess) onSuccess(result);
+            }
+        } catch (err) {
+            console.error("Booking error:", err);
+            const errorMessage = err.response?.data?.error || "Đặt lịch thất bại. Vui lòng thử lại.";
+            setRequestError(errorMessage);
+        } finally {
+            setRequestLoading(false);
         }
     };
 
@@ -212,7 +247,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                 </div>
 
                 {/* Success State */}
-                {success && (
+                {(success || requestSuccess) && (
                     <div className="flex-1 overflow-y-auto p-6 sm:p-8">
                         <div className="text-center py-12">
                             <div className="relative inline-block mb-6">
@@ -238,7 +273,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                 )}
 
                 {/* Form */}
-                {!success && (
+                {!(success || requestSuccess) && (
                     <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
                         {/* Doctor Selection Mode */}
                         <div className="bg-gradient-to-br from-sky-50 via-blue-50 to-purple-50 border-2 border-sky-200 rounded-2xl p-5 hover:border-sky-300 transition-all shadow-sm">
@@ -502,14 +537,14 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                         </div>
 
                         {/* Error */}
-                        {error && (
+                        {(error || requestError) && (
                             <div className="flex items-start gap-3 p-5 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl shadow-sm">
                                 <div className="flex-shrink-0 p-1.5 bg-red-100 rounded-lg">
                                     <AlertCircle className="h-5 w-5" />
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold mb-1">Có lỗi xảy ra</p>
-                                    <span className="text-sm">{error}</span>
+                                    <span className="text-sm">{error || requestError}</span>
                                 </div>
                             </div>
                         )}
@@ -525,10 +560,10 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || requestLoading}
                                 className="flex-1 px-6 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
                             >
-                                {loading ? (
+                                {(loading || requestLoading) ? (
                                     <>
                                         <Loader2 className="h-5 w-5 animate-spin" />
                                         Đang xử lý...
