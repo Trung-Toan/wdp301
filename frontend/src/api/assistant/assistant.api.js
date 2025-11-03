@@ -1,3 +1,4 @@
+// import { updateAppointment } from "../../../../backend/src/service/appointment/appointment.service";
 import { axiosInstance } from "../axiosInstance";
 
 export const PATIENT_API = {
@@ -25,24 +26,35 @@ export const PATIENT_API = {
 
 export const MEDICAL_RECORD_API = {
     GET_LIST_MEDICAL_RECORDS: "/assistant/created/medical-records",
+    CREATE_MEDICAL_RECORD: (appointmentId) => `/assistant/medical-records/appointment/${appointmentId}`,
     /**
      * Lấy danh sách hồ sơ bệnh án do trợ lý tạo
      * @param {number} [page=1] - Trang hiện tại
      * @returns {Promise<AxiosResponse>}
      */
     getListMedicalRecords: (page = 1) => axiosInstance.get(MEDICAL_RECORD_API.GET_LIST_MEDICAL_RECORDS, { params: { page } }),
+
+    createMedicalRecord: (appointmentId, data) => axiosInstance.post(MEDICAL_RECORD_API.CREATE_MEDICAL_RECORD(appointmentId), data),
+
 };
 
 export const APPOINTMENT_API = {
     GET_LIST_APPOINTMENTS: "/assistant/appointments",
+    GET_APPOINTMENT_BY_ID: (appointmentId) => `/assistant/appointments/${appointmentId}`,
+    VERIFY_APPOINTMENT: (appointmentId) => `/assistant/verify/appointments/${appointmentId}`,
+    UPDATE_APPOINTMENT: (appointmentId) => `/assistant/update/appointments/${appointmentId}`,
+
+
     getListAppointments: (page = 1, limit = 10, status = "", slot = "", search = "", date = "") => axiosInstance.get(APPOINTMENT_API.GET_LIST_APPOINTMENTS, { params: { page, limit, status, slot, search, date } }),
 
     getAppointmentById: (appointmentId) => axiosInstance.get(APPOINTMENT_API.GET_APPOINTMENT_BY_ID(appointmentId)),
-    GET_APPOINTMENT_BY_ID: (appointmentId) => `/assistant/appointments/${appointmentId}`,
 
     verifyAppointment: (appointmentId, status) =>
-        axiosInstance.put(APPOINTMENT_API.VERIFY_APPOINTMENT(appointmentId), null, { params: { status } }),
-    VERIFY_APPOINTMENT: (appointmentId) => `/assistant/verify/appointments/${appointmentId}`,
+        // Thay thế 'null' bằng một đối tượng rỗng '{}'
+        axiosInstance.put(APPOINTMENT_API.VERIFY_APPOINTMENT(appointmentId), {}, { params: { status } }),
+
+    updateAppointment: (appointmentId, data) => axiosInstance.put(APPOINTMENT_API.UPDATE_APPOINTMENT(appointmentId), data),
+
 };
 
 export const SLOT_API = {
@@ -57,7 +69,9 @@ export const SLOT_API = {
 
     getDetailsSlot: (slotId) => axiosInstance.get(SLOT_API.GET_DETAILS_SLOT(slotId)),
 
-    updateSlotById: (slotId, data) =>
-        axiosInstance.put(SLOT_API.UPDATE_SLOT_BY_ID(slotId), data),
+    updateSlotById: (slotId, data) => {
+        console.log("Updating slot with data:", data);
+        return axiosInstance.put(SLOT_API.UPDATE_SLOT_BY_ID(slotId), data);
+    }
 };
 

@@ -82,10 +82,6 @@ const SlotSchedule = () => {
     try {
       const res = await SLOT_API.getSlotsByDoctor(selectedDate);
 
-      // === 1. LOG DỮ LIỆU THÔ KHI FETCH ===
-      console.log("--- fetchSlots: Dữ liệu thô nhận về ---", res.data?.data);
-      // ===================================
-
       const sortedSlots = (res.data?.data || []).sort(
         (a, b) => new Date(a.start_time) - new Date(b.start_time)
       );
@@ -98,6 +94,8 @@ const SlotSchedule = () => {
       setLoading(false);
     }
   };
+
+  console.log("Slots hiện tại:", Slots);
 
   useEffect(() => {
     fetchSlots();
@@ -254,13 +252,13 @@ const SlotSchedule = () => {
       if (editingSlot) {
         // --- SỬA ---
         console.log(`Đang gửi UPDATE cho ID: ${editingSlot._id}`);
-        await SLOT_API.updateSlotById(editingSlot._id, payload);
-        toast.success("Cập nhật ca thành công!");
+        const response = await SLOT_API.updateSlotById(editingSlot._id, payload);
+        toast.success("Cập nhật ca thành công!", response?.data);
       } else {
         // --- THÊM MỚI ---
         console.log("Đang gửi CREATE...");
-        await SLOT_API.createSlotByDoctor(payload);
-        toast.success("Thêm ca mới thành công!");
+        const response = await SLOT_API.createSlotByDoctor(payload);
+        toast.success("Thêm ca mới thành công! ", response?.data);
       }
 
       // 2. Đóng modal

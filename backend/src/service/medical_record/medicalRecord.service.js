@@ -185,7 +185,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
                 reviewed_by: {
                   $ifNull: ["$access_requests.reviewed_by", null],
                 },
-                
+
                 patient: {
                   _id: "$patientInfo._id",
                   patient_code: "$patientInfo.patient_code",
@@ -738,71 +738,49 @@ exports.verifyMedicalRecord = async (req) => {
  * @param {object} medical_record - Dữ liệu hồ sơ bệnh án
  */
 exports.createMedicalRecord = async (appId, medical_record) => {
-  // 1. Tìm và Validation Lịch hẹn (Appointment)
   const appointment = await Appointment.findById(appId);
 
   if (!appointment) {
     throw new Error("Lịch hẹn không tồn tại.");
   }
 
-  // a. Kiểm tra Trạng thái Lịch hẹn: Phải là đã được DUYỆT
-  // Lưu ý: Trong model Appointment của bạn là "APPROVE"
   if (appointment.status !== "APPROVE") {
     throw new Error(`Lịch hẹn phải ở trạng thái "APPROVE" để tạo hồ sơ bệnh án. Trạng thái hiện tại: ${appointment.status}.`);
   }
 
-  // b. Kiểm tra Thời gian Lịch hẹn: Phải diễn ra trong ngày hôm nay hoặc hôm qua
-
-  // Lấy ngày hẹn và đặt về đầu ngày (00:00:00.000)
   const scheduledDate = new Date(appointment.scheduled_date);
   scheduledDate.setHours(0, 0, 0, 0);
   const scheduledTimestamp = scheduledDate.getTime(); // Lấy timestamp của ngày hẹn
-
-  // Lấy ngày hôm nay và đặt về đầu ngày (00:00:00.000)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayTimestamp = today.getTime(); // Lấy timestamp của hôm nay
-
-  // Lấy ngày hôm qua và đặt về đầu ngày (00:00:00.000)
   const yesterday = new Date(); // Bắt đầu từ 'nay'
   yesterday.setDate(yesterday.getDate() - 1); // Lùi lại 1 ngày
   yesterday.setHours(0, 0, 0, 0);
   const yesterdayTimestamp = yesterday.getTime(); // Lấy timestamp của hôm qua
 
-  // Kiểm tra xem ngày hẹn KHÔNG PHẢI là hôm nay VÀ KHÔNG PHẢI là hôm qua
   if (scheduledTimestamp !== todayTimestamp && scheduledTimestamp !== yesterdayTimestamp) {
     throw new Error("Chỉ được tạo hồ sơ bệnh án cho lịch hẹn của ngày hôm nay hoặc ngày hôm qua.");
   }
-
-  // c. Kiểm tra Đồng bộ Dữ liệu Bác sĩ/Bệnh nhân
-  // doctor_id và patient_id trong body PHẢI khớp với Appointment để đảm bảo tính chính xác
   if (medical_record.doctor_id.toString() !== appointment.doctor_id.toString()) {
     throw new Error("ID Bác sĩ trong hồ sơ bệnh án không khớp với ID Bác sĩ của Lịch hẹn.");
   }
   if (medical_record.patient_id.toString() !== appointment.patient_id.toString()) {
     throw new Error("ID Bệnh nhân trong hồ sơ bệnh án không khớp với ID Bệnh nhân của Lịch hẹn.");
   }
-
-  // 2. Kiểm tra Trùng lặp
-  // Chỉ cho phép 1 MedicalRecord cho 1 Appointment (Mối quan hệ 1-1)
   const existingRecord = await MedicalRecord.findOne({ appointment_id: appId });
 
   if (existingRecord) {
     throw new Error(`Lịch hẹn ID: ${appId} đã có hồ sơ bệnh án.`);
   }
-
-  // 3. Tạo hồ sơ bệnh án
   const newRecord = new MedicalRecord(medical_record);
-
   try {
     const addedRecord = await newRecord.save();
 
-    // Tùy chọn: Cập nhật trạng thái Lịch hẹn sang COMPLETED sau khi có hồ sơ bệnh án
     await Appointment.findByIdAndUpdate(appId, { status: "COMPLETED" });
 
     return addedRecord;
   } catch (e) {
-    // Xử lý lỗi validation của Mongoose (ví dụ: status enum sai, required field thiếu)
     if (e.name === 'ValidationError') {
       const messages = Object.values(e.errors).map(val => val.message);
       throw new Error(`Lỗi dữ liệu: ${messages.join(', ')}`);
@@ -820,9 +798,9 @@ exports.updateMedicalRecord = async (id, updateData) => {
   try {
     const updatedRecord = await MedicalRecord.findByIdAndUpdate(
       id,
-      { $set: updateData }, 
+      { $set: updateData },
       { new: true, runValidators: true }
-    ).populate('patient') 
+    ).populate('patient')
       .populate('doctor');
     return updatedRecord;
 
@@ -838,21 +816,21 @@ exports.updateMedicalRecord = async (id, updateData) => {
  * @param {Object} updateData - Dữ liệu hồ sơ bệnh án cần cập nhật
  */
 exports.updateMedicalRecord = async (id, updateData) => {
-    try {
-        const updatedRecord = await MedicalRecord.findOneAndUpdate(
-            {
-                _id: id,
-                "prescription.status": { $ne: "VERIFIED" } 
-            },
-            { $set: updateData }, 
-            { new: true, runValidators: true }
-        )
-        .populate('patient_id') 
-        .populate('doctor_id');  
-        
-        return updatedRecord;
-    } catch (error) {
-        console.error("Lỗi trong service updateMedicalRecord: ", error);
-        throw error;
-    }
+  try {
+    const updatedRecord = await MedicalRecord.findOneAndUpdate(
+      {
+        _id: id,
+        "prescription.status": { $ne: "VERIFIED" }
+      },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    )
+      .populate('patient_id')
+      .populate('doctor_id');
+
+    return updatedRecord;
+  } catch (error) {
+    console.error("Lỗi trong service updateMedicalRecord: ", error);
+    throw error;
+  }
 };
