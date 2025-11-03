@@ -18,7 +18,9 @@ export const doctorApi = {
 
   // Lấy bác sĩ theo chuyên khoa
   getDoctorBySpecialty: (specialtyId, params = {}) =>
-    axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params } }),
+    axiosInstance.get("/doctor/by-specialty", {
+      params: { specialtyId, ...params },
+    }),
 
   //lay danh sach benh nhan
   getAllPatient: (page = 1, limit = 10, search = "") =>
@@ -73,7 +75,8 @@ export const doctorApi = {
     ),
 
   //lấy danh sách trợ lý
-  getAssistants: (params) => axiosInstance.get("/doctor/assistants", { params }),
+  getAssistants: (params) =>
+    axiosInstance.get("/doctor/assistants", { params }),
 
   //thêm trợ lý
   addAssistant: (data) => axiosInstance.post("/doctor/assistants", data),
@@ -83,7 +86,17 @@ export const doctorApi = {
     axiosInstance.delete(`/doctor/assistants/${assistantId}`),
 
   // Lấy bác sĩ theo ID
-  getDoctorById: (id) =>
-    axiosInstance.get(`/doctor/${id}`),
-};
+  getDoctorById: (id) => axiosInstance.get(`/doctor/${id}`),
 
+  //lấy profile bác sĩ
+  getProfile: () => axiosInstance.get("/doctor/profile"),
+
+  //cap nhat profile bác sĩ
+  updateProfile: (data) => axiosInstance.put("/doctor/profile", data),
+
+  //lấy chứng chỉ bác sĩ
+  getMyLicense: () => axiosInstance.get("/doctor/license"),
+
+  //gửi chứng chỉ bác sĩ chờ duyệt
+  uploadLicense: (data) => axiosInstance.post("/doctor/license", data),
+};

@@ -3,6 +3,7 @@ require("./model");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const path = require('path');
 
 const connectDB = require("./config/db");
 const authRoutes = require("./router/auth/auth.routes");
@@ -14,6 +15,7 @@ const patientRoutes = require("./router/patient/patient.routes");
 const medicalRecordRoutes = require("./router/patient/medicalRecord.routes");
 const userRoutes = require("./router/user/user.routes");
 const adminClinic = require("./router/admin_clinic/admin_clinic.routes");
+const uploadRoutes = require('./router/upload.routes');
 
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
@@ -39,6 +41,7 @@ app.use(
 );
 
 app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/doctor", require("./router/doctor/doctor.routes"));
@@ -51,6 +54,7 @@ app.use("/api/patient", patientRoutes);
 app.use("/api/patient", medicalRecordRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin_clinic", adminClinic);
+app.use('/api/file', uploadRoutes);
 
 app.get("/", (_req, res) => res.json({ message: "Welcome to WDP301!" }));
 
