@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react"; // Thêm useEffect
+import { memo, useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
@@ -6,7 +6,6 @@ import {
   Calendar,
   FileText,
   ClipboardCheck,
-  BellSlash,
   ChatLeftText,
   PersonBadge,
   List,
@@ -112,11 +111,6 @@ const DoctorLayout = () => {
       title: "Quản lý trợ lý",
       icon: <PersonBadge size={20} />,
       link: "/doctor/assistants",
-    },
-    {
-      title: "Thông báo nghỉ",
-      icon: <BellSlash size={20} />,
-      link: "/doctor/absence",
     },
   ];
 
