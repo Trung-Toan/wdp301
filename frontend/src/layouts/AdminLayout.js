@@ -13,6 +13,7 @@ import {
   Bell,
   UserCircle,
   LogOut,
+  CheckCircle,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { logoutApi } from "../api/auth/logout/LogoutApt";
@@ -33,6 +34,11 @@ const AdminLayout = () => {
       title: "Quản lý phòng khám",
       icon: <Building2 size={20} />,
       link: "/admin/clinics",
+    },
+    {
+      title: "Phòng khám đã duyệt",
+      icon: <CheckCircle size={20} />,
+      link: "/admin/approved-clinics",
     },
     {
       title: "Quản lý tài khoản",

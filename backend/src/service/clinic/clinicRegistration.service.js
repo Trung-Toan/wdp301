@@ -91,6 +91,40 @@ exports.getPendingClinics = async () => {
   }
 };
 
+// Lấy danh sách phòng khám đã được duyệt (ACTIVE)
+exports.getApprovedClinics = async () => {
+  try {
+    const clinics = await Clinic.find({ status: "ACTIVE" })
+      .populate("created_by", "_id")
+      .populate("specialties", "name")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return clinics.map((clinic) => ({
+      _id: clinic._id,
+      name: clinic.name,
+      phone: clinic.phone,
+      email: clinic.email,
+      website: clinic.website,
+      description: clinic.description,
+      logo_url: clinic.logo_url,
+      banner_url: clinic.banner_url,
+      registration_number: clinic.registration_number,
+      opening_hours: clinic.opening_hours,
+      closing_hours: clinic.closing_hours,
+      address: clinic.address,
+      specialties: clinic.specialties,
+      created_by: clinic.created_by,
+      status: clinic.status,
+      review_info: clinic.review_info,
+      createdAt: clinic.createdAt,
+      updatedAt: clinic.updatedAt,
+    }));
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Duyệt phòng khám
 exports.approveClinic = async ({ clinic_id, admin_system_id, review_notes }) => {
   try {

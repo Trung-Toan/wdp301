@@ -7,6 +7,11 @@ export const adminSystemAPI = {
     return axiosInstance.get("/clinic-registration/pending");
   },
 
+  // Lấy danh sách phòng khám đã được duyệt
+  getApprovedClinics: () => {
+    return axiosInstance.get("/clinic-registration/approved");
+  },
+
   // Duyệt phòng khám
   approveClinic: (clinicId, data = {}) => {
     return axiosInstance.put(`/clinic-registration/approve/${clinicId}`, data);

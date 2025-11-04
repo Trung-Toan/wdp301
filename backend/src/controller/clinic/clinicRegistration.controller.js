@@ -53,6 +53,20 @@ exports.getPendingClinics = async (req, res) => {
   }
 };
 
+// Lấy danh sách phòng khám đã được duyệt (Admin System)
+exports.getApprovedClinics = async (req, res) => {
+  try {
+    const clinics = await clinicRegistrationService.getApprovedClinics();
+    return successResponse(
+      res,
+      clinics,
+      "Lấy danh sách phòng khám đã duyệt thành công"
+    );
+  } catch (error) {
+    return badRequestResponse(res, error.message, 400);
+  }
+};
+
 // Duyệt phòng khám (Admin System)
 exports.approveClinic = async (req, res) => {
   try {
