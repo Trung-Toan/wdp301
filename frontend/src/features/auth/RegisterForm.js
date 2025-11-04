@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Eye, EyeOff, ArrowLeft, HeartPulse, User, Mail, Phone, Lock, MapPin, Calendar, Users } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, HeartPulse, User, Mail, Phone, Lock, MapPin, Calendar, Users, AlertCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerPatientsApi } from "../../api/auth/register/registerPatientsApi";
 import Toast from "../../components/ui/Toast";
@@ -14,6 +14,7 @@ export default function RegisterForm() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [notification, setNotification] = useState({ type: "", message: "" });
     const [errors, setErrors] = useState({});
+    const [touched, setTouched] = useState({});
     const [isLoading, setIsLoading] = useState(false);
 
     // --- Thêm state cho province & ward ---
@@ -35,8 +36,75 @@ export default function RegisterForm() {
         addressDetail: "",
     });
 
-    const handleChange = (e) =>
-        setFormData({ ...formData, [e.target.id || e.target.name]: e.target.value });
+    const handleChange = (e) => {
+        const fieldName = e.target.id || e.target.name;
+        const value = e.target.value;
+        
+        setFormData({ ...formData, [fieldName]: value });
+        
+        // Clear error khi user bắt đầu nhập
+        if (errors[fieldName]) {
+            setErrors({ ...errors, [fieldName]: "" });
+        }
+    };
+
+    const handleBlur = (fieldName) => {
+        setTouched({ ...touched, [fieldName]: true });
+        
+        // Validate field cụ thể khi blur
+        const fieldErrors = validateField(fieldName, formData[fieldName]);
+        if (fieldErrors) {
+            setErrors({ ...errors, [fieldName]: fieldErrors });
+        } else {
+            setErrors({ ...errors, [fieldName]: "" });
+        }
+    };
+
+    // Validate từng field riêng lẻ
+    const validateField = (fieldName, value) => {
+        switch (fieldName) {
+            case "username":
+                if (!value.trim()) return "Tên đăng nhập không được để trống";
+                if (value.length < 4) return "Phải có ít nhất 4 ký tự";
+                return "";
+            case "email":
+                if (!value.trim()) return "Email không được để trống";
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Email không hợp lệ";
+                return "";
+            case "phone":
+                if (!value.trim()) return "Số điện thoại không được để trống";
+                if (!/^(0[3|5|7|8|9])[0-9]{8}$/.test(value)) return "Số điện thoại không hợp lệ (ví dụ: 0912345678)";
+                return "";
+            case "password":
+                if (!value.trim()) return "Mật khẩu không được để trống";
+                if (value.length < 6) return "Phải có ít nhất 6 ký tự";
+                if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) return "Phải chứa ít nhất 1 chữ hoa và 1 số";
+                return "";
+            case "confirmPassword":
+                if (value !== formData.password) return "Mật khẩu xác nhận không khớp";
+                return "";
+            case "fullName":
+                if (!value.trim()) return "Họ tên không được để trống";
+                return "";
+            case "dob":
+                if (!value.trim()) return "Ngày sinh không được để trống";
+                return "";
+            case "gender":
+                if (!value.trim()) return "Chọn giới tính";
+                return "";
+            case "province":
+                if (!value.trim()) return "Chọn tỉnh/thành phố";
+                return "";
+            case "ward":
+                if (!value.trim()) return "Chọn phường/xã";
+                return "";
+            case "addressDetail":
+                if (!value.trim()) return "Vui lòng nhập địa chỉ chi tiết";
+                return "";
+            default:
+                return "";
+        }
+    };
 
     // --- Gọi API lấy danh sách tỉnh khi mở trang ---
     useEffect(() => {
@@ -106,8 +174,47 @@ export default function RegisterForm() {
         e.preventDefault();
         const validationErrors = validateForm(formData);
         setErrors(validationErrors);
+        
+        // Đánh dấu tất cả fields đã touched
+        const allFields = Object.keys(formData);
+        const touchedFields = {};
+        allFields.forEach(field => {
+            touchedFields[field] = true;
+        });
+        setTouched(touchedFields);
+        
         if (Object.keys(validationErrors).length > 0) {
-            setNotification({ type: "error", message: "Vui lòng kiểm tra lại thông tin." });
+            // Hiển thị toast với danh sách lỗi
+            const errorMessages = Object.values(validationErrors).filter(msg => msg);
+            const errorCount = errorMessages.length;
+            
+            toast.error(
+                `Có ${errorCount} lỗi cần sửa: ${errorMessages.slice(0, 3).join(", ")}${errorCount > 3 ? "..." : ""}`,
+                {
+                    position: "top-center",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                }
+            );
+            
+            // Scroll đến field lỗi đầu tiên
+            const firstErrorField = Object.keys(validationErrors)[0];
+            if (firstErrorField) {
+                const errorElement = document.getElementById(firstErrorField) || 
+                    document.querySelector(`[name="${firstErrorField}"]`);
+                if (errorElement) {
+                    errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                    errorElement.focus();
+                }
+            }
+            
+            setNotification({ 
+                type: "error", 
+                message: `Có ${errorCount} trường thông tin chưa hợp lệ. Vui lòng kiểm tra lại.` 
+            });
             return;
         }
         setIsLoading(true);
@@ -307,13 +414,29 @@ export default function RegisterForm() {
                                     type={input.type}
                                     value={formData[input.id]}
                                     onChange={handleChange}
+                                    onBlur={() => handleBlur(input.id)}
                                     placeholder={input.placeholder}
-                                        className={`form-control-modern ${errors[input.id] ? 'is-invalid' : ''}`}
-                                        disabled={isLoading}
+                                    className={`form-control-modern ${errors[input.id] && touched[input.id] ? 'is-invalid' : ''}`}
+                                    disabled={isLoading}
+                                    style={{
+                                        borderColor: errors[input.id] && touched[input.id] ? '#dc3545' : '',
+                                        boxShadow: errors[input.id] && touched[input.id] ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
                                 />
                                 </div>
-                                {errors[input.id] && (
-                                    <div className="invalid-feedback">{errors[input.id]}</div>
+                                {errors[input.id] && touched[input.id] && (
+                                    <div className="invalid-feedback" style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        color: '#dc3545',
+                                        fontSize: '0.875rem',
+                                        marginTop: '0.25rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        <AlertCircle size={16} />
+                                        <span>{errors[input.id]}</span>
+                                    </div>
                                 )}
                             </div>
                         );
@@ -329,10 +452,15 @@ export default function RegisterForm() {
                                     type={showPassword ? "text" : "password"}
                                     value={formData.password}
                                     onChange={handleChange}
+                                    onBlur={() => handleBlur("password")}
                                     placeholder="Nhập mật khẩu"
-                                className={`form-control-modern ${errors.password ? 'is-invalid' : ''}`}
-                                style={{ paddingRight: "3rem" }}
-                                disabled={isLoading}
+                                    className={`form-control-modern ${errors.password && touched.password ? 'is-invalid' : ''}`}
+                                    style={{ 
+                                        paddingRight: "3rem",
+                                        borderColor: errors.password && touched.password ? '#dc3545' : '',
+                                        boxShadow: errors.password && touched.password ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
+                                    disabled={isLoading}
                                 />
                                 <button
                                     type="button"
@@ -350,7 +478,20 @@ export default function RegisterForm() {
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
-                        {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                        {errors.password && touched.password && (
+                            <div className="invalid-feedback" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                color: '#dc3545',
+                                fontSize: '0.875rem',
+                                marginTop: '0.25rem',
+                                fontWeight: '500'
+                            }}>
+                                <AlertCircle size={16} />
+                                <span>{errors.password}</span>
+                            </div>
+                        )}
                         </div>
 
                         {/* Xác nhận mật khẩu */}
@@ -363,10 +504,15 @@ export default function RegisterForm() {
                                     type={showConfirmPassword ? "text" : "password"}
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
+                                    onBlur={() => handleBlur("confirmPassword")}
                                     placeholder="Nhập lại mật khẩu"
-                                className={`form-control-modern ${errors.confirmPassword ? 'is-invalid' : ''}`}
-                                style={{ paddingRight: "3rem" }}
-                                disabled={isLoading}
+                                    className={`form-control-modern ${errors.confirmPassword && touched.confirmPassword ? 'is-invalid' : ''}`}
+                                    style={{ 
+                                        paddingRight: "3rem",
+                                        borderColor: errors.confirmPassword && touched.confirmPassword ? '#dc3545' : '',
+                                        boxShadow: errors.confirmPassword && touched.confirmPassword ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
+                                    disabled={isLoading}
                                 />
                                 <button
                                     type="button"
@@ -384,8 +530,19 @@ export default function RegisterForm() {
                                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
-                            {errors.confirmPassword && (
-                            <div className="invalid-feedback">{errors.confirmPassword}</div>
+                            {errors.confirmPassword && touched.confirmPassword && (
+                            <div className="invalid-feedback" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                color: '#dc3545',
+                                fontSize: '0.875rem',
+                                marginTop: '0.25rem',
+                                fontWeight: '500'
+                            }}>
+                                <AlertCircle size={16} />
+                                <span>{errors.confirmPassword}</span>
+                            </div>
                             )}
                         </div>
 
@@ -400,11 +557,29 @@ export default function RegisterForm() {
                                     type="date"
                                     value={formData.dob}
                                     onChange={handleChange}
-                                    className={`form-control-modern ${errors.dob ? 'is-invalid' : ''}`}
+                                    onBlur={() => handleBlur("dob")}
+                                    className={`form-control-modern ${errors.dob && touched.dob ? 'is-invalid' : ''}`}
+                                    style={{
+                                        borderColor: errors.dob && touched.dob ? '#dc3545' : '',
+                                        boxShadow: errors.dob && touched.dob ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
                                     disabled={isLoading}
                                 />
                             </div>
-                            {errors.dob && <div className="invalid-feedback">{errors.dob}</div>}
+                            {errors.dob && touched.dob && (
+                                <div className="invalid-feedback" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    color: '#dc3545',
+                                    fontSize: '0.875rem',
+                                    marginTop: '0.25rem',
+                                    fontWeight: '500'
+                                }}>
+                                    <AlertCircle size={16} />
+                                    <span>{errors.dob}</span>
+                                </div>
+                            )}
                         </div>
                         <div className="form-group-modern">
                             <label className="form-label-modern">Giới tính *</label>
@@ -414,8 +589,13 @@ export default function RegisterForm() {
                                     id="gender"
                                     value={formData.gender}
                                     onChange={handleChange}
-                                    className={`select-modern ${errors.gender ? 'is-invalid' : ''}`}
-                                    style={{ paddingLeft: "3rem" }}
+                                    onBlur={() => handleBlur("gender")}
+                                    className={`select-modern ${errors.gender && touched.gender ? 'is-invalid' : ''}`}
+                                    style={{ 
+                                        paddingLeft: "3rem",
+                                        borderColor: errors.gender && touched.gender ? '#dc3545' : '',
+                                        boxShadow: errors.gender && touched.gender ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
                                     disabled={isLoading}
                                 >
                                     <option value="">-- Chọn giới tính --</option>
@@ -424,7 +604,20 @@ export default function RegisterForm() {
                                     <option value="other">Khác</option>
                                 </select>
                             </div>
-                            {errors.gender && <div className="invalid-feedback">{errors.gender}</div>}
+                            {errors.gender && touched.gender && (
+                                <div className="invalid-feedback" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    color: '#dc3545',
+                                    fontSize: '0.875rem',
+                                    marginTop: '0.25rem',
+                                    fontWeight: '500'
+                                }}>
+                                    <AlertCircle size={16} />
+                                    <span>{errors.gender}</span>
+                                </div>
+                            )}
                             </div>
                         </div>
 
@@ -438,8 +631,13 @@ export default function RegisterForm() {
                                     id="province"
                                     value={formData.province}
                                     onChange={handleProvinceChange}
-                                    className={`select-modern ${errors.province ? 'is-invalid' : ''}`}
-                                    style={{ paddingLeft: "3rem" }}
+                                    onBlur={() => handleBlur("province")}
+                                    className={`select-modern ${errors.province && touched.province ? 'is-invalid' : ''}`}
+                                    style={{ 
+                                        paddingLeft: "3rem",
+                                        borderColor: errors.province && touched.province ? '#dc3545' : '',
+                                        boxShadow: errors.province && touched.province ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
                                     disabled={isLoading}
                                 >
                                     <option value="">-- Chọn tỉnh/thành phố --</option>
@@ -450,8 +648,19 @@ export default function RegisterForm() {
                                     ))}
                                 </select>
                             </div>
-                            {errors.province && (
-                                <div className="invalid-feedback">{errors.province}</div>
+                            {errors.province && touched.province && (
+                                <div className="invalid-feedback" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    color: '#dc3545',
+                                    fontSize: '0.875rem',
+                                    marginTop: '0.25rem',
+                                    fontWeight: '500'
+                                }}>
+                                    <AlertCircle size={16} />
+                                    <span>{errors.province}</span>
+                                </div>
                             )}
                         </div>
                         <div className="form-group-modern">
@@ -462,8 +671,13 @@ export default function RegisterForm() {
                                     id="ward"
                                     value={formData.ward}
                                     onChange={handleChange}
-                                    className={`select-modern ${errors.ward ? 'is-invalid' : ''}`}
-                                    style={{ paddingLeft: "3rem" }}
+                                    onBlur={() => handleBlur("ward")}
+                                    className={`select-modern ${errors.ward && touched.ward ? 'is-invalid' : ''}`}
+                                    style={{ 
+                                        paddingLeft: "3rem",
+                                        borderColor: errors.ward && touched.ward ? '#dc3545' : '',
+                                        boxShadow: errors.ward && touched.ward ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                    }}
                                     disabled={isLoading || !formData.province}
                                 >
                                     <option value="">-- Chọn phường/xã --</option>
@@ -475,8 +689,19 @@ export default function RegisterForm() {
                                         ))}
                                 </select>
                             </div>
-                            {errors.ward && (
-                                <div className="invalid-feedback">{errors.ward}</div>
+                            {errors.ward && touched.ward && (
+                                <div className="invalid-feedback" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    color: '#dc3545',
+                                    fontSize: '0.875rem',
+                                    marginTop: '0.25rem',
+                                    fontWeight: '500'
+                                }}>
+                                    <AlertCircle size={16} />
+                                    <span>{errors.ward}</span>
+                                </div>
                             )}
                             </div>
                         </div>
@@ -492,13 +717,29 @@ export default function RegisterForm() {
                                 type="text"
                                 value={formData.addressDetail}
                                 onChange={handleChange}
+                                onBlur={() => handleBlur("addressDetail")}
                                 placeholder="Số nhà, đường, khu phố..."
-                                className={`form-control-modern ${errors.addressDetail ? 'is-invalid' : ''}`}
+                                className={`form-control-modern ${errors.addressDetail && touched.addressDetail ? 'is-invalid' : ''}`}
+                                style={{
+                                    borderColor: errors.addressDetail && touched.addressDetail ? '#dc3545' : '',
+                                    boxShadow: errors.addressDetail && touched.addressDetail ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : ''
+                                }}
                                 disabled={isLoading}
                             />
                         </div>
-                        {errors.addressDetail && (
-                            <div className="invalid-feedback">{errors.addressDetail}</div>
+                        {errors.addressDetail && touched.addressDetail && (
+                            <div className="invalid-feedback" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                color: '#dc3545',
+                                fontSize: '0.875rem',
+                                marginTop: '0.25rem',
+                                fontWeight: '500'
+                            }}>
+                                <AlertCircle size={16} />
+                                <span>{errors.addressDetail}</span>
+                            </div>
                         )}
                         </div>
 
