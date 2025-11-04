@@ -1,6 +1,6 @@
 const doctorService = require("../doctor/doctor.service");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
-const Appointment = require(("../../model/appointment/Appointment"));
+const Appointment = require("../../model/appointment/Appointment");
 
 exports.requestViewMedicalRecord = async (req) => {
   try {
@@ -84,7 +84,10 @@ exports.requestViewMedicalRecordById = async (req) => {
       throw new Error("Lý do yêu cầu không được để trống.");
     }
 
-    const record = await MedicalRecord.findOne({ _id: medicalRecordId, patient_id: patientId });
+    const record = await MedicalRecord.findOne({
+      _id: medicalRecordId,
+      patient_id: patientId,
+    });
 
     if (!record) {
       return null;
@@ -123,7 +126,7 @@ exports.requestViewMedicalRecordById = async (req) => {
     console.error("Error in requestViewMedicalRecordById:", error);
     throw error;
   }
-}
+};
 
 /**
  * Lấy lịch sử yêu cầu truy cập hồ sơ của bác sĩ
@@ -185,6 +188,7 @@ exports.getHistoryMedicalRecordRequests = async (req) => {
                 reviewed_by: {
                   $ifNull: ["$access_requests.reviewed_by", null],
                 },
+
 
                 patient: {
                   _id: "$patientInfo._id",
@@ -283,8 +287,8 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
           totalItems: 0,
           totalPages: 0,
           currentPage: 1,
-          limit: limitNumber
-        }
+          limit: limitNumber,
+        },
       };
     }
 
@@ -302,8 +306,8 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
         totalItems: totalRecords,
         totalPages,
         currentPage: pageNumber,
-        limit: limitNumber
-      }
+        limit: limitNumber,
+      },
     };
   } catch (error) {
     console.error("Error in getListMedicalRecordsByIdPatient:", error);
@@ -313,7 +317,9 @@ exports.getListMedicalRecordsByIdPatient = async (req) => {
 
 exports.getMedicalRecordByAppointmentId = async (appointmentId) => {
   try {
-    const medicalRecord = await MedicalRecord.find({ appointment_id: appointmentId }).lean();
+    const medicalRecord = await MedicalRecord.find({
+      appointment_id: appointmentId,
+    }).lean();
     return medicalRecord || [];
   } catch (error) {
     console.error("Error in getMedicalRecordByAppointmentId:", error);
@@ -321,12 +327,18 @@ exports.getMedicalRecordByAppointmentId = async (appointmentId) => {
   }
 };
 
-exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (docter_id, full_name, phone, email, dob) => {
+exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (
+  docter_id,
+  full_name,
+  phone,
+  email,
+  dob
+) => {
   try {
     const accessControlMatch = {
       $or: [
         { doctor_id: docter_id }, // 1. Bác sĩ tạo ra bệnh án
-        { status: "PUBLIC" },     // 2. Bệnh án công khai
+        { status: "PUBLIC" }, // 2. Bệnh án công khai
         {
           // 3. Bệnh án riêng tư đã cấp quyền
           status: "PRIVATE",
@@ -340,15 +352,14 @@ exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (docter_i
       ],
     };
 
-    const apps = await Appointment
-      .find({
-        doctor_id: docter_id,
-        full_name: full_name,
-        phone: phone,
-        email: email,
-        dob: dob,
-        status: "COMPLETED"
-      })
+    const apps = await Appointment.find({
+      doctor_id: docter_id,
+      full_name: full_name,
+      phone: phone,
+      email: email,
+      dob: dob,
+      status: "COMPLETED",
+    })
       .select("_id")
       .lean();
 
@@ -356,21 +367,20 @@ exports.getMedicalRecordByAppointment_fullname_phone_email_dob = async (docter_i
       console.log("Không tìm thấy cuộc hẹn (appointment) nào khớp.");
       return [];
     }
-    const appointmentIds = apps.map(app => app._id);
+    const appointmentIds = apps.map((app) => app._id);
     const medicalRecords = await MedicalRecord.find({
-      $and: [
-        { appointment_id: { $in: appointmentIds } },
-        accessControlMatch
-      ]
+      $and: [{ appointment_id: { $in: appointmentIds } }, accessControlMatch],
     }).lean();
 
     return medicalRecords || [];
-
   } catch (err) {
-    console.log("error at getMedicalRecordByAppointment_fullname_phone_email_dob: ", err);
+    console.log(
+      "error at getMedicalRecordByAppointment_fullname_phone_email_dob: ",
+      err
+    );
     return [];
   }
-}
+};
 
 /**
  * Get list medical records of patients for doctor with pagination and search
@@ -449,7 +459,8 @@ exports.getListMedicalRecords = async (req) => {
     // 4. Pipeline để đếm tổng số bản ghi khớp điều kiện
     const countPipeline = [...pipeline, { $count: "totalRecords" }];
     const totalResult = await MedicalRecord.aggregate(countPipeline);
-    const totalRecords = totalResult.length > 0 ? totalResult[0].totalRecords : 0;
+    const totalRecords =
+      totalResult.length > 0 ? totalResult[0].totalRecords : 0;
 
     if (totalRecords === 0) {
       return {
@@ -561,7 +572,8 @@ exports.getListMedicalRecordsVerify = async (req) => {
     // Đếm tổng
     const countPipeline = [...pipeline, { $count: "totalRecords" }];
     const totalResult = await MedicalRecord.aggregate(countPipeline);
-    const totalRecords = totalResult.length > 0 ? totalResult[0].totalRecords : 0;
+    const totalRecords =
+      totalResult.length > 0 ? totalResult[0].totalRecords : 0;
 
     if (totalRecords === 0) {
       return {
@@ -617,14 +629,13 @@ exports.getListMedicalRecordsVerify = async (req) => {
 
 exports.getMedicalRecordById = async (recordId, doctorId) => {
   try {
-    const medicalRecord = await MedicalRecord
-      .findById(recordId)
+    const medicalRecord = await MedicalRecord.findById(recordId)
       .populate({
-        path: 'appointment_id',
+        path: "appointment_id",
         select: "full_name phone email dob gender",
       })
       .populate({
-        path: 'patient_id',
+        path: "patient_id",
         select: "-__v -createdAt -updatedAt",
       })
       .select("-__v -createdAt -updatedAt -appointment_id")
@@ -650,7 +661,7 @@ exports.getMedicalRecordById = async (recordId, doctorId) => {
         phone: appointment_id.phone,
         email: appointment_id.email,
         dob: appointment_id.dob,
-        gender: appointment_id.gender
+        gender: appointment_id.gender,
       },
     };
     return data;
@@ -672,7 +683,7 @@ exports.findById = async (id) => {
     console.error("Lỗi trong service findById: ", error);
     throw error;
   }
-}
+};
 
 exports.verifyMedicalRecord = async (req) => {
   try {
@@ -684,15 +695,24 @@ exports.verifyMedicalRecord = async (req) => {
     const { reason } = req.body;
 
     if (!["VERIFIED", "REJECTED"].includes(status)) {
-      throw new Error("Trạng thái không hợp lệ. Chỉ chấp nhận 'VERIFIED' hoặc 'REJECTED'.");
+      throw new Error(
+        "Trạng thái không hợp lệ. Chỉ chấp nhận 'VERIFIED' hoặc 'REJECTED'."
+      );
     }
-    const record = await MedicalRecord.findOne({ _id: recordId, doctor_id: doctorId });
+    const record = await MedicalRecord.findOne({
+      _id: recordId,
+      doctor_id: doctorId,
+    });
 
     if (!record) {
-      throw new Error("Bệnh án không tồn tại hoặc bạn không có quyền xác nhận.");
+      throw new Error(
+        "Bệnh án không tồn tại hoặc bạn không có quyền xác nhận."
+      );
     }
     if (!record.prescription || record.prescription.status !== "PENDING") {
-      throw new Error("Chỉ có thể xác nhận các đơn thuốc đang ở trạng thái PENDING.");
+      throw new Error(
+        "Chỉ có thể xác nhận các đơn thuốc đang ở trạng thái PENDING."
+      );
     }
     record.prescription.status = status;
     record.prescription.verified_at = new Date();
@@ -718,7 +738,9 @@ exports.createMedicalRecord = async (appId, medical_record) => {
   }
 
   if (appointment.status !== "APPROVE") {
-    throw new Error(`Lịch hẹn phải ở trạng thái "APPROVE" để tạo hồ sơ bệnh án. Trạng thái hiện tại: ${appointment.status}.`);
+    throw new Error(
+      `Lịch hẹn phải ở trạng thái "APPROVE" để tạo hồ sơ bệnh án. Trạng thái hiện tại: ${appointment.status}.`
+    );
   }
 
   const scheduledDate = new Date(appointment.scheduled_date);
@@ -738,8 +760,12 @@ exports.createMedicalRecord = async (appId, medical_record) => {
   if (medical_record.doctor_id.toString() !== appointment.doctor_id.toString()) {
     throw new Error("ID Bác sĩ trong hồ sơ bệnh án không khớp với ID Bác sĩ của Lịch hẹn.");
   }
-  if (medical_record.patient_id.toString() !== appointment.patient_id.toString()) {
-    throw new Error("ID Bệnh nhân trong hồ sơ bệnh án không khớp với ID Bệnh nhân của Lịch hẹn.");
+  if (
+    medical_record.patient_id.toString() !== appointment.patient_id.toString()
+  ) {
+    throw new Error(
+      "ID Bệnh nhân trong hồ sơ bệnh án không khớp với ID Bệnh nhân của Lịch hẹn."
+    );
   }
   const existingRecord = await MedicalRecord.findOne({ appointment_id: appId });
 
@@ -772,11 +798,11 @@ exports.updateMedicalRecord = async (id, updateData) => {
     const updatedRecord = await MedicalRecord.findByIdAndUpdate(
       id,
       { $set: updateData },
+      { $set: updateData },
       { new: true, runValidators: true }
     ).populate('patient')
       .populate('doctor');
     return updatedRecord;
-
   } catch (error) {
     console.error("Lỗi trong service updateMedicalRecord: ", error);
     throw error;

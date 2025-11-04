@@ -1,10 +1,8 @@
-"use client";
-
 import { memo, useState, Fragment } from "react";
 import {
   Calendar,
   Person,
-  Telephone, // <-- Đảm bảo đã import
+  Telephone, 
   CheckCircle,
   XCircle,
   CheckCircleFill,
@@ -232,6 +230,7 @@ const ApproveAppointment = () => {
     });
   };
 
+  // === BẮT ĐẦU SỬA LỖI ===
   const handleSaveRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
@@ -258,6 +257,9 @@ const ApproveAppointment = () => {
       const appointment_id = selectedAptForRecord.appointment.appointment_id;
       const patient_id = selectedAptForRecord.patient.patient_id;
 
+      // === SỬA 1: THÊM LẠI `doctor_id` (để sửa lỗi 400) ===
+      const doctor_id = selectedAptForRecord.appointment.doctor_id;
+
       const requestBody = {
         diagnosis: recordFormData.diagnosis,
         symptoms: safeSymptoms,
@@ -277,37 +279,49 @@ const ApproveAppointment = () => {
         },
         status: recordFormData.status || "PRIVATE",
         patient_id,
+        doctor_id, // <-- ĐÃ THÊM LẠI
       };
 
       console.log("📦 Payload gửi backend:", requestBody);
 
       const response = await MEDICAL_RECORD_API.createMedicalRecord(appointment_id, requestBody);
-      console.log("res: ", response);
+      console.log("Phản hồi từ server: ", response);
 
-      if (response?.data?.ok) {
+      // === SỬA 2: SỬA LOGIC KIỂM TRA THÀNH CÔNG (để sửa lỗi "Tạo hồ sơ thất bại") ===
+      // Giả định backend trả về { data: { success: true, ... } }
+      // (Dựa trên controller/service bạn gửi trước đó)
+      if (response?.data?.success) {
         alert("Tạo hồ sơ bệnh án thành công!");
         closeRecordModal();
         refetch();
       } else {
-        setRecordModalError(response.message || "Tạo hồ sơ thất bại.");
+        // Nếu `ok: true` thì dùng dòng dưới
+        // if (response?.data?.ok) { ... }
+
+        // Báo lỗi từ server (nếu có)
+        setRecordModalError(response?.data?.message || response?.message || "Tạo hồ sơ thất bại.");
       }
     } catch (error) {
       console.error("❌ Lỗi tạo hồ sơ:", error);
-      setRecordModalError("Lỗi hệ thống: " + (error.message || "Không xác định"));
+      // Hiển thị lỗi 400 (như ảnh image_d88c2e.jpg) hoặc lỗi khác
+      setRecordModalError(error.response?.data?.message || error.message || "Lỗi hệ thống");
     } finally {
       setIsSubmitting(false);
     }
   };
+  // === KẾT THÚC SỬA LỖI ===
 
 
-  // === 5. HÀM RENDER NÚT HÀNH ĐỘNG MỚI ===
-  // Đây là hàm triển khai toàn bộ workflow mới của bạn
   // === 3. CẬP NHẬT HÀM RENDER ACTIONS ===
   const renderAppointmentActions = (item) => {
     const appointment = item.appointment;
     const appointmentId = appointment.appointment_id;
     const status = appointment.status;
-    const recordStatus = appointment.medical_record?.status;
+
+    // === SỬA 3: SỬA LOGIC HIỂN THỊ (để hiển thị "Chờ BS duyệt") ===
+    // 'status' của record là PRIVATE/PUBLIC (PRIVATE)
+    // 'status' của *prescription* mới là PENDING/VERIFIED/REJECTED
+    const recordPrescriptionStatus = appointment.medical_record?.prescription?.status;
 
     switch (status) {
       // 1. Chờ duyệt
@@ -332,7 +346,6 @@ const ApproveAppointment = () => {
         );
 
       // 2. Đã duyệt (Chờ khám)
-      // === THAY ĐỔI 1: CHỈ GIỮ NÚT TẠO BỆNH ÁN ===
       case "APPROVE":
         return (
           <>
@@ -343,21 +356,21 @@ const ApproveAppointment = () => {
             >
               <FileEarmarkPlus size={16} />
             </button>
-            {/* Đã xóa nút "COMPLETED" và "NO_SHOW" theo yêu cầu */}
           </>
         );
-      // === KẾT THÚC THAY ĐỔI 1 ===
 
-      // 3. Đã khám xong (Đã có bệnh án)
+      // 3. Đã khám xong (Backend tự chuyển status này khi tạo record)
       case "COMPLETED":
-        if (recordStatus === "PENDING") {
+        // Logic này giờ sẽ chạy đúng theo ý bạn
+        if (recordPrescriptionStatus === "PENDING") {
           return (
             <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
               Chờ BS duyệt
             </span>
           );
         }
-        if (recordStatus === "VERIFIED") {
+        if (recordPrescriptionStatus === "VERIFIED") {
+          // Trạng thái cuối: Đã hoàn tất (giống ảnh image_e7fd8e.png)
           return (
             <button
               onClick={() => openRecordModal(item, "VIEW")}
@@ -368,7 +381,8 @@ const ApproveAppointment = () => {
             </button>
           );
         }
-        if (recordStatus === "CANCELLED") {
+        // === SỬA 4: Đổi 'CANCELLED' thành 'REJECTED' (khớp schema Prescription) ===
+        if (recordPrescriptionStatus === "REJECTED") {
           return (
             <button
               onClick={() => openRecordModal(item, "EDIT")}
@@ -379,6 +393,7 @@ const ApproveAppointment = () => {
             </button>
           );
         }
+        // Fallback nếu không có trạng thái đơn thuốc (ví dụ: lỗi dữ liệu)
         return (
           <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
             Đã hoàn tất
@@ -393,6 +408,8 @@ const ApproveAppointment = () => {
         return null;
     }
   };
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -429,7 +446,7 @@ const ApproveAppointment = () => {
                 <span className="text-gray-500 text-sm">Đang tải ca...</span>
               ) : slots.length > 0 ? (
                 <>
-                  <button
+                  {/* <button
                     onClick={() => {
                       setSelectedSlot("");
                       setPage(1);
@@ -440,7 +457,7 @@ const ApproveAppointment = () => {
                       }`}
                   >
                     Tất cả ca
-                  </button>
+                  </button> */}
 
                   {slots.map((slot) => (
                     <button
@@ -498,7 +515,8 @@ const ApproveAppointment = () => {
                   if (statusInfo.className === "status-scheduled") badgeColor = "bg-blue-100 text-blue-700";
                   else if (statusInfo.className === "status-approved") badgeColor = "bg-green-100 text-green-700";
                   else if (statusInfo.className === "status-completed") badgeColor = "bg-indigo-100 text-indigo-700";
-                  else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show" || statusInfo.className === "status-rejected") badgeColor = "bg-red-100 text-red-700";
+                  else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show" ||
+                    statusInfo.className === "status-rejected") badgeColor = "bg-red-100 text-red-700";
 
                   return (
                     <div key={appointment.appointment_id} className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm">

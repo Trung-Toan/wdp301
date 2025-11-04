@@ -282,11 +282,14 @@ exports.viewListMedicalRecordsByPatient = async (req, res) => {
 // GET /doctor/medical-records/:recordId
 exports.viewMedicalRecordDetail = async (req, res) => {
   try {
-    const {recordId} = req.params;
+    const { recordId } = req.params;
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
     console.log("doctor: ", doctor);
-    
-    const medicalRecord = await medicalRecordService.getMedicalRecordById(recordId, doctor._id);
+
+    const medicalRecord = await medicalRecordService.getMedicalRecordById(
+      recordId,
+      doctor._id
+    );
     return resUtils.successResponse(
       res,
       medicalRecord,

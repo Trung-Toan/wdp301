@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import RouterUser from "./RouterUser";
 import RouterOwner from "./RouterOwner";
 import RouterDoctor from "./RouterDoctor";
-import DoctorLayout from "../layouts/DoctorLayout";
 import RouterAssistant from "./RouterAssistant";
 import RouterAdminSystem from "./RouterAdminSystem";
 import RouterClinicAdmin from "./RouterClinicAdmin";

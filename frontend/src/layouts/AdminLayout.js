@@ -13,12 +13,16 @@ import {
   Bell,
   UserCircle,
   LogOut,
+  CheckCircle,
 } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { logoutApi } from "../api/auth/logout/LogoutApt";
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const menuItems = [
     {
@@ -30,6 +34,11 @@ const AdminLayout = () => {
       title: "Quản lý phòng khám",
       icon: <Building2 size={20} />,
       link: "/admin/clinics",
+    },
+    {
+      title: "Phòng khám đã duyệt",
+      icon: <CheckCircle size={20} />,
+      link: "/admin/approved-clinics",
     },
     {
       title: "Quản lý tài khoản",
@@ -58,9 +67,27 @@ const AdminLayout = () => {
     },
   ];
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout với refreshToken
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await logoutApi.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+      // Vẫn tiếp tục logout local nếu API thất bại
+    } finally {
+      // Gọi logout từ useAuth để clear auth context
+      logout();
+      // Clear tất cả storage
+      sessionStorage.clear();
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("refreshToken");
+
+      navigate("/login");
+    }
   };
 
   return (

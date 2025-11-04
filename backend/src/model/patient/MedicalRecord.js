@@ -4,13 +4,17 @@ const AccessRequestSchema = new mongoose.Schema(
   {
     doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
     status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"], default: "PENDING" },
-    reason: { type: String, required: true },
+    reason: { 
+      type: String, 
+      required: true,
+      default: "Yêu cầu truy cập hồ sơ bệnh án" // Default value cho các request cũ
+    },
     requested_at: { type: Date, default: Date.now },
     approved_at: { type: Date },
     date_expired: { type: Date },
     
   },
-  { _id: false }
+  { _id: true } // Enable _id để có thể identify từng request
 );
 
 const MedicineSchema = new mongoose.Schema(
