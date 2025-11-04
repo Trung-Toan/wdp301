@@ -6,50 +6,38 @@ export const doctorApi = {
   GET_LIST_APPOINTMENT: "/doctor/appointments",
   GET_APPOINTMENT_BY_ID: (id) => `/doctor/appointments/${id}`,
   VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD: "/doctor/medical-records/requests/history",
-
+  GET_ALL_MEDICAL_RECORDS: "/doctor/medical-records",
+  GET_MEDICAL_RECORD_BY_ID: (id) => `/doctor/medical-records/${id}`,
 
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
-  getDoctorTop: (limit) =>
-    axiosInstance.get("/doctor/top", { params: { limit } }),
+  getDoctorTop: (limit) => axiosInstance.get("/doctor/top", { params: { limit } }),
 
   // Lấy bác sĩ top gần đây (nếu không truyền limit -> lấy tất cả)
-  getDoctorTopNearMe: (limit) =>
-    axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
-
+  getDoctorTopNearMe: (limit) => axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
+ 
   // Lấy bác sĩ theo chuyên khoa
-  getDoctorBySpecialty: (specialtyId, params = {}) =>
-    axiosInstance.get("/doctor/by-specialty", {
-      params: { specialtyId, ...params },
-    }),
+  getDoctorBySpecialty: (specialtyId, params = {}) => axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params }, }),
 
   //lay danh sach benh nhan
   getAllPatient: (page = 1, limit = 10, search = "") =>
-    axiosInstance.get(doctorApi.GET_ALL_PATIENT, {
-      params: {
-        page,
-        limit,
-        ...(search.trim() && { search: search.trim() }),
-      }
-    }),
+    axiosInstance.get(doctorApi.GET_ALL_PATIENT, { params: { page, limit, ...(search.trim() && { search: search.trim() }), }}),
 
   //lay chi tiet benh nhan
-  getPatientById: (patientId) =>
-    axiosInstance.get(doctorApi.GET_PATIENT_BY_ID(patientId)),
+  getPatientById: (patientId) => axiosInstance.get(doctorApi.GET_PATIENT_BY_ID(patientId)),
 
   //Lấy danh sách lịch hẹn
-  getAppointments: (params) =>
-    axiosInstance.get(doctorApi.GET_LIST_APPOINTMENT, { params }),
+  getAppointments: (params) => axiosInstance.get(doctorApi.GET_LIST_APPOINTMENT, { params }),
 
   //Lấy chi tiết lịch hẹn
   getAppointmentById: (appointmentId) =>
     axiosInstance.get(doctorApi.GET_APPOINTMENT_BY_ID(appointmentId)),
 
   //lấy danh sách hồ sơ bệnh án
-  getAllMedicalRecords: () => axiosInstance.get("/doctor/medical-records"),
+  getAllMedicalRecords: () => axiosInstance.get(doctorApi.GET_ALL_MEDICAL_RECORDS),
 
   //lấy chi tiết hồ sơ bệnh án
   getMedicalRecordById: (recordId) =>
-    axiosInstance.get(`/doctor/medical-records/${recordId}`),
+    axiosInstance.get(doctorApi.GET_MEDICAL_RECORD_BY_ID(recordId)),
 
   //duyệt đơn thuốc
   verifyMedicalRecord: (id, status, data = {}) =>
