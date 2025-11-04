@@ -38,8 +38,6 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         .select("title degree description experience specialty_id clinic_id user_id createdAt")
         .lean();
 
-    if (limit && Number(limit) > 0) query = query.limit(Number(limit));
-
     const doctors = await query;
 
     // --- Lấy rating trung bình + tổng feedback ---
@@ -64,7 +62,7 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
     }, {});
 
     // --- Trả kết quả ---
-    return doctors.map(d => {
+    const results = doctors.map(d => {
         const ratingData = ratingMap[d._id.toString()] || { averageRating: null, totalFeedbacks: 0 };
         const avg = ratingData.averageRating ? Number(ratingData.averageRating.toFixed(1)) : null;
         const total = ratingData.totalFeedbacks;
@@ -96,6 +94,16 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
             createdAt: d.createdAt,
         };
     });
+
+    // Chỉ hiển thị bác sĩ có rating >= 3.5
+    const filtered = results.filter(item => item.rating !== null && item.rating >= 3.5);
+
+    // Áp dụng limit sau khi lọc để đảm bảo đủ số lượng
+    if (limit && Number(limit) > 0) {
+        return filtered.slice(0, Number(limit));
+    }
+
+    return filtered;
 }
 
 module.exports = { getTopDoctors };

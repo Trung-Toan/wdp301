@@ -16,4 +16,62 @@ export const clinicApi = {
     searchClinics: (params) => axiosInstance.get("/clinic/search", { params }),
 
     getAllClinic: () => axiosInstance.get("/clinic/allClinic"),
+
+    /**
+     * Lấy thông tin chi tiết clinic
+     * @param {string} clinicId - ID của clinic
+     * @returns {Promise} - Thông tin chi tiết clinic bao gồm specialties, rating, doctor_count, v.v.
+     */
+    getClinicDetail: (clinicId) => axiosInstance.get(`/clinic/${clinicId}`),
+
+    /**
+     * Lấy danh sách bác sĩ của clinic
+     * @param {string} clinicId - ID của clinic
+     * @param {Object} params - các tham số query
+     * @param {string} [params.specialtyId] - Lọc theo chuyên khoa
+     * @param {number} [params.page=1] - Trang hiện tại
+     * @param {number} [params.limit=20] - Số lượng bác sĩ mỗi trang
+     * @returns {Promise} - { data: [], meta: { total, page, limit, totalPages } }
+     */
+    getClinicDoctors: (clinicId, params) => axiosInstance.get(`/clinic/${clinicId}/doctors`, { params }),
+
+    /**
+     * Lấy reviews/đánh giá của clinic
+     * @param {string} clinicId - ID của clinic
+     * @param {Object} params - các tham số query
+     * @param {number} [params.page=1] - Trang hiện tại
+     * @param {number} [params.limit=20] - Số lượng reviews mỗi trang
+     * @returns {Promise} - { data: [], meta: { total, page, limit, totalPages } }
+     */
+    getClinicReviews: (clinicId, params) => axiosInstance.get(`/clinic/${clinicId}/reviews`, { params }),
+
+    /**
+     * Tạo review/feedback cho một bác sĩ
+     * @param {Object} data - Dữ liệu review
+     * @param {string} data.doctor_id - ID của bác sĩ
+     * @param {string} data.patient_id - ID của bệnh nhân
+     * @param {number} data.rating - Đánh giá (1-5)
+     * @param {string} data.comment - Nội dung đánh giá
+     * @param {boolean} data.is_annonymous - Review ẩn danh
+     * @returns {Promise}
+     */
+    submitReview: (data) => axiosInstance.post(`/feedback`, data),
+
+    /**
+     * Đặt lịch khám tại phòng khám (clinic booking với auto-assign support)
+     * @param {Object} data - Dữ liệu đặt lịch
+     * @param {string} data.clinic_id - ID của phòng khám
+     * @param {string} data.specialty_id - ID của chuyên khoa
+     * @param {string} data.scheduled_date - Ngày khám (YYYY-MM-DD)
+     * @param {string} data.patient_id - ID của bệnh nhân
+     * @param {boolean} [data.auto_assign=false] - Tự động sắp xếp bác sĩ và slot
+     * @param {string} [data.doctor_id] - ID của bác sĩ (required nếu auto_assign=false)
+     * @param {string} [data.slot_id] - ID của slot (required nếu auto_assign=false)
+     * @param {string} data.full_name - Họ tên bệnh nhân
+     * @param {string} data.phone - Số điện thoại
+     * @param {string} data.email - Email
+     * @param {string} [data.reason] - Lý do khám
+     * @returns {Promise}
+     */
+    createClinicBooking: (data) => axiosInstance.post(`/clinic/book`, data),
 };

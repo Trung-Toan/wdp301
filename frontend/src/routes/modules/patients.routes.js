@@ -15,7 +15,7 @@ export default function patientsRoutes() {
                 <Route path="/notifications" element={<NotificationListPage />} />
                 <Route path="/notifications/:id" element={<NotificationDetailPage />} />
                 <Route path="/records/:recordId" element={<RecordDetail />} />
-                <Route path="/appointment" element={<AppointmentsContent />} />
+                <Route path="/appointments" element={<AppointmentsContent />} />
             </Route>
         </Routes>
     );

@@ -20,8 +20,6 @@ const doctorSchema = new Schema(
       ref: "User",
       required: true,
     },
-    description: { type: String },
-    experience: { type: String },
   },
   { timestamps: true }
 );

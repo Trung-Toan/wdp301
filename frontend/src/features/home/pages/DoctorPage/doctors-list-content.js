@@ -2,12 +2,19 @@ import { useEffect, useState } from "react";
 import { Search, MapPin, Star, Hospital, Award, Stethoscope } from "lucide-react";
 import { Link } from "react-router-dom";
 import { doctorApi } from "../../../../api";
-import Button from "../../../../components/ui/Button";
-import Card from "../../../../components/ui/Card";
-import Badge from "../../../../components/ui/Badge";
-import Input from "../../../../components/ui/Input";
-import CardContent from "../../../../components/ui/CardContent";
+import "../../../../styles/DoctorsListContent.css";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function DoctorsListContent() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -119,19 +126,19 @@ export default function DoctorsListContent() {
     });
 
     return (
-        <div className="bg-muted/30">
-            {/* Thanh tìm kiếm */}
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 py-12">
-                <div className="container mx-auto px-4">
-                    <h1 className="text-3xl font-bold text-white mb-6 text-center">
+        <div className="doctors-list-modern">
+            {/* Search Header */}
+            <div className="doctors-list-header">
+                <div className="doctors-list-header-container">
+                    <h1 className="doctors-list-title">
                         Tìm kiếm bác sĩ
                     </h1>
-                    <div className="max-w-3xl mx-auto relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
+                    <div className="doctors-list-search-wrapper">
+                        <Search className="doctors-list-search-icon" />
+                        <input
                             type="text"
                             placeholder="Tìm theo tên bác sĩ, chuyên khoa, bệnh viện..."
-                            className="pl-12 pr-4 h-14 text-base bg-white"
+                            className="doctors-list-search-input"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -139,19 +146,19 @@ export default function DoctorsListContent() {
                 </div>
             </div>
 
-            {/* Bộ lọc và kết quả */}
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Sidebar bộ lọc */}
-                    <aside className="hidden lg:block w-64 flex-shrink-0">
-                        <Card>
-                            <CardContent className="p-6 space-y-6">
+            {/* Content Section */}
+            <div className="doctors-list-content-section">
+                <div className="doctors-list-container">
+                    <div className="doctors-list-layout">
+                        {/* Sidebar Filter */}
+                        <aside className="doctors-list-sidebar">
+                            <div className="doctors-list-filter-card">
                                 {/* Chuyên khoa */}
-                                <div>
-                                    <h3 className="font-semibold mb-3 text-foreground">
+                                <div className="doctors-list-filter-section">
+                                    <h3 className="doctors-list-filter-title">
                                         Chuyên khoa
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div className="doctors-list-filter-buttons">
                                         {specialties.map((specialty) => (
                                             <button
                                                 key={specialty}
@@ -159,10 +166,7 @@ export default function DoctorsListContent() {
                                                     console.log("🩺 Chọn chuyên khoa:", specialty);
                                                     setSelectedSpecialty(specialty);
                                                 }}
-                                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedSpecialty === specialty
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "hover:bg-muted text-foreground"
-                                                    }`}
+                                                className={`doctors-list-filter-button ${selectedSpecialty === specialty ? 'active' : ''}`}
                                             >
                                                 {specialty}
                                             </button>
@@ -171,11 +175,12 @@ export default function DoctorsListContent() {
                                 </div>
 
                                 {/* Tỉnh */}
-                                <div className="border-t pt-6">
-                                    <h3 className="font-semibold mb-3 text-foreground">
+                                <div className="doctors-list-filter-divider"></div>
+                                <div className="doctors-list-filter-section">
+                                    <h3 className="doctors-list-filter-title">
                                         Tỉnh/Thành phố
                                     </h3>
-                                    <div className="space-y-2">
+                                    <div className="doctors-list-filter-buttons">
                                         {provinces.map((p) => (
                                             <button
                                                 key={p}
@@ -183,122 +188,119 @@ export default function DoctorsListContent() {
                                                     console.log("📍 Chọn tỉnh:", p);
                                                     setSelectedProvince(p);
                                                 }}
-                                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedProvince === p
-                                                    ? "bg-primary text-primary-foreground"
-                                                    : "hover:bg-muted text-foreground"
-                                                    }`}
+                                                className={`doctors-list-filter-button ${selectedProvince === p ? 'active' : ''}`}
                                             >
                                                 {p}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </aside>
+                            </div>
+                        </aside>
 
-                    {/* Danh sách bác sĩ */}
-                    <div className="flex-1">
-                        <div className="mb-6">
-                            <p className="text-muted-foreground">
-                                Tìm thấy{" "}
-                                <span className="font-semibold text-foreground">
-                                    {filteredDoctors.length}
-                                </span>{" "}
-                                bác sĩ
-                            </p>
-                        </div>
+                        {/* Main Content */}
+                        <div className="doctors-list-main">
+                            <div className="doctors-list-count">
+                                Tìm thấy <strong>{filteredDoctors.length}</strong> bác sĩ
+                            </div>
 
-                        <div className="space-y-4">
-                            {filteredDoctors.map((doctor) => (
-                                <Card
-                                    key={doctor.id}
-                                    className="hover:shadow-lg transition-shadow"
-                                >
-                                    <CardContent className="p-6">
-                                        <div className="flex flex-col md:flex-row gap-6">
-                                            <div className="flex-shrink-0">
-                                                <Link
-                                                    to={`/home/doctordetail/${doctor.id}`}
-                                                >
-                                                    <img
-                                                        src={doctor.image}
-                                                        alt={doctor.fullname}
-                                                        className="w-32 h-32 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                                    />
-                                                </Link>
-                                            </div>
+                            <div className="doctors-list-cards">
+                                {filteredDoctors.length > 0 ? (
+                                    filteredDoctors.map((doctor, index) => (
+                                        <div key={doctor.id} className="doctor-card-list-item">
+                                            <div className="doctor-card-list-content">
+                                                {/* Avatar */}
+                                                <div className="doctor-card-avatar-wrapper">
+                                                    <Link to={`/home/doctordetail/${doctor.id}`}>
+                                                        <img
+                                                            src={doctor.image
+                                                                ? getImageUrl(doctor.image)
+                                                                : "/placeholder.svg"}
+                                                            alt={doctor.fullname}
+                                                            className="doctor-card-avatar"
+                                                        />
+                                                    </Link>
+                                                </div>
 
-                                            <div className="flex-1">
-                                                <h3 className="text-xl font-bold text-foreground mb-2">
+                                                {/* Info */}
+                                                <div className="doctor-card-info">
+                                                    <h3 className="doctor-card-name">
+                                                        <Link
+                                                            to={`/home/doctordetail/${doctor.id}`}
+                                                            className="doctor-card-name-link"
+                                                        >
+                                                            {doctor.title} -{" "}
+                                                            <span className="doctor-card-name-title">
+                                                                {doctor.fullname}
+                                                            </span>
+                                                        </Link>
+                                                    </h3>
+
+                                                    {/* Badges */}
+                                                    <div className="doctor-card-badges">
+                                                        <div className="doctor-card-specialty-badge">
+                                                            <Stethoscope className="doctor-card-specialty-badge-icon" />
+                                                            <span>
+                                                                {doctor.specialty || "Chưa có chuyên khoa"}
+                                                            </span>
+                                                        </div>
+                                                        <div className="doctor-card-available-badge">
+                                                            Còn lịch
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Details */}
+                                                    <div className="doctor-card-details">
+                                                        <div className="doctor-card-detail-item">
+                                                            <Hospital className="doctor-card-detail-icon" />
+                                                            <span className="doctor-card-detail-text">
+                                                                {doctor.hospital}
+                                                            </span>
+                                                        </div>
+                                                        <div className="doctor-card-detail-item">
+                                                            <MapPin className="doctor-card-detail-icon" />
+                                                            <span className="doctor-card-detail-text">
+                                                                {doctor.location}
+                                                            </span>
+                                                        </div>
+                                                        <div className="doctor-card-detail-item">
+                                                            <Award className="doctor-card-detail-icon" />
+                                                            <span className="doctor-card-detail-text">
+                                                                {doctor.experience}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Rating */}
+                                                    <div className="doctor-card-rating">
+                                                        <Star className="doctor-card-rating-icon" />
+                                                        <span>{doctor.rating}</span>
+                                                        <span className="doctor-card-rating-text">
+                                                            ({doctor.totalFeedback} đánh giá)
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action */}
+                                                <div className="doctor-card-action">
                                                     <Link
                                                         to={`/home/doctordetail/${doctor.id}`}
+                                                        className="doctor-card-button"
                                                     >
-                                                        {doctor.title} -{" "}
-                                                        {doctor.fullname}
+                                                        Đặt lịch khám
                                                     </Link>
-                                                </h3>
-
-                                                <div className="flex items-center gap-2 text-sm mb-2">
-                                                    <Badge variant="secondary" className="mb-3 flex items-center gap-1">
-                                                        <Stethoscope className="w-4 h-4 text-blue-600" /> {/* Icon chuyên khoa */}
-                                                        <strong>Chuyên Khoa: </strong>
-                                                        {doctor.specialty || "Chưa có chuyên khoa"}
-                                                    </Badge>
-                                                    <Badge className="bg-green-500 hover:bg-green-600">
-                                                        Còn lịch
-                                                    </Badge>
                                                 </div>
-
-                                                <div className="text-sm text-muted-foreground space-y-1 mb-1">
-                                                    <p className="flex items-center gap-1">
-                                                        <Hospital className="h-4 w-4" />
-                                                        <span>{doctor.hospital}</span>
-                                                    </p>
-                                                    <p className="flex items-center gap-1">
-                                                        <MapPin className="h-4 w-4" />
-                                                        <span>{doctor.location}</span>
-                                                    </p>
-                                                </div>
-
-                                                <p className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                                                    <Award className="h-4 w-4" />{" "}
-                                                    {doctor.experience}
-                                                </p>
-
-                                                <div className="flex items-center gap-2">
-                                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                                    <span className="font-semibold">
-                                                        {doctor.rating}
-                                                    </span>
-                                                    <span className="text-sm text-muted-foreground">
-                                                        ({doctor.totalFeedback} đánh giá)
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-col items-end justify-between">
-                                                <Link
-                                                    to={`/home/doctordetail/${doctor.id}`}
-                                                >
-                                                    <Button>Đặt lịch khám</Button>
-                                                </Link>
                                             </div>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-
-                            {filteredDoctors.length === 0 && (
-                                <Card>
-                                    <CardContent className="p-12 text-center">
-                                        <p className="text-muted-foreground">
-                                            Không tìm thấy bác sĩ phù hợp với tiêu chí
-                                            tìm kiếm.
+                                    ))
+                                ) : (
+                                    <div className="doctors-list-empty">
+                                        <p className="doctors-list-empty-text">
+                                            Không tìm thấy bác sĩ phù hợp với tiêu chí tìm kiếm.
                                         </p>
-                                    </CardContent>
-                                </Card>
-                            )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
