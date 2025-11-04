@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Calendar, Clock, MapPin, User, FileText, ChevronLeft, AlertCircle, CheckCircle } from "lucide-react";
+import { toast } from "react-toastify";
 import BookingSuccess from "./bookingSuccess";
 import { patientsApi } from "../../../../api/patients/patientsApi";
 import { provinceApi } from "../../../../api/address/provinceApi";
@@ -227,15 +228,15 @@ export function BookingContent() {
         fetchClinicData();
     }, [clinicId]);
 
-    // Hàm lấy tên tỉnh/thành phố từ province code
-    const getProvinceName = (provinceCode) => {
-        if (!provinceCode) return null;
-        const province = provinces.find(p => p.value === provinceCode);
-        return province?.label || null;
-    };
-
     // Kiểm tra cảnh báo địa điểm
     useEffect(() => {
+        // Hàm lấy tên tỉnh/thành phố từ province code (định nghĩa trong useEffect để tránh dependency issue)
+        const getProvinceName = (provinceCode) => {
+            if (!provinceCode) return null;
+            const province = provinces.find(p => p.value === provinceCode);
+            return province?.label || null;
+        };
+
         if (!formData.province) {
             setLocationWarning(null);
             return;
@@ -313,14 +314,41 @@ export function BookingContent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!selectedSlot) return alert("Vui lòng chọn lịch khám");
-        if (!formData.dateOfBirth) return alert("Vui lòng nhập ngày sinh");
-        if (!formData.province) return alert("Vui lòng chọn Tỉnh/Thành phố");
-        if (!formData.ward) return alert("Vui lòng chọn Phường/Xã");
+        if (!selectedSlot) {
+            toast.error("Vui lòng chọn lịch khám", {
+                position: "top-center",
+                autoClose: 3000,
+            });
+            return;
+        }
+        if (!formData.dateOfBirth) {
+            toast.error("Vui lòng nhập ngày sinh", {
+                position: "top-center",
+                autoClose: 3000,
+            });
+            return;
+        }
+        if (!formData.province) {
+            toast.error("Vui lòng chọn Tỉnh/Thành phố", {
+                position: "top-center",
+                autoClose: 3000,
+            });
+            return;
+        }
+        if (!formData.ward) {
+            toast.error("Vui lòng chọn Phường/Xã", {
+                position: "top-center",
+                autoClose: 3000,
+            });
+            return;
+        }
 
         // Kiểm tra nếu không có patientId thì báo lỗi
         if (!patientId) {
-            alert("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
+            toast.error("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.", {
+                position: "top-center",
+                autoClose: 4000,
+            });
             return;
         }
 
@@ -397,18 +425,82 @@ export function BookingContent() {
             console.log("📤 Đang gửi đặt lịch với patient_id:", patientId);
             const response = await patientsApi.createAppointment(payload);
             console.log("✅ Đặt lịch thành công!");
+            
+            // Hiển thị toast success
+            toast.success("Đặt lịch khám thành công!", {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+            
             setBookingInfo(response.data);
             setIsSubmitted(true);
             setPendingSubmit(false);
         } catch (err) {
             console.error("❌ Lỗi khi đặt lịch:", err);
             setPendingSubmit(false);
+            
+            let errorMessage = "Đặt lịch thất bại. Vui lòng thử lại!";
+            
             if (err.response) {
                 console.error("🔍 Chi tiết lỗi từ API:", err.response.data);
-                alert(`Lỗi: ${JSON.stringify(err.response.data, null, 2)}`);
-            } else {
-                alert(err.message || "Đặt lịch thất bại");
+                const errorData = err.response.data;
+                
+                // Xử lý thông báo lỗi từ API
+                if (errorData.error) {
+                    // Nếu có error message cụ thể
+                    errorMessage = typeof errorData.error === 'string' 
+                        ? errorData.error 
+                        : errorData.error.message || errorData.error;
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else if (errorData.success === false && errorData.error) {
+                    errorMessage = errorData.error;
+                } else {
+                    // Nếu không có message, dùng status code
+                    const status = err.response.status;
+                    switch (status) {
+                        case 400:
+                            errorMessage = "Thông tin đặt lịch không hợp lệ. Vui lòng kiểm tra lại!";
+                            break;
+                        case 401:
+                            errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+                            break;
+                        case 403:
+                            errorMessage = "Bạn không có quyền thực hiện thao tác này!";
+                            break;
+                        case 404:
+                            errorMessage = "Không tìm thấy thông tin. Vui lòng thử lại!";
+                            break;
+                        case 409:
+                            // Nếu có error message từ API, dùng message đó, nếu không thì dùng message mặc định
+                            errorMessage = errorData.error || "Lịch khám này đã được đặt. Vui lòng chọn lịch khác!";
+                            break;
+                        case 500:
+                            errorMessage = "Lỗi hệ thống. Vui lòng thử lại sau!";
+                            break;
+                        default:
+                            errorMessage = `Lỗi không xác định (${status}). Vui lòng thử lại!`;
+                    }
+                }
+            } else if (err.message) {
+                errorMessage = err.message;
+            } else if (err.request) {
+                errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet!";
             }
+            
+            // Hiển thị toast error với message rõ ràng
+            toast.error(errorMessage, {
+                position: "top-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
         }
 
     };
