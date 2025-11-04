@@ -12,59 +12,50 @@ import {
   PersonCircle,
 } from "react-bootstrap-icons";
 import "../styles/doctor/DoctorLayout.css";
+const { useDataByUrl } = require("../utility/data.utils");
 
 const DoctorLayout = () => {
+  const { data, isLoading, error } = useDataByUrl({
+    url: "/assistant/profile",
+    key: "assistantProfile",
+  });
+
+  const profile = data?.data?.information || {};
+  const assistantProfile = data?.data?.assistant || {};
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
-    {
-      title: "Trang chủ",
-      icon: <House size={20} />,
-      link: "/assistant/dashboard",
-    },
-    {
-      title: "Bệnh nhân",
-      icon: <People size={20} />,
-      link: "/assistant/patients",
-    },
-    {
-      title: "Tạo lịch khám cho bác sĩ",
-      icon: <Calendar size={20} />,
-      link: "/assistant/slot-schedule",
-    },
-    // {
-    //   title: "Yêu cầu bệnh án",
-    //   icon: <FileText size={20} />,
-    //   link: "/doctor/record-requests",
-    // },
-    {
-      title: "Duyệt lịch khám",
-      icon: <ClipboardCheck size={20} />,
-      link: "/assistant/appointments",
-    },
-    // {
-    //   title: "Duyệt đơn thuốc",
-    //   icon: <CheckCircle size={20} />,
-    //   link: "/doctor/prescriptions",
-    // },
-    // {
-    //   title: "Feedback",
-    //   icon: <ChatLeftText size={20} />,
-    //   link: "/doctor/feedback",
-    // },
-    // {
-    //   title: "Quản lý trợ lý",
-    //   icon: <PersonBadge size={20} />,
-    //   link: "/doctor/assistants",
-    // },
-    // {
-    //   title: "Thông báo nghỉ",
-    //   icon: <BellSlash size={20} />,
-    //   link: "/doctor/absence",
-    // },
-  ];
+  // 🟡 Danh sách menu theo vai trò
+  const menusByType = {
+    RECEPTIONIST: [
+      {
+        title: "Duyệt lịch khám",
+        icon: <ClipboardCheck size={20} />,
+        link: "/assistant/appointments",
+      },
+    ],
+    NURSE: [
+      {
+        title: "Trang chủ",
+        icon: <House size={20} />,
+        link: "/assistant/dashboard",
+      },
+      {
+        title: "Bệnh nhân",
+        icon: <People size={20} />,
+        link: "/assistant/patients",
+      },
+      {
+        title: "Tạo lịch khám cho bác sĩ",
+        icon: <Calendar size={20} />,
+        link: "/assistant/slot-schedule",
+      },
+    ],
+  };
+
+  // 🟢 Lấy menu tương ứng với type (hoặc rỗng)
+  const menuItems = menusByType[assistantProfile?.type] || [];
 
   const handleLogout = () => {
     sessionStorage.clear();
@@ -86,13 +77,15 @@ const DoctorLayout = () => {
           </div>
         </div>
 
+        {/* 🟢 Render menu bằng map */}
         <nav className="sidebar-nav">
           {menuItems.map((item, index) => (
             <Link
               key={index}
               to={item.link}
-              className={`nav-item ${location.pathname === item.link ? "nav-item-active" : ""
-                }`}
+              className={`nav-item ${
+                location.pathname === item.link ? "nav-item-active" : ""
+              }`}
             >
               <span className="nav-icon">{item.icon}</span>
               {sidebarOpen && <span className="nav-text">{item.title}</span>}
@@ -128,8 +121,16 @@ const DoctorLayout = () => {
             <div className="user-profile">
               <PersonCircle size={32} />
               <div className="user-info">
-                <span className="user-name">Trợ lý. Nguyễn Văn A</span>
-                <span className="user-role">Trợ lý</span>
+                <span className="user-name">
+                  Trợ lý. {profile?.full_name || "Nguyễn Văn A"}
+                </span>
+                <span className="user-role">
+                  {assistantProfile?.type === "RECEPTIONIST"
+                    ? "Lễ tân"
+                    : assistantProfile?.type === "NURSE"
+                    ? "Y tá"
+                    : "Trợ lý"}
+                </span>
               </div>
             </div>
           </div>

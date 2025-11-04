@@ -69,4 +69,10 @@ router.post("/medical-records/appointment/:appointmentId", authRequired, roleReq
 // view profile of doctor
 router.get("/profile", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewProfile);
 
+router.put("/profile", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateProfile);
+
+// POST /change-password
+// change password
+router.put("/change-password", authRequired, roleRequired("ASSISTANT"), AssistanceController.changePassword);
+
 module.exports = router;

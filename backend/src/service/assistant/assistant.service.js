@@ -18,6 +18,26 @@ exports.getAssistantByAccountId = async (accountId) => {
     }
 };
 
+exports.getUserByAccountId = async (accountId) => {
+    try {
+        const user = await User.findOne({ account_id: accountId }).lean();
+        return user || null;
+    } catch (error) {
+        console.error("Lỗi khi tìm user bằng accountId:", error);
+        return null;
+    }
+};
+
+exports.getAccountById = async (accountId) => {
+    try {
+        const account = await Account.findById(accountId).lean();
+        return account || null;
+    } catch (error) {
+        console.error("Lỗi khi tìm account bằng accountId:", error);
+        return null;
+    }
+};
+
 exports.getListPatients = async (req) => {
     try {
         const { page = 1, limit = 10, search = "" } = req.query;
@@ -70,3 +90,29 @@ exports.getMedicalRecordOfAssistant = async (ass_id, page, limit, slot, status) 
         throw error;
     }
 };
+
+exports.changePassword = async (id, currentPassword, newPassword) => {
+    try {
+        const account = await Account.findById(id);
+        if (!account) {
+            throw new Error('Không tìm thấy tài khoản.');
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, account.password);
+        if (!isMatch) {
+            throw new Error('Mật khẩu hiện tại không đúng.');
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        account.password = hashedPassword;
+
+        const updated = await account.save();
+
+        return updated;
+
+    } catch (err) {
+         console.log(`Lỗi tại changePassword(${id}): `, err);
+        throw err;
+    }
+}

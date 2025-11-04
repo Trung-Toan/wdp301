@@ -499,5 +499,64 @@ exports.createMedicalRecord = async (req, res) => {
 /* ========================= PROFILE ========================= */
 // GET /profile
 exports.viewProfile = async (req, res) => {
-  res.json({ message: "View profile" });
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    const user = await assistantService.getUserByAccountId(req.user.sub);
+    const account = await assistantService.getAccountById(req.user.sub);
+    
+    if (!assistance || !user || !account) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+
+    const formattedAssistant = {
+      account, information: user, assistant: assistance
+    };
+    
+    return resUtils.successResponse(res, formattedAssistant, "Lấy thông tin profile trợ lý thành công");
+  } catch (error) {
+    console.log("Lỗi lấy profile trợ lý: ", error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể lấy thông tin profile trợ lý");
+  }
+};
+
+// PUT /profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+
+    const user = await assistantService.getUserByAccountId(req.user.sub);
+    if (!user) return resUtils.notFoundResponse(res, "Không tìm thấy thông tin người dùng");
+
+    const updateData = req.body;
+    const updatedUser = await assistantService.updateUserById(user._id, updateData);
+    return resUtils.updatedResponse(res, updatedUser, "Cập nhật thông tin profile trợ lý thành công");
+  } catch (error) {
+    console.log("Lỗi cập nhật profile trợ lý: ", error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể cập nhật thông tin profile trợ lý");
+  }
+};
+
+// POST /change-password
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return resUtils.badRequestResponse(res, "Cần cung cấp mật khẩu hiện tại và mật khẩu mới.");
+    }
+
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+
+    const user = await assistantService.getUserByAccountId(req.user.sub);
+    if (!user) return resUtils.notFoundResponse(res, "Không tìm thấy thông tin người dùng");
+
+    const result = await assistantService.changePassword(user.account_id, currentPassword, newPassword);
+    if (!result.success) {
+      return resUtils.badRequestResponse(res, result.message);
+    }
+
+    return resUtils.successResponse(res, result, "Đổi mật khẩu thành công");
+  } catch (error) {
+    console.log("Lỗi đổi mật khẩu trợ lý: ", error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể đổi mật khẩu trợ lý");
+  }
 };
