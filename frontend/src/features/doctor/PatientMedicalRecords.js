@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from "react";
+// Sửa lại import: Các icon này là của react-bootstrap-icons, không phải lucide
 import {
   FileText,
   Calendar,
@@ -85,11 +86,13 @@ const PatientMedicalRecords = () => {
     setFilteredRecords(filtered);
   };
 
+  // Cập nhật: Thêm timeZone: "UTC" để hiển thị ngày đúng như database
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      timeZone: "UTC"
     });
   };
 
@@ -134,6 +137,7 @@ const PatientMedicalRecords = () => {
     }
   };
 
+  // Giữ nguyên hàm xem chi tiết
   const handleViewRecord = async (record) => {
     try {
       setLoadingRecord(true);
@@ -162,6 +166,7 @@ const PatientMedicalRecords = () => {
     setSelectedRecord(null);
   };
 
+  // --- CẬP NHẬT: Dùng refetchList và đóng modal ---
   const handleVerifyPrescription = async (recordId) => {
     if (!recordId) return;
 
