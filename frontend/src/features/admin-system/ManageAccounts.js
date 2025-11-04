@@ -279,6 +279,7 @@ export default function ManageAccounts() {
               <tr className="bg-gray-100 text-gray-700 uppercase text-xs">
                 <th className="p-3">Username</th>
                 <th className="p-3">Email</th>
+                <th className="p-3">Role</th>
                 <th className="p-3">Tên</th>
                 <th className="p-3">Trạng thái</th>
                 <th className="p-3">Ngày tham gia</th>
@@ -290,6 +291,7 @@ export default function ManageAccounts() {
                 <tr key={acc._id} className="border-b hover:bg-gray-50 transition">
                   <td className="p-3 font-medium text-gray-800">{acc.username}</td>
                   <td className="p-3 text-gray-600">{acc.email}</td>
+                  <td className="p-3">{acc.role}</td>
                   <td className="p-3 text-gray-600">
                     {acc.user?.full_name || "N/A"}
                   </td>
@@ -512,19 +514,19 @@ export default function ManageAccounts() {
             confirmModal.type === "approve"
               ? "Phê duyệt tài khoản"
               : confirmModal.type === "reject"
-              ? "Từ chối tài khoản"
-              : confirmModal.type === "ban"
-              ? "Cấm tài khoản"
-              : "Gỡ cấm tài khoản"
+                ? "Từ chối tài khoản"
+                : confirmModal.type === "ban"
+                  ? "Cấm tài khoản"
+                  : "Gỡ cấm tài khoản"
           }
           message={
             confirmModal.type === "approve"
               ? `Bạn có chắc chắn muốn phê duyệt tài khoản "${confirmModal.data.username}"?`
               : confirmModal.type === "reject"
-              ? `Bạn có chắc chắn muốn từ chối tài khoản "${confirmModal.data.username}"?`
-              : confirmModal.type === "ban"
-              ? `Bạn có chắc chắn muốn cấm tài khoản "${confirmModal.data.username}"?`
-              : `Bạn có chắc chắn muốn gỡ cấm tài khoản "${confirmModal.data.username}"?`
+                ? `Bạn có chắc chắn muốn từ chối tài khoản "${confirmModal.data.username}"?`
+                : confirmModal.type === "ban"
+                  ? `Bạn có chắc chắn muốn cấm tài khoản "${confirmModal.data.username}"?`
+                  : `Bạn có chắc chắn muốn gỡ cấm tài khoản "${confirmModal.data.username}"?`
           }
           onConfirm={() => {
             if (confirmModal.type === "approve") {
