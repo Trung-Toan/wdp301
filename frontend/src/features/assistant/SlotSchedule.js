@@ -196,12 +196,12 @@ const SlotSchedule = () => {
     const isLocked = slotStartTime < now;
     setIsTimeLocked(isLocked);
     setSlotStatus(Slot.status || "AVAILABLE");
-    const [sHour, sMin] = formatISOTime(Slot.start_time).split(":");
-    const [eHour, eMin] = formatISOTime(Slot.end_time).split(":");
-    setStartHour(sHour || "08");
-    setStartMinute(sMin || "00");
-    setEndHour(eHour || "09");
-    setEndMinute(eMin || "00");
+    const dateStart = new Date((Slot.start_time));
+    const dateEnd = new Date((Slot.end_time));
+    setStartHour(dateStart.getUTCHours() || "08");
+    setStartMinute(dateStart.getUTCMinutes() || "00");
+    setEndHour(dateEnd.getUTCHours() || "09");
+    setEndMinute(dateEnd.getUTCMinutes() || "00");
     setMaxPatients(Slot.max_patients || 1);
     setModalError("");
     setModalOpen(true);
@@ -215,20 +215,33 @@ const SlotSchedule = () => {
       return;
     }
 
-    // Xây dựng payload trước
+    console.log(startHour, "-", endHour);
+
+    const dateObj = new Date(selectedDate);
+
     const startDateTime =
       isTimeLocked && editingSlot
         ? editingSlot.start_time
-        : new Date(
-          `${selectedDate}T${startHour}:${startMinute}:00`
-        ).toISOString();
+        : new Date(Date.UTC(
+          dateObj.getFullYear(),
+          dateObj.getMonth(),
+          dateObj.getDate(),
+          startHour,
+          startMinute,
+          0
+        )).toISOString();
 
     const endDateTime =
       isTimeLocked && editingSlot
         ? editingSlot.end_time
-        : new Date(
-          `${selectedDate}T${endHour}:${endMinute}:00`
-        ).toISOString();
+        : new Date(Date.UTC(
+          dateObj.getFullYear(),
+          dateObj.getMonth(),
+          dateObj.getDate(),
+          endHour,
+          endMinute,
+          0
+        )).toISOString();
 
     const payload = {
       clinic_id: assistantInfo.clinic_id,
@@ -448,8 +461,9 @@ const SlotSchedule = () => {
                   <div className="flex items-center gap-2.5 text-gray-700 mb-4">
                     <Clock size={20} className="text-blue-600" />
                     <span className="font-semibold text-2xl text-gray-900 tracking-tight">
-                      {formatISOTime(Slot.start_time)} -{" "}
-                      {formatISOTime(Slot.end_time)}
+                      {`${new Date(Slot.start_time).getUTCHours().toString().padStart(2, "0")}:${new Date(Slot.start_time).getUTCMinutes().toString().padStart(2, "0")}`}{" "}
+                      -{" "}
+                      {`${new Date(Slot.end_time).getUTCHours().toString().padStart(2, "0")}:${new Date(Slot.end_time).getUTCMinutes().toString().padStart(2, "0")}`}
                     </span>
                   </div>
 
