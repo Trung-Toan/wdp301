@@ -45,8 +45,8 @@ const SlotSchedule = () => {
   const assistantInfo = JSON.parse(
     sessionStorage.getItem("assistantInfo") || "{}"
   );
-  // const [feeAmount, setFeeAmount] = useState(500000);
-   const [note, setNote] = useState("");
+  const [feeAmount, setFeeAmount] = useState(500000);
+  const [note, setNote] = useState("");
 
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
   const [todayString] = useState(getLocalDate());
@@ -186,7 +186,6 @@ const SlotSchedule = () => {
     setMaxPatients(1);
     setSlotStatus("AVAILABLE");
     setIsTimeLocked(false);
-    setNote("");
     setModalError("");
     setModalOpen(true);
   };
@@ -204,7 +203,6 @@ const SlotSchedule = () => {
     setEndHour(eHour || "09");
     setEndMinute(eMin || "00");
     setMaxPatients(Slot.max_patients || 1);
-    setNote(Slot.note || "");
     setModalError("");
     setModalOpen(true);
   };
@@ -237,6 +235,7 @@ const SlotSchedule = () => {
       start_time: startDateTime,
       end_time: endDateTime,
       status: slotStatus, // <-- Đảm bảo luôn có trường này
+      fee_amount: feeAmount,
       max_patients: maxPatients,
       booked_count: editingSlot ? editingSlot.booked_count : 0,
       note: note,
@@ -632,20 +631,6 @@ const SlotSchedule = () => {
                                 : 1
                             )
                           }
-                          className={inputRingClasses}
-                        />
-                      </div>
-
-                      {/* Note */}
-                      <div>
-                        <label className="block text-sm font-medium leading-6 text-gray-900 mb-1.5">
-                          Ghi chú (tùy chọn)
-                        </label>
-                        <textarea
-                          value={note}
-                          onChange={(e) => setNote(e.target.value)}
-                          rows={3}
-                          placeholder="Nhập ghi chú cho ca làm việc..."
                           className={inputRingClasses}
                         />
                       </div>
