@@ -451,6 +451,8 @@ export function DoctorDetailContent({ doctorId }) {
                                     hospital: d.clinic?.name || "Chưa có phòng khám",
                                     price: slotToSend.fee || d.pricing?.minFee || "Chưa có giá",
                                     doctorAvatar: d.avatar_url || null,
+                                    clinicId: slotToSend.clinicId || d.clinic?._id || d.clinic_id || null, // Thêm clinicId vào state
+                                    doctor: d, // Thêm toàn bộ doctor object để có thể lấy clinic_id sau
                                 } 
                             });
                         }}

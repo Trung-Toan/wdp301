@@ -264,6 +264,15 @@ async function createAsync(payload) {
             const patient = await Patient.findById(patient_id).session(session).lean();
             if (!patient) throw new Error("Patient not found");
 
+            // 4.5) Nếu không có clinic_id, lấy từ doctor
+            if (!clinic_id && doctor_id) {
+                const doctor = await Doctor.findById(doctor_id).session(session).select("clinic_id").lean();
+                if (doctor && doctor.clinic_id) {
+                    clinic_id = doctor.clinic_id;
+                    console.log("✅ Auto-retrieved clinic_id from doctor:", clinic_id);
+                }
+            }
+
             // 5) Tạo appointment
             const booking_code = randomBookingCode();
             const fee_amount = Number(slot.fee_amount ?? 0);

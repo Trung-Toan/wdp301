@@ -21,7 +21,7 @@ const getImageUrl = (url) => {
 
 export function BookingContent() {
     const location = useLocation();
-    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId } = location.state || {};
+    const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId, doctor } = location.state || {};
 
     console.log("doctorAvatar:", doctorAvatar);
 
@@ -133,7 +133,7 @@ export function BookingContent() {
 
     // Gán dữ liệu user vào form
     useEffect(() => {
-        if (storedUser || storedAccount) {
+        if (storedUser || storedAccount || storedPatient) {
             // Chuyển định dạng ngày nếu có
             let dobFormatted = "";
             if (storedUser?.dob) {
@@ -142,18 +142,72 @@ export function BookingContent() {
                 dobFormatted = date.toISOString().split("T")[0];
             }
 
+            // Convert gender từ format DB sang format form
+            const convertGender = (gender) => {
+                if (!gender) return "male";
+                const genderLower = gender.toLowerCase();
+                if (genderLower === "male" || genderLower === "nam") return "male";
+                if (genderLower === "female" || genderLower === "nữ") return "female";
+                if (genderLower === "other" || genderLower === "khác") return "other";
+                return "male"; // default
+            };
+
+            // Lấy province code
+            const provinceCode = 
+                storedUser?.address?.province?.code || 
+                storedUser?.province_code ||
+                storedPatient?.address?.province?.code ||
+                storedPatient?.province_code ||
+                "";
+
+            // Lấy ward code
+            const wardCode = 
+                storedUser?.address?.ward?.code ||
+                storedUser?.ward_code ||
+                storedPatient?.address?.ward?.code ||
+                storedPatient?.ward_code ||
+                "";
+
+            // Lấy address text (địa chỉ chi tiết)
+            // Nếu address là string, dùng luôn. Nếu là object, lấy houseNumber + street
+            let addressText = "";
+            if (storedUser?.address) {
+                if (typeof storedUser.address === "string") {
+                    addressText = storedUser.address;
+                } else if (storedUser.address.houseNumber || storedUser.address.street) {
+                    addressText = [
+                        storedUser.address.houseNumber,
+                        storedUser.address.street
+                    ].filter(Boolean).join(", ");
+                }
+            }
+            if (!addressText && storedPatient?.address) {
+                if (typeof storedPatient.address === "string") {
+                    addressText = storedPatient.address;
+                } else if (storedPatient.address.houseNumber || storedPatient.address.street) {
+                    addressText = [
+                        storedPatient.address.houseNumber,
+                        storedPatient.address.street
+                    ].filter(Boolean).join(", ");
+                }
+            }
+            if (!addressText && storedUser?.address_text) {
+                addressText = storedUser.address_text;
+            }
+            if (!addressText && storedPatient?.address_text) {
+                addressText = storedPatient.address_text;
+            }
+
             setFormData(prev => ({
                 ...prev,
-                fullName: storedUser.full_name || "",
-                phone: storedAccount.phone_number || "",
-                email: storedAccount.email || "",
-                dateOfBirth: dobFormatted,
-                gender: storedUser.gender || "Nam",
-                address: storedUser.address || "",
-                // Gán province từ storedUser nếu có
-                province: storedUser.address?.province?.code || 
-                          storedPatient?.address?.province?.code || 
-                          prev.province || "",
+                fullName: storedUser?.full_name || prev.fullName || "",
+                phone: storedAccount?.phone_number || prev.phone || "",
+                email: storedAccount?.email || prev.email || "",
+                dateOfBirth: dobFormatted || prev.dateOfBirth || "",
+                gender: convertGender(storedUser?.gender || storedPatient?.gender) || prev.gender || "male",
+                province: provinceCode || prev.province || "",
+                ward: wardCode || prev.ward || "",
+                address: addressText || prev.address || "",
             }));
         }
     }, [storedUser, storedAccount, storedPatient]);
@@ -289,12 +343,37 @@ export function BookingContent() {
             };
             const apiGender = genderMap[formData.gender] || formData.gender.toUpperCase();
 
+            // Lấy clinic_id từ nhiều nguồn (ưu tiên theo thứ tự)
+            const finalClinicId = 
+                selectedSlot.clinicId || 
+                selectedSlot.clinic?._id || 
+                selectedSlot.clinic_id || 
+                clinicId || // từ location.state
+                doctor?.clinic?._id || // từ doctor object trong state
+                doctor?.clinic_id || // từ doctor object
+                clinicData?._id || 
+                null;
+
+            if (!finalClinicId) {
+                console.warn("⚠️ Warning: clinic_id is null. Appointment will be created without clinic.");
+                console.warn("⚠️ Debug info:", {
+                    selectedSlot_clinicId: selectedSlot.clinicId,
+                    selectedSlot_clinic: selectedSlot.clinic,
+                    selectedSlot_clinic_id: selectedSlot.clinic_id,
+                    clinicId_from_location: clinicId,
+                    doctor_clinic_id: doctor?.clinic_id,
+                    doctor_clinic: doctor?.clinic,
+                    clinicData_id: clinicData?._id,
+                    doctorId: doctorId,
+                });
+            }
+
             const payload = {
                 slot_id: selectedSlot.id,
                 doctor_id: doctorId,
                 patient_id: patientId,
                 specialty_id: selectedSlot.specialtyId?.id || selectedSlot.specialtyId,
-                clinic_id: selectedSlot.clinicId,
+                clinic_id: finalClinicId, // Sử dụng clinic_id đã được xử lý
                 full_name: formData.fullName,
                 phone: formData.phone,
                 email: formData.email,
@@ -305,6 +384,14 @@ export function BookingContent() {
                 address_text: formData.address,
                 reason: formData.reason,
             };
+
+            console.log("📤 Booking payload:", {
+                slot_id: payload.slot_id,
+                doctor_id: payload.doctor_id,
+                patient_id: payload.patient_id,
+                clinic_id: payload.clinic_id,
+                clinic_id_source: finalClinicId ? "found" : "null",
+            });
 
             setShowConfirmModal(false);
             console.log("📤 Đang gửi đặt lịch với patient_id:", patientId);
