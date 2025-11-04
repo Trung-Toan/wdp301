@@ -3,6 +3,18 @@ import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { specialtyApi } from "../../../../api";
 
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function SpecialtiesList() {
     const [specialties, setSpecialties] = useState([]);
@@ -73,9 +85,12 @@ export default function SpecialtiesList() {
                                         <div className="flex flex-col items-center gap-4 p-6 text-center">
                                             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 transition-colors">
                                                 <img
-                                                    src={specialty.icon_url}
+                                                    src={specialty.icon_url ? getImageUrl(specialty.icon_url) : "/placeholder.svg"}
                                                     alt={specialty.name}
                                                     className="h-10 w-10 object-contain"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                    }}
                                                 />
                                             </div>
                                             <div>

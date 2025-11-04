@@ -18,6 +18,16 @@ import { axiosInstance } from "../../../../api/axiosInstance";
 import "../../../../styles/DoctorDetailContent.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export function DoctorDetailContent({ doctorId }) {
     const [doctor, setDoctor] = useState(null);
@@ -131,12 +141,12 @@ export function DoctorDetailContent({ doctorId }) {
                             <div className="doctor-info-content">
                                 <div className="doctor-avatar-wrapper">
                                     <img
-                                        src={d.avatar_url ? d.avatar_url.startsWith("http")
-                                            ? d.avatar_url
-                                            : `${FILE_SERVER_URL}/${d.avatar_url}`
-                                            : "/placeholder.svg"}
+                                        src={d.avatar_url ? getImageUrl(d.avatar_url) : "/placeholder.svg"}
                                         alt={d.name || "Doctor"}
                                         className="doctor-avatar"
+                                        onError={(e) => {
+                                            e.target.src = "/placeholder.svg";
+                                        }}
                                     />
                                 </div>
                                 <div className="doctor-info-wrapper">
@@ -260,7 +270,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                             </div>
                                                             {l.document_url?.length > 0 && (
                                                                 <a
-                                                                    href={l.document_url[0]}
+                                                                    href={getImageUrl(l.document_url[0])}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="doctor-license-link"
@@ -392,7 +402,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                                 ) : (
                                                                     <>
                                                                         <img
-                                                                            src={fb.patient?.user_id?.avatar_url || "/default-avatar.png"}
+                                                                            src={fb.patient?.user_id?.avatar_url ? getImageUrl(fb.patient.user_id.avatar_url) : "/default-avatar.png"}
                                                                             alt={fb.patient?.user_id?.full_name || "Người dùng"}
                                                                             className="doctor-review-avatar"
                                                                         />

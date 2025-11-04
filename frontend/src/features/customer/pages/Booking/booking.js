@@ -8,6 +8,17 @@ import { wardApi } from "../../../../api/address/wardApi";
 import { clinicApi } from "../../../../api/clinic/clinicApi";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
+
 export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId } = location.state || {};
@@ -624,12 +635,12 @@ export function BookingContent() {
                             {/* Doctor Info */}
                             <div className="flex gap-4 mb-6 pb-6 border-b border-gray-200">
                                 <img
-                                    src={sidebarInfo.image ? sidebarInfo.image.startsWith("http")
-                                        ? sidebarInfo.image
-                                        : `${FILE_SERVER_URL}/${sidebarInfo.image}`
-                                        : "/placeholder.svg"}
+                                    src={sidebarInfo.image ? getImageUrl(sidebarInfo.image) : "/placeholder.svg"}
                                     alt={sidebarInfo.doctorName}
                                     className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-100 shadow-md"
+                                    onError={(e) => {
+                                        e.target.src = "/placeholder.svg";
+                                    }}
                                 />
                                 <div>
                                     <h4 className="font-bold text-lg text-gray-900">{sidebarInfo.doctorName}</h4>

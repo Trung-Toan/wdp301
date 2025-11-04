@@ -972,9 +972,12 @@ export default function FacilityDetail() {
                                                     <div className="flex-shrink-0">
                                                         {review.patient?.avatar ? (
                                                             <img
-                                                                src={review.patient.avatar}
+                                                                src={getImageUrl(review.patient.avatar)}
                                                                 alt={review.patient.name}
                                                                 className="w-12 h-12 rounded-full object-cover ring-2 ring-sky-100"
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                }}
                                                             />
                                                         ) : (
                                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-100 to-blue-100 flex items-center justify-center text-sky-700 font-bold text-lg">

@@ -9,6 +9,17 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:5000/api/file";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+  if (!url) return null;
+  // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  // Nếu không, thêm FILE_SERVER_URL phía trước
+  return `${FILE_SERVER_URL}/${url}`;
+};
+
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -100,11 +111,7 @@ const DoctorProfile = () => {
         const d = profileRes.data.data;
         const licenses = licenseRes.data.data || [];
 
-        const avatarUrl = d.user_id?.avatar_url
-          ? d.user_id.avatar_url.startsWith("http")
-            ? d.user_id.avatar_url
-            : `${FILE_SERVER_URL}/${d.user_id.avatar_url}`
-          : "";
+        const avatarUrl = d.user_id?.avatar_url ? getImageUrl(d.user_id.avatar_url) : "";
 
         setDoctorProfile({
           doctor: {
