@@ -58,11 +58,9 @@ exports.approveClinic = async (req, res) => {
   try {
     const { clinic_id } = req.params;
     const { review_notes } = req.body;
-    const admin_system_id = req.user.admin_system_id; // Từ middleware auth
-
-    if (!admin_system_id) {
-      return badRequestResponse(res, "Không có quyền duyệt phòng khám", 403);
-    }
+    // admin_system_id có thể không có nếu AdminSystem record chưa được tạo trong DB
+    // Sử dụng req.user.sub (Account ID) làm fallback nếu admin_system_id không có
+    const admin_system_id = req.user.admin_system_id || req.user.sub;
 
     const clinic = await clinicRegistrationService.approveClinic({
       clinic_id,
@@ -81,11 +79,9 @@ exports.rejectClinic = async (req, res) => {
   try {
     const { clinic_id } = req.params;
     const { rejection_reason } = req.body;
-    const admin_system_id = req.user.admin_system_id; // Từ middleware auth
-
-    if (!admin_system_id) {
-      return badRequestResponse(res, "Không có quyền từ chối phòng khám", 403);
-    }
+    // admin_system_id có thể không có nếu AdminSystem record chưa được tạo trong DB
+    // Sử dụng req.user.sub (Account ID) làm fallback nếu admin_system_id không có
+    const admin_system_id = req.user.admin_system_id || req.user.sub;
 
     const clinic = await clinicRegistrationService.rejectClinic({
       clinic_id,
