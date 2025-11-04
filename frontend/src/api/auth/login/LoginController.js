@@ -1,9 +1,15 @@
 import axios from "axios";
 import { AUTHEN_API } from "../../api";
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (usernameOrEmail, password) => {
   try {
-    const response = await axios.post(AUTHEN_API.LOGIN, { email, password });
+    // Kiểm tra xem input là email hay username
+    const isEmail = usernameOrEmail.includes("@");
+    const payload = isEmail 
+      ? { email: usernameOrEmail, password }
+      : { username: usernameOrEmail, password };
+    
+    const response = await axios.post(AUTHEN_API.LOGIN, payload);
     console.log(response.data);
     return response.data;
   } catch (error) {
