@@ -6,6 +6,17 @@ import { useAuth } from "../../../hooks/useAuth";
 import ClinicBookingForm from "../components/ClinicBookingForm";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
+
 export default function FacilityDetail() {
     const { id: clinicId } = useParams();
     const { user } = useAuth();
@@ -257,18 +268,24 @@ export default function FacilityDetail() {
                         {clinicData.banner_url && (
                             <div className="relative overflow-hidden rounded-3xl shadow-2xl group">
                                 <img
-                                    src={clinicData.banner_url}
+                                    src={getImageUrl(clinicData.banner_url)}
                                     alt={clinicData.name}
                                     className="w-full h-52 sm:h-72 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-700"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                    }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                                 <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
                                     <div className="flex items-center gap-3 mb-2">
                                         {clinicData.logo_url && (
                                             <img
-                                                src={clinicData.logo_url}
+                                                src={getImageUrl(clinicData.logo_url)}
                                                 alt={`${clinicData.name} logo`}
                                                 className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-2xl border-4 border-white/90 bg-white p-2 shadow-lg"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                }}
                                             />
                                         )}
                                         <div>
@@ -303,9 +320,12 @@ export default function FacilityDetail() {
                                             <div className="relative">
                                                 <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-blue-600 rounded-2xl blur-lg opacity-30"></div>
                                                 <img
-                                                    src={clinicData.logo_url}
+                                                    src={getImageUrl(clinicData.logo_url)}
                                                     alt={`${clinicData.name} logo`}
                                                     className="relative w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-2xl border-4 border-white shadow-xl bg-white p-3"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                    }}
                                                 />
                                             </div>
                                         </div>
@@ -598,9 +618,12 @@ export default function FacilityDetail() {
                                                 {sp.icon_url && (
                                                     <div className="flex-shrink-0 p-2 bg-white rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
                                                         <img
-                                                            src={sp.icon_url}
+                                                            src={getImageUrl(sp.icon_url)}
                                                             alt={sp.name}
                                                             className="w-10 h-10 group-hover:scale-110 transition-transform"
+                                                            onError={(e) => {
+                                                                e.target.style.display = 'none';
+                                                            }}
                                                         />
                                                     </div>
                                                 )}
@@ -675,12 +698,13 @@ export default function FacilityDetail() {
                                                     <div className="flex-shrink-0">
                                                         <img
                                                             src={doctor.user?.avatar_url
-                                                                ? doctor.user?.avatar_url.startsWith("http")
-                                                                    ? doctor.user?.avatar_url
-                                                                    : `${FILE_SERVER_URL}/${doctor.user?.avatar_url}`
+                                                                ? getImageUrl(doctor.user?.avatar_url)
                                                                 : "/placeholder.svg"}
                                                             alt={doctor.user?.full_name}
                                                             className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover ring-4 ring-sky-50 group-hover:ring-sky-100 transition-all"
+                                                            onError={(e) => {
+                                                                e.target.src = "/placeholder.svg";
+                                                            }}
                                                         />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
