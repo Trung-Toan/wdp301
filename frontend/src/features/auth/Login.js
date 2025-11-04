@@ -148,28 +148,42 @@ const Login = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
+            backdropFilter: "blur(4px)",
           }}
         >
           <div className="loading-card" style={{
             padding: "2.5rem",
             borderRadius: "20px",
+            backgroundColor: "white",
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: "1.5rem",
+            minWidth: "280px",
           }}>
-            <Spinner animation="border" variant="primary" style={{ width: "3.5rem", height: "3.5rem", borderWidth: "4px" }} />
+            <Spinner 
+              animation="border" 
+              variant="primary" 
+              style={{ 
+                width: "3.5rem", 
+                height: "3.5rem", 
+                borderWidth: "4px",
+                color: "#667eea"
+              }} 
+            />
             <p className="mb-0 fw-semibold" style={{ 
               background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
-              fontSize: "1.1rem"
+              fontSize: "1.1rem",
+              textAlign: "center"
             }}>
               Đang xử lý đăng nhập...
             </p>
