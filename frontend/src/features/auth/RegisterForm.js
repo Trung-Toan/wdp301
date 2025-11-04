@@ -5,6 +5,7 @@ import { registerPatientsApi } from "../../api/auth/register/registerPatientsApi
 import Toast from "../../components/ui/Toast";
 import { provinceApi, wardApi } from "../../api";
 import { Spinner } from "react-bootstrap";
+import { toast } from "react-toastify";
 import "../../styles/Register.css";
 
 export default function RegisterForm() {
@@ -132,15 +133,39 @@ export default function RegisterForm() {
                 ward_code: formData.ward,
             });
 
+            // Hiển thị toast thông báo thành công
+            toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.", {
+                position: "top-center",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
             setNotification({
                 type: "success",
-                message: "Đăng ký thành công! Chuyển đến đăng nhập...",
+                message: "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản.",
             });
-            setTimeout(() => navigate("/login"), 2000);
+            
+            // Chuyển đến trang đăng nhập sau 3 giây
+            setTimeout(() => navigate("/login"), 3000);
         } catch (err) {
+            const errorMessage = err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại!";
+            
+            // Hiển thị toast thông báo lỗi
+            toast.error(errorMessage, {
+                position: "top-center",
+                autoClose: 4000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
             setNotification({
                 type: "error",
-                message: err.response?.data?.message || "Đăng ký thất bại",
+                message: errorMessage,
             });
         } finally {
             setIsLoading(false);
@@ -163,28 +188,42 @@ export default function RegisterForm() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundColor: "rgba(0, 0, 0, 0.6)",
+                        backgroundColor: "rgba(0, 0, 0, 0.7)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         zIndex: 9999,
+                        backdropFilter: "blur(4px)",
                     }}
                 >
                     <div className="loading-card" style={{
                         padding: "2.5rem",
                         borderRadius: "20px",
+                        backgroundColor: "white",
+                        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         gap: "1.5rem",
+                        minWidth: "280px",
                     }}>
-                        <Spinner animation="border" variant="primary" style={{ width: "3.5rem", height: "3.5rem", borderWidth: "4px" }} />
+                        <Spinner 
+                            animation="border" 
+                            variant="primary" 
+                            style={{ 
+                                width: "3.5rem", 
+                                height: "3.5rem", 
+                                borderWidth: "4px",
+                                color: "#667eea"
+                            }} 
+                        />
                         <p className="mb-0 fw-semibold" style={{ 
                             background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                             WebkitBackgroundClip: "text",
                             WebkitTextFillColor: "transparent",
                             backgroundClip: "text",
-                            fontSize: "1.1rem"
+                            fontSize: "1.1rem",
+                            textAlign: "center"
                         }}>
                             Đang xử lý đăng ký...
                         </p>
