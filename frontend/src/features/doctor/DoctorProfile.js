@@ -79,6 +79,9 @@ const DoctorProfile = () => {
         document_url: "",
         document_file: null,
       });
+
+      // Dispatch event để DoctorLayout re-check profile completeness
+      window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi gửi chứng chỉ:", err);
       const uploadError = err.response?.data?.error || err.message;
@@ -205,6 +208,9 @@ const DoctorProfile = () => {
         }));
       }
       setNewAvatarFile(null);
+
+      // Dispatch event để DoctorLayout re-check profile completeness
+      window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
       const uploadError = err.response?.data?.error || err.message;

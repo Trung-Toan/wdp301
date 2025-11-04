@@ -28,34 +28,54 @@ const DoctorLayout = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
-  useEffect(() => {
-    const fetchProfileAndLicenses = async () => {
-      try {
-        const [profileRes, licenseRes] = await Promise.all([
-          doctorApi.getProfile(),
-          doctorApi.getMyLicense(),
-        ]);
+  const checkProfileComplete = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const [profileRes, licenseRes] = await Promise.all([
+        doctorApi.getProfile(),
+        doctorApi.getMyLicense(),
+      ]);
 
-        const profile = profileRes.data.data;
-        const licenses = licenseRes.data.data || [];
+      const profile = profileRes.data.data;
+      const licenses = licenseRes.data.data || [];
 
-        const hasInfo = profile.title && profile.degree && profile.experience;
-        const hasLicense = licenses.length > 0;
+      const hasInfo = profile.title && profile.degree && profile.experience;
+      // Kiểm tra có ít nhất 1 license đã được APPROVED và còn hạn
+      const hasValidLicense = licenses.some((lic) => {
+        if (lic.status !== "APPROVED") return false;
+        if (!lic.expiry_date) return true; // Không có ngày hết hạn thì coi như còn hạn
+        const expiry = new Date(lic.expiry_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return expiry >= today;
+      });
 
-        if (hasInfo && hasLicense) {
-          setIsProfileComplete(true);
-        } else {
-          setIsProfileComplete(false);
-        }
-      } catch (err) {
-        console.error("Không thể tải hồ sơ bác sĩ:", err);
+      if (hasInfo && hasValidLicense) {
+        setIsProfileComplete(true);
+      } else {
         setIsProfileComplete(false);
-      } finally {
-        setIsLoadingProfile(false);
       }
+    } catch (err) {
+      console.error("Không thể tải hồ sơ bác sĩ:", err);
+      setIsProfileComplete(false);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    checkProfileComplete();
+
+    // Listen for profile update events
+    const handleProfileUpdate = () => {
+      checkProfileComplete();
     };
 
-    fetchProfileAndLicenses();
+    window.addEventListener("doctorProfileUpdated", handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener("doctorProfileUpdated", handleProfileUpdate);
+    };
   }, []);
 
   useEffect(() => {
