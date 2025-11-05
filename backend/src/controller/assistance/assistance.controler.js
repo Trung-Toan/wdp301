@@ -7,6 +7,8 @@ const dateUtils = require("../../utils/date.utils");
 const medical_recordService = require("../../service/medical_record/medicalRecord.service");
 const moment = require("moment-timezone");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
+const notificationService = require("../../service/notification/notification.service");
+const Appointment = require("../../model/appointment/Appointment");
 const mongoose = require("mongoose"); // Thêm dòng này vì bạn dùng mongoose.Types.ObjectId.isValid trong updateAppointment
 
 /* ========================= PATIENTS ========================= */
@@ -106,16 +108,53 @@ exports.viewAppointmentDetail = async (req, res) => {
 // PUT /verify/appointments/:appointmentId?status=
 exports.verifyAppointment = async (req, res) => {
   const { appointmentId } = req.params;
-  const { status } = req.query;
+  const { status } = req.query; // status là "APPROVE" hoặc "CANCELLED"
   try {
     const app = await appointmentService.getAppointmentByIdDefault(appointmentId);
     if (!app) return resUtils.notFoundResponse(res, "Không tìm thấy lịch khám để phê duyệt");
     if (app.status !== "SCHEDULED") return resUtils.badRequestResponse(res, "Bạn chỉ được xác nhận với trạng thái là chờ duyệt");
     if (!status || (status !== "APPROVE" && status !== "CANCELLED"))
       return resUtils.badRequestResponse(res, "Trạng thái không phù hợp");
+
     app.status = status;
     const appUpdated = await appointmentService.updateAppointment(app._id, app);
     if (!appUpdated) return resUtils.badRequestResponse(res, "Cập nhật thất bại.");
+
+    // --- BẮT ĐẦU LOGIC GỬI THÔNG BÁO ---
+    // (status là "APPROVE" hoặc "CANCELLED" đã được xác thực ở trên)
+    try {
+      // Service thông báo cần dữ liệu đã được populate (như tên bác sĩ, tên phòng khám)
+      // `appUpdated` từ service trả về (do .lean()) có thể không chứa thông tin này.
+      // Vì vậy, chúng ta fetch lại appointment với populate đầy đủ.
+      const populatedApp = await Appointment.findById(appUpdated._id)
+        .populate({
+          path: "doctor_id",
+          populate: { path: "user_id", select: "full_name" } // Lấy tên bác sĩ
+        })
+        .populate("clinic_id", "name") // Lấy tên phòng khám
+        .populate("specialty_id", "name") // Lấy tên chuyên khoa
+        .lean();
+
+        console.log("BAT DAU TAO NOTIFY");
+        
+
+      if (populatedApp) {
+        // Gọi service thông báo với dữ liệu đầy đủ và trạng thái mới
+        await notificationService.createAppointmentStatusUpdateNotification(
+          populatedApp,
+          appUpdated.status // Gửi trạng thái đã được cập nhật ("APPROVE" hoặc "CANCELLED")
+        );
+      } else {
+        console.error(`[Notify] Failed to fetch populated app ${appUpdated._id} for notification.`);
+      }
+    } catch (notifyError) {
+      // Quan trọng: Ghi log lỗi gửi thông báo
+      // nhưng KHÔNG trả về lỗi 500 cho client.
+      // Việc xác nhận lịch khám thành công quan trọng hơn.
+      console.error(`[Notify] Error sending status update notification for ${appUpdated._id}:`, notifyError);
+    }
+    // --- KẾT THÚC LOGIC GỬI THÔNG BÁO ---
+
     return resUtils.successResponse(res, appUpdated, "Update thành công.");
   } catch (error) {
     console.log(`Lỗi verify lịch khám tại id ${appointmentId}: `, error);
@@ -126,6 +165,8 @@ exports.verifyAppointment = async (req, res) => {
 // PUT /update/appointments/:appointmentId
 // Đã được refactor dựa trên updateMedicalRecord
 exports.updateAppointment = async (req, res) => {
+  console.log("CALL API");
+  
   const { appointmentId } = req.params;
   const updateData = req.body;
   console.log("Received update data for appointment:", appointmentId);
@@ -208,7 +249,7 @@ exports.viewSlotById = async (req, res) => {
 exports.createAppointmentSlot = async (req, res) => {
   try {
     const assistant = await assistantService.getAssistantByAccountId(req.user.sub);
-    let { fee_amount, start_time, end_time, max_patients = 10, note = "", clinic_id } = req.body;
+    let { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
 
     // Convert string -> Date
     // Convert giờ client (VN) sang UTC để lưu đúng trong DB
@@ -239,7 +280,7 @@ exports.createAppointmentSlot = async (req, res) => {
       end_time,
       max_patients,
       note,
-      clinic_id,
+      clinic_id: assistant.clinic_id,
       created_by: assistant._id
     };
 
@@ -253,6 +294,7 @@ exports.createAppointmentSlot = async (req, res) => {
 
 // PUT /slots/:slotId/doctor
 exports.updateAppointmentSlot = async (req, res) => {
+  const assistant = await assistantService.getAssistantByAccountId(req.user.sub);
   const { slotId } = req.params;
   try {
     const findSlot = await slotService.getSlotById(slotId);
@@ -294,6 +336,8 @@ exports.updateAppointmentSlot = async (req, res) => {
     findSlot.end_time = updated_end_time;
     findSlot.max_patients = max_patients;
     findSlot.note = note;
+    findSlot.clinic_id = assistant.clinic_id;
+    findSlot.doctor_id = assistant.doctor_id;
     if (status && (status === "AVAILABLE" || status === "UNAVAILABLE")) {
       findSlot.status = status;
     }
@@ -499,5 +543,64 @@ exports.createMedicalRecord = async (req, res) => {
 /* ========================= PROFILE ========================= */
 // GET /profile
 exports.viewProfile = async (req, res) => {
-  res.json({ message: "View profile" });
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    const user = await assistantService.getUserByAccountId(req.user.sub);
+    const account = await assistantService.getAccountById(req.user.sub);
+    
+    if (!assistance || !user || !account) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+
+    const formattedAssistant = {
+      account, information: user, assistant: assistance
+    };
+    
+    return resUtils.successResponse(res, formattedAssistant, "Lấy thông tin profile trợ lý thành công");
+  } catch (error) {
+    console.log("Lỗi lấy profile trợ lý: ", error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể lấy thông tin profile trợ lý");
+  }
+};
+
+// PUT /profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+
+    const user = await assistantService.getUserByAccountId(req.user.sub);
+    if (!user) return resUtils.notFoundResponse(res, "Không tìm thấy thông tin người dùng");
+
+    const updateData = req.body;
+    const updatedUser = await assistantService.updateUserById(user._id, updateData);
+    return resUtils.updatedResponse(res, updatedUser, "Cập nhật thông tin profile trợ lý thành công");
+  } catch (error) {
+    console.log("Lỗi cập nhật profile trợ lý: ", error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể cập nhật thông tin profile trợ lý");
+  }
+};
+
+// POST /change-password
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return resUtils.badRequestResponse(res, "Cần cung cấp mật khẩu hiện tại và mật khẩu mới.");
+    }
+
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    if (!assistance) return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản trợ lý");
+
+    const user = await assistantService.getUserByAccountId(req.user.sub);
+    if (!user) return resUtils.notFoundResponse(res, "Không tìm thấy thông tin người dùng");
+
+    const result = await assistantService.changePassword(user.account_id, currentPassword, newPassword);
+    if (!result.success) {
+      return resUtils.badRequestResponse(res, result.message);
+    }
+
+    return resUtils.successResponse(res, result, "Đổi mật khẩu thành công");
+  } catch (error) {
+    console.log("Lỗi đổi mật khẩu trợ lý: ", error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể đổi mật khẩu trợ lý");
+  }
 };
