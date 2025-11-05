@@ -14,7 +14,7 @@ exports.create = async (req, res) => {
     } catch (err) {
         const msg = String(err?.message || err);
 
-        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id/i.test(msg)) {
+        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id|Không tìm thấy bác sĩ|Bác sĩ không hoạt động|Slot không thuộc về bác sĩ/i.test(msg)) {
             return fail(res, err, 400);
         }
 

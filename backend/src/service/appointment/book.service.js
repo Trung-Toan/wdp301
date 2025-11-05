@@ -171,7 +171,7 @@ async function createAsync(payload) {
         scheduled_date // Thêm scheduled_date để kiểm tra theo ngày
     } = payload;
 
-    // *** LOGIC MỚI: Auto-assign doctor nếu không có doctor_id ***
+    //Auto-assign doctor nếu không có doctor_id ***
     let autoAssignedDoctor = false;
     if (!doctor_id && clinic_id) {
         console.log("🤖 Auto-assigning doctor for clinic:", clinic_id);
@@ -235,6 +235,16 @@ async function createAsync(payload) {
             if (!slot) throw new Error("Slot not found");
 
             if (slot.status !== "AVAILABLE") throw new Error("Slot is unavailable");
+
+            // 2.1) Kiểm tra doctor tồn tại và active TRƯỚC KHI kiểm tra slot
+            const doctor = await Doctor.findById(doctor_id).session(session).lean();
+            if (!doctor) throw new Error("Không tìm thấy bác sĩ");
+            if (doctor.status !== "ACTIVE") throw new Error("Bác sĩ không hoạt động");
+
+            // 2.2) Kiểm tra slot có thuộc về doctor được chọn không
+            if (slot.doctor_id.toString() !== doctor_id.toString()) {
+                throw new Error("Slot không thuộc về bác sĩ đã chọn");
+            }
 
             // 3) Kiểm tra bệnh nhân đã có lịch trong slot này CÙNG NGÀY chưa
             const startOfDay = new Date(targetDate);
