@@ -1,7 +1,4 @@
-"use client";
-
-import { memo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { memo, useState } from "react";
 import {
   Search,
   FileText,
@@ -9,7 +6,6 @@ import {
   X,
   Paperclip,
 } from "react-bootstrap-icons";
-import { getPatients } from "../../services/assistantService";
 import { useDataByUrl } from "../../utility/data.utils";
 import { PATIENT_API } from "../../api/assistant/assistant.api";
 
@@ -203,16 +199,7 @@ const MedicalRecord = ({ record, onClose }) => {
   );
 };
 
-// ================================================
-// === KẾT THÚC: COMPONENT MEDICAL RECORD (POP-UP) ===
-// ================================================
-
-// ================================================
-// ===      COMPONENT CHÍNH: PATIENT LIST       ===
-// ================================================
-
 const PatientList = () => {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState(null);
 
@@ -223,13 +210,6 @@ const PatientList = () => {
   });
 
   const patients = data?.data || [];
-  const pagination = data?.pagination || [];
-
-  const filteredPatients = patients?.filter(
-    (patient) =>
-      patient?.full_name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
-      patient?.phone_number?.includes(searchTerm)
-  );
 
   console.log(patients);
 

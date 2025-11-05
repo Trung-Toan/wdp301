@@ -249,7 +249,7 @@ exports.viewSlotById = async (req, res) => {
 exports.createAppointmentSlot = async (req, res) => {
   try {
     const assistant = await assistantService.getAssistantByAccountId(req.user.sub);
-    let { fee_amount, start_time, end_time, max_patients = 10, note = "", clinic_id } = req.body;
+    let { fee_amount, start_time, end_time, max_patients = 10, note = "" } = req.body;
 
     // Convert string -> Date
     // Convert giờ client (VN) sang UTC để lưu đúng trong DB
@@ -280,7 +280,7 @@ exports.createAppointmentSlot = async (req, res) => {
       end_time,
       max_patients,
       note,
-      clinic_id,
+      clinic_id: assistant.clinic_id,
       created_by: assistant._id
     };
 
@@ -294,6 +294,7 @@ exports.createAppointmentSlot = async (req, res) => {
 
 // PUT /slots/:slotId/doctor
 exports.updateAppointmentSlot = async (req, res) => {
+  const assistant = await assistantService.getAssistantByAccountId(req.user.sub);
   const { slotId } = req.params;
   try {
     const findSlot = await slotService.getSlotById(slotId);
@@ -335,6 +336,8 @@ exports.updateAppointmentSlot = async (req, res) => {
     findSlot.end_time = updated_end_time;
     findSlot.max_patients = max_patients;
     findSlot.note = note;
+    findSlot.clinic_id = assistant.clinic_id;
+    findSlot.doctor_id = assistant.doctor_id;
     if (status && (status === "AVAILABLE" || status === "UNAVAILABLE")) {
       findSlot.status = status;
     }

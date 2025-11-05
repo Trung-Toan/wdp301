@@ -15,7 +15,7 @@ import "../styles/doctor/DoctorLayout.css";
 const { useDataByUrl } = require("../utility/data.utils");
 
 const DoctorLayout = () => {
-  const { data, isLoading, error } = useDataByUrl({
+  const { data } = useDataByUrl({
     url: "/assistant/profile",
     key: "assistantProfile",
   });
@@ -26,14 +26,19 @@ const DoctorLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 🟡 Danh sách menu theo vai trò
   const menusByType = {
     RECEPTIONIST: [
+      {
+        title: "Trang chủ",
+        icon: <House size={20} />,
+        link: "/assistant/dashboard",
+      },
       {
         title: "Duyệt lịch khám",
         icon: <ClipboardCheck size={20} />,
         link: "/assistant/appointments",
       },
+      
     ],
     NURSE: [
       {

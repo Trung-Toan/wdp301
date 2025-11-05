@@ -56,8 +56,8 @@ const SlotSchedule = () => {
   const assistantInfo = JSON.parse(
     sessionStorage.getItem("assistantInfo") || "{}"
   );
-  const [feeAmount, setFeeAmount] = useState(500000);
-  const [note, setNote] = useState("");
+  const feeAmount = 500000;
+  const note = "";
 
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
   const [todayString] = useState(getLocalDate());
