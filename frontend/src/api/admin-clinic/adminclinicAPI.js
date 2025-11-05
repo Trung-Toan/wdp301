@@ -75,4 +75,9 @@ export const adminclinicAPI = {
   updateClinic: (data) => {
     return axiosInstance.put("/admin_clinic/update_clinic", data);
   },
+
+  //xóa tài khoản bác sĩ
+  deleteDoctor: (doctorId) => {
+    return axiosInstance.delete(`/admin_clinic/delete_doctor/${doctorId}`);
+  },
 };

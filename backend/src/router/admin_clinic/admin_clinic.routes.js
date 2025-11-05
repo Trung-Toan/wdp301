@@ -59,6 +59,14 @@ router.delete(
   adminclinicController.deleteAssistant
 );
 
+//xoá bác sĩ (bao gồm Doctor, User, Account)
+router.delete(
+  "/delete_doctor/:id",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.deleteDoctor
+);
+
 //lấy danh sách chứng chỉ bác sĩ chờ duyệt
 router.get(
   "/pending_licenses",

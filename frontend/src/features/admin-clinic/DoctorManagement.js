@@ -171,18 +171,23 @@ const DoctorManagement = () => {
   };
 
   const handleDeleteDoctor = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản bác sĩ này?")) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản bác sĩ này? Hành động này không thể hoàn tác.")) {
       return;
     }
     
     try {
-      // TODO: Gọi API xóa bác sĩ khi có endpoint
-      // await adminclinicAPI.deleteDoctor(id);
-      setDoctors(doctors.filter((doc) => doc.id !== id));
-      toast.success("Xóa tài khoản bác sĩ thành công");
+      const res = await adminclinicAPI.deleteDoctor(id);
+      
+      if (res.data?.ok) {
+        setDoctors(doctors.filter((doc) => doc.id !== id));
+        toast.success(res.data.message || "Xóa tài khoản bác sĩ thành công");
+      } else {
+        toast.error(res.data?.message || "Không thể xóa bác sĩ");
+      }
     } catch (err) {
       console.error("Lỗi khi xóa bác sĩ:", err);
-      toast.error("Không thể xóa bác sĩ: " + err.message);
+      const errorMessage = err.response?.data?.message || err.message || "Không thể xóa bác sĩ";
+      toast.error(errorMessage);
     }
   };
 

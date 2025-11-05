@@ -1,3 +1,4 @@
+const adminClinicService = require("../../service/admin_clinic/adminClinic.service");
 const {
   createDoctor,
   getClinicByAdmin,
@@ -9,7 +10,7 @@ const {
   getPendingDoctorLicenses,
   updateLicenseStatus,
   updateClinicByAdmin,
-} = require("../../service/admin_clinic/adminClinic.service");
+} = adminClinicService;
 
 //Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
 exports.createAccountDoctor = async (req, res, next) => {
@@ -145,6 +146,37 @@ exports.deleteAssistant = async (req, res, next) => {
   try {
     await deleteAssistant(req.params.id);
     res.status(200).json({ ok: true, message: "Xoá trợ lý thành công." });
+  } catch (err) {
+    next(err);
+  }
+};
+
+//xoá bác sĩ (bao gồm Doctor, User, Account)
+exports.deleteDoctor = async (req, res, next) => {
+  try {
+    const adminAccountId = req.user?.sub;
+    if (!adminAccountId) {
+      return res.status(400).json({
+        ok: false,
+        message: "Thiếu thông tin admin account",
+      });
+    }
+
+    const doctorId = req.params.id;
+    if (!doctorId) {
+      return res.status(400).json({
+        ok: false,
+        message: "Thiếu doctor ID",
+      });
+    }
+
+    const result = await adminClinicService.deleteDoctor(doctorId, adminAccountId);
+    
+    if (result.ok) {
+      res.status(200).json(result);
+    } else {
+      res.status(400).json(result);
+    }
   } catch (err) {
     next(err);
   }

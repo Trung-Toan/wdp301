@@ -207,6 +207,73 @@ exports.deleteAssistant = async (assistantId) => {
   return true;
 };
 
+//xoá bác sĩ (bao gồm Doctor, User, Account)
+exports.deleteDoctor = async (doctorId, adminAccountId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Kiểm tra bác sĩ có tồn tại không
+    const doctor = await Doctor.findById(doctorId).session(session);
+    if (!doctor) {
+      throw new Error("Bác sĩ không tồn tại");
+    }
+
+    // Kiểm tra bác sĩ có thuộc về admin clinic này không
+    const user = await User.findOne({ account_id: adminAccountId }).session(session);
+    if (!user) {
+      throw new Error("Không tìm thấy user của admin clinic");
+    }
+
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id }).session(session);
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic");
+    }
+
+    // Lấy danh sách clinics của admin
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).session(session);
+    const clinicIds = clinics.map((c) => c._id.toString());
+
+    // Kiểm tra bác sĩ có thuộc clinic của admin không
+    if (!clinicIds.includes(doctor.clinic_id.toString())) {
+      throw new Error("Bác sĩ không thuộc quyền quản lý của bạn");
+    }
+
+    // Lấy user_id và account_id từ doctor
+    const doctorUser = await User.findById(doctor.user_id).session(session);
+    if (!doctorUser) {
+      throw new Error("Không tìm thấy user của bác sĩ");
+    }
+
+    const accountId = doctorUser.account_id;
+
+    // Xóa Doctor
+    await Doctor.findByIdAndDelete(doctorId).session(session);
+
+    // Xóa User
+    await User.findByIdAndDelete(doctor.user_id).session(session);
+
+    // Xóa Account
+    await Account.findByIdAndDelete(accountId).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      ok: true,
+      message: "Xóa bác sĩ thành công",
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Lỗi khi xóa bác sĩ:", error);
+    return {
+      ok: false,
+      message: error.message || "Không thể xóa bác sĩ",
+    };
+  }
+};
+
 //Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (accountId) => {
   try {
