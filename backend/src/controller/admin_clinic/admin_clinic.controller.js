@@ -1,6 +1,7 @@
 const {
   createDoctor,
   getClinicByAdmin,
+  getAllClinicsByAdmin,
   getDoctorsByAdminClinic,
   createAssistant,
   getAssistantsByClinic,
@@ -34,6 +35,17 @@ exports.getClinicByAdmin = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
     const result = await getClinicByAdmin(accountId);
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+//Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+exports.getAllClinics = async (req, res, next) => {
+  try {
+    const accountId = req.user?.sub;
+    const result = await getAllClinicsByAdmin(accountId);
     res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);

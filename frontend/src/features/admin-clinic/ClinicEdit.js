@@ -1,5 +1,6 @@
 import { memo, useState, useEffect } from "react";
-import { X, MapPin, Clock, FileText, Image as ImageIcon, Save, Loader2 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { X, MapPin, Clock, FileText, Image as ImageIcon, Save, Loader2, ArrowLeft } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { provinceApi } from "../../api/address/provinceApi";
 import { wardApi } from "../../api/address/wardApi";
@@ -9,6 +10,8 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:5000/api/file";
 
 const ClinicEdit = () => {
+    const { clinicId } = useParams();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [clinic, setClinic] = useState(null);
     const [specialties, setSpecialties] = useState([]);
@@ -47,10 +50,28 @@ const ClinicEdit = () => {
             try {
                 setLoading(true);
                 
-                // Load clinic info
-                const clinicRes = await adminclinicAPI.getClinicByAdmin();
-                if (clinicRes.data.ok) {
-                    const clinicData = clinicRes.data.data;
+                // Load clinic info - get specific clinic by ID or get all and find
+                let clinicData = null;
+                if (clinicId) {
+                    // Get specific clinic by ID
+                    const clinicsRes = await adminclinicAPI.getAllClinics();
+                    if (clinicsRes.data?.ok) {
+                        clinicData = clinicsRes.data.data.find(c => c._id === clinicId);
+                        if (!clinicData) {
+                            toast.error("Không tìm thấy phòng khám.");
+                            navigate("/admin-clinic/clinic/list");
+                            return;
+                        }
+                    }
+                } else {
+                    // Fallback to getClinicByAdmin if no clinicId
+                    const clinicRes = await adminclinicAPI.getClinicByAdmin();
+                    if (clinicRes.data.ok) {
+                        clinicData = clinicRes.data.data;
+                    }
+                }
+                
+                if (clinicData) {
                     setClinic(clinicData);
                     
                     // Populate form data
@@ -342,6 +363,7 @@ const ClinicEdit = () => {
             };
 
             const payload = {
+                clinic_id: clinicId || clinic?._id, // Include clinic_id if editing specific clinic
                 name: formData.name,
                 phone: formData.phone,
                 email: formData.email,
@@ -361,9 +383,19 @@ const ClinicEdit = () => {
             if (res.data.ok) {
                 toast.success("Cập nhật thông tin phòng khám thành công!");
                 // Reload clinic data
-                const clinicRes = await adminclinicAPI.getClinicByAdmin();
-                if (clinicRes.data.ok) {
-                    setClinic(clinicRes.data.data);
+                if (clinicId) {
+                    const clinicsRes = await adminclinicAPI.getAllClinics();
+                    if (clinicsRes.data?.ok) {
+                        const updatedClinic = clinicsRes.data.data.find(c => c._id === clinicId);
+                        if (updatedClinic) {
+                            setClinic(updatedClinic);
+                        }
+                    }
+                } else {
+                    const clinicRes = await adminclinicAPI.getClinicByAdmin();
+                    if (clinicRes.data.ok) {
+                        setClinic(clinicRes.data.data);
+                    }
                 }
             } else {
                 toast.error(res.data.message || "Không thể cập nhật thông tin phòng khám.");
@@ -403,7 +435,16 @@ const ClinicEdit = () => {
     return (
         <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Chỉnh sửa thông tin phòng khám</h2>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate("/admin-clinic/clinic/list")}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Quay lại danh sách"
+                    >
+                        <ArrowLeft size={20} className="text-gray-600" />
+                    </button>
+                    <h2 className="text-2xl font-bold text-gray-900">Chỉnh sửa thông tin phòng khám</h2>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">

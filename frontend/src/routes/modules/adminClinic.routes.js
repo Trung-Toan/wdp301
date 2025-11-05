@@ -4,6 +4,7 @@ import ClinicDashboard from "../../features/admin-clinic/ClinicDashboard";
 import DoctorManagement from "../../features/admin-clinic/DoctorManagement";
 import AssistantManagement from "../../features/admin-clinic/AssistantManagement";
 import ClinicCreation from "../../features/admin-clinic/ClinicCreate";
+import ClinicList from "../../features/admin-clinic/ClinicList";
 import ClinicEdit from "../../features/admin-clinic/ClinicEdit";
 import ApproveDoctorLicenses from "../../features/admin-clinic/ApproveDoctorLicenses";
 import AnonymousFeedback from "../../features/admin-clinic/AnonymousFeedback";
@@ -17,6 +18,8 @@ export default function adminClinicRoutes() {
         <Route index element={<ClinicDashboard />} />
         <Route path="dashboard" element={<ClinicDashboard />} />
         <Route path="clinics" element={<ClinicCreation />} />
+        <Route path="clinic/list" element={<ClinicList />} />
+        <Route path="clinic/edit/:clinicId" element={<ClinicEdit />} />
         <Route path="clinic/edit" element={<ClinicEdit />} />
         <Route path="manage-doctors" element={<DoctorManagement />} />
         <Route path="assistants" element={<AssistantManagement />} />

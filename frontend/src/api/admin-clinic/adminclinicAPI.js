@@ -31,6 +31,11 @@ export const adminclinicAPI = {
     return axiosInstance.get("/admin_clinic/get_clinic");
   },
 
+  //lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+  getAllClinics: () => {
+    return axiosInstance.get("/admin_clinic/get_clinics");
+  },
+
   //lấy chi tiết bác sĩ theo id
   getDoctorById: (doctorId) => {
     return axiosInstance.get(`/doctor/${doctorId}`);

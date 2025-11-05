@@ -233,6 +233,31 @@ exports.getClinicByAdmin = async (accountId) => {
   }
 };
 
+//Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+exports.getAllClinicsByAdmin = async (accountId) => {
+  try {
+    const user = await User.findOne({ account_id: accountId });
+    if (!user)
+      throw new Error("Không tìm thấy user tương ứng với account này.");
+
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic)
+      throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
+
+    const clinics = await Clinic.find({
+      created_by: adminClinic._id,
+    })
+      .populate("specialties")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { ok: true, data: clinics };
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách clinics của admin:", error);
+    return { ok: false, message: error.message };
+  }
+};
+
 //lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
 exports.getDoctorsByAdminClinic = async (adminAccountId) => {
   try {
@@ -356,48 +381,73 @@ exports.updateLicenseStatus = async (
 //cập nhật thông tin phòng khám
 exports.updateClinicByAdmin = async (adminAccountId, updateData) => {
   try {
-    // Lấy clinic của admin
-    const clinicResult = await exports.getClinicByAdmin(adminAccountId);
-    if (!clinicResult.ok) {
-      throw new Error(clinicResult.message || "Không tìm thấy phòng khám");
+    // Lấy user và admin clinic để verify ownership
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) {
+      throw new Error("Không tìm thấy user tương ứng với account này.");
     }
 
-    const clinic = clinicResult.data;
-    const clinicId = clinic._id;
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
+    }
 
-    // Chuẩn bị dữ liệu cập nhật
+    // Nếu có clinic_id trong updateData, verify ownership và update clinic đó
+    let clinicId;
+    if (updateData.clinic_id) {
+      const clinic = await Clinic.findOne({
+        _id: updateData.clinic_id,
+        created_by: adminClinic._id,
+      });
+      if (!clinic) {
+        throw new Error("Không tìm thấy phòng khám hoặc bạn không có quyền cập nhật phòng khám này.");
+      }
+      clinicId = updateData.clinic_id;
+    } else {
+      // Fallback: lấy clinic đầu tiên của admin
+      const clinicResult = await exports.getClinicByAdmin(adminAccountId);
+      if (!clinicResult.ok) {
+        throw new Error(clinicResult.message || "Không tìm thấy phòng khám");
+      }
+      clinicId = clinicResult.data._id;
+    }
+
+    // Chuẩn bị dữ liệu cập nhật (loại bỏ clinic_id vì không phải field của model)
+    const { clinic_id, ...updateFieldsData } = updateData;
     const updateFields = {};
     
     // Các trường cơ bản
-    if (updateData.name !== undefined) updateFields.name = updateData.name;
-    if (updateData.phone !== undefined) updateFields.phone = updateData.phone;
-    if (updateData.email !== undefined) updateFields.email = updateData.email;
-    if (updateData.website !== undefined) updateFields.website = updateData.website;
-    if (updateData.description !== undefined) updateFields.description = updateData.description;
-    if (updateData.logo_url !== undefined) updateFields.logo_url = updateData.logo_url;
-    if (updateData.banner_url !== undefined) updateFields.banner_url = updateData.banner_url;
-    if (updateData.registration_number !== undefined) updateFields.registration_number = updateData.registration_number;
-    if (updateData.opening_hours !== undefined) updateFields.opening_hours = updateData.opening_hours;
-    if (updateData.closing_hours !== undefined) updateFields.closing_hours = updateData.closing_hours;
+    if (updateFieldsData.name !== undefined) updateFields.name = updateFieldsData.name;
+    if (updateFieldsData.phone !== undefined) updateFields.phone = updateFieldsData.phone;
+    if (updateFieldsData.email !== undefined) updateFields.email = updateFieldsData.email;
+    if (updateFieldsData.website !== undefined) updateFields.website = updateFieldsData.website;
+    if (updateFieldsData.description !== undefined) updateFields.description = updateFieldsData.description;
+    if (updateFieldsData.logo_url !== undefined) updateFields.logo_url = updateFieldsData.logo_url;
+    if (updateFieldsData.banner_url !== undefined) updateFields.banner_url = updateFieldsData.banner_url;
+    if (updateFieldsData.registration_number !== undefined) updateFields.registration_number = updateFieldsData.registration_number;
+    if (updateFieldsData.opening_hours !== undefined) updateFields.opening_hours = updateFieldsData.opening_hours;
+    if (updateFieldsData.closing_hours !== undefined) updateFields.closing_hours = updateFieldsData.closing_hours;
 
     // Cập nhật địa chỉ
-    if (updateData.address) {
+    if (updateFieldsData.address) {
+      // Lấy clinic hiện tại để merge address
+      const currentClinic = await Clinic.findById(clinicId).lean();
       updateFields.address = {
-        ...clinic.address,
-        ...updateData.address,
+        ...(currentClinic?.address || {}),
+        ...updateFieldsData.address,
       };
       // Nếu có province hoặc ward, giữ nguyên format
-      if (updateData.address.province) {
-        updateFields.address.province = updateData.address.province;
+      if (updateFieldsData.address.province) {
+        updateFields.address.province = updateFieldsData.address.province;
       }
-      if (updateData.address.ward) {
-        updateFields.address.ward = updateData.address.ward;
+      if (updateFieldsData.address.ward) {
+        updateFields.address.ward = updateFieldsData.address.ward;
       }
     }
 
     // Cập nhật chuyên khoa
-    if (updateData.specialties !== undefined) {
-      updateFields.specialties = updateData.specialties;
+    if (updateFieldsData.specialties !== undefined) {
+      updateFields.specialties = updateFieldsData.specialties;
     }
 
     // Cập nhật clinic
