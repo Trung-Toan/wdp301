@@ -71,26 +71,50 @@ async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, e
         const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // Build doctor filter
+        // Build doctor filter (Note: status is in Account, not Doctor)
         const doctorFilter = {
-            clinic_id: new Types.ObjectId(clinicId),
-            status: "ACTIVE"
+            clinic_id: new Types.ObjectId(clinicId)
         };
 
-        // Add specialty filter if provided
+        // Add specialty filter if provided (specialty_id is an array in Doctor model)
         if (specialtyId && Types.ObjectId.isValid(specialtyId)) {
-            doctorFilter.specialty_id = new Types.ObjectId(specialtyId);
+            doctorFilter.specialty_id = { $in: [new Types.ObjectId(specialtyId)] };
         }
 
-        // Lấy danh sách bác sĩ trong phòng khám
-        const doctors = await Doctor.find(doctorFilter).select("_id").lean();
+        // Lấy danh sách bác sĩ trong phòng khám (populate để check status từ Account)
+        const doctors = await Doctor.find(doctorFilter)
+            .populate({
+                path: "user_id",
+                select: "account_id",
+                populate: {
+                    path: "account_id",
+                    select: "status",
+                    model: "Account"
+                }
+            })
+            .select("_id user_id")
+            .lean();
 
-        if (doctors.length === 0) {
+        console.log(`🔍 Found ${doctors.length} doctors in clinic ${clinicId} (before status filter)`);
+
+        // Filter doctors có status ACTIVE trong Account
+        const activeDoctors = doctors.filter(doctor => {
+            const account = doctor.user_id?.account_id;
+            const isActive = account && account.status === "ACTIVE";
+            if (!isActive) {
+                console.log(`⚠️ Doctor ${doctor._id} is not active. Account status: ${account?.status || 'N/A'}`);
+            }
+            return isActive;
+        });
+
+        console.log(`✅ Found ${activeDoctors.length} active doctors in clinic ${clinicId}`);
+
+        if (activeDoctors.length === 0) {
             throw new Error("No doctors found in this clinic");
         }
 
         // Tìm bác sĩ có slot available trong ngày
-        for (const doctor of doctors) {
+        for (const doctor of activeDoctors) {
             const doctorSlots = await Slot.find({
                 doctor_id: doctor._id,
                 start_time: {
@@ -237,9 +261,26 @@ async function createAsync(payload) {
             if (slot.status !== "AVAILABLE") throw new Error("Slot is unavailable");
 
             // 2.1) Kiểm tra doctor tồn tại và active TRƯỚC KHI kiểm tra slot
-            const doctor = await Doctor.findById(doctor_id).session(session).lean();
+            // Note: status is in Account, not Doctor, so we need to populate
+            const doctor = await Doctor.findById(doctor_id)
+                .populate({
+                    path: "user_id",
+                    select: "account_id",
+                    populate: {
+                        path: "account_id",
+                        select: "status",
+                        model: "Account"
+                    }
+                })
+                .session(session)
+                .lean();
             if (!doctor) throw new Error("Không tìm thấy bác sĩ");
-            if (doctor.status !== "ACTIVE") throw new Error("Bác sĩ không hoạt động");
+
+            // Check status from Account
+            const account = doctor.user_id?.account_id;
+            if (!account || account.status !== "ACTIVE") {
+                throw new Error("Bác sĩ không hoạt động");
+            }
 
             // 2.2) Kiểm tra slot có thuộc về doctor được chọn không
             if (slot.doctor_id.toString() !== doctor_id.toString()) {

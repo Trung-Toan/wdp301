@@ -10,7 +10,7 @@ const appointmentSchema = new Schema({
   specialty_id: { type: Schema.Types.ObjectId, ref: "Specialty", required: true, index: true },
   clinic_id: { type: Schema.Types.ObjectId, ref: "Clinic", index: true },
   //Thêm Enum ai đặtlịchh
-  
+
   full_name: { type: String, required: true },
   phone: { type: String, required: true },
   email: { type: String, required: true },
