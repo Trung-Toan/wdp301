@@ -96,8 +96,9 @@ async function getClinicDoctors(clinicId, { specialtyId, limit = 20, page = 1 } 
     }
 
     const match = { clinic_id: new mongoose.Types.ObjectId(clinicId) };
+    // Note: specialty_id is an array in Doctor model, so we need to use $in
     if (specialtyId && mongoose.Types.ObjectId.isValid(specialtyId)) {
-        match.specialty_id = new mongoose.Types.ObjectId(specialtyId);
+        match.specialty_id = { $in: [new mongoose.Types.ObjectId(specialtyId)] };
     }
 
     const pipeline = [

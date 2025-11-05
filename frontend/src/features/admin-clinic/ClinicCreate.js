@@ -1,6 +1,8 @@
 import { memo, useState, useEffect } from "react";
 import { Plus, X, MapPin, Clock, FileText, Image as ImageIcon } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
+import { provinceApi } from "../../api/address/provinceApi";
+import { wardApi } from "../../api/address/wardApi";
 import { toast } from "react-toastify";
 import axios from "axios";
 
@@ -12,6 +14,8 @@ const ClinicCreation = () => {
     const [specialties, setSpecialties] = useState([]);
     const [loadingSpecialties, setLoadingSpecialties] = useState(true);
     const [filteredSpecialties, setFilteredSpecialties] = useState([]);
+    const [provinces, setProvinces] = useState([]);
+    const [wards, setWards] = useState([]);
     const [logoFile, setLogoFile] = useState(null);
     const [bannerFile, setBannerFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState("");
@@ -29,8 +33,8 @@ const ClinicCreation = () => {
         opening_hours: "08:00",
         closing_hours: "20:00",
         address: {
-            province: { code: "79", name: "TP. Hồ Chí Minh" },
-            ward: { code: "00001", name: "Phường Bến Nghé" },
+            province: "",
+            ward: "",
             houseNumber: "",
             street: "",
             alley: "",
@@ -63,6 +67,39 @@ const ClinicCreation = () => {
         fetchSpecialties();
     }, []);
 
+    // Load danh sách tỉnh
+    useEffect(() => {
+        async function fetchProvinces() {
+            try {
+                const res = await provinceApi.getProvinces();
+                const data = res.data?.options || [];
+                setProvinces(data);
+            } catch (err) {
+                console.error("Lỗi khi tải danh sách tỉnh:", err);
+            }
+        }
+        fetchProvinces();
+    }, []);
+
+    // Load danh sách phường theo tỉnh
+    useEffect(() => {
+        if (!formData.address.province) {
+            setWards([]);
+            return;
+        }
+        async function fetchWards() {
+            try {
+                const res = await wardApi.getWardsByProvince(formData.address.province);
+                const data = res.data?.options || [];
+                setWards(data);
+            } catch (err) {
+                console.error("Lỗi khi tải danh sách phường:", err);
+                setWards([]);
+            }
+        }
+        fetchWards();
+    }, [formData.address.province]);
+
     const handleAddClinic = () => {
         setShowModal(true);
         setFormData({
@@ -77,8 +114,8 @@ const ClinicCreation = () => {
             opening_hours: "08:00",
             closing_hours: "20:00",
             address: {
-                province: { code: "79", name: "TP. Hồ Chí Minh" },
-                ward: { code: "00001", name: "Phường Bến Nghé" },
+                province: "",
+                ward: "",
                 houseNumber: "",
                 street: "",
                 alley: "",
@@ -91,55 +128,156 @@ const ClinicCreation = () => {
         setBannerPreview("");
     };
 
+    // Hàm kiểm tra file hợp lệ
+    const isValidFileType = (file) => {
+        const validTypes = [
+            // Image types
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/bmp",
+            "image/svg+xml",
+            // Document types
+            "application/pdf",
+            // MS Office documents
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+        ];
+        
+        const validExtensions = [
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
+            ".pdf",
+            ".doc", ".docx",
+            ".xls", ".xlsx",
+            ".ppt", ".pptx"
+        ];
+
+        // Kiểm tra theo MIME type
+        if (validTypes.includes(file.type.toLowerCase())) {
+            return true;
+        }
+
+        // Kiểm tra theo extension (fallback)
+        const fileName = file.name.toLowerCase();
+        return validExtensions.some(ext => fileName.endsWith(ext));
+    };
+
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (!file.type.startsWith("image/")) {
-            toast.error("Vui lòng chọn file ảnh hợp lệ.");
+        if (!isValidFileType(file)) {
+            toast.error("Chỉ hỗ trợ file ảnh (JPEG, PNG, GIF, WEBP, BMP, SVG), PDF và tài liệu Office (DOC, DOCX, XLS, XLSX, PPT, PPTX).");
+            return;
+        }
+
+        // Kiểm tra kích thước file (tối đa 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            toast.error("Kích thước file không được vượt quá 10MB.");
             return;
         }
 
         setLogoFile(file);
-        const localURL = URL.createObjectURL(file);
-        setLogoPreview(localURL);
+        
+        // Chỉ hiển thị preview nếu là file ảnh
+        if (file.type.startsWith("image/")) {
+            const localURL = URL.createObjectURL(file);
+            setLogoPreview(localURL);
+        } else {
+            setLogoPreview(""); // Không preview cho file PDF hoặc document
+        }
     };
 
     const handleBannerChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (!file.type.startsWith("image/")) {
-            toast.error("Vui lòng chọn file ảnh hợp lệ.");
+        if (!isValidFileType(file)) {
+            toast.error("Chỉ hỗ trợ file ảnh (JPEG, PNG, GIF, WEBP, BMP, SVG), PDF và tài liệu Office (DOC, DOCX, XLS, XLSX, PPT, PPTX).");
+            return;
+        }
+
+        // Kiểm tra kích thước file (tối đa 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            toast.error("Kích thước file không được vượt quá 10MB.");
             return;
         }
 
         setBannerFile(file);
-        const localURL = URL.createObjectURL(file);
-        setBannerPreview(localURL);
+        
+        // Chỉ hiển thị preview nếu là file ảnh
+        if (file.type.startsWith("image/")) {
+            const localURL = URL.createObjectURL(file);
+            setBannerPreview(localURL);
+        } else {
+            setBannerPreview(""); // Không preview cho file PDF hoặc document
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Validation cho province và ward
+        if (!formData.address.province) {
+            toast.error("Vui lòng chọn Tỉnh/Thành phố");
+            return;
+        }
+        if (!formData.address.ward) {
+            toast.error("Vui lòng chọn Phường/Xã");
+            return;
+        }
+
         try {
             setUploadingFiles(true);
+
+            // Lấy token để gửi kèm file upload
+            const token =
+                sessionStorage.getItem("access_token") ||
+                sessionStorage.getItem("token") ||
+                sessionStorage.getItem("accessToken");
+            
+            const cleanToken = token ? token.replace(/^"|"$/g, "") : null;
 
             // Upload logo nếu có
             let logoFileName = formData.logo_url;
             if (logoFile) {
-                const logoFormData = new FormData();
-                logoFormData.append("myFile", logoFile);
+                try {
+                    const logoFormData = new FormData();
+                    logoFormData.append("myFile", logoFile);
 
-                const logoUploadResponse = await axios.post(
-                    `${API_BASE_URL}/upload`,
-                    logoFormData
-                );
+                    const logoUploadResponse = await axios.post(
+                        `${API_BASE_URL}/upload`,
+                        logoFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                                ...(cleanToken && { Authorization: `Bearer ${cleanToken}` }),
+                            },
+                        }
+                    );
 
-                if (logoUploadResponse.data.files && logoUploadResponse.data.files.length > 0) {
-                    logoFileName = logoUploadResponse.data.files[0].fileName;
-                } else {
-                    toast.error("Server upload logo không trả về tên file.");
+                    if (logoUploadResponse.data.files && logoUploadResponse.data.files.length > 0) {
+                        logoFileName = logoUploadResponse.data.files[0].fileName;
+                    } else {
+                        toast.error("Server upload logo không trả về tên file.");
+                        setUploadingFiles(false);
+                        return;
+                    }
+                } catch (uploadError) {
+                    console.error("Lỗi upload logo:", uploadError);
+                    toast.error(
+                        uploadError.response?.data?.message || 
+                        uploadError.response?.data?.error || 
+                        "Lỗi khi upload logo. Vui lòng thử lại."
+                    );
                     setUploadingFiles(false);
                     return;
                 }
@@ -148,30 +286,65 @@ const ClinicCreation = () => {
             // Upload banner nếu có
             let bannerFileName = formData.banner_url;
             if (bannerFile) {
-                const bannerFormData = new FormData();
-                bannerFormData.append("myFile", bannerFile);
+                try {
+                    const bannerFormData = new FormData();
+                    bannerFormData.append("myFile", bannerFile);
 
-                const bannerUploadResponse = await axios.post(
-                    `${API_BASE_URL}/upload`,
-                    bannerFormData
-                );
+                    const bannerUploadResponse = await axios.post(
+                        `${API_BASE_URL}/upload`,
+                        bannerFormData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                                ...(cleanToken && { Authorization: `Bearer ${cleanToken}` }),
+                            },
+                        }
+                    );
 
-                if (bannerUploadResponse.data.files && bannerUploadResponse.data.files.length > 0) {
-                    bannerFileName = bannerUploadResponse.data.files[0].fileName;
-                } else {
-                    toast.error("Server upload banner không trả về tên file.");
+                    if (bannerUploadResponse.data.files && bannerUploadResponse.data.files.length > 0) {
+                        bannerFileName = bannerUploadResponse.data.files[0].fileName;
+                    } else {
+                        toast.error("Server upload banner không trả về tên file.");
+                        setUploadingFiles(false);
+                        return;
+                    }
+                } catch (uploadError) {
+                    console.error("Lỗi upload banner:", uploadError);
+                    toast.error(
+                        uploadError.response?.data?.message || 
+                        uploadError.response?.data?.error || 
+                        "Lỗi khi upload banner. Vui lòng thử lại."
+                    );
                     setUploadingFiles(false);
                     return;
                 }
             }
 
+            // Format address với province và ward từ code sang object
+            const selectedProvince = provinces.find(p => p.value === formData.address.province);
+            const selectedWard = wards.find(w => w.value === formData.address.ward);
+            
+            const formattedAddress = {
+                ...formData.address,
+                province: selectedProvince 
+                    ? { code: selectedProvince.value, name: selectedProvince.label }
+                    : null,
+                ward: selectedWard 
+                    ? { code: selectedWard.value, name: selectedWard.label }
+                    : null,
+            };
+
             const payload = {
                 clinic_info: {
                     ...formData,
+                    address: formattedAddress,
                     logo_url: logoFileName,
                     banner_url: bannerFileName,
                 },
             };
+
+            // Debug: log payload để kiểm tra format
+            console.log("Payload gửi đi:", JSON.stringify(payload, null, 2));
 
             // Gửi yêu cầu duyệt tạo phòng khám
             const res = await adminclinicAPI.createRegistrationRequest(payload);
@@ -188,9 +361,28 @@ const ClinicCreation = () => {
         } catch (error) {
             console.error(
                 "Lỗi khi gửi yêu cầu tạo phòng khám:",
-                error.response?.data?.message || error.message
+                error.response?.data || error.message
             );
-            toast.error(error.response?.data?.message || "Lỗi khi tạo phòng khám.");
+            
+            // Hiển thị thông báo lỗi chi tiết hơn
+            let errorMessage = "Lỗi khi tạo phòng khám.";
+            if (error.response?.data) {
+                if (error.response.data.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.response.data.error) {
+                    errorMessage = typeof error.response.data.error === 'string' 
+                        ? error.response.data.error 
+                        : error.response.data.error.message || error.response.data.error;
+                } else if (error.response.data.errors) {
+                    // Nếu có nhiều lỗi validation
+                    const errors = Object.values(error.response.data.errors).flat();
+                    errorMessage = errors.join(", ");
+                }
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            toast.error(errorMessage);
         } finally {
             setUploadingFiles(false);
         }
@@ -452,13 +644,24 @@ const ClinicCreation = () => {
                                             Logo phòng khám
                                         </label>
                                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                                            {logoPreview ? (
+                                            {logoPreview || logoFile ? (
                                                 <div className="flex flex-col items-center">
-                                                    <img
-                                                        src={logoPreview}
-                                                        alt="Logo preview"
-                                                        className="w-32 h-32 object-contain rounded-lg mb-3"
-                                                    />
+                                                    {logoPreview ? (
+                                                        <img
+                                                            src={logoPreview}
+                                                            alt="Logo preview"
+                                                            className="w-32 h-32 object-contain rounded-lg mb-3"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
+                                                            <FileText size={48} className="text-gray-400" />
+                                                        </div>
+                                                    )}
+                                                    {logoFile && (
+                                                        <p className="text-xs text-gray-600 mb-2 text-center max-w-full truncate">
+                                                            {logoFile.name}
+                                                        </p>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -467,7 +670,7 @@ const ClinicCreation = () => {
                                                         }}
                                                         className="text-sm text-red-600 hover:text-red-700"
                                                     >
-                                                        Xóa ảnh
+                                                        Xóa file
                                                     </button>
                                                 </div>
                                             ) : (
@@ -481,7 +684,7 @@ const ClinicCreation = () => {
                                                     </span>
                                                     <input
                                                         type="file"
-                                                        accept="image/*"
+                                                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                                                         onChange={handleLogoChange}
                                                         className="hidden"
                                                     />
@@ -496,13 +699,24 @@ const ClinicCreation = () => {
                                             Banner phòng khám
                                         </label>
                                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                                            {bannerPreview ? (
+                                            {bannerPreview || bannerFile ? (
                                                 <div className="flex flex-col items-center">
-                                                    <img
-                                                        src={bannerPreview}
-                                                        alt="Banner preview"
-                                                        className="w-full h-32 object-cover rounded-lg mb-3"
-                                                    />
+                                                    {bannerPreview ? (
+                                                        <img
+                                                            src={bannerPreview}
+                                                            alt="Banner preview"
+                                                            className="w-full h-32 object-cover rounded-lg mb-3"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
+                                                            <FileText size={48} className="text-gray-400" />
+                                                        </div>
+                                                    )}
+                                                    {bannerFile && (
+                                                        <p className="text-xs text-gray-600 mb-2 text-center max-w-full truncate">
+                                                            {bannerFile.name}
+                                                        </p>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -511,7 +725,7 @@ const ClinicCreation = () => {
                                                         }}
                                                         className="text-sm text-red-600 hover:text-red-700"
                                                     >
-                                                        Xóa ảnh
+                                                        Xóa file
                                                     </button>
                                                 </div>
                                             ) : (
@@ -525,7 +739,7 @@ const ClinicCreation = () => {
                                                     </span>
                                                     <input
                                                         type="file"
-                                                        accept="image/*"
+                                                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                                                         onChange={handleBannerChange}
                                                         className="hidden"
                                                     />
@@ -542,6 +756,62 @@ const ClinicCreation = () => {
                                     Địa chỉ
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                            Tỉnh/Thành phố *
+                                        </label>
+                                        <select
+                                            value={formData.address.province}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    address: {
+                                                        ...formData.address,
+                                                        province: e.target.value,
+                                                        ward: "",
+                                                    },
+                                                })
+                                            }
+                                            required
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                                            {provinces.map((p) => (
+                                                <option key={p.value} value={p.value}>
+                                                    {p.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                            Phường/Xã *
+                                        </label>
+                                        <select
+                                            value={formData.address.ward}
+                                            onChange={(e) =>
+                                                setFormData({
+                                                    ...formData,
+                                                    address: {
+                                                        ...formData.address,
+                                                        ward: e.target.value,
+                                                    },
+                                                })
+                                            }
+                                            required
+                                            disabled={!wards.length}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">-- Chọn Phường/Xã --</option>
+                                            {wards.map((w) => (
+                                                <option key={w.value} value={w.value}>
+                                                    {w.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-900 mb-2">
                                             Số nhà

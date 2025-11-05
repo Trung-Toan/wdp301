@@ -78,8 +78,9 @@ async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, e
         };
 
         // Add specialty filter if provided
+        // Note: specialty_id is an array in Doctor model, so we need to use $in
         if (specialtyId && Types.ObjectId.isValid(specialtyId)) {
-            doctorFilter.specialty_id = new Types.ObjectId(specialtyId);
+            doctorFilter.specialty_id = { $in: [new Types.ObjectId(specialtyId)] };
         }
 
         // Lấy danh sách bác sĩ trong phòng khám
