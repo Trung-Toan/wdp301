@@ -8,6 +8,7 @@ import {
   XCircle,
   EyeOff,
   Eye,
+  Building2,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
@@ -15,10 +16,12 @@ import { Spinner } from "react-bootstrap"; // Thêm Spinner
 
 const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([]);
+  const [clinics, setClinics] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterClinic, setFilterClinic] = useState("ALL");
   const [specialties, setSpecialties] = useState([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   const [searchSpecialty, setSearchSpecialty] = useState("");
@@ -30,6 +33,7 @@ const DoctorManagement = () => {
     full_name: "",
     specialty_id: "",
     specialtyName: "",
+    clinic_id: "",
   });
 
   useEffect(() => {
@@ -56,6 +60,19 @@ const DoctorManagement = () => {
   }, []);
 
   useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        const res = await adminclinicAPI.getAllClinics();
+        const clinicsData = res.data?.data || [];
+        setClinics(clinicsData);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách phòng khám:", err);
+      }
+    };
+    fetchClinics();
+  }, []);
+
+  useEffect(() => {
     const fetchDoctors = async () => {
       try {
         const res = await adminclinicAPI.getDoctorsOfAdminClinic();
@@ -64,6 +81,10 @@ const DoctorManagement = () => {
           const specialties = Array.isArray(doc.specialty_id)
             ? doc.specialty_id.map((s) => s.name).join(", ")
             : "N/A";
+
+          const clinic = doc.clinic_id;
+          const clinicName = clinic?.name || "Không xác định";
+          const clinicId = clinic?._id?.toString() || null;
 
           return {
             id: doc._id,
@@ -76,6 +97,8 @@ const DoctorManagement = () => {
               doc.user_id?.account_id?.status === "ACTIVE"
                 ? "ACTIVE"
                 : "INACTIVE",
+            clinicId: clinicId,
+            clinicName: clinicName,
             doctorData: doc,
           };
         });
@@ -98,12 +121,18 @@ const DoctorManagement = () => {
         return;
       }
 
+      if (!formData.clinic_id) {
+        toast.error("Vui lòng chọn phòng khám");
+        return;
+      }
+
       const payload = {
         username: formData.username,
         password: formData.password,
         phone_number: formData.phone_number,
         full_name: formData.full_name,
         specialty_id: [formData.specialty_id],
+        clinic_id: formData.clinic_id,
       };
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
@@ -127,6 +156,7 @@ const DoctorManagement = () => {
       full_name: "",
       specialty_id: "",
       specialtyName: "",
+      clinic_id: "",
     });
     setShowModal(true);
   };
@@ -154,10 +184,12 @@ const DoctorManagement = () => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.email.toLowerCase().includes(searchTerm.toLowerCase());
+      doc.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.clinicName.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = filterStatus === "ALL" || doc.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    const matchesStatus = filterStatus === "ALL" || doc.status === filterStatus;
+    const matchesClinic = filterClinic === "ALL" || doc.clinicId === filterClinic;
+    return matchesSearch && matchesStatus && matchesClinic;
   });
 
   return (
@@ -183,12 +215,25 @@ const DoctorManagement = () => {
           <Search size={20} className="text-gray-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm bác sĩ..."
+            placeholder="Tìm kiếm bác sĩ, chuyên khoa, email, phòng khám..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 border-none outline-none text-sm text-gray-900 placeholder-gray-400"
           />
         </div>
+
+        <select
+          value={filterClinic}
+          onChange={(e) => setFilterClinic(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="ALL">Tất cả phòng khám</option>
+          {clinics.map((clinic) => (
+            <option key={clinic._id} value={clinic._id}>
+              {clinic.name}
+            </option>
+          ))}
+        </select>
 
         <select
           value={filterStatus}
@@ -208,6 +253,9 @@ const DoctorManagement = () => {
             <tr className="border-b border-gray-200 bg-gray-50">
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Tên bác sĩ
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Phòng khám
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Chuyên khoa
@@ -234,6 +282,14 @@ const DoctorManagement = () => {
               >
                 <td className="px-4 py-3 text-sm font-semibold text-gray-900">
                   {doctor.name}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 size={16} className="text-gray-400" />
+                    <span className="text-sm text-gray-700 font-medium">
+                      {doctor.clinicName}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
@@ -377,7 +433,32 @@ const DoctorManagement = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Chuyên khoa
+                  Phòng khám *
+                </label>
+                <select
+                  required
+                  value={formData.clinic_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, clinic_id: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Chọn phòng khám --</option>
+                  {clinics.map((clinic) => (
+                    <option key={clinic._id} value={clinic._id}>
+                      {clinic.name}
+                    </option>
+                  ))}
+                </select>
+                {clinics.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Chưa có phòng khám nào. Vui lòng tạo phòng khám trước.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Chuyên khoa *
                 </label>
 
                 {/* Ô tìm kiếm */}

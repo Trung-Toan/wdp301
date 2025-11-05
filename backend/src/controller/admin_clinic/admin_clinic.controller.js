@@ -16,12 +16,37 @@ exports.createAccountDoctor = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
-    if (!clinicResult.ok) return res.status(400).json(clinicResult);
+    // Nếu có clinic_id trong request body, kiểm tra xem phòng khám có thuộc về admin không
+    // Nếu không, lấy phòng khám đầu tiên của admin
+    let clinicId = req.body.clinic_id;
+    
+    if (clinicId) {
+      // Validate: kiểm tra clinic_id có thuộc về admin này không
+      const allClinicsResult = await getAllClinicsByAdmin(accountId);
+      if (!allClinicsResult.ok) {
+        return res.status(400).json({
+          ok: false,
+          message: "Không thể lấy danh sách phòng khám",
+        });
+      }
+      const clinics = allClinicsResult.data || [];
+      const clinicExists = clinics.some(
+        (c) => c._id.toString() === clinicId.toString()
+      );
+      if (!clinicExists) {
+        return res.status(403).json({
+          ok: false,
+          message: "Phòng khám không thuộc quyền quản lý của bạn",
+        });
+      }
+    } else {
+      // Fallback: lấy phòng khám đầu tiên nếu không có clinic_id
+      const clinicResult = await getClinicByAdmin(accountId);
+      if (!clinicResult.ok) return res.status(400).json(clinicResult);
+      clinicId = clinicResult.data._id;
+    }
 
-    const clinic = clinicResult.data;
-
-    const payload = { ...req.body, clinic_id: clinic._id };
+    const payload = { ...req.body, clinic_id: clinicId };
 
     const result = await createDoctor(payload);
     res.status(result.ok ? 200 : 400).json(result);
