@@ -16,6 +16,7 @@ import {
   getDashboardStats,
   getAppointments, // Dùng getAppointments thay vì getTodayAppointmentsList
 } from "../../services/assistantService";
+import ApproveAppointment from "./ApproveAppointment";
 // --- THAY ĐỔI 3: Bỏ file CSS cũ ---
 // import "../../styles/doctor/DoctorDashboard.css";
 
@@ -255,65 +256,7 @@ const DoctorDashboard = () => {
                 </Link>
               </div>
 
-              {/* Danh sách lịch hẹn (thiết kế lại) */}
-              {recentAppointments.length === 0 ? (
-                <div className="text-center py-10">
-                  <CalendarHeart size={48} className="mx-auto text-gray-400" />
-                  <h3 className="mt-2 text-lg font-medium text-gray-700">
-                    Không có lịch hẹn
-                  </h3>
-                  <p className="mt-1 text-gray-500">
-                    Bạn chưa có lịch hẹn nào trong hôm nay.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {recentAppointments.map((apt) => {
-                    const status = getStatusBadge(apt.status);
-                    return (
-                      <div
-                        key={apt.id}
-                        className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm"
-                      >
-                        <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                          <div className="flex-shrink-0">
-                            <People className="text-blue-600" size={20} />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {apt.patientName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Lý do: {apt.type}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1 text-gray-600">
-                            <Clock size={16} />
-                            {/* Hiển thị trực tiếp, bỏ formatTime */}
-                            <span className="text-sm font-medium">
-                              {apt.start_time} - {apt.end_time}
-                            </span>
-                          </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold
-                              ${status.color === "blue"
-                                ? "bg-blue-100 text-blue-700"
-                                : status.color === "green"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }
-                            `}
-                          >
-                            {status.label}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <ApproveAppointment/>
             </div>
           </div>
 
