@@ -21,6 +21,7 @@ exports.createDoctor = async (payload) => {
     const {
       username,
       password,
+      email,
       phone_number,
       full_name,
       clinic_id,
@@ -33,12 +34,12 @@ exports.createDoctor = async (payload) => {
       [
         {
           username: username.trim(),
-          email: `doc-${username}@example.com`,
+          email: email,
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "DOCTOR",
           status: "ACTIVE",
-          email_verified: false,
+          email_verified: true,
         },
       ],
       { session }
@@ -105,8 +106,9 @@ exports.createAssistant = async (payload) => {
   try {
     const {
       username,
-      password,
+      email,
       phone_number,
+      password,
       full_name,
       note,
       type,
@@ -119,13 +121,13 @@ exports.createAssistant = async (payload) => {
     const acc = await Account.create(
       [
         {
-          username: username.trim(),
-          email: `assistant-${username}@example.com`,
+          username: `${username.trim()}`,
+          email: email.trim(),
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "ASSISTANT",
           status: "ACTIVE",
-          email_verified: false,
+          email_verified: true,
         },
       ],
       { session }
@@ -187,7 +189,7 @@ exports.getAssistantsByClinic = async (clinicId) => {
   const data = await Assistant.find({ clinic_id: clinicId })
     .populate({
       path: "user_id",
-      populate: { path: "account_id", select: "username phone_number status" },
+      populate: { path: "account_id", select: "username email phone_number status" },
     })
     .populate({
       path: "doctor_id",
@@ -225,7 +227,8 @@ exports.getClinicByAdmin = async (accountId) => {
 
     if (clinic.status !== "ACTIVE")
       throw new Error("Phòng khám này chưa đăng ký.");
-
+    console.log("clinic: ", clinic);
+    
     return { ok: true, data: clinic };
   } catch (error) {
     console.error("Lỗi khi lấy clinic của admin:", error);
@@ -255,7 +258,7 @@ exports.getDoctorsByAdminClinic = async (adminAccountId) => {
       .populate({
         path: "user_id",
         populate: { path: "account_id", model: "Account" },
-        select: "full_name avatar_url",
+        select: "-__v",
       })
       .populate("specialty_id")
       .populate("clinic_id");

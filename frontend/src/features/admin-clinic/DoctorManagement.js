@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react"; // Thêm useEffect
+import { memo, useState, useEffect } from "react";
 import {
   Plus,
   Trash2,
@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
-import { Spinner } from "react-bootstrap"; // Thêm Spinner
+import { Spinner } from "react-bootstrap";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { useMutation } from "@tanstack/react-query";
+
+
 
 const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([]);
@@ -23,14 +28,62 @@ const DoctorManagement = () => {
   const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   const [searchSpecialty, setSearchSpecialty] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    phone_number: "",
-    full_name: "",
-    specialty_id: "",
-    specialtyName: "",
+  const [selectedSpecialty, setSelectedSpecialty] = useState({
+    id: "",
+    name: "",
   });
+
+  // 🧩 Mutation - Tạo bác sĩ
+  const { mutate, isLoading: creatingDoctor } = useMutation({
+    mutationFn: (payload) => adminclinicAPI.createAccountDoctor(payload),
+    onSuccess: () => {
+      toast.success("Tạo bác sĩ thành công!");
+      setShowModal(false);
+      formik.resetForm();
+      window.location.reload();
+    },
+    onError: (error) => {
+      console.error("Lỗi khi tạo bác sĩ:", error);
+      toast.error(
+        error?.response?.data?.message || "Không thể tạo bác sĩ, thử lại!"
+      );
+    },
+  });
+
+  // 🧠 Formik + Yup
+  const formik = useFormik({
+    initialValues: {
+      username: "",
+      password: "",
+      email: "",
+      phone_number: "",
+      full_name: "",
+      specialty_id: "",
+    },
+    validationSchema: Yup.object({
+      full_name: Yup.string().trim().required("Tên bác sĩ là bắt buộc"),
+      username: Yup.string().trim().required("Tên đăng nhập là bắt buộc"),
+      password: Yup.string().trim().required("Mật khẩu là bắt buộc"),
+      email: Yup.string()
+        .trim()
+        .email("Email không hợp lệ")
+        .required("Email là bắt buộc"),
+      phone_number: Yup.string()
+        .trim()
+        .matches(/^[0-9]{8,15}$/, "Số điện thoại không hợp lệ")
+        .required("Số điện thoại là bắt buộc"),
+      specialty_id: Yup.string().required("Chuyên khoa là bắt buộc"),
+    }),
+    onSubmit: (values) => {
+      const payload = {
+        ...values,
+        specialty_id: [values.specialty_id],
+      };
+      mutate(payload);
+    },
+  });
+
+  // 🏥 Lấy danh sách chuyên khoa của phòng khám
 
   useEffect(() => {
     const fetchClinicSpecialties = async () => {
@@ -43,11 +96,11 @@ const DoctorManagement = () => {
           setSpecialties(clinicData.specialties);
         } else {
           setSpecialties([]);
-          toast.warn("Phòng khám chưa đăng ký chuyên khoa nào, hoặc API lỗi.");
+          toast.warn("Phòng khám chưa đăng ký chuyên khoa hoặc API lỗi.");
         }
       } catch (err) {
-        console.error("Lỗi khi lấy chuyên khoa của phòng khám:", err);
-        toast.error("Không thể lấy chuyên khoa của phòng khám: " + err.message);
+        console.error("Lỗi khi lấy chuyên khoa:", err);
+        toast.error("Không thể lấy chuyên khoa: " + err.message);
       } finally {
         setLoadingSpecialties(false);
       }
@@ -55,6 +108,7 @@ const DoctorManagement = () => {
     fetchClinicSpecialties();
   }, []);
 
+  // 👨‍⚕️ Lấy danh sách bác sĩ
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -64,7 +118,6 @@ const DoctorManagement = () => {
           const specialties = Array.isArray(doc.specialty_id)
             ? doc.specialty_id.map((s) => s.name).join(", ")
             : "N/A";
-
           return {
             id: doc._id,
             name: doc.user_id?.full_name || "Không rõ",
@@ -76,10 +129,8 @@ const DoctorManagement = () => {
               doc.user_id?.account_id?.status === "ACTIVE"
                 ? "ACTIVE"
                 : "INACTIVE",
-            doctorData: doc,
           };
         });
-
         setDoctors(transformed);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách bác sĩ:", err);
@@ -89,45 +140,10 @@ const DoctorManagement = () => {
     fetchDoctors();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingId) {
-        toast.info("Chức năng chỉnh sửa đang phát triển");
-        setShowModal(false);
-        return;
-      }
-
-      const payload = {
-        username: formData.username,
-        password: formData.password,
-        phone_number: formData.phone_number,
-        full_name: formData.full_name,
-        specialty_id: [formData.specialty_id],
-      };
-
-      const res = await adminclinicAPI.createAccountDoctor(payload);
-      if (res.data?.data) {
-        toast.success("Tạo bác sĩ thành công");
-        setShowModal(false);
-        window.location.reload(); // refresh danh sách
-      }
-    } catch (err) {
-      console.error("Lỗi khi tạo bác sĩ:", err);
-      toast.error("Không thể tạo bác sĩ: " + err.message);
-    }
-  };
-
   const handleAddDoctor = () => {
     setEditingId(null);
-    setFormData({
-      username: "",
-      password: "",
-      phone_number: "",
-      full_name: "",
-      specialty_id: "",
-      specialtyName: "",
-    });
+    formik.resetForm();
+    setSelectedSpecialty({ id: "", name: "" });
     setShowModal(true);
   };
 
@@ -155,7 +171,6 @@ const DoctorManagement = () => {
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.email.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesFilter = filterStatus === "ALL" || doc.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -163,21 +178,17 @@ const DoctorManagement = () => {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý bác sĩ</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý bác sĩ</h1>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-          <button
-            onClick={handleAddDoctor}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            Thêm bác sĩ
-          </button>
-        </div>
+        <button
+          onClick={handleAddDoctor}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} /> Thêm bác sĩ
+        </button>
       </div>
 
+      {/* Bộ lọc & tìm kiếm */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-300 rounded-lg flex-1">
           <Search size={20} className="text-gray-400" />
@@ -201,27 +212,27 @@ const DoctorManagement = () => {
         </select>
       </div>
 
-      {/* Bảng */}
+      {/* Bảng danh sách bác sĩ */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Tên bác sĩ
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Chuyên khoa
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Email
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Điện thoại
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Trạng thái
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Hành động
               </th>
             </tr>
@@ -249,9 +260,9 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => handleToggleStatus(doctor.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${doctor.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
                       }`}
                   >
                     {doctor.status === "ACTIVE" ? (
@@ -272,14 +283,12 @@ const DoctorManagement = () => {
                         toast.info("Chức năng chỉnh sửa đang phát triển")
                       }
                       className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                      title="Chỉnh sửa"
                     >
                       <Edit2 size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteDoctor(doctor.id)}
                       className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                      title="Xóa"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -291,7 +300,7 @@ const DoctorManagement = () => {
         </table>
       </div>
 
-      {/* Modal thêm bác sĩ */}
+      {/* Modal Formik */}
       {showModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -304,94 +313,125 @@ const DoctorManagement = () => {
             <h2 className="text-xl font-bold text-gray-900 mb-5">
               {editingId ? "Chỉnh sửa bác sĩ" : "Thêm bác sĩ mới"}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+
+            <form onSubmit={formik.handleSubmit} className="space-y-4">
+              {/* Tên bác sĩ */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-semibold mb-2">
                   Tên bác sĩ
                 </label>
                 <input
-                  type="text"
-                  required
-                  value={formData.full_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, full_name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="full_name"
+                  value={formik.values.full_name}
+                  onChange={formik.handleChange}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="Nhập tên bác sĩ"
                 />
+                {formik.errors.full_name && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formik.errors.full_name}
+                  </p>
+                )}
               </div>
+
+              {/* Tên đăng nhập */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-semibold mb-2">
                   Tên đăng nhập
                 </label>
                 <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="username"
+                  value={formik.values.username}
+                  onChange={formik.handleChange}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="Nhập username"
                 />
+                {formik.errors.username && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formik.errors.username}
+                  </p>
+                )}
               </div>
+
+              {/* Mật khẩu */}
               <div className="relative">
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-semibold mb-2">
                   Mật khẩu
                 </label>
-
                 <input
+                  name="password"
                   type={showPassword ? "text" : "password"}
-                  required
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formik.values.password}
+                  onChange={formik.handleChange}
+                  className="w-full px-3 py-2 border rounded-lg text-sm pr-10"
                   placeholder="Nhập mật khẩu"
                 />
-
-                {/* Nút con mắt */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-[38px] text-gray-500"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
+                {formik.errors.password && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formik.errors.password}
+                  </p>
+                )}
               </div>
+
+              {/* Email */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-semibold mb-2">
+                  Email
+                </label>
+                <input
+                  name="email"
+                  type="email"
+                  value={formik.values.email}
+                  onChange={formik.handleChange}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  placeholder="Nhập email"
+                />
+                {formik.errors.email && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formik.errors.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Số điện thoại */}
+              <div>
+                <label className="block text-sm font-semibold mb-2">
                   Điện thoại
                 </label>
                 <input
-                  type="tel"
-                  required
-                  value={formData.phone_number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone_number: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  name="phone_number"
+                  value={formik.values.phone_number}
+                  onChange={formik.handleChange}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="Nhập số điện thoại"
                 />
+                {formik.errors.phone_number && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formik.errors.phone_number}
+                  </p>
+                )}
               </div>
+
+              {/* Chuyên khoa */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-semibold mb-2">
                   Chuyên khoa
                 </label>
-
-                {/* Ô tìm kiếm */}
                 <input
                   type="text"
                   placeholder="Tìm kiếm chuyên khoa..."
                   value={searchSpecialty}
                   onChange={(e) => setSearchSpecialty(e.target.value)}
-                  className="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 mb-2 border rounded-lg text-sm"
                 />
-
-                {/* Dropdown cuộn */}
-                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg">
-                  {/* Hiển thị loading */}
+                <div className="max-h-40 overflow-y-auto border rounded-lg">
                   {loadingSpecialties ? (
                     <div className="flex justify-center items-center p-4">
                       <Spinner animation="border" size="sm" />
@@ -400,7 +440,6 @@ const DoctorManagement = () => {
                       </span>
                     </div>
                   ) : (
-                    // Hiển thị danh sách
                     specialties
                       .filter((s) =>
                         s.name
@@ -410,54 +449,57 @@ const DoctorManagement = () => {
                       .map((s) => (
                         <div
                           key={s._id}
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-
-                              specialty_id: s._id,
-                              specialtyName: s.name,
-                            })
-                          }
-                          className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${
-                            formData.specialty_id === s._id
+                          onClick={() => {
+                            formik.setFieldValue("specialty_id", s._id);
+                            setSelectedSpecialty({
+                              id: s._id,
+                              name: s.name,
+                            });
+                          }}
+                          className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${formik.values.specialty_id === s._id
                               ? "bg-blue-100 text-blue-700 font-semibold"
                               : "text-gray-700"
-                          }`}
-                          _id
+                            }`}
                         >
                           {s.name}
                         </div>
                       ))
                   )}
-                  {/* Hiển thị nếu không có chuyên khoa */}
-                  {!loadingSpecialties && specialties.length === 0 && (
-                    <p className="p-3 text-sm text-gray-500 italic">
-                      Không tìm thấy chuyên khoa nào. Vui lòng thêm chuyên khoa
-                      tại trang "Tạo phòng khám".
-                    </p>
-                  )}
                 </div>
-
-                {/* Hiển thị chuyên khoa đã chọn */}
-                {formData.specialtyName && (
+                {formik.errors.specialty_id && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formik.errors.specialty_id}
+                  </p>
+                )}
+                {selectedSpecialty.name && (
                   <p className="text-sm text-gray-600 mt-2">
-                    Đã chọn: <b>{formData.specialtyName}</b>
+                    Đã chọn: <b>{selectedSpecialty.name}</b>
                   </p>
                 )}
               </div>
-              <div className="flex gap-3 justify-end pt-4">
+
+              {/* Nút submit */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-gray-200 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-colors"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  disabled={creatingDoctor}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
                 >
-                  {editingId ? "Cập nhật" : "Thêm bác sĩ"}
+                  {creatingDoctor ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="mr-2" />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    "Lưu"
+                  )}
                 </button>
               </div>
             </form>
@@ -469,3 +511,4 @@ const DoctorManagement = () => {
 };
 
 export default memo(DoctorManagement);
+

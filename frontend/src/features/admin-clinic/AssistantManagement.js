@@ -14,6 +14,7 @@ const AssistantManagement = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    email: "",
     phone_number: "",
     full_name: "",
     note: "",
@@ -40,16 +41,9 @@ const AssistantManagement = () => {
 
           return {
             id: assistant._id,
-            name: user?.full_name || "Chưa có tên",
-            role:
-              assistant.type === "NURSE"
-                ? "Y tá"
-                : assistant.type === "RECEPTIONIST"
-                ? "Lễ tân"
-                : assistant.type === "TECHNICIAN"
-                ? "Kỹ thuật viên"
-                : "Quản lý phòng khám",
-            email: `${acc?.username}@example.com`,
+            name: user?.full_name || "N/A",
+            role: assistant.type === "NURSE" ? "Y tá" : "Lễ tân",
+            email: acc?.email || "N/A",
             phone: acc?.phone_number || "N/A",
             status: acc?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
             assignedDoctor: doctorUser
@@ -93,6 +87,7 @@ const AssistantManagement = () => {
       setFormData({
         username: "",
         password: "",
+        emial: "",
         phone_number: "",
         full_name: "",
         note: "",
@@ -238,11 +233,10 @@ const AssistantManagement = () => {
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
-                      assistant.status === "ACTIVE"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${assistant.status === "ACTIVE"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-600"
-                    }`}
+                      }`}
                   >
                     {assistant.status === "ACTIVE" ? (
                       <>
@@ -316,16 +310,28 @@ const AssistantManagement = () => {
                 className="border p-2 rounded w-full"
                 required
               />
-              <input
-                type="text"
-                placeholder="Số điện thoại"
-                value={formData.phone_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone_number: e.target.value })
-                }
-                className="border p-2 rounded w-full"
-                required
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="border p-2 rounded"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Số điện thoại"
+                  value={formData.phone_number}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone_number: e.target.value })
+                  }
+                  className="border p-2 rounded"
+                  required
+                />
+              </div>
               <textarea
                 placeholder="Ghi chú"
                 value={formData.note}

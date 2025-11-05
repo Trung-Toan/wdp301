@@ -615,8 +615,6 @@ const SlotSchedule = () => {
                         </div>
                       </div>
 
-                      <div>st: {endHour}:{endMinute}  </div>
-
                       {/* End Time */}
                       <div>
                         <label className="block text-sm font-medium leading-6 text-gray-900 mb-1.5">
