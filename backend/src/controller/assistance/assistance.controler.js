@@ -7,6 +7,8 @@ const dateUtils = require("../../utils/date.utils");
 const medical_recordService = require("../../service/medical_record/medicalRecord.service");
 const moment = require("moment-timezone");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
+const notificationService = require("../../service/notification/notification.service");
+const Appointment = require("../../model/appointment/Appointment");
 const mongoose = require("mongoose"); // Thêm dòng này vì bạn dùng mongoose.Types.ObjectId.isValid trong updateAppointment
 
 /* ========================= PATIENTS ========================= */
@@ -106,16 +108,53 @@ exports.viewAppointmentDetail = async (req, res) => {
 // PUT /verify/appointments/:appointmentId?status=
 exports.verifyAppointment = async (req, res) => {
   const { appointmentId } = req.params;
-  const { status } = req.query;
+  const { status } = req.query; // status là "APPROVE" hoặc "CANCELLED"
   try {
     const app = await appointmentService.getAppointmentByIdDefault(appointmentId);
     if (!app) return resUtils.notFoundResponse(res, "Không tìm thấy lịch khám để phê duyệt");
     if (app.status !== "SCHEDULED") return resUtils.badRequestResponse(res, "Bạn chỉ được xác nhận với trạng thái là chờ duyệt");
     if (!status || (status !== "APPROVE" && status !== "CANCELLED"))
       return resUtils.badRequestResponse(res, "Trạng thái không phù hợp");
+
     app.status = status;
     const appUpdated = await appointmentService.updateAppointment(app._id, app);
     if (!appUpdated) return resUtils.badRequestResponse(res, "Cập nhật thất bại.");
+
+    // --- BẮT ĐẦU LOGIC GỬI THÔNG BÁO ---
+    // (status là "APPROVE" hoặc "CANCELLED" đã được xác thực ở trên)
+    try {
+      // Service thông báo cần dữ liệu đã được populate (như tên bác sĩ, tên phòng khám)
+      // `appUpdated` từ service trả về (do .lean()) có thể không chứa thông tin này.
+      // Vì vậy, chúng ta fetch lại appointment với populate đầy đủ.
+      const populatedApp = await Appointment.findById(appUpdated._id)
+        .populate({
+          path: "doctor_id",
+          populate: { path: "user_id", select: "full_name" } // Lấy tên bác sĩ
+        })
+        .populate("clinic_id", "name") // Lấy tên phòng khám
+        .populate("specialty_id", "name") // Lấy tên chuyên khoa
+        .lean();
+
+        console.log("BAT DAU TAO NOTIFY");
+        
+
+      if (populatedApp) {
+        // Gọi service thông báo với dữ liệu đầy đủ và trạng thái mới
+        await notificationService.createAppointmentStatusUpdateNotification(
+          populatedApp,
+          appUpdated.status // Gửi trạng thái đã được cập nhật ("APPROVE" hoặc "CANCELLED")
+        );
+      } else {
+        console.error(`[Notify] Failed to fetch populated app ${appUpdated._id} for notification.`);
+      }
+    } catch (notifyError) {
+      // Quan trọng: Ghi log lỗi gửi thông báo
+      // nhưng KHÔNG trả về lỗi 500 cho client.
+      // Việc xác nhận lịch khám thành công quan trọng hơn.
+      console.error(`[Notify] Error sending status update notification for ${appUpdated._id}:`, notifyError);
+    }
+    // --- KẾT THÚC LOGIC GỬI THÔNG BÁO ---
+
     return resUtils.successResponse(res, appUpdated, "Update thành công.");
   } catch (error) {
     console.log(`Lỗi verify lịch khám tại id ${appointmentId}: `, error);
@@ -126,6 +165,8 @@ exports.verifyAppointment = async (req, res) => {
 // PUT /update/appointments/:appointmentId
 // Đã được refactor dựa trên updateMedicalRecord
 exports.updateAppointment = async (req, res) => {
+  console.log("CALL API");
+  
   const { appointmentId } = req.params;
   const updateData = req.body;
   console.log("Received update data for appointment:", appointmentId);
