@@ -13,7 +13,7 @@ exports.getMyProfile = async (req, res) => {
 
         const user = await User.findOne({ account_id: accountId })
             .populate("account_id", "username email phone_number status role")
-            .populate("patients", "province_code ward_code") // virtual
+            .populate("patients", "province_code ward_code blood_type allergies chronic_diseases medications surgery_history") // virtual
             .lean({ virtuals: true }); // cần virtuals:true để có patients
 
         if (!user) return fail(res, new Error("User not found"), 404);
@@ -33,6 +33,11 @@ exports.getMyProfile = async (req, res) => {
             privacy_share_with_providers: user.privacy_share_with_providers,
             province_code: user.patients?.province_code || null,
             ward_code: user.patients?.ward_code || null,
+            blood_type: user.patients?.blood_type || null,
+            allergies: user.patients?.allergies || [],
+            chronic_diseases: user.patients?.chronic_diseases || [],
+            medications: user.patients?.medications || [],
+            surgery_history: user.patients?.surgery_history || [],
         });
 
     } catch (err) {
