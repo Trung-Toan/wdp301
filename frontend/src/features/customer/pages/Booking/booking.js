@@ -9,6 +9,7 @@ import { wardApi } from "../../../../api/address/wardApi";
 import { clinicApi } from "../../../../api/clinic/clinicApi";
 import { doctorApi } from "../../../../api/doctor/doctorApi";
 import { SLOT_API } from "../../../../api/assistant/assistant.api";
+import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -26,7 +27,6 @@ export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId, doctor } = location.state || {};
 
-    console.log("doctorAvatar:", doctorAvatar);
 
     const [formData, setFormData] = useState({
         fullName: "",
@@ -54,9 +54,54 @@ export function BookingContent() {
     const [clinicData, setClinicData] = useState(null);
     const [doctorData, setDoctorData] = useState(null);
 
-    const [storedAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
-    const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
-    const [storedPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "null"));
+    const [storedAccount, setStoredAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
+    const [storedUser, setStoredUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
+    const [storedPatient, setStoredPatient] = useState(() => JSON.parse(sessionStorage.getItem("patient") || "null"));
+
+    // Fetch lại dữ liệu user/patient mới nhất từ API để đảm bảo có dữ liệu cập nhật
+    useEffect(() => {
+        const fetchLatestUserData = async () => {
+            try {
+                const res = await profilePatientApi.getInformation();
+                const userData = res.data?.data || res.data || {};
+                
+                // Cập nhật state với dữ liệu mới nhất
+                if (userData) {
+                    // Cập nhật user data (bao gồm gender, full_name, dob, address)
+                    setStoredUser(userData);
+                    sessionStorage.setItem("user", JSON.stringify(userData));
+                    
+                    // Cập nhật account data (bao gồm phone_number, email)
+                    // Kiểm tra cả userData.account và giữ nguyên account cũ nếu không có
+                    const currentAccount = JSON.parse(sessionStorage.getItem("account") || "{}");
+                    
+                    // Merge account mới với account cũ để đảm bảo không mất dữ liệu (đặc biệt là phone_number)
+                    const mergedAccount = {
+                        ...currentAccount, // Giữ nguyên dữ liệu cũ trước
+                        ...(userData.account || {}), // Merge dữ liệu mới từ API
+                        // Đảm bảo phone_number luôn được giữ lại nếu có trong currentAccount
+                        phone_number: userData.account?.phone_number || currentAccount?.phone_number || undefined
+                    };
+                    
+                    // Chỉ set nếu có ít nhất một field trong account
+                    if (userData.account || Object.keys(currentAccount).length > 0) {
+                        setStoredAccount(mergedAccount);
+                        sessionStorage.setItem("account", JSON.stringify(mergedAccount));
+                    }
+                    
+                    // Cập nhật patient data nếu có
+                    if (userData.patient) {
+                        setStoredPatient(userData.patient);
+                        sessionStorage.setItem("patient", JSON.stringify(userData.patient));
+                    }
+                }
+            } catch (err) {
+                // Nếu không fetch được, vẫn dùng dữ liệu từ sessionStorage
+            }
+        };
+        
+        fetchLatestUserData();
+    }, []); // Chỉ chạy một lần khi component mount
 
     // Fetch patient_id từ API nếu không có trong sessionStorage
     useEffect(() => {
@@ -65,7 +110,6 @@ export function BookingContent() {
             if (storedPatient && typeof storedPatient === 'object' && Object.keys(storedPatient).length > 0) {
                 const id = storedPatient._id || storedPatient.id;
                 if (id) {
-                    console.log("✅ Using patient_id from storedPatient:", id);
                     setPatientId(id);
                     return;
                 }
@@ -75,32 +119,14 @@ export function BookingContent() {
             if (storedUser && typeof storedUser === 'object' && Object.keys(storedUser).length > 0) {
                 const fallbackId = storedUser._id || storedUser.id;
                 if (fallbackId) {
-                    console.log("⚠️ No patient found, using user._id as fallback:", fallbackId);
                     setPatientId(fallbackId);
                     return;
                 }
-            }
-
-            // Nếu không tìm thấy gì cả
-            if (storedAccount?.id) {
-                console.error("❌ Không tìm thấy patient_id trong sessionStorage!");
-                console.error("❌ storedAccount:", storedAccount);
-                console.error("❌ storedUser:", storedUser);
-                console.error("❌ storedPatient:", storedPatient);
             }
         };
         fetchPatientId();
     }, [storedAccount, storedUser, storedPatient]);
 
-    // Log để debug
-    useEffect(() => {
-        console.log("🔍 Debug patient data:", {
-            patientId,
-            storedPatient,
-            storedUser,
-            storedAccount
-        });
-    }, [patientId, storedPatient, storedUser, storedAccount]);
 
 
     // Load danh sách tỉnh
@@ -111,7 +137,7 @@ export function BookingContent() {
                 const data = res.data?.options || [];
                 setProvinces(data);
             } catch (err) {
-                console.error("Lỗi khi tải tỉnh:", err);
+                // Error loading provinces
             }
         }
         fetchProvinces();
@@ -129,7 +155,7 @@ export function BookingContent() {
                 const data = res.data?.options || [];
                 setWards(data);
             } catch (err) {
-                console.error("Lỗi khi tải phường:", err);
+                // Error loading wards
             }
         }
         fetchWards();
@@ -202,17 +228,62 @@ export function BookingContent() {
                 addressText = storedPatient.address_text;
             }
 
-            setFormData(prev => ({
-                ...prev,
-                fullName: storedUser?.full_name || prev.fullName || "",
-                phone: storedAccount?.phone_number || prev.phone || "",
-                email: storedAccount?.email || prev.email || "",
-                dateOfBirth: dobFormatted || prev.dateOfBirth || "",
-                gender: convertGender(storedUser?.gender || storedPatient?.gender) || prev.gender || "male",
-                province: provinceCode || prev.province || "",
-                ward: wardCode || prev.ward || "",
-                address: addressText || prev.address || "",
-            }));
+            // Lấy phone_number từ nhiều nguồn
+            const phoneNumber = 
+                storedAccount?.phone_number || 
+                storedUser?.account?.phone_number ||
+                storedUser?.phone_number ||
+                storedPatient?.phone_number ||
+                "";
+
+            // Lấy email từ nhiều nguồn
+            const email = 
+                storedAccount?.email || 
+                storedUser?.account?.email ||
+                storedUser?.email ||
+                storedPatient?.email ||
+                "";
+
+            // Lấy gender từ nhiều nguồn
+            const genderValue = convertGender(
+                storedUser?.gender || 
+                storedPatient?.gender ||
+                ""
+            );
+
+            const newFormData = {
+                fullName: storedUser?.full_name || "",
+                phone: phoneNumber || "",
+                email: email || "",
+                dateOfBirth: dobFormatted || "",
+                gender: genderValue || "male",
+                province: provinceCode || "",
+                ward: wardCode || "",
+                address: addressText || "",
+                reason: "", // Giữ nguyên reason nếu có
+            };
+
+            // Update form data - luôn update tất cả các field có giá trị
+            setFormData(prev => {
+                const updated = {
+                    ...prev,
+                    // Update các field nếu có giá trị
+                    ...(newFormData.fullName ? { fullName: newFormData.fullName } : {}),
+                    ...(phoneNumber ? { phone: phoneNumber } : {}),
+                    ...(email ? { email: email } : {}),
+                    ...(dobFormatted ? { dateOfBirth: dobFormatted } : {}),
+                    // Luôn update gender nếu có giá trị từ storedUser hoặc storedPatient
+                    // (kể cả khi là "male" - giá trị mặc định)
+                    ...(storedUser?.gender || storedPatient?.gender ? { gender: genderValue } : {}),
+                    ...(provinceCode ? { province: provinceCode } : {}),
+                    ...(wardCode ? { ward: wardCode } : {}),
+                    ...(addressText ? { address: addressText } : {}),
+                    // Giữ nguyên reason
+                    reason: prev.reason || "",
+                };
+                
+                return updated;
+            });
         }
     }, [storedUser, storedAccount, storedPatient]);
 
@@ -229,28 +300,14 @@ export function BookingContent() {
                 doctor?.clinic_id || // từ doctor object
                 null;
 
-            console.log("🔍 Fetching clinic data - clinicId sources:", {
-                clinicId_from_location: clinicId,
-                selectedSlot_clinicId: selectedSlot?.clinicId,
-                selectedSlot_clinic: selectedSlot?.clinic?._id,
-                selectedSlot_clinic_id: selectedSlot?.clinic_id,
-                doctor_clinic: doctor?.clinic?._id,
-                doctor_clinic_id: doctor?.clinic_id,
-                finalClinicId: finalClinicId
-            });
-
             if (finalClinicId) {
                 try {
-                    console.log("📡 Fetching clinic data for clinicId:", finalClinicId);
                     const response = await clinicApi.getClinicDetail(finalClinicId);
                     const clinicInfo = response.data?.data || response.data || null;
-                    console.log("✅ Clinic data fetched:", clinicInfo);
                     setClinicData(clinicInfo);
                 } catch (err) {
-                    console.error("❌ Error fetching clinic data:", err);
+                    // Error fetching clinic data
                 }
-            } else {
-                console.log("⚠️ No clinicId found to fetch clinic data");
             }
         };
         fetchClinicData();
@@ -262,10 +319,8 @@ export function BookingContent() {
             // Fetch nếu không có clinicData và có doctorId
             if (!clinicData && doctorId) {
                 try {
-                    console.log("📡 Fetching doctor data for doctorId:", doctorId);
                     const response = await doctorApi.getDoctorById(doctorId);
                     const doctorInfo = response.data?.data || response.data;
-                    console.log("✅ Doctor data fetched:", doctorInfo);
                     
                     if (doctorInfo) {
                         setDoctorData(doctorInfo);
@@ -273,7 +328,6 @@ export function BookingContent() {
                         // Nếu có clinic trong doctor data, cũng set vào clinicData
                         if (doctorInfo.clinic_id || doctorInfo.clinic) {
                             const clinicInfo = doctorInfo.clinic_id || doctorInfo.clinic;
-                            console.log("✅ Found clinic in doctor data:", clinicInfo);
                             
                             // Nếu clinicInfo là object có đầy đủ thông tin, set luôn
                             if (clinicInfo && typeof clinicInfo === 'object' && clinicInfo._id) {
@@ -282,21 +336,19 @@ export function BookingContent() {
                             // Nếu clinicInfo là ID, fetch clinic detail
                             else if (clinicInfo && typeof clinicInfo === 'string') {
                                 try {
-                                    console.log("📡 Fetching clinic detail for clinicId:", clinicInfo);
                                     const clinicResponse = await clinicApi.getClinicDetail(clinicInfo);
                                     const clinicDetail = clinicResponse.data?.data || clinicResponse.data || null;
-                                    console.log("✅ Clinic detail fetched:", clinicDetail);
                                     if (clinicDetail) {
                                         setClinicData(clinicDetail);
                                     }
                                 } catch (clinicErr) {
-                                    console.error("❌ Error fetching clinic detail:", clinicErr);
+                                    // Error fetching clinic detail
                                 }
                             }
                         }
                     }
                 } catch (err) {
-                    console.error("❌ Error fetching doctor data:", err);
+                    // Error fetching doctor data
                 }
             }
         };
@@ -309,30 +361,26 @@ export function BookingContent() {
             // Chỉ fetch nếu không có clinicData và selectedSlot có id nhưng không có clinic
             if (!clinicData && selectedSlot?.id && !selectedSlot?.clinic && !selectedSlot?.clinicId) {
                 try {
-                    console.log("📡 Fetching slot detail for slotId:", selectedSlot.id);
                     const response = await SLOT_API.getDetailsSlot(selectedSlot.id);
                     const slotInfo = response.data?.data || response.data || null;
-                    console.log("✅ Slot detail fetched:", slotInfo);
                     
                     if (slotInfo) {
                         // Nếu slot có clinic info, fetch clinic detail
                         const slotClinicId = slotInfo.clinic_id || slotInfo.clinic?._id || slotInfo.clinic?.id;
                         if (slotClinicId) {
-                            console.log("📡 Found clinicId in slot:", slotClinicId);
                             try {
                                 const clinicResponse = await clinicApi.getClinicDetail(slotClinicId);
                                 const clinicDetail = clinicResponse.data?.data || clinicResponse.data || null;
-                                console.log("✅ Clinic detail from slot fetched:", clinicDetail);
                                 if (clinicDetail) {
                                     setClinicData(clinicDetail);
                                 }
                             } catch (clinicErr) {
-                                console.error("❌ Error fetching clinic detail from slot:", clinicErr);
+                                // Error fetching clinic detail from slot
                             }
                         }
                     }
                 } catch (err) {
-                    console.error("❌ Error fetching slot detail:", err);
+                    // Error fetching slot detail
                 }
             }
         };
@@ -348,24 +396,12 @@ export function BookingContent() {
             return province?.label || null;
         };
 
-        // Debug: Log tất cả các nguồn dữ liệu
-        console.log("🔍 Location check - Raw data:", {
-            formData_province: formData.province,
-            provinces_count: provinces.length,
-            clinicData: clinicData,
-            doctor: doctor,
-            doctorData: doctorData,
-            selectedSlot: selectedSlot
-        });
-
         if (!formData.province) {
-            console.log("⚠️ No patient province selected");
             setLocationWarning(null);
             return;
         }
 
         if (!provinces || provinces.length === 0) {
-            console.log("⚠️ Provinces list not loaded yet");
             setLocationWarning(null);
             return;
         }
@@ -490,60 +526,16 @@ export function BookingContent() {
         // Nếu có province code, so sánh trực tiếp (chính xác hơn)
         if (clinicProvinceCode && formData.province) {
             if (clinicProvinceCode === formData.province) {
-                console.log("✅ Same province (by code):", clinicProvinceCode);
                 setLocationWarning(null);
                 return;
             }
         }
 
-        // Debug: Log kết quả sau khi lấy province
-        console.log("🔍 Province extraction result:", {
-            patientProvinceName,
-            clinicProvinceName,
-            clinicProvinceCode,
-            clinicData_structure: clinicData ? {
-                hasAddress: !!clinicData.address,
-                hasProvince: !!clinicData.province,
-                hasProvinceCode: !!clinicData.province_code,
-                addressStructure: clinicData.address ? {
-                    hasProvince: !!clinicData.address.province,
-                    hasProvinceCode: !!clinicData.address.province_code
-                } : null
-            } : null,
-            doctorData_structure: doctorData ? {
-                hasClinicId: !!doctorData.clinic_id,
-                hasClinic: !!doctorData.clinic,
-                clinicId_type: typeof doctorData.clinic_id,
-                clinicId_structure: doctorData.clinic_id && typeof doctorData.clinic_id === 'object' ? {
-                    hasProvince: !!doctorData.clinic_id.province,
-                    hasProvinceCode: !!doctorData.clinic_id.province_code,
-                    hasAddress: !!doctorData.clinic_id.address,
-                    province_value: doctorData.clinic_id.province
-                } : null
-            } : null
-        });
-
         // Chỉ hiển thị cảnh báo nếu có đủ thông tin cả hai bên
         if (!patientProvinceName || !clinicProvinceName) {
-            console.log("⚠️ Missing province info:", {
-                patientProvinceName,
-                clinicProvinceName,
-                clinicProvinceCode
-            });
             setLocationWarning(null);
             return;
         }
-
-        console.log("🔍 Location check - Found provinces:", {
-            patientProvinceCode: formData.province,
-            patientProvinceName: patientProvinceName,
-            clinicProvinceCode: clinicProvinceCode,
-            clinicProvinceName: clinicProvinceName,
-            clinicData: clinicData,
-            doctorData: doctorData,
-            doctor: doctor,
-            selectedSlot: selectedSlot
-        });
 
         // Chuẩn hóa tên tỉnh/thành phố để so sánh
         const normalizeProvince = (province) => {
@@ -565,21 +557,10 @@ export function BookingContent() {
         const normalizedClinic = normalizeProvince(clinicProvinceName);
         const normalizedPatient = normalizeProvince(patientProvinceName);
 
-        console.log("🔍 Normalized:", {
-            clinic: normalizedClinic,
-            patient: normalizedPatient,
-            isDifferent: normalizedClinic !== normalizedPatient
-        });
-
         // Nếu khác nhau, hiển thị cảnh báo
         if (normalizedClinic !== normalizedPatient) {
             const isCrossCity = (normalizedClinic === 'HCM' && normalizedPatient === 'Hanoi') || 
                                (normalizedClinic === 'Hanoi' && normalizedPatient === 'HCM');
-            console.log("⚠️ Location warning detected:", {
-                clinic: clinicProvinceName,
-                patient: patientProvinceName,
-                isCrossCity
-            });
             setLocationWarning({
                 clinic: clinicProvinceName,
                 patient: patientProvinceName,
@@ -664,20 +645,6 @@ export function BookingContent() {
                 clinicData?._id || 
                 null;
 
-            if (!finalClinicId) {
-                console.warn("⚠️ Warning: clinic_id is null. Appointment will be created without clinic.");
-                console.warn("⚠️ Debug info:", {
-                    selectedSlot_clinicId: selectedSlot.clinicId,
-                    selectedSlot_clinic: selectedSlot.clinic,
-                    selectedSlot_clinic_id: selectedSlot.clinic_id,
-                    clinicId_from_location: clinicId,
-                    doctor_clinic_id: doctor?.clinic_id,
-                    doctor_clinic: doctor?.clinic,
-                    clinicData_id: clinicData?._id,
-                    doctorId: doctorId,
-                });
-            }
-
             const payload = {
                 slot_id: selectedSlot.id,
                 doctor_id: doctorId,
@@ -695,18 +662,8 @@ export function BookingContent() {
                 reason: formData.reason,
             };
 
-            console.log("📤 Booking payload:", {
-                slot_id: payload.slot_id,
-                doctor_id: payload.doctor_id,
-                patient_id: payload.patient_id,
-                clinic_id: payload.clinic_id,
-                clinic_id_source: finalClinicId ? "found" : "null",
-            });
-
             setShowConfirmModal(false);
-            console.log("📤 Đang gửi đặt lịch với patient_id:", patientId);
             const response = await patientsApi.createAppointment(payload);
-            console.log("✅ Đặt lịch thành công!");
             
             // Hiển thị toast success
             toast.success("Đặt lịch khám thành công!", {
@@ -722,13 +679,11 @@ export function BookingContent() {
             setIsSubmitted(true);
             setPendingSubmit(false);
         } catch (err) {
-            console.error("❌ Lỗi khi đặt lịch:", err);
             setPendingSubmit(false);
             
             let errorMessage = "Đặt lịch thất bại. Vui lòng thử lại!";
             
             if (err.response) {
-                console.error("🔍 Chi tiết lỗi từ API:", err.response.data);
                 const errorData = err.response.data;
                 
                 // Xử lý thông báo lỗi từ API
@@ -787,7 +742,6 @@ export function BookingContent() {
 
     };
 
-    console.log("bookingInfo:", bookingInfo);
     if (isSubmitted && bookingInfo) return <BookingSuccess bookingInfo={bookingInfo} />;
 
     const sidebarInfo = {
