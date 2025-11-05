@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, Fragment, useMemo } from "react";
 import {
   Calendar,
@@ -14,7 +12,9 @@ import { SLOT_API } from "../../api/assistant/assistant.api";
 import toast, { Toaster } from "react-hot-toast";
 
 // --- Helpers cho Modal ---
-const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
+const hours = Array.from({ length: 24 }, (_, i) =>
+  i.toString().padStart(2, "0")
+);
 const minutes = Array.from({ length: 12 }, (_, i) =>
   (i * 5).toString().padStart(2, "0")
 );
@@ -34,10 +34,21 @@ const getLocalDate = () => {
 
 const formatISOTime = (isoString) => {
   if (!isoString) return "N/A";
-  return new Date(isoString).toLocaleTimeString("vi-VN", {
+  
+  const dateObj = new Date(isoString);
+
+  // Kiểm tra lỗi "Invalid Date"
+  if (isNaN(dateObj.getTime())) {
+    console.error(`Invalid Date value for ISO string: ${isoString}`);
+    return "Lỗi định dạng thời gian"; 
+  }
+
+  // Sử dụng toLocaleTimeString với timeZone: 'UTC'
+  return dateObj.toLocaleTimeString("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: 'UTC' // <--- **ĐẢM BẢO HIỂN THỊ THEO MÚI GIỜ 0**
   });
 };
 
@@ -95,8 +106,6 @@ const SlotSchedule = () => {
     }
   };
 
-  console.log("Slots hiện tại:", Slots);
-
   useEffect(() => {
     fetchSlots();
     // eslint-disable-next-line
@@ -129,9 +138,7 @@ const SlotSchedule = () => {
         return;
       }
     }
-    const otherSlots = Slots.filter(
-      (Slot) => Slot._id !== editingSlot?._id
-    );
+    const otherSlots = Slots.filter((Slot) => Slot._id !== editingSlot?._id);
     let overlappingSlot = null;
     for (const existingSlot of otherSlots) {
       const existingStart = formatISOTime(existingSlot.start_time);
@@ -142,9 +149,7 @@ const SlotSchedule = () => {
       }
     }
     if (overlappingSlot) {
-      const SlotIndex = Slots.findIndex(
-        (s) => s._id === overlappingSlot._id
-      );
+      const SlotIndex = Slots.findIndex((s) => s._id === overlappingSlot._id);
       setModalError(
         `Khung giờ này bị trùng với Ca #${SlotIndex + 1} (${formatISOTime(
           overlappingSlot.start_time
@@ -152,9 +157,14 @@ const SlotSchedule = () => {
       );
       return;
     }
-    const startDateTimeISO = new Date(
-      `${selectedDate}T${startHour}:${startMinute}:00`
-    ).toISOString();
+    const [year, month, day] = selectedDate.split("-").map(Number);
+
+    const startDateTime = new Date(
+      Date.UTC(year, month - 1, day, startHour, startMinute, 0)
+    );
+
+    const startDateTimeISO = startDateTime.toISOString();
+
     const isDuplicate = otherSlots.some(
       (slot) => slot.start_time === startDateTimeISO
     );
@@ -196,12 +206,15 @@ const SlotSchedule = () => {
     const isLocked = slotStartTime < now;
     setIsTimeLocked(isLocked);
     setSlotStatus(Slot.status || "AVAILABLE");
-    const dateStart = new Date((Slot.start_time));
-    const dateEnd = new Date((Slot.end_time));
-    setStartHour(dateStart.getUTCHours() || "08");
-    setStartMinute(dateStart.getUTCMinutes() || "00");
-    setEndHour(dateEnd.getUTCHours() || "09");
-    setEndMinute(dateEnd.getUTCMinutes() || "00");
+    const dateStart = new Date(Slot.start_time);
+    const dateEnd = new Date(Slot.end_time);
+
+    // DÙNG .padStart(2, "0") để đảm bảo luôn là CHUỖI 2 KÝ TỰ (ví dụ: "08" thay vì 8)
+    setStartHour(dateStart.getUTCHours().toString().padStart(2, "0"));
+    setStartMinute(dateStart.getUTCMinutes().toString().padStart(2, "0"));
+    setEndHour(dateEnd.getUTCHours().toString().padStart(2, "0"));
+    setEndMinute(dateEnd.getUTCMinutes().toString().padStart(2, "0"));
+
     setMaxPatients(Slot.max_patients || 1);
     setModalError("");
     setModalOpen(true);
@@ -222,26 +235,30 @@ const SlotSchedule = () => {
     const startDateTime =
       isTimeLocked && editingSlot
         ? editingSlot.start_time
-        : new Date(Date.UTC(
-          dateObj.getFullYear(),
-          dateObj.getMonth(),
-          dateObj.getDate(),
-          startHour,
-          startMinute,
-          0
-        )).toISOString();
+        : new Date(
+            Date.UTC(
+              dateObj.getFullYear(),
+              dateObj.getMonth(),
+              dateObj.getDate(),
+              startHour,
+              startMinute,
+              0
+            )
+          ).toISOString();
 
     const endDateTime =
       isTimeLocked && editingSlot
         ? editingSlot.end_time
-        : new Date(Date.UTC(
-          dateObj.getFullYear(),
-          dateObj.getMonth(),
-          dateObj.getDate(),
-          endHour,
-          endMinute,
-          0
-        )).toISOString();
+        : new Date(
+            Date.UTC(
+              dateObj.getFullYear(),
+              dateObj.getMonth(),
+              dateObj.getDate(),
+              endHour,
+              endMinute,
+              0
+            )
+          ).toISOString();
 
     const payload = {
       clinic_id: assistantInfo.clinic_id,
@@ -264,7 +281,10 @@ const SlotSchedule = () => {
       if (editingSlot) {
         // --- SỬA ---
         console.log(`Đang gửi UPDATE cho ID: ${editingSlot._id}`);
-        const response = await SLOT_API.updateSlotById(editingSlot._id, payload);
+        const response = await SLOT_API.updateSlotById(
+          editingSlot._id,
+          payload
+        );
         toast.success("Cập nhật ca thành công!", response?.data);
       } else {
         // --- THÊM MỚI ---
@@ -277,17 +297,20 @@ const SlotSchedule = () => {
       setModalOpen(false);
 
       // === 3. LOG TRẠNG THÁI ===
-      console.log("--- handleSaveSlot: Gửi lệnh thành công. Đang fetch lại... ---");
+      console.log(
+        "--- handleSaveSlot: Gửi lệnh thành công. Đang fetch lại... ---"
+      );
       // =========================
 
       // 3. Tải lại toàn bộ danh sách từ server (Đây là nguồn chân lý)
       await fetchSlots();
-
     } catch (error) {
       console.error("--- LỖI KHI LƯU ---", error);
       toast.error("Đã xảy ra lỗi khi lưu. Vui lòng thử lại.");
 
-      console.log("--- handleSaveSlot: Gửi lệnh thất bại. Đang fetch lại... ---");
+      console.log(
+        "--- handleSaveSlot: Gửi lệnh thất bại. Đang fetch lại... ---"
+      );
       await fetchSlots();
     }
   };
@@ -378,9 +401,10 @@ const SlotSchedule = () => {
               onClick={openAddModal}
               disabled={isPastDate}
               className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
-                ${isPastDate
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+                ${
+                  isPastDate
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
                 }`}
             >
               <Plus size={20} /> Thêm ca
@@ -441,8 +465,8 @@ const SlotSchedule = () => {
               const statusBorderColor = !isServiceAvailable
                 ? "border-l-gray-400"
                 : isFullyBooked
-                  ? "border-l-red-400"
-                  : "border-l-green-500";
+                ? "border-l-red-400"
+                : "border-l-green-500";
 
               return (
                 <div
@@ -461,9 +485,21 @@ const SlotSchedule = () => {
                   <div className="flex items-center gap-2.5 text-gray-700 mb-4">
                     <Clock size={20} className="text-blue-600" />
                     <span className="font-semibold text-2xl text-gray-900 tracking-tight">
-                      {`${new Date(Slot.start_time).getUTCHours().toString().padStart(2, "0")}:${new Date(Slot.start_time).getUTCMinutes().toString().padStart(2, "0")}`}{" "}
+                      {`${new Date(Slot.start_time)
+                        .getUTCHours()
+                        .toString()
+                        .padStart(2, "0")}:${new Date(Slot.start_time)
+                        .getUTCMinutes()
+                        .toString()
+                        .padStart(2, "0")}`}{" "}
                       -{" "}
-                      {`${new Date(Slot.end_time).getUTCHours().toString().padStart(2, "0")}:${new Date(Slot.end_time).getUTCMinutes().toString().padStart(2, "0")}`}
+                      {`${new Date(Slot.end_time)
+                        .getUTCHours()
+                        .toString()
+                        .padStart(2, "0")}:${new Date(Slot.end_time)
+                        .getUTCMinutes()
+                        .toString()
+                        .padStart(2, "0")}`}
                     </span>
                   </div>
 
@@ -484,9 +520,10 @@ const SlotSchedule = () => {
                         onClick={() => openEditModal(Slot)}
                         disabled={isPastDate}
                         className={`flex items-center gap-1.5 px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold shadow
-                          ${isPastDate
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-amber-500 hover:bg-amber-600"
+                          ${
+                            isPastDate
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-amber-500 hover:bg-amber-600"
                           }`}
                       >
                         <Pencil size={16} /> Sửa
@@ -577,6 +614,8 @@ const SlotSchedule = () => {
                           </select>
                         </div>
                       </div>
+
+                      <div>st: {endHour}:{endMinute}  </div>
 
                       {/* End Time */}
                       <div>
