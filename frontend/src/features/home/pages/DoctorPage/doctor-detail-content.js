@@ -401,12 +401,35 @@ export function DoctorDetailContent({ doctorId }) {
                                                                     </>
                                                                 ) : (
                                                                     <>
-                                                                        <img
-                                                                            src={fb.patient?.user_id?.avatar_url ? getImageUrl(fb.patient.user_id.avatar_url) : "/default-avatar.png"}
-                                                                            alt={fb.patient?.user_id?.full_name || "Người dùng"}
+                                                                        {fb.patient?.avatar_url ? (
+                                                                            <img
+                                                                                src={getImageUrl(fb.patient.avatar_url)}
+                                                                                alt={fb.patient?.full_name || "Người dùng"}
+                                                                                className="doctor-review-avatar"
+                                                                                onError={(e) => {
+                                                                                    e.target.style.display = 'none';
+                                                                                    e.target.nextSibling.style.display = 'flex';
+                                                                                }}
+                                                                            />
+                                                                        ) : null}
+                                                                        <div 
                                                                             className="doctor-review-avatar"
-                                                                        />
-                                                                        <span className="doctor-review-name">{fb.patient?.user_id?.full_name || "Người dùng"}</span>
+                                                                            style={{ 
+                                                                                display: fb.patient?.avatar_url ? 'none' : 'flex',
+                                                                                backgroundColor: '#e0f2fe',
+                                                                                color: '#0369a1',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                borderRadius: '50%',
+                                                                                width: '48px',
+                                                                                height: '48px',
+                                                                                fontSize: '18px',
+                                                                                fontWeight: 'bold'
+                                                                            }}
+                                                                        >
+                                                                            {fb.patient?.full_name?.charAt(0)?.toUpperCase() || "?"}
+                                                                        </div>
+                                                                        <span className="doctor-review-name">{fb.patient?.full_name || "Người dùng"}</span>
                                                                     </>
                                                                 )}
                                                             </div>
