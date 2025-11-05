@@ -2,13 +2,15 @@ import { memo, useState, useEffect } from "react"; // Thêm useEffect
 import {
   Plus,
   Trash2,
-  Edit2,
   Search,
-  CheckCircle,
-  XCircle,
-  EyeOff,
   Eye,
+  EyeOff,
   Building2,
+  X,
+  Mail,
+  Phone,
+  User,
+  GraduationCap,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
@@ -18,9 +20,10 @@ const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterClinic, setFilterClinic] = useState("ALL");
   const [specialties, setSpecialties] = useState([]);
   const [loadingSpecialties, setLoadingSpecialties] = useState(true);
@@ -161,23 +164,26 @@ const DoctorManagement = () => {
     setShowModal(true);
   };
 
-  const handleDeleteDoctor = (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa bác sĩ này?")) {
-      setDoctors(doctors.filter((doc) => doc.id !== id));
-    }
+
+  const handleViewDetail = (doctor) => {
+    setSelectedDoctor(doctor);
+    setShowDetailModal(true);
   };
 
-  const handleToggleStatus = (id) => {
-    setDoctors(
-      doctors.map((doc) =>
-        doc.id === id
-          ? {
-            ...doc,
-            status: doc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-          }
-          : doc
-      )
-    );
+  const handleDeleteDoctor = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản bác sĩ này?")) {
+      return;
+    }
+    
+    try {
+      // TODO: Gọi API xóa bác sĩ khi có endpoint
+      // await adminclinicAPI.deleteDoctor(id);
+      setDoctors(doctors.filter((doc) => doc.id !== id));
+      toast.success("Xóa tài khoản bác sĩ thành công");
+    } catch (err) {
+      console.error("Lỗi khi xóa bác sĩ:", err);
+      toast.error("Không thể xóa bác sĩ: " + err.message);
+    }
   };
 
   const filteredDoctors = doctors.filter((doc) => {
@@ -187,9 +193,8 @@ const DoctorManagement = () => {
       doc.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.clinicName.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = filterStatus === "ALL" || doc.status === filterStatus;
     const matchesClinic = filterClinic === "ALL" || doc.clinicId === filterClinic;
-    return matchesSearch && matchesStatus && matchesClinic;
+    return matchesSearch && matchesClinic;
   });
 
   return (
@@ -235,15 +240,6 @@ const DoctorManagement = () => {
           ))}
         </select>
 
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="INACTIVE">Không hoạt động</option>
-        </select>
       </div>
 
       {/* Bảng */}
@@ -265,9 +261,6 @@ const DoctorManagement = () => {
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Điện thoại
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Trạng thái
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Hành động
@@ -303,39 +296,18 @@ const DoctorManagement = () => {
                   {doctor.phone}
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => handleToggleStatus(doctor.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${doctor.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                  >
-                    {doctor.status === "ACTIVE" ? (
-                      <>
-                        <CheckCircle size={16} /> Hoạt động
-                      </>
-                    ) : (
-                      <>
-                        <XCircle size={16} /> Không hoạt động
-                      </>
-                    )}
-                  </button>
-                </td>
-                <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={() =>
-                        toast.info("Chức năng chỉnh sửa đang phát triển")
-                      }
+                      onClick={() => handleViewDetail(doctor)}
                       className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                      title="Chỉnh sửa"
+                      title="Xem chi tiết"
                     >
-                      <Edit2 size={18} />
+                      <Eye size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteDoctor(doctor.id)}
                       className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-                      title="Xóa"
+                      title="Xóa tài khoản"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -542,6 +514,181 @@ const DoctorManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xem chi tiết bác sĩ */}
+      {showDetailModal && selectedDoctor && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDetailModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Chi tiết bác sĩ
+              </h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+              >
+                <X size={24} className="text-gray-600" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Thông tin cơ bản */}
+              <div className="border-b border-gray-200 pb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Thông tin cơ bản
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <User size={20} className="text-gray-400 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-600">Họ và tên</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedDoctor.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Building2 size={20} className="text-gray-400 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-600">Phòng khám</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedDoctor.clinicName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <GraduationCap size={20} className="text-gray-400 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-600">Chuyên khoa</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedDoctor.specialty}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 flex items-center justify-center mt-1">
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedDoctor.status === "ACTIVE"
+                            ? "bg-green-500"
+                            : "bg-gray-400"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Trạng thái</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedDoctor.status === "ACTIVE"
+                          ? "Hoạt động"
+                          : "Không hoạt động"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thông tin liên hệ */}
+              <div className="border-b border-gray-200 pb-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Thông tin liên hệ
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <Mail size={20} className="text-gray-400 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedDoctor.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Phone size={20} className="text-gray-400 mt-1" />
+                    <div>
+                      <p className="text-sm text-gray-600">Điện thoại</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {selectedDoctor.phone}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thông tin chi tiết từ doctorData */}
+              {selectedDoctor.doctorData && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Thông tin bổ sung
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedDoctor.doctorData.title && (
+                      <div>
+                        <p className="text-sm text-gray-600">Chức danh</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedDoctor.doctorData.title}
+                        </p>
+                      </div>
+                    )}
+                    {selectedDoctor.doctorData.degree && (
+                      <div>
+                        <p className="text-sm text-gray-600">Học vị</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedDoctor.doctorData.degree}
+                        </p>
+                      </div>
+                    )}
+                    {selectedDoctor.doctorData.experience && (
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-600">Kinh nghiệm</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedDoctor.doctorData.experience}
+                        </p>
+                      </div>
+                    )}
+                    {selectedDoctor.doctorData.description && (
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-600">Mô tả</p>
+                        <p className="text-sm text-gray-900">
+                          {selectedDoctor.doctorData.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    handleDeleteDoctor(selectedDoctor.id);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Xóa tài khoản
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
