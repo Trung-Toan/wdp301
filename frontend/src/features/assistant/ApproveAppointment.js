@@ -26,6 +26,7 @@ import { MEDICAL_RECORD_API } from "../../api/assistant/assistant.api";
 // Nếu bạn có API, hãy import nó và thay thế ở hàm "handleSaveRecord"
 import { createMedicalRecord } from "../../services/assistantService";
 import { useDataByUrl } from "../../utility/data.utils";
+import { formatISOTime as formatTime } from "../../utils/dateTimeUtils";
 
 // Helper lấy ngày Local (YYYY-MM-DD)
 const getLocalDate = () => {
@@ -47,20 +48,6 @@ const initialRecordFormData = {
     medicines: [],
   },
   status: "PRIVATE",
-};
-
-// Helper định dạng thời gian (Giữ nguyên)
-const formatTime = (timeString) => {
-  if (!timeString) return "N/A";
-  try {
-    return new Date(timeString).toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "UTC",
-    });
-  } catch {
-    return "N/A";
-  }
 };
 
 // === 2. CẬP NHẬT TRẠNG THÁI BADGE ===

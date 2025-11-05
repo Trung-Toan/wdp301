@@ -12,6 +12,7 @@ import {
 import { Dialog, Transition } from "@headlessui/react";
 import { SLOT_API } from "../../api/assistant/assistant.api";
 import toast, { Toaster } from "react-hot-toast";
+import { formatISOTime } from "../../utils/dateTimeUtils";
 
 // --- Helpers cho Modal ---
 const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
@@ -30,15 +31,6 @@ const getLocalDate = () => {
   const month = (today.getMonth() + 1).toString().padStart(2, "0");
   const day = today.getDate().toString().padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-const formatISOTime = (isoString) => {
-  if (!isoString) return "N/A";
-  return new Date(isoString).toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
 };
 
 const SlotSchedule = () => {

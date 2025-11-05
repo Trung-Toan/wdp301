@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { clinicApi } from "../../../api/clinic/clinicApi";
 import { useAuth } from "../../../hooks/useAuth";
 import ClinicBookingForm from "../components/ClinicBookingForm";
+import { formatDate } from "../../../utils/dateTimeUtils";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -996,7 +997,7 @@ export default function FacilityDetail() {
                                                             </p>
                                                         )}
                                                         <p className="text-xs text-gray-400 mt-1">
-                                                            📅 {new Date(review.createdAt).toLocaleDateString("vi-VN", {
+                                                            📅 {formatDate(review.createdAt, {
                                                                 year: "numeric",
                                                                 month: "long",
                                                                 day: "numeric"

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import defaultAvatar from "../../assets/images/default-avatar.png";
 import { CheckCircle, XCircle, FileText, Clock } from "lucide-react";
+import { formatDateShort, formatDateTime } from "../../utils/dateTimeUtils";
 
 // URL server file của bạn
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
@@ -190,11 +191,11 @@ const ApproveDoctorLicenses = () => {
                   </p>
                   <p className="text-gray-700">
                     <strong>Ngày cấp:</strong>{" "}
-                    {new Date(lic.issued_date).toLocaleDateString()}
+                    {formatDateShort(lic.issued_date)}
                   </p>
                   <p className="text-gray-700">
                     <strong>Ngày hết hạn:</strong>{" "}
-                    {new Date(lic.expiry_date).toLocaleDateString()}
+                    {formatDateShort(lic.expiry_date)}
                   </p>
                   <p className="text-gray-700 col-span-2">
                     <strong>Tệp đính kèm:</strong>{" "}
@@ -212,7 +213,7 @@ const ApproveDoctorLicenses = () => {
                     <strong>Ngày gửi:</strong>{" "}
                     <span className="text-gray-500">
                       <Clock size={14} className="inline-block mr-1" />
-                      {new Date(lic.createdAt).toLocaleString()}
+                      {formatDateTime(lic.createdAt)}
                     </span>
                   </p>
                 </div>

@@ -5,6 +5,7 @@ import { doctorApi } from "../../api/doctor/doctorApi";
 import defaultAvatar from "../../assets/images/default-avatar.png";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { formatDateShort } from "../../utils/dateTimeUtils";
 
 const API_BASE_URL = "http://localhost:5000/api/file";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
@@ -447,13 +448,13 @@ const DoctorProfile = () => {
                       </p>
                       <p>
                         <strong>Ngày cấp:</strong>{" "}
-                        {new Date(lic.issued_date).toLocaleDateString()}
+                        {formatDateShort(lic.issued_date)}
                       </p>
                       <p>
                         <strong>Ngày hết hạn:</strong>{" "}
                         {/* Sửa lỗi crash nếu expiry_date là null */}
                         {lic.expiry_date
-                          ? new Date(lic.expiry_date).toLocaleDateString()
+                          ? formatDateShort(lic.expiry_date)
                           : "Không có"}
                       </p>
                       <p>

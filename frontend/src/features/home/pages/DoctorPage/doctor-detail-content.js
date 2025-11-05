@@ -8,6 +8,7 @@ import {
     Hospital,
     Send
 } from "lucide-react";
+import { formatDateShort } from "../../../../utils/dateTimeUtils";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -263,7 +264,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                                 <strong>Cấp bởi:</strong> {l.issued_by}
                                                             </div>
                                                             <div className="doctor-license-field">
-                                                                <strong>Hiệu lực:</strong> {new Date(l.issued_date).toLocaleDateString()} - {new Date(l.expiry_date).toLocaleDateString()}
+                                                                <strong>Hiệu lực:</strong> {formatDateShort(l.issued_date)} - {formatDateShort(l.expiry_date)}
                                                             </div>
                                                             <div className="doctor-license-field">
                                                                 <strong>Trạng thái:</strong> {l.status}
