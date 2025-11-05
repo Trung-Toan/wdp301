@@ -283,4 +283,37 @@ router.get("/doctors/:doctorId/slots/available", ctrl.getAvailableSlots);
  */
 router.get("/slots/:slotId/check-availability", ctrl.checkSlotAvailability);
 
+/**
+ * @swagger
+ * /api/appointments/{id}/cancel:
+ *   put:
+ *     summary: Hủy lịch hẹn (chỉ cho bệnh nhân)
+ *     tags: [Appointments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: Appointment ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [patientId]
+ *             properties:
+ *               patientId: { type: string, example: "670d2c4a7f9f1b2c3d4e5b34" }
+ *     responses:
+ *       200:
+ *         description: Hủy thành công
+ *       400:
+ *         description: Invalid appointmentId hoặc patientId
+ *       403:
+ *         description: Không có quyền hoặc không thể hủy
+ *       404:
+ *         description: Không tìm thấy appointment
+ */
+router.put("/:id/cancel", validateObjectId("id"), ctrl.cancel);
+
 module.exports = router;

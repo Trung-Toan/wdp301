@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
+import { toast } from "react-toastify";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -60,11 +61,29 @@ export default function AppointmentsContent() {
                 console.log("API response:", res.data);
 
                 // Lấy mảng thật và chuẩn hóa status
+                const mapStatus = (status) => {
+                    switch (status?.toUpperCase()) {
+                        case "SCHEDULED":
+                        case "APPROVE":
+                            return "upcoming";
+                        case "COMPLETED":
+                            return "completed";
+                        case "CANCELLED":
+                            return "cancelled";
+                        case "NO_SHOW":
+                            return "cancelled"; // hoặc "missed" tùy logic
+                        default:
+                            return status?.toLowerCase() || "upcoming";
+                    }
+                };
+
                 const data =
                     Array.isArray(res.data?.data?.data)
                         ? res.data.data.data.map((apt) => ({
                             ...apt,
-                            status: apt.status === "scheduled" ? "upcoming" : apt.status,
+                            _id: apt._id || apt.id, // Đảm bảo _id luôn có
+                            id: apt._id || apt.id, // Giữ id cho React key
+                            status: mapStatus(apt.status),
                         }))
                         : [];
 
@@ -82,8 +101,11 @@ export default function AppointmentsContent() {
 
     // Badge trạng thái
     const getStatusBadge = (status) => {
-        switch (status) {
+        const normalizedStatus = status?.toLowerCase();
+        switch (normalizedStatus) {
             case "upcoming":
+            case "scheduled":
+            case "approve":
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200 rounded-lg text-sm font-semibold">
                         <Clock className="h-3.5 w-3.5" /> Sắp tới
@@ -96,6 +118,7 @@ export default function AppointmentsContent() {
                     </span>
                 );
             case "cancelled":
+            case "no_show":
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200 rounded-lg text-sm font-semibold">
                         <XCircle className="h-3.5 w-3.5" /> Đã hủy
@@ -111,10 +134,108 @@ export default function AppointmentsContent() {
         setCancelDialogOpen(true);
     };
 
-    const confirmCancel = () => {
-        console.log("Cancelling appointment:", appointmentToCancel?.id);
-        setCancelDialogOpen(false);
-        setAppointmentToCancel(null);
+    const confirmCancel = async () => {
+        if (!appointmentToCancel) {
+            setCancelDialogOpen(false);
+            return;
+        }
+
+        try {
+            // Lấy patient ID từ sessionStorage
+            const patientStr = sessionStorage.getItem("patient");
+            if (!patientStr) {
+                toast.error("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                return;
+            }
+
+            const patient = JSON.parse(patientStr);
+            // Lấy appointment ID - ưu tiên _id vì đó là format từ MongoDB
+            let appointmentId = appointmentToCancel._id || appointmentToCancel.id || appointmentToCancel.appointment_id;
+
+            if (!appointmentId) {
+                console.error("Appointment object:", appointmentToCancel);
+                toast.error("Không tìm thấy ID lịch hẹn.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                return;
+            }
+
+            // Convert ObjectId object thành string nếu cần
+            if (typeof appointmentId === 'object' && appointmentId.toString) {
+                appointmentId = appointmentId.toString();
+            }
+
+            // Validate ObjectId format (24 hex characters)
+            if (typeof appointmentId !== 'string') {
+                console.error("Invalid appointmentId type:", typeof appointmentId, appointmentId);
+                toast.error("ID lịch hẹn không hợp lệ.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                return;
+            }
+
+            // Kiểm tra format ObjectId (24 ký tự hex)
+            if (appointmentId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(appointmentId)) {
+                console.error("Invalid appointmentId format:", appointmentId, "Length:", appointmentId.length);
+                toast.error("ID lịch hẹn không đúng định dạng.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                return;
+            }
+
+            console.log("Cancelling appointment with ID:", appointmentId, "Type:", typeof appointmentId);
+            
+            // Gọi API hủy lịch hẹn
+            await appointmentApi.cancelAppointment(appointmentId, patient._id);
+
+            toast.success("Hủy lịch hẹn thành công!");
+            
+            // Đóng dialog và reset state
+            setCancelDialogOpen(false);
+            setAppointmentToCancel(null);
+
+            // Fetch lại danh sách appointments
+            const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
+            
+            const mapStatus = (status) => {
+                switch (status?.toUpperCase()) {
+                    case "SCHEDULED":
+                    case "APPROVE":
+                        return "upcoming";
+                    case "COMPLETED":
+                        return "completed";
+                    case "CANCELLED":
+                        return "cancelled";
+                    case "NO_SHOW":
+                        return "cancelled";
+                    default:
+                        return status?.toLowerCase() || "upcoming";
+                }
+            };
+
+            const data = Array.isArray(res.data?.data?.data)
+                ? res.data.data.data.map((apt) => ({
+                    ...apt,
+                    _id: apt._id || apt.id, // Đảm bảo _id luôn có
+                    id: apt._id || apt.id, // Giữ id cho React key
+                    status: mapStatus(apt.status),
+                }))
+                : [];
+            setAppointments(data);
+
+            // Chuyển sang tab "Đã hủy" để người dùng thấy lịch đã hủy
+            setSelectedTab("cancelled");
+        } catch (error) {
+            console.error("Error cancelling appointment:", error);
+            const errorMessage = 
+                error.response?.data?.error || 
+                error.response?.data?.message || 
+                error.message || 
+                "Không thể hủy lịch hẹn. Vui lòng thử lại.";
+            toast.error(errorMessage);
+        }
     };
 
     //  Lọc danh sách theo tab
@@ -234,7 +355,7 @@ export default function AppointmentsContent() {
                     <div className="space-y-4">
                         {filteredAppointments.map((appointment) => (
                             <div
-                                key={appointment.id}
+                                key={appointment._id || appointment.id}
                                 className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
                             >
                                 <div className="flex flex-col md:flex-row gap-6">

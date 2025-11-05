@@ -14,7 +14,7 @@ exports.create = async (req, res) => {
     } catch (err) {
         const msg = String(err?.message || err);
 
-        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id/i.test(msg)) {
+        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id|Không tìm thấy bác sĩ|Bác sĩ không hoạt động|Slot không thuộc về bác sĩ/i.test(msg)) {
             return fail(res, err, 400);
         }
 
@@ -142,5 +142,47 @@ exports.checkSlotAvailability = async (req, res) => {
         });
     } catch (err) {
         return fail(res, err);
+    }
+};
+
+/**
+ * Controller để hủy lịch hẹn (chỉ cho bệnh nhân)
+ * PUT /api/appointments/:appointmentId/cancel
+ */
+exports.cancel = async (req, res) => {
+    try {
+        const appointmentId = req.params.id; // Route là /:id/cancel nên dùng req.params.id
+        const { patientId } = req.body;
+
+        if (!appointmentId) {
+            return fail(res, new Error("appointmentId is required"), 400);
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+            return fail(res, new Error("Invalid appointmentId ObjectId."), 400);
+        }
+
+        if (!patientId) {
+            return fail(res, new Error("patientId is required"), 400);
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(patientId)) {
+            return fail(res, new Error("Invalid patientId ObjectId."), 400);
+        }
+
+        const result = await svc.cancelAppointmentAsync(appointmentId, patientId);
+        return ok(res, result);
+    } catch (err) {
+        const msg = String(err?.message || err);
+
+        if (/Appointment not found|Invalid .*_id/i.test(msg)) {
+            return fail(res, err, 404);
+        }
+
+        if (/do not have permission|Cannot cancel appointment/i.test(msg)) {
+            return fail(res, err, 403);
+        }
+
+        return fail(res, err, 500);
     }
 };
