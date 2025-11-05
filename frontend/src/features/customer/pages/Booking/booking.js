@@ -7,6 +7,8 @@ import { patientsApi } from "../../../../api/patients/patientsApi";
 import { provinceApi } from "../../../../api/address/provinceApi";
 import { wardApi } from "../../../../api/address/wardApi";
 import { clinicApi } from "../../../../api/clinic/clinicApi";
+import { doctorApi } from "../../../../api/doctor/doctorApi";
+import { SLOT_API } from "../../../../api/assistant/assistant.api";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -50,6 +52,7 @@ export function BookingContent() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [pendingSubmit, setPendingSubmit] = useState(false);
     const [clinicData, setClinicData] = useState(null);
+    const [doctorData, setDoctorData] = useState(null);
 
     const [storedAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
     const [storedUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
@@ -216,17 +219,125 @@ export function BookingContent() {
     // Fetch clinic data nếu có clinicId
     useEffect(() => {
         const fetchClinicData = async () => {
-            if (clinicId) {
+            // Lấy clinicId từ nhiều nguồn (ưu tiên theo thứ tự)
+            const finalClinicId = 
+                clinicId || // từ location.state
+                selectedSlot?.clinicId || // từ selectedSlot
+                selectedSlot?.clinic?._id || // từ selectedSlot.clinic
+                selectedSlot?.clinic_id || // từ selectedSlot
+                doctor?.clinic?._id || // từ doctor object
+                doctor?.clinic_id || // từ doctor object
+                null;
+
+            console.log("🔍 Fetching clinic data - clinicId sources:", {
+                clinicId_from_location: clinicId,
+                selectedSlot_clinicId: selectedSlot?.clinicId,
+                selectedSlot_clinic: selectedSlot?.clinic?._id,
+                selectedSlot_clinic_id: selectedSlot?.clinic_id,
+                doctor_clinic: doctor?.clinic?._id,
+                doctor_clinic_id: doctor?.clinic_id,
+                finalClinicId: finalClinicId
+            });
+
+            if (finalClinicId) {
                 try {
-                    const response = await clinicApi.getClinicDetail(clinicId);
-                    setClinicData(response.data?.data || null);
+                    console.log("📡 Fetching clinic data for clinicId:", finalClinicId);
+                    const response = await clinicApi.getClinicDetail(finalClinicId);
+                    const clinicInfo = response.data?.data || response.data || null;
+                    console.log("✅ Clinic data fetched:", clinicInfo);
+                    setClinicData(clinicInfo);
                 } catch (err) {
-                    console.error("Error fetching clinic data:", err);
+                    console.error("❌ Error fetching clinic data:", err);
                 }
+            } else {
+                console.log("⚠️ No clinicId found to fetch clinic data");
             }
         };
         fetchClinicData();
-    }, [clinicId]);
+    }, [clinicId, selectedSlot, doctor]);
+
+    // Fetch doctor data nếu có doctorId để lấy clinic address (fallback nếu không có clinicData)
+    useEffect(() => {
+        const fetchDoctorData = async () => {
+            // Fetch nếu không có clinicData và có doctorId
+            if (!clinicData && doctorId) {
+                try {
+                    console.log("📡 Fetching doctor data for doctorId:", doctorId);
+                    const response = await doctorApi.getDoctorById(doctorId);
+                    const doctorInfo = response.data?.data || response.data;
+                    console.log("✅ Doctor data fetched:", doctorInfo);
+                    
+                    if (doctorInfo) {
+                        setDoctorData(doctorInfo);
+                        
+                        // Nếu có clinic trong doctor data, cũng set vào clinicData
+                        if (doctorInfo.clinic_id || doctorInfo.clinic) {
+                            const clinicInfo = doctorInfo.clinic_id || doctorInfo.clinic;
+                            console.log("✅ Found clinic in doctor data:", clinicInfo);
+                            
+                            // Nếu clinicInfo là object có đầy đủ thông tin, set luôn
+                            if (clinicInfo && typeof clinicInfo === 'object' && clinicInfo._id) {
+                                setClinicData(clinicInfo);
+                            } 
+                            // Nếu clinicInfo là ID, fetch clinic detail
+                            else if (clinicInfo && typeof clinicInfo === 'string') {
+                                try {
+                                    console.log("📡 Fetching clinic detail for clinicId:", clinicInfo);
+                                    const clinicResponse = await clinicApi.getClinicDetail(clinicInfo);
+                                    const clinicDetail = clinicResponse.data?.data || clinicResponse.data || null;
+                                    console.log("✅ Clinic detail fetched:", clinicDetail);
+                                    if (clinicDetail) {
+                                        setClinicData(clinicDetail);
+                                    }
+                                } catch (clinicErr) {
+                                    console.error("❌ Error fetching clinic detail:", clinicErr);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("❌ Error fetching doctor data:", err);
+                }
+            }
+        };
+        fetchDoctorData();
+    }, [doctorId, clinicData, doctor]);
+
+    // Fetch slot detail để lấy clinic info (nếu selectedSlot chỉ có id)
+    useEffect(() => {
+        const fetchSlotDetail = async () => {
+            // Chỉ fetch nếu không có clinicData và selectedSlot có id nhưng không có clinic
+            if (!clinicData && selectedSlot?.id && !selectedSlot?.clinic && !selectedSlot?.clinicId) {
+                try {
+                    console.log("📡 Fetching slot detail for slotId:", selectedSlot.id);
+                    const response = await SLOT_API.getDetailsSlot(selectedSlot.id);
+                    const slotInfo = response.data?.data || response.data || null;
+                    console.log("✅ Slot detail fetched:", slotInfo);
+                    
+                    if (slotInfo) {
+                        // Nếu slot có clinic info, fetch clinic detail
+                        const slotClinicId = slotInfo.clinic_id || slotInfo.clinic?._id || slotInfo.clinic?.id;
+                        if (slotClinicId) {
+                            console.log("📡 Found clinicId in slot:", slotClinicId);
+                            try {
+                                const clinicResponse = await clinicApi.getClinicDetail(slotClinicId);
+                                const clinicDetail = clinicResponse.data?.data || clinicResponse.data || null;
+                                console.log("✅ Clinic detail from slot fetched:", clinicDetail);
+                                if (clinicDetail) {
+                                    setClinicData(clinicDetail);
+                                }
+                            } catch (clinicErr) {
+                                console.error("❌ Error fetching clinic detail from slot:", clinicErr);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("❌ Error fetching slot detail:", err);
+                }
+            }
+        };
+        fetchSlotDetail();
+    }, [selectedSlot, clinicData]);
 
     // Kiểm tra cảnh báo địa điểm
     useEffect(() => {
@@ -237,30 +348,201 @@ export function BookingContent() {
             return province?.label || null;
         };
 
+        // Debug: Log tất cả các nguồn dữ liệu
+        console.log("🔍 Location check - Raw data:", {
+            formData_province: formData.province,
+            provinces_count: provinces.length,
+            clinicData: clinicData,
+            doctor: doctor,
+            doctorData: doctorData,
+            selectedSlot: selectedSlot
+        });
+
         if (!formData.province) {
+            console.log("⚠️ No patient province selected");
+            setLocationWarning(null);
+            return;
+        }
+
+        if (!provinces || provinces.length === 0) {
+            console.log("⚠️ Provinces list not loaded yet");
             setLocationWarning(null);
             return;
         }
 
         const patientProvinceName = getProvinceName(formData.province);
         let clinicProvinceName = null;
+        let clinicProvinceCode = null;
 
-        // Lấy địa chỉ clinic từ clinicData hoặc từ storedUser/patient
-        if (clinicData?.address?.province?.name) {
-            clinicProvinceName = clinicData.address.province.name;
-        } else if (typeof clinicData?.address?.province === 'string') {
-            clinicProvinceName = clinicData.address.province;
+        // 1. Từ clinicData (đã fetch từ clinicId)
+        if (clinicData) {
+            // Cấu trúc 1: address.province.name
+            if (clinicData.address?.province?.name) {
+                clinicProvinceName = clinicData.address.province.name;
+                clinicProvinceCode = clinicData.address.province.code;
+            }
+            // Cấu trúc 2: address.province (string)
+            else if (typeof clinicData.address?.province === 'string') {
+                clinicProvinceName = clinicData.address.province;
+            }
+            // Cấu trúc 3: address.province_code
+            else if (clinicData.address?.province_code) {
+                clinicProvinceCode = clinicData.address.province_code;
+                clinicProvinceName = getProvinceName(clinicProvinceCode);
+            }
+            // Cấu trúc 4: province trực tiếp (string)
+            else if (typeof clinicData.province === 'string') {
+                clinicProvinceName = clinicData.province;
+            }
+            // Cấu trúc 5: province_code trực tiếp
+            else if (clinicData.province_code) {
+                clinicProvinceCode = clinicData.province_code;
+                clinicProvinceName = getProvinceName(clinicProvinceCode);
+            }
+        }
+        
+        // 2. Từ doctor object trong state (nếu có)
+        if (!clinicProvinceName && doctor?.clinic?.address?.province?.name) {
+            clinicProvinceName = doctor.clinic.address.province.name;
+            clinicProvinceCode = doctor.clinic.address.province.code;
+        } else if (!clinicProvinceName && typeof doctor?.clinic?.address?.province === 'string') {
+            clinicProvinceName = doctor.clinic.address.province;
+        } else if (!clinicProvinceCode && doctor?.clinic?.address?.province_code) {
+            clinicProvinceCode = doctor.clinic.address.province_code;
+            clinicProvinceName = getProvinceName(clinicProvinceCode);
+        }
+        
+        // 2b. Từ doctorData (đã fetch từ API)
+        // Kiểm tra clinic_id (có thể là object hoặc ID)
+        if (!clinicProvinceName && doctorData?.clinic_id) {
+            const clinicInfo = doctorData.clinic_id;
+            // Nếu clinic_id là object
+            if (typeof clinicInfo === 'object') {
+                // Cấu trúc 1: address.province.name
+                if (clinicInfo.address?.province?.name) {
+                    clinicProvinceName = clinicInfo.address.province.name;
+                    clinicProvinceCode = clinicInfo.address.province.code;
+                }
+                // Cấu trúc 2: address.province (string)
+                else if (typeof clinicInfo.address?.province === 'string') {
+                    clinicProvinceName = clinicInfo.address.province;
+                }
+                // Cấu trúc 3: address.province_code
+                else if (clinicInfo.address?.province_code) {
+                    clinicProvinceCode = clinicInfo.address.province_code;
+                    clinicProvinceName = getProvinceName(clinicProvinceCode);
+                }
+                // Cấu trúc 4: province trực tiếp (string) - từ log console
+                else if (typeof clinicInfo.province === 'string') {
+                    clinicProvinceName = clinicInfo.province;
+                }
+                // Cấu trúc 5: province_code trực tiếp
+                else if (clinicInfo.province_code) {
+                    clinicProvinceCode = clinicInfo.province_code;
+                    clinicProvinceName = getProvinceName(clinicProvinceCode);
+                }
+            }
+        }
+        
+        // Kiểm tra clinic (có thể là object)
+        if (!clinicProvinceName && doctorData?.clinic) {
+            const clinicInfo = doctorData.clinic;
+            // Cấu trúc 1: address.province.name
+            if (clinicInfo.address?.province?.name) {
+                clinicProvinceName = clinicInfo.address.province.name;
+                clinicProvinceCode = clinicInfo.address.province.code;
+            }
+            // Cấu trúc 2: address.province (string)
+            else if (typeof clinicInfo.address?.province === 'string') {
+                clinicProvinceName = clinicInfo.address.province;
+            }
+            // Cấu trúc 3: address.province_code
+            else if (clinicInfo.address?.province_code) {
+                clinicProvinceCode = clinicInfo.address.province_code;
+                clinicProvinceName = getProvinceName(clinicProvinceCode);
+            }
+            // Cấu trúc 4: province trực tiếp (string) - từ log console
+            else if (typeof clinicInfo.province === 'string') {
+                clinicProvinceName = clinicInfo.province;
+            }
+            // Cấu trúc 5: province_code trực tiếp
+            else if (clinicInfo.province_code) {
+                clinicProvinceCode = clinicInfo.province_code;
+                clinicProvinceName = getProvinceName(clinicProvinceCode);
+            }
+        }
+        
+        // 3. Từ selectedSlot (nếu có clinic object)
+        if (!clinicProvinceName && selectedSlot?.clinic?.address?.province?.name) {
+            clinicProvinceName = selectedSlot.clinic.address.province.name;
+            clinicProvinceCode = selectedSlot.clinic.address.province.code;
+        } else if (!clinicProvinceName && typeof selectedSlot?.clinic?.address?.province === 'string') {
+            clinicProvinceName = selectedSlot.clinic.address.province;
+        } else if (!clinicProvinceCode && selectedSlot?.clinic?.address?.province_code) {
+            clinicProvinceCode = selectedSlot.clinic.address.province_code;
+            clinicProvinceName = getProvinceName(clinicProvinceCode);
+        }
+        
+        // 3b. Từ selectedSlot.clinicId (nếu có clinicId nhưng chưa có clinic object)
+        // Nếu đã có clinicData từ fetch, không cần check thêm
+        // (clinicData đã được check ở phần 1)
+
+        // Nếu có province code, so sánh trực tiếp (chính xác hơn)
+        if (clinicProvinceCode && formData.province) {
+            if (clinicProvinceCode === formData.province) {
+                console.log("✅ Same province (by code):", clinicProvinceCode);
+                setLocationWarning(null);
+                return;
+            }
         }
 
+        // Debug: Log kết quả sau khi lấy province
+        console.log("🔍 Province extraction result:", {
+            patientProvinceName,
+            clinicProvinceName,
+            clinicProvinceCode,
+            clinicData_structure: clinicData ? {
+                hasAddress: !!clinicData.address,
+                hasProvince: !!clinicData.province,
+                hasProvinceCode: !!clinicData.province_code,
+                addressStructure: clinicData.address ? {
+                    hasProvince: !!clinicData.address.province,
+                    hasProvinceCode: !!clinicData.address.province_code
+                } : null
+            } : null,
+            doctorData_structure: doctorData ? {
+                hasClinicId: !!doctorData.clinic_id,
+                hasClinic: !!doctorData.clinic,
+                clinicId_type: typeof doctorData.clinic_id,
+                clinicId_structure: doctorData.clinic_id && typeof doctorData.clinic_id === 'object' ? {
+                    hasProvince: !!doctorData.clinic_id.province,
+                    hasProvinceCode: !!doctorData.clinic_id.province_code,
+                    hasAddress: !!doctorData.clinic_id.address,
+                    province_value: doctorData.clinic_id.province
+                } : null
+            } : null
+        });
+
+        // Chỉ hiển thị cảnh báo nếu có đủ thông tin cả hai bên
         if (!patientProvinceName || !clinicProvinceName) {
+            console.log("⚠️ Missing province info:", {
+                patientProvinceName,
+                clinicProvinceName,
+                clinicProvinceCode
+            });
             setLocationWarning(null);
             return;
         }
 
-        console.log("🔍 Location check:", {
-            patientProvince: patientProvinceName,
-            clinicProvince: clinicProvinceName,
-            clinicData: clinicData
+        console.log("🔍 Location check - Found provinces:", {
+            patientProvinceCode: formData.province,
+            patientProvinceName: patientProvinceName,
+            clinicProvinceCode: clinicProvinceCode,
+            clinicProvinceName: clinicProvinceName,
+            clinicData: clinicData,
+            doctorData: doctorData,
+            doctor: doctor,
+            selectedSlot: selectedSlot
         });
 
         // Chuẩn hóa tên tỉnh/thành phố để so sánh
@@ -306,7 +588,7 @@ export function BookingContent() {
         } else {
             setLocationWarning(null);
         }
-    }, [formData.province, clinicData, provinces]);
+    }, [formData.province, clinicData, provinces, doctor, selectedSlot, doctorData]);
 
     const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
