@@ -67,4 +67,12 @@ router.put(
   adminclinicController.updateLicenseStatus
 );
 
+//cập nhật thông tin phòng khám
+router.put(
+  "/update_clinic",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateClinic
+);
+
 module.exports = router;

@@ -11,6 +11,7 @@ import {
   Bell,
   Plus,
   ShieldCheck,
+  Edit2,
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
 import { adminclinicAPI } from "../api/admin-clinic/adminclinicAPI";
@@ -72,6 +73,11 @@ const ClinicAdminLayout = () => {
   else {
     menuItems = [
       ...menuItems,
+      {
+        title: "Chỉnh sửa phòng khám",
+        icon: <Edit2 size={20} />,
+        link: "/admin-clinic/clinic/edit",
+      },
       {
         title: "Quản lý bác sĩ",
         icon: <People size={20} />,

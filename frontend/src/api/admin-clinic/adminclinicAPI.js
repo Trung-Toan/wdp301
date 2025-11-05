@@ -65,4 +65,9 @@ export const adminclinicAPI = {
       data
     );
   },
+
+  //cập nhật thông tin phòng khám
+  updateClinic: (data) => {
+    return axiosInstance.put("/admin_clinic/update_clinic", data);
+  },
 };

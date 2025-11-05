@@ -7,6 +7,7 @@ const {
   deleteAssistant,
   getPendingDoctorLicenses,
   updateLicenseStatus,
+  updateClinicByAdmin,
 } = require("../../service/admin_clinic/adminClinic.service");
 
 //Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
@@ -138,6 +139,21 @@ exports.updateLicenseStatus = async (req, res, next) => {
       status,
       rejected_reason
     );
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+//cập nhật thông tin phòng khám
+exports.updateClinic = async (req, res, next) => {
+  try {
+    const accountId = req.user?.sub;
+    if (!accountId) {
+      return res.status(401).json({ ok: false, message: "Unauthorized" });
+    }
+
+    const result = await updateClinicByAdmin(accountId, req.body);
     res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);

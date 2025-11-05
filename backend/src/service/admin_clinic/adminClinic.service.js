@@ -352,3 +352,68 @@ exports.updateLicenseStatus = async (
     return { ok: false, message: error.message };
   }
 };
+
+//cập nhật thông tin phòng khám
+exports.updateClinicByAdmin = async (adminAccountId, updateData) => {
+  try {
+    // Lấy clinic của admin
+    const clinicResult = await exports.getClinicByAdmin(adminAccountId);
+    if (!clinicResult.ok) {
+      throw new Error(clinicResult.message || "Không tìm thấy phòng khám");
+    }
+
+    const clinic = clinicResult.data;
+    const clinicId = clinic._id;
+
+    // Chuẩn bị dữ liệu cập nhật
+    const updateFields = {};
+    
+    // Các trường cơ bản
+    if (updateData.name !== undefined) updateFields.name = updateData.name;
+    if (updateData.phone !== undefined) updateFields.phone = updateData.phone;
+    if (updateData.email !== undefined) updateFields.email = updateData.email;
+    if (updateData.website !== undefined) updateFields.website = updateData.website;
+    if (updateData.description !== undefined) updateFields.description = updateData.description;
+    if (updateData.logo_url !== undefined) updateFields.logo_url = updateData.logo_url;
+    if (updateData.banner_url !== undefined) updateFields.banner_url = updateData.banner_url;
+    if (updateData.registration_number !== undefined) updateFields.registration_number = updateData.registration_number;
+    if (updateData.opening_hours !== undefined) updateFields.opening_hours = updateData.opening_hours;
+    if (updateData.closing_hours !== undefined) updateFields.closing_hours = updateData.closing_hours;
+
+    // Cập nhật địa chỉ
+    if (updateData.address) {
+      updateFields.address = {
+        ...clinic.address,
+        ...updateData.address,
+      };
+      // Nếu có province hoặc ward, giữ nguyên format
+      if (updateData.address.province) {
+        updateFields.address.province = updateData.address.province;
+      }
+      if (updateData.address.ward) {
+        updateFields.address.ward = updateData.address.ward;
+      }
+    }
+
+    // Cập nhật chuyên khoa
+    if (updateData.specialties !== undefined) {
+      updateFields.specialties = updateData.specialties;
+    }
+
+    // Cập nhật clinic
+    const updatedClinic = await Clinic.findByIdAndUpdate(
+      clinicId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).populate("specialties");
+
+    if (!updatedClinic) {
+      throw new Error("Không thể cập nhật phòng khám");
+    }
+
+    return { ok: true, message: "Cập nhật phòng khám thành công", data: updatedClinic };
+  } catch (error) {
+    console.error("Lỗi khi cập nhật phòng khám:", error);
+    return { ok: false, message: error.message };
+  }
+};
