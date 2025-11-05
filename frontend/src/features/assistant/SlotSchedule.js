@@ -225,7 +225,7 @@ const SlotSchedule = () => {
               startMinute,
               0
             )
-          ).toISOString();
+        ).toISOString();
 
     const endDateTime =
       isTimeLocked && editingSlot
@@ -239,7 +239,7 @@ const SlotSchedule = () => {
               endMinute,
               0
             )
-          ).toISOString();
+        ).toISOString();
 
     const payload = {
       clinic_id: assistantInfo.clinic_id,
@@ -384,8 +384,8 @@ const SlotSchedule = () => {
               className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
                 ${
                   isPastDate
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
                 }`}
             >
               <Plus size={20} /> Thêm ca
@@ -446,8 +446,8 @@ const SlotSchedule = () => {
               const statusBorderColor = !isServiceAvailable
                 ? "border-l-gray-400"
                 : isFullyBooked
-                ? "border-l-red-400"
-                : "border-l-green-500";
+                  ? "border-l-red-400"
+                  : "border-l-green-500";
 
               return (
                 <div
@@ -503,8 +503,8 @@ const SlotSchedule = () => {
                         className={`flex items-center gap-1.5 px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold shadow
                           ${
                             isPastDate
-                              ? "bg-gray-400 cursor-not-allowed"
-                              : "bg-amber-500 hover:bg-amber-600"
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-amber-500 hover:bg-amber-600"
                           }`}
                       >
                         <Pencil size={16} /> Sửa
@@ -594,7 +594,7 @@ const SlotSchedule = () => {
                             ))}
                           </select>
                         </div>
-                        </div>
+                      </div>
 
                       {/* End Time */}
                       <div>

@@ -1,33 +1,36 @@
 import { memo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MapPin, Clock, FileText, Edit2, Building2, Loader2, AlertCircle } from "lucide-react";
+import { Plus, MapPin, Clock, FileText, Edit2, Building2, Loader2 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
+import CreateClinicModal from "./components/CreateClinicModal";
 
 const ClinicList = () => {
     const [clinics, setClinics] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showCreateModal, setShowCreateModal] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchClinics = async () => {
-            try {
-                setLoading(true);
-                const res = await adminclinicAPI.getAllClinics();
-                if (res.data?.ok) {
-                    setClinics(res.data.data || []);
-                } else {
-                    toast.error(res.data?.message || "Không thể tải danh sách phòng khám.");
-                }
-            } catch (error) {
-                console.error("Lỗi khi tải danh sách phòng khám:", error);
-                toast.error("Không thể tải danh sách phòng khám.");
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchClinics();
     }, []);
+
+    const fetchClinics = async () => {
+        try {
+            setLoading(true);
+            const res = await adminclinicAPI.getAllClinics();
+            if (res.data?.ok) {
+                setClinics(res.data.data || []);
+            } else {
+                toast.error(res.data?.message || "Không thể tải danh sách phòng khám.");
+            }
+        } catch (error) {
+            console.error("Lỗi khi tải danh sách phòng khám:", error);
+            toast.error("Không thể tải danh sách phòng khám.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getStatusBadge = (status) => {
         const statusConfig = {
@@ -71,7 +74,7 @@ const ClinicList = () => {
                 </div>
 
                 <button
-                    onClick={() => navigate("/admin-clinic/clinics")}
+                    onClick={() => setShowCreateModal(true)}
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                     <Plus size={20} />
@@ -91,7 +94,7 @@ const ClinicList = () => {
                         Bắt đầu bằng cách tạo phòng khám đầu tiên của bạn
                     </p>
                     <button
-                        onClick={() => navigate("/admin-clinic/clinics")}
+                        onClick={() => setShowCreateModal(true)}
                         className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
                         <Plus size={20} />
@@ -110,7 +113,7 @@ const ClinicList = () => {
                                 className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
                             >
                                 {/* Banner */}
-                                {bannerUrl && (
+                                {bannerUrl ? (
                                     <div className="h-32 bg-gradient-to-r from-blue-500 to-blue-600 relative overflow-hidden">
                                         <img
                                             src={bannerUrl}
@@ -121,27 +124,26 @@ const ClinicList = () => {
                                             }}
                                         />
                                     </div>
-                                )}
-                                {!bannerUrl && (
+                                ) : (
                                     <div className="h-32 bg-gradient-to-r from-blue-500 to-blue-600"></div>
                                 )}
 
                                 {/* Header */}
-                                <div className={`p-4 ${bannerUrl ? 'bg-white' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}>
+                                <div className="p-4 bg-white">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-3 flex-1">
                                             {logoUrl && (
                                                 <img
                                                     src={logoUrl}
                                                     alt="Logo"
-                                                    className="w-12 h-12 rounded-lg object-cover border-2 border-white shadow-md"
+                                                    className="w-12 h-12 rounded-lg object-cover border-2 border-gray-200 shadow-sm"
                                                     onError={(e) => {
                                                         e.target.style.display = 'none';
                                                     }}
                                                 />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <h3 className={`text-lg font-bold ${bannerUrl ? 'text-gray-900' : 'text-white'} truncate`}>
+                                                <h3 className="text-lg font-bold text-gray-900 truncate">
                                                     {clinic.name}
                                                 </h3>
                                                 <div className="mt-1">
@@ -149,13 +151,6 @@ const ClinicList = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => navigate(`/admin-clinic/clinic/edit/${clinic._id}`)}
-                                            className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-sm transition-colors"
-                                            title="Chỉnh sửa"
-                                        >
-                                            <Edit2 size={18} className="text-blue-600" />
-                                        </button>
                                     </div>
                                 </div>
 
@@ -164,19 +159,11 @@ const ClinicList = () => {
                                     {/* Address */}
                                     {clinic.address && (
                                         <div className="flex items-start gap-2">
-                                            <MapPin
-                                                size={16}
-                                                className="text-blue-600 flex-shrink-0 mt-0.5"
-                                            />
+                                            <MapPin size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
                                             <div className="text-sm flex-1">
                                                 {clinic.address.houseNumber && clinic.address.street && (
                                                     <p className="text-gray-900 font-semibold">
                                                         {clinic.address.houseNumber} {clinic.address.street}
-                                                    </p>
-                                                )}
-                                                {clinic.address.alley && (
-                                                    <p className="text-gray-600 text-xs">
-                                                        {clinic.address.alley}
                                                     </p>
                                                 )}
                                                 {(clinic.address.ward?.name || clinic.address.province?.name) && (
@@ -191,10 +178,7 @@ const ClinicList = () => {
 
                                     {/* Operating Hours */}
                                     <div className="flex items-start gap-2">
-                                        <Clock
-                                            size={16}
-                                            className="text-blue-600 flex-shrink-0 mt-0.5"
-                                        />
+                                        <Clock size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
                                         <div className="text-sm">
                                             <p className="text-gray-900 font-semibold">
                                                 {clinic.opening_hours} - {clinic.closing_hours}
@@ -206,14 +190,9 @@ const ClinicList = () => {
                                     {/* Registration Number */}
                                     {clinic.registration_number && (
                                         <div className="flex items-start gap-2">
-                                            <FileText
-                                                size={16}
-                                                className="text-blue-600 flex-shrink-0 mt-0.5"
-                                            />
+                                            <FileText size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
                                             <div className="text-sm">
-                                                <p className="text-gray-900 font-semibold">
-                                                    {clinic.registration_number}
-                                                </p>
+                                                <p className="text-gray-900 font-semibold">{clinic.registration_number}</p>
                                                 <p className="text-gray-600 text-xs">Số đăng ký</p>
                                             </div>
                                         </div>
@@ -271,9 +250,18 @@ const ClinicList = () => {
                     })}
                 </div>
             )}
+
+            {/* Create Clinic Modal */}
+            <CreateClinicModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={() => {
+                    fetchClinics();
+                    setShowCreateModal(false);
+                }}
+            />
         </div>
     );
 };
 
 export default memo(ClinicList);
-
