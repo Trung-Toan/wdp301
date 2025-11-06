@@ -834,18 +834,25 @@ export function BookingContent() {
         <div className="min-h-screen py-12 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
             <div className="container mx-auto px-4 max-w-7xl">
                 <Link to={`/home/doctordetail/${doctorId}`}>
-                    <button className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors mb-8 group">
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all mb-8 group font-semibold">
                         <ChevronLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" /> 
-                        <span className="font-medium">Quay lại</span>
+                        <span>Quay lại</span>
                     </button>
                 </Link>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Form */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
                         <div className="mb-8">
-                            <h2 className="text-3xl font-bold text-gray-900 mb-3">Đặt lịch khám bệnh</h2>
-                            <p className="text-gray-600 text-lg">Vui lòng điền đầy đủ thông tin để hoàn tất đặt lịch</p>
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                                    <Calendar className="text-white" size={28} />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Đặt lịch khám bệnh</h2>
+                                    <p className="text-gray-600 text-lg font-medium">Vui lòng điền đầy đủ thông tin để hoàn tất đặt lịch</p>
+                                </div>
+                            </div>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-8">
@@ -1032,8 +1039,9 @@ export function BookingContent() {
 
                             <button
                                 type="submit"
-                                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl active:scale-100"
+                                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl active:scale-100 flex items-center justify-center gap-2"
                             >
+                                <CheckCircle className="h-6 w-6" />
                                 Xác nhận đặt lịch
                             </button>
                         </form>
@@ -1042,8 +1050,10 @@ export function BookingContent() {
                     {/* Sidebar */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24 border border-gray-100">
-                            <h3 className="text-xl font-bold mb-6 text-gray-900 flex items-center gap-2">
-                                <Calendar className="h-6 w-6 text-blue-600" />
+                            <h3 className="text-xl font-bold mb-6 text-gray-900 flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                                    <Calendar className="h-6 w-6 text-white" />
+                                </div>
                                 Thông tin lịch khám
                             </h3>
                             

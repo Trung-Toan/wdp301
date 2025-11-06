@@ -1,5 +1,6 @@
 import { Calendar, Menu, X, Home, Stethoscope, Users, Building2, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSessionStorage } from "../../../hooks/useSessionStorage";
 import {
@@ -16,6 +17,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   const location = useLocation();
   const { user: authUser } = useAuth();
   const sessionUser = useSessionStorage("user");
@@ -23,6 +25,8 @@ export default function Header() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const dropdownRef = useRef(null);
+  const dropdownButtonRef = useRef(null);
+  const dropdownMenuRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,21 +36,51 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+
+  // Calculate dropdown position
+  useEffect(() => {
+    const updatePosition = () => {
+      if (isUserDropdownOpen && dropdownButtonRef.current) {
+        const rect = dropdownButtonRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY + 12,
+          right: window.innerWidth - rect.right,
+        });
+      }
+    };
+
+    if (isUserDropdownOpen) {
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
+      
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+      };
+    }
+  }, [isUserDropdownOpen]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const target = event.target;
+      const isClickInsideButton = dropdownButtonRef.current && dropdownButtonRef.current.contains(target);
+      const isClickInsideMenu = dropdownMenuRef.current && dropdownMenuRef.current.contains(target);
+      
+      if (!isClickInsideButton && !isClickInsideMenu) {
         setIsUserDropdownOpen(false);
       }
     };
 
     if (isUserDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+      // Sử dụng mousedown với capture phase để xử lý đúng
+      document.addEventListener("mousedown", handleClickOutside, true);
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside, true);
+      };
+    }
   }, [isUserDropdownOpen]);
 
   const onLogout = async () => {
@@ -122,6 +156,7 @@ export default function Header() {
           {user ? (
             <div className="header-user-dropdown-wrapper" ref={dropdownRef}>
               <button
+                ref={dropdownButtonRef}
                 className={`header-user-toggle ${isUserDropdownOpen ? 'active' : ''}`}
                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                 aria-label="User menu"
@@ -138,43 +173,61 @@ export default function Header() {
                 />
               </button>
 
-              <div className={`header-dropdown-menu ${isUserDropdownOpen ? 'show' : ''}`}>
-                <div className="header-dropdown-header">
-                  <div className="header-dropdown-greeting">Xin chào,</div>
-                  <div className="header-dropdown-name">
-                    {user?.full_name || user?.name || "User"}
-                  </div>
-                </div>
-                <div className="header-dropdown-divider"></div>
-                <Link
-                  to="/patient/profile"
-                  className="header-dropdown-item"
-                  onClick={() => setIsUserDropdownOpen(false)}
-                >
-                  <InfoCircle size={18} />
-                  <span>Thông tin cá nhân</span>
-                </Link>
-                <div className="header-dropdown-divider"></div>
-                <Link
-                  to="/patient/appointments"
-                  className="header-dropdown-item"
-                  onClick={() => setIsUserDropdownOpen(false)}
-                >
-                  <Calendar size={18} />
-                  <span>Lịch hẹn của tôi</span>
-                </Link>
-                <div className="header-dropdown-divider"></div>
-                <button
-                  onClick={() => {
-                    onLogout();
-                    setIsUserDropdownOpen(false);
+              {isUserDropdownOpen && createPortal(
+                <div 
+                  ref={dropdownMenuRef}
+                  className={`header-dropdown-menu show`}
+                  style={{
+                    top: `${dropdownPosition.top}px`,
+                    right: `${dropdownPosition.right}px`,
                   }}
-                  className="header-dropdown-item header-dropdown-item-logout"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <BoxArrowRight size={18} />
-                  <span>Đăng xuất</span>
-                </button>
-              </div>
+                  <div className="header-dropdown-header">
+                    <div className="header-dropdown-greeting">Xin chào,</div>
+                    <div className="header-dropdown-name">
+                      {user?.full_name || user?.name || "User"}
+                    </div>
+                  </div>
+                  <div className="header-dropdown-divider"></div>
+                  <Link
+                    to="/patient/profile"
+                    className="header-dropdown-item"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsUserDropdownOpen(false);
+                    }}
+                  >
+                    <InfoCircle size={18} />
+                    <span>Thông tin cá nhân</span>
+                  </Link>
+                  <div className="header-dropdown-divider"></div>
+                  <Link
+                    to="/patient/appointments"
+                    className="header-dropdown-item"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsUserDropdownOpen(false);
+                    }}
+                  >
+                    <Calendar size={18} />
+                    <span>Lịch hẹn của tôi</span>
+                  </Link>
+                  <div className="header-dropdown-divider"></div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLogout();
+                      setIsUserDropdownOpen(false);
+                    }}
+                    className="header-dropdown-item header-dropdown-item-logout"
+                  >
+                    <BoxArrowRight size={18} />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>,
+                document.body
+              )}
             </div>
 
           ) : (
