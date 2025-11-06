@@ -18,11 +18,13 @@ exports.create = async (req, res) => {
             return fail(res, err, 400);
         }
 
-        if (/duplicate key|Duplicate booking|E11000/i.test(msg)) {
-            // console.log('🔍 Original error message:', msg);
-            // console.log('🔍 Error stack:', err.stack);
-            // console.log('🔍 Full error object:', JSON.stringify(err, null, 2));
-            return fail(res, new Error("Duplicate booking for this slot"), 409);
+        // Xử lý lỗi duplicate booking hoặc patient đã có appointment
+        if (/duplicate key|Duplicate booking|E11000|Patient already has an appointment/i.test(msg)) {
+            // Nếu message có chứa "Patient already has an appointment", dịch sang tiếng Việt
+            if (/Patient already has an appointment/i.test(msg)) {
+                return fail(res, new Error("Bệnh nhân đã có lịch khám trong slot này cho ngày này. Vui lòng chọn lịch khác!"), 409);
+            }
+            return fail(res, new Error("Lịch khám này đã được đặt. Vui lòng chọn lịch khác!"), 409);
         }
 
         if (/connection|timeout|network/i.test(msg)) {

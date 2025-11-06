@@ -14,7 +14,7 @@ export const medicalRecordPatientApi = {
         axiosInstance.get(`/patient/records/${id}`),
 
     updateAccessRequest: (recordId, requestId, action) =>
-        axiosInstance.put(`/records/${recordId}/access/${requestId}`, { action }),
+        axiosInstance.put(`/patient/records/${recordId}/access/${requestId}`, { action }),
 
 };
 

@@ -11,17 +11,15 @@ export const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  // Try both possible token keys
+  // Try all possible token keys (priority order)
   const token =
-    sessionStorage.getItem("accessToken") || sessionStorage.getItem("token");
+    sessionStorage.getItem("access_token") || 
+    sessionStorage.getItem("token") ||
+    sessionStorage.getItem("accessToken");
   if (token) {
     // Clean token and add Bearer prefix
     const cleanToken = token.replace(/^"|"$/g, "");
     config.headers.Authorization = `Bearer ${cleanToken}`;
-    console.log(
-      "Axios interceptor - Adding token to request:",
-      cleanToken.substring(0, 50) + "..."
-    );
   }
   return config;
 });

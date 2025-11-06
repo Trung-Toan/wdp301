@@ -5,9 +5,21 @@ import { doctorApi } from "../../api/doctor/doctorApi";
 import defaultAvatar from "../../assets/images/default-avatar.png";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { formatDateShort } from "../../utils/dateTimeUtils";
 
 const API_BASE_URL = "http://localhost:5000/api/file";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+  if (!url) return null;
+  // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  // Nếu không, thêm FILE_SERVER_URL phía trước
+  return `${FILE_SERVER_URL}/${url}`;
+};
 
 const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -79,6 +91,9 @@ const DoctorProfile = () => {
         document_url: "",
         document_file: null,
       });
+
+      // Dispatch event để DoctorLayout re-check profile completeness
+      window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi gửi chứng chỉ:", err);
       const uploadError = err.response?.data?.error || err.message;
@@ -97,11 +112,7 @@ const DoctorProfile = () => {
         const d = profileRes.data.data;
         const licenses = licenseRes.data.data || [];
 
-        const avatarUrl = d.user_id?.avatar_url
-          ? d.user_id.avatar_url.startsWith("http")
-            ? d.user_id.avatar_url
-            : `${FILE_SERVER_URL}/${d.user_id.avatar_url}`
-          : "";
+        const avatarUrl = d.user_id?.avatar_url ? getImageUrl(d.user_id.avatar_url) : "";
 
         setDoctorProfile({
           doctor: {
@@ -205,6 +216,9 @@ const DoctorProfile = () => {
         }));
       }
       setNewAvatarFile(null);
+
+      // Dispatch event để DoctorLayout re-check profile completeness
+      window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
       const uploadError = err.response?.data?.error || err.message;
@@ -434,13 +448,13 @@ const DoctorProfile = () => {
                       </p>
                       <p>
                         <strong>Ngày cấp:</strong>{" "}
-                        {new Date(lic.issued_date).toLocaleDateString()}
+                        {formatDateShort(lic.issued_date)}
                       </p>
                       <p>
                         <strong>Ngày hết hạn:</strong>{" "}
                         {/* Sửa lỗi crash nếu expiry_date là null */}
                         {lic.expiry_date
-                          ? new Date(lic.expiry_date).toLocaleDateString()
+                          ? formatDateShort(lic.expiry_date)
                           : "Không có"}
                       </p>
                       <p>

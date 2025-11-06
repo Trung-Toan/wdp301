@@ -1,15 +1,10 @@
 import { useState, useEffect, memo } from "react";
-import { PlusCircle, Trash2, UserCog, Search } from "lucide-react";
+import { UserCog, Search } from "lucide-react";
 import { doctorApi } from "../../api/doctor/doctorApi";
 
 const AssistantManagement = () => {
   const [assistants, setAssistants] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [pagination, setPagination] = useState({
@@ -17,6 +12,8 @@ const AssistantManagement = () => {
     limit: 10,
     totalPages: 1,
   });
+
+  //xóa form tao tai khoan tro ly
 
   // Lấy danh sách trợ lý (có tìm kiếm + phân trang)
   const fetchAssistants = async (page = 1, search = "") => {
@@ -64,25 +61,6 @@ const AssistantManagement = () => {
     }, 400);
     return () => clearTimeout(timeout);
   }, [searchTerm]);
-
-  // Xóa trợ lý
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa tài khoản trợ lý này?")) return;
-    try {
-      const res = await doctorApi.deleteAssistant(id);
-      if (res.data?.ok) {
-        setMessage({ type: "success", text: "Đã xóa trợ lý thành công!" });
-        fetchAssistants(pagination.page, searchTerm);
-      } else {
-        setMessage({
-          type: "error",
-          text: res.data?.message || "Xóa thất bại.",
-        });
-      }
-    } catch (error) {
-      setMessage({ type: "error", text: "Lỗi khi xóa trợ lý." });
-    }
-  };
 
   // Điều hướng phân trang
   const handlePageChange = (newPage) => {

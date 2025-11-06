@@ -112,7 +112,7 @@ const getPaginatedIds = (allIds, { page, limit }) => {
     return allIds.slice(skip, skip + limit);
 };
 
-exports.getPatientAvailableOfDoctor = async (doctor_id, page = 1, limit = 10, search = "" ) => {
+exports.getPatientAvailableOfDoctor = async (doctor_id, page = 1, limit = 10, search = "") => {
     const { patients, pagination } = await appointmentService.getPatientsWithAppointments(doctor_id, "COMPLETED", page, limit, search);
     return {
         patients: patients,

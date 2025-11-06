@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react"; // Thêm useEffect
+import { memo, useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   House,
@@ -6,7 +6,6 @@ import {
   Calendar,
   FileText,
   ClipboardCheck,
-  BellSlash,
   ChatLeftText,
   PersonBadge,
   List,
@@ -18,44 +17,65 @@ import {
 import { Button, Spinner } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { doctorApi } from "../api/doctor/doctorApi";
+import { useAuth } from "../hooks/useAuth";
+import { logoutApi } from "../api/auth/logout/LogoutApt";
 import "../styles/doctor/DoctorLayout.css";
 
 const DoctorLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("user"));
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
-  useEffect(() => {
-    const fetchProfileAndLicenses = async () => {
-      try {
-        const [profileRes, licenseRes] = await Promise.all([
-          doctorApi.getProfile(),
-          doctorApi.getMyLicense(),
-        ]);
+  const checkProfileComplete = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const [profileRes, licenseRes] = await Promise.all([
+        doctorApi.getProfile(),
+        doctorApi.getMyLicense(),
+      ]);
 
-        const profile = profileRes.data.data;
-        const licenses = licenseRes.data.data || [];
+      const profile = profileRes.data.data;
+      const licenses = licenseRes.data.data || [];
 
-        const hasInfo = profile.title && profile.degree && profile.experience;
-        const hasLicense = licenses.length > 0;
+      const hasInfo = profile.title && profile.degree && profile.experience;
+      // Kiểm tra có ít nhất 1 license đã được APPROVED và còn hạn
+      const hasValidLicense = licenses.some((lic) => {
+        if (lic.status !== "APPROVED") return false;
+        if (!lic.expiry_date) return true; // Không có ngày hết hạn thì coi như còn hạn
+        const expiry = new Date(lic.expiry_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return expiry >= today;
+      });
 
-        if (hasInfo && hasLicense) {
-          setIsProfileComplete(true);
-        } else {
-          setIsProfileComplete(false);
-        }
-      } catch (err) {
-        console.error("Không thể tải hồ sơ bác sĩ:", err);
+      if (hasInfo && hasValidLicense) {
+        setIsProfileComplete(true);
+      } else {
         setIsProfileComplete(false);
-      } finally {
-        setIsLoadingProfile(false);
       }
+    } catch (err) {
+      console.error("Không thể tải hồ sơ bác sĩ:", err);
+      setIsProfileComplete(false);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    checkProfileComplete();
+
+    // Listen for profile update events
+    const handleProfileUpdate = () => {
+      checkProfileComplete();
     };
 
-    fetchProfileAndLicenses();
+    window.addEventListener("doctorProfileUpdated", handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener("doctorProfileUpdated", handleProfileUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -71,6 +91,10 @@ const DoctorLayout = () => {
       navigate("/doctor/profile");
     }
   }, [isLoadingProfile, isProfileComplete, location.pathname, navigate]);
+  const { logout, user: authUser } = useAuth();
+
+  // Get user from auth context or sessionStorage as fallback
+  const user = authUser || JSON.parse(sessionStorage.getItem("user") || "null");
 
   const menuItems = [
     {
@@ -108,16 +132,28 @@ const DoctorLayout = () => {
       icon: <PersonBadge size={20} />,
       link: "/doctor/assistants",
     },
-    {
-      title: "Thông báo nghỉ",
-      icon: <BellSlash size={20} />,
-      link: "/doctor/absence",
-    },
   ];
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    navigate("/home");
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout với refreshToken
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await logoutApi.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+      // Vẫn tiếp tục logout local nếu API thất bại
+    } finally {
+      // Gọi logout từ useAuth để clear auth context
+      logout();
+      // Clear localStorage nếu có
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("refreshToken");
+      // Navigate về trang login
+      navigate("/login");
+    }
   };
 
   return (
@@ -184,7 +220,7 @@ const DoctorLayout = () => {
             >
               <PersonCircle size={32} />
               <div className="user-info">
-                <span className="user-name">{user.username}</span>
+                <span className="user-name">{user?.full_name || user?.name || user?.username || "Bác sĩ"}</span>
                 <span className="user-role">Bác sĩ</span>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react"; // Thêm useEffect
 import {
   Plus,
   Trash2,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
+import { Spinner } from "react-bootstrap"; // Thêm Spinner
 
 const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([]);
@@ -19,6 +20,7 @@ const DoctorManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [specialties, setSpecialties] = useState([]);
+  const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   const [searchSpecialty, setSearchSpecialty] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,22 +29,32 @@ const DoctorManagement = () => {
     phone_number: "",
     full_name: "",
     specialty_id: "",
+    specialtyName: "",
   });
 
   useEffect(() => {
-    const fetchSpecialties = async () => {
+    const fetchClinicSpecialties = async () => {
+      setLoadingSpecialties(true);
       try {
-        const res = await adminclinicAPI.getSpecialties();
-        setSpecialties(res.data?.data || []);
+        const res = await adminclinicAPI.getClinicByAdmin();
+        const clinicData = res.data?.data;
+
+        if (clinicData && Array.isArray(clinicData.specialties)) {
+          setSpecialties(clinicData.specialties);
+        } else {
+          setSpecialties([]);
+          toast.warn("Phòng khám chưa đăng ký chuyên khoa nào, hoặc API lỗi.");
+        }
       } catch (err) {
-        console.error("Lỗi khi lấy danh sách chuyên khoa:", err);
-        toast.error("Không thể lấy danh sách chuyên khoa: " + err.message);
+        console.error("Lỗi khi lấy chuyên khoa của phòng khám:", err);
+        toast.error("Không thể lấy chuyên khoa của phòng khám: " + err.message);
+      } finally {
+        setLoadingSpecialties(false);
       }
     };
-    fetchSpecialties();
+    fetchClinicSpecialties();
   }, []);
 
-  //Lấy danh sách bác sĩ từ API
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -56,6 +68,7 @@ const DoctorManagement = () => {
           return {
             id: doc._id,
             name: doc.user_id?.full_name || "Không rõ",
+            avatar: doc.user_id?.avatar_url || null,
             specialty: specialties,
             email: doc.user_id?.account_id?.email || "N/A",
             phone: doc.user_id?.account_id?.phone_number || "N/A",
@@ -76,7 +89,6 @@ const DoctorManagement = () => {
     fetchDoctors();
   }, []);
 
-  //Thêm bác sĩ mới
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -91,7 +103,7 @@ const DoctorManagement = () => {
         password: formData.password,
         phone_number: formData.phone_number,
         full_name: formData.full_name,
-        specialty_id: formData.specialty,
+        specialty_id: [formData.specialty_id],
       };
 
       const res = await adminclinicAPI.createAccountDoctor(payload);
@@ -114,6 +126,7 @@ const DoctorManagement = () => {
       phone_number: "",
       full_name: "",
       specialty_id: "",
+      specialtyName: "",
     });
     setShowModal(true);
   };
@@ -129,9 +142,9 @@ const DoctorManagement = () => {
       doctors.map((doc) =>
         doc.id === id
           ? {
-              ...doc,
-              status: doc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-            }
+            ...doc,
+            status: doc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+          }
           : doc
       )
     );
@@ -236,11 +249,10 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => handleToggleStatus(doctor.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${
-                      doctor.status === "ACTIVE"
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${doctor.status === "ACTIVE"
                         ? "bg-green-100 text-green-700 hover:bg-green-200"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
+                      }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -308,7 +320,6 @@ const DoctorManagement = () => {
                   placeholder="Nhập tên bác sĩ"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Tên đăng nhập
@@ -324,7 +335,6 @@ const DoctorManagement = () => {
                   placeholder="Nhập username"
                 />
               </div>
-
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Mật khẩu
@@ -350,7 +360,6 @@ const DoctorManagement = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Điện thoại
@@ -366,7 +375,6 @@ const DoctorManagement = () => {
                   placeholder="Nhập số điện thoại"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Chuyên khoa
@@ -383,31 +391,51 @@ const DoctorManagement = () => {
 
                 {/* Dropdown cuộn */}
                 <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg">
-                  {specialties
-                    .filter((s) =>
-                      s.name
-                        .toLowerCase()
-                        .includes(searchSpecialty.toLowerCase())
-                    )
-                    .map((s) => (
-                      <div
-                        key={s._id}
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            specialty: s._id,
-                            specialtyName: s.name,
-                          })
-                        }
-                        className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${
-                          formData.specialty === s._id
-                            ? "bg-blue-100 text-blue-700 font-semibold"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {s.name}
-                      </div>
-                    ))}
+                  {/* Hiển thị loading */}
+                  {loadingSpecialties ? (
+                    <div className="flex justify-center items-center p-4">
+                      <Spinner animation="border" size="sm" />
+                      <span className="ml-2 text-sm text-gray-500">
+                        Đang tải...
+                      </span>
+                    </div>
+                  ) : (
+                    // Hiển thị danh sách
+                    specialties
+                      .filter((s) =>
+                        s.name
+                          .toLowerCase()
+                          .includes(searchSpecialty.toLowerCase())
+                      )
+                      .map((s) => (
+                        <div
+                          key={s._id}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+
+                              specialty_id: s._id,
+                              specialtyName: s.name,
+                            })
+                          }
+                          className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${
+                            formData.specialty_id === s._id
+                              ? "bg-blue-100 text-blue-700 font-semibold"
+                              : "text-gray-700"
+                          }`}
+                          _id
+                        >
+                          {s.name}
+                        </div>
+                      ))
+                  )}
+                  {/* Hiển thị nếu không có chuyên khoa */}
+                  {!loadingSpecialties && specialties.length === 0 && (
+                    <p className="p-3 text-sm text-gray-500 italic">
+                      Không tìm thấy chuyên khoa nào. Vui lòng thêm chuyên khoa
+                      tại trang "Tạo phòng khám".
+                    </p>
+                  )}
                 </div>
 
                 {/* Hiển thị chuyên khoa đã chọn */}
@@ -417,7 +445,6 @@ const DoctorManagement = () => {
                   </p>
                 )}
               </div>
-
               <div className="flex gap-3 justify-end pt-4">
                 <button
                   type="button"

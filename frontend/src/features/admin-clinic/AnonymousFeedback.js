@@ -187,21 +187,6 @@ export default function AnonymousFeedback() {
                 )}
             </AnimatePresence>
 
-            {/* Banner Thông tin Ẩn danh */}
-            {showAnonymousInfo && (
-                <div className="flex items-start gap-3 p-4 bg-blue-50 border-l-4 border-l-blue-500 rounded-lg">
-                    <Info size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                        <p className="text-sm text-blue-700">
-                            <strong className="font-semibold text-blue-900">
-                                Chế độ Ẩn danh đang BẬT:
-                            </strong>{" "}
-                            Tên của bệnh nhân chọn ẩn danh sẽ được che giấu.
-                        </p>
-                    </div>
-                </div>
-            )}
-
             {/* Stats (cập nhật để dùng state `feedbacks`) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Card Tích cực (Đã thêm hover:-translate-y-1) */}

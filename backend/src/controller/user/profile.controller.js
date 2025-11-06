@@ -12,7 +12,7 @@ exports.getMyProfile = async (req, res) => {
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
 
         const user = await User.findOne({ account_id: accountId })
-            .populate("account_id", "username email status role")
+            .populate("account_id", "username email phone_number status role")
             .populate("patients", "province_code ward_code") // virtual
             .lean({ virtuals: true }); // cần virtuals:true để có patients
 

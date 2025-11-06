@@ -2,19 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, User, MapPin, Calendar, Clock, FileText } from "lucide-react";
-
-// Helper format date/time
-const formatDate = (isoDate) => new Date(isoDate).toLocaleDateString("vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-});
-
-const formatTime = (isoDate) => new Date(isoDate).toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit"
-});
+import { formatDate, formatTime } from "../../../../utils/dateTimeUtils";
 
 export default function BookingSuccess({ bookingInfo }) {
     if (!bookingInfo) return null;
@@ -53,86 +41,111 @@ export default function BookingSuccess({ bookingInfo }) {
     // ... phần còn lại của component không đổi
 
     return (
-        <div className="bg-gray-100 min-h-screen py-12">
+        <div className="min-h-screen py-12 bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50">
             <div className="container mx-auto px-4">
-                <div className="max-w-2xl mx-auto">
-                    <div className="bg-white rounded-xl shadow p-8 text-center">
-                        <div className="mb-6 flex justify-center">
-                            <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
-                                <CheckCircle2 className="h-12 w-12 text-green-600" />
+                <div className="max-w-3xl mx-auto">
+                    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+                        {/* Success Header */}
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-8 text-center">
+                            <div className="mb-4 flex justify-center">
+                                <div className="h-24 w-24 rounded-full bg-white flex items-center justify-center shadow-lg animate-pulse">
+                                    <CheckCircle2 className="h-16 w-16 text-green-600" />
+                                </div>
                             </div>
+                            <h2 className="text-4xl font-bold text-white mb-2">Đặt lịch thành công!</h2>
+                            <p className="text-green-100 text-lg">
+                                Cảm ơn {successData.patientName} đã đặt lịch khám
+                            </p>
                         </div>
 
-                        <h2 className="text-3xl font-bold mb-2">Đặt lịch thành công!</h2>
-                        <p className="text-gray-600 mb-6 text-lg">
-                            Cảm ơn {successData.patientName} đã đặt lịch khám. Thông tin xác nhận đã được gửi đến email: {successData.patientEmail}.
-                        </p>
-
                         {/* Booking Info */}
-                        <div className="bg-gray-50 rounded-lg border p-6 mb-8 text-left space-y-4">
-
+                        <div className="p-8 text-left space-y-6">
                             {/* Mã Booking */}
-                            <div className="flex items-start gap-3">
-                                <FileText className="h-5 w-5 text-blue-600 mt-1" />
-                                <div>
-                                    <div className="font-semibold">Mã đặt lịch: {successData.bookingCode}</div>
-                                    <div className="text-sm text-gray-500">Lý do khám: {successData.reason}</div>
+                            <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                                <div className="flex items-start gap-3">
+                                    <FileText className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <div className="font-bold text-lg text-gray-900">Mã đặt lịch: <span className="text-blue-600">{successData.bookingCode}</span></div>
+                                        {successData.reason && (
+                                            <div className="text-sm text-gray-600 mt-1">Lý do khám: {successData.reason}</div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Bác sĩ */}
-                            <div className="flex items-start gap-3">
-                                <User className="h-5 w-5 text-blue-600 mt-1" />
-                                <div>
-                                    <div className="font-semibold">{successData.doctorName}</div>
-                                    <div className="text-sm text-gray-500">{successData.specialty}</div>
+                            <div className="bg-indigo-50 rounded-xl p-4 border-2 border-indigo-200">
+                                <div className="flex items-start gap-3">
+                                    <User className="h-6 w-6 text-indigo-600 flex-shrink-0" />
+                                    <div>
+                                        <div className="font-bold text-lg text-gray-900">{successData.doctorName}</div>
+                                        <div className="text-sm text-gray-600">{successData.specialty}</div>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Bệnh viện */}
-                            <div className="flex items-start gap-3">
-                                <MapPin className="h-5 w-5 text-blue-600 mt-1" />
-                                <div>
-                                    <div className="font-semibold">{successData.hospital}</div>
-                                    <div className="text-sm text-gray-500">{successData.location}</div>
+                            <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                                <div className="flex items-start gap-3">
+                                    <MapPin className="h-6 w-6 text-purple-600 flex-shrink-0" />
+                                    <div>
+                                        <div className="font-bold text-lg text-gray-900">{successData.hospital}</div>
+                                        <div className="text-sm text-gray-600">{successData.location}</div>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Ngày giờ */}
-                            <div className="flex items-center gap-3">
-                                <Calendar className="h-5 w-5 text-blue-600" />
-                                <span>{successData.date}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-blue-600" />
-                                <span>{successData.time}</span>
-                            </div>
-
-                            {/* Tổng chi phí */}
-                            <div className="pt-4 border-t flex justify-between">
-                                <span className="text-gray-500 font-semibold">Tổng chi phí:</span>
-                                <span className="text-2xl font-bold text-blue-600">{successData.price}</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="h-6 w-6 text-green-600 flex-shrink-0" />
+                                        <div>
+                                            <div className="text-xs text-gray-500 uppercase font-semibold">Ngày khám</div>
+                                            <div className="font-bold text-gray-900">{successData.date}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
+                                    <div className="flex items-center gap-3">
+                                        <Clock className="h-6 w-6 text-orange-600 flex-shrink-0" />
+                                        <div>
+                                            <div className="text-xs text-gray-500 uppercase font-semibold">Giờ đăt lịch khám</div>
+                                            <div className="font-bold text-gray-900">{successData.time}</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Thông tin liên hệ bệnh nhân */}
-                            <div className="pt-4 border-t text-sm text-gray-600 space-y-1">
-                                <div>Số điện thoại: {successData.patientPhone}</div>
-                                <div>Email: {successData.patientEmail}</div>
+                            <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                                <div className="text-sm text-gray-600 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-900">Số điện thoại:</span>
+                                        <span>{successData.patientPhone}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-900">Email:</span>
+                                        <span>{successData.patientEmail}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         {/* Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link to="/home/appointment">
-                                <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                    Xem lịch hẹn của tôi
-                                </button>
-                            </Link>
-                            <Link to="/home">
-                                <button className="px-6 py-3 border rounded-lg hover:bg-gray-100">
-                                    Về trang chủ
-                                </button>
-                            </Link>
+                        <div className="p-8 bg-gray-50 border-t border-gray-200">
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <Link to="/patient/appointment" className="flex-1 sm:flex-none">
+                                    <button className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+                                        Xem lịch hẹn của tôi
+                                    </button>
+                                </Link>
+                                <Link to="/home" className="flex-1 sm:flex-none">
+                                    <button className="w-full sm:w-auto px-8 py-4 border-2 border-gray-300 rounded-xl font-bold text-lg text-gray-700 hover:bg-gray-100 transition-all">
+                                        Về trang chủ
+                                    </button>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
