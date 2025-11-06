@@ -359,37 +359,57 @@ exports.getDoctorsByAdminClinic = async (adminAccountId) => {
   }
 };
 
-// Lấy danh sách chứng chỉ (PENDING)
+// Lấy danh sách chứng chỉ (PENDING) từ tất cả các phòng khám mà admin quản lý
 exports.getPendingDoctorLicenses = async (adminAccountId) => {
   try {
-    const clinicData = await exports.getClinicByAdmin(adminAccountId);
-    if (!clinicData.ok) {
-      throw new Error(
-        "Không tìm thấy phòng khám của admin: " + clinicData.message
-      );
+    // Lấy user tương ứng với account id
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) {
+      throw new Error("Không tìm thấy user của admin clinic");
     }
-    const clinicId = clinicData.data._id;
 
-    const doctorsInClinic = await Doctor.find({ clinic_id: clinicId }).select(
+    // Tìm bản ghi AdminClinic tương ứng
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic");
+    }
+
+    // Lấy TẤT CẢ các clinics mà admin clinic này quản lý
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id");
+    if (!clinics.length) {
+      return { ok: true, data: [] };
+    }
+
+    const clinicIds = clinics.map((c) => c._id);
+
+    // Lấy tất cả các doctors từ tất cả các clinics
+    const doctorsInClinics = await Doctor.find({ clinic_id: { $in: clinicIds } }).select(
       "_id"
     );
-    const doctorIds = doctorsInClinic.map((doc) => doc._id);
+    const doctorIds = doctorsInClinics.map((doc) => doc._id);
 
     if (doctorIds.length === 0) {
       return { ok: true, data: [] };
     }
 
+    // Lấy tất cả licenses PENDING của các doctors này
     const licenses = await License.find({
       doctor_id: { $in: doctorIds },
       status: "PENDING",
     })
       .populate({
         path: "doctor_id",
-        select: "user_id",
-        populate: {
-          path: "user_id",
-          select: "full_name avatar_url",
-        },
+        select: "user_id title clinic_id",
+        populate: [
+          {
+            path: "user_id",
+            select: "full_name avatar_url",
+          },
+          {
+            path: "clinic_id",
+            select: "name",
+          },
+        ],
       })
       .sort({ createdAt: -1 })
       .lean();
