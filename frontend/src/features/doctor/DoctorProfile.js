@@ -6,6 +6,7 @@ import defaultAvatar from "../../assets/images/default-avatar.png";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { formatDateShort } from "../../utils/dateTimeUtils";
+import { FaUserMd, FaLock, FaEdit, FaSave, FaIdCard, FaClock, FaCheckCircle, FaTimesCircle, FaExclamationTriangle, FaUpload } from "react-icons/fa"; // Thêm icon
 
 const API_BASE_URL = "http://localhost:5000/api/file";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
@@ -13,12 +14,73 @@ const FILE_SERVER_URL = "http://localhost:5000/uploads";
 // Helper function để xử lý URL ảnh
 const getImageUrl = (url) => {
   if (!url) return null;
-  // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
   if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
-  // Nếu không, thêm FILE_SERVER_URL phía trước
   return `${FILE_SERVER_URL}/${url}`;
+};
+
+const StatusTag = ({ status }) => {
+  let colorClass = "bg-gray-200 text-gray-800";
+  let text = status;
+  let Icon = FaExclamationTriangle;
+
+  switch (status) {
+    case "APPROVED":
+      colorClass = "bg-green-100 text-green-700 border border-green-300";
+      text = "Đã duyệt";
+      Icon = FaCheckCircle;
+      break;
+    case "REJECTED":
+      colorClass = "bg-red-100 text-red-700 border border-red-300";
+      text = "Bị từ chối";
+      Icon = FaTimesCircle;
+      break;
+    case "PENDING":
+      colorClass = "bg-yellow-100 text-yellow-700 border border-yellow-300";
+      text = "Đang chờ";
+      Icon = FaClock;
+      break;
+    default:
+      text = status;
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${colorClass}`}
+    >
+      <Icon className="mr-1.5 h-3 w-3" />
+      {text}
+    </span>
+  );
+};
+
+// Component cho phần thông tin chi tiết (InfoRow)
+const InfoRow = ({ label, value, isEditing, onChange, type = "text", rows = 1 }) => {
+  return (
+    <div className="flex flex-col space-y-1">
+      <label className="text-sm font-medium text-gray-500">{label}</label>
+      {isEditing ? (
+        type === "textarea" ? (
+          <textarea
+            rows={rows}
+            value={value || ""}
+            onChange={onChange}
+            className="w-full border border-gray-300 rounded-lg p-2.5 text-gray-800 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-none"
+          />
+        ) : (
+          <input
+            type={type}
+            value={value || ""}
+            onChange={onChange}
+            className="w-full border border-gray-300 rounded-lg p-2.5 text-gray-800 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out"
+          />
+        )
+      ) : (
+        <p className="text-gray-900 font-semibold whitespace-pre-line min-h-[1.5rem]">{value || "Chưa cập nhật"}</p>
+      )}
+    </div>
+  );
 };
 
 const DoctorProfile = () => {
@@ -92,7 +154,6 @@ const DoctorProfile = () => {
         document_file: null,
       });
 
-      // Dispatch event để DoctorLayout re-check profile completeness
       window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi gửi chứng chỉ:", err);
@@ -217,7 +278,6 @@ const DoctorProfile = () => {
       }
       setNewAvatarFile(null);
 
-      // Dispatch event để DoctorLayout re-check profile completeness
       window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
@@ -261,346 +321,315 @@ const DoctorProfile = () => {
   const shouldShowUploadForm = !hasPendingLicense && !hasValidApprovedLicense;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
-      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8 border border-blue-100">
+    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-xl p-8 lg:p-10 border border-gray-100">
+        
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-blue-700">Hồ sơ bác sĩ</h2>
-          <div className="space-x-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-4 mb-6">
+          <h2 className="text-3xl font-extrabold text-blue-800 flex items-center mb-4 sm:mb-0">
+            <FaUserMd className="mr-3 h-7 w-7 text-blue-500" />
+            Hồ sơ Bác sĩ
+          </h2>
+          <div className="flex flex-wrap space-x-3">
             <Button
               onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={`flex items-center px-4 py-2 font-semibold rounded-lg shadow-md transition duration-300 ${
+                isEditing
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-blue-600 hover:bg-blue-700"
+              } text-white`}
+              disabled={loading}
             >
+              {isEditing ? <FaSave className="mr-2" /> : <FaEdit className="mr-2" />}
               {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
             </Button>
             <Button
               onClick={() => navigate("/doctor/change-password")}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="flex items-center px-4 py-2 font-semibold rounded-lg shadow-md bg-gray-500 hover:bg-gray-600 text-white transition duration-300"
             >
+              <FaLock className="mr-2" />
               Đổi mật khẩu
             </Button>
           </div>
         </div>
 
-        {/* Avatar */}
-        <div className="flex flex-col items-center mb-6">
-          <img
-            src={
-              doctorProfile.user?.avatar_url
-                ? doctorProfile.user.avatar_url
-                : defaultAvatar
-            }
-            alt="Doctor Avatar"
-            className="w-32 h-32 rounded-full border-4 border-blue-300 shadow-md object-cover"
-          />
-          {isEditing && (
-            <div className="mt-3">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="text-sm text-gray-600"
+        {/* Profile Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Cột trái: Avatar & Account Info */}
+          <div className="lg:col-span-1 space-y-8">
+            {/* Avatar */}
+            <div className="flex flex-col items-center p-6 bg-blue-50 rounded-xl border border-blue-100 shadow-inner">
+              <img
+                src={
+                  doctorProfile.user?.avatar_url
+                    ? doctorProfile.user.avatar_url
+                    : defaultAvatar
+                }
+                alt="Doctor Avatar"
+                className="w-40 h-40 rounded-full border-4 border-white shadow-lg object-cover ring-4 ring-blue-300"
               />
-            </div>
-          )}
-        </div>
-
-        {/* Thông tin tài khoản */}
-        <section className="mb-6">
-          <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-            Thông tin tài khoản
-          </h3>
-          <div className="space-y-3">
-            {["username", "email", "phone_number"].map((field) => (
-              <div key={field}>
-                <label className="block text-gray-600 font-medium mb-1 capitalize">
-                  {field.replace("_", " ")}
-                </label>
-                {isEditing ? (
+              {isEditing && (
+                <div className="mt-4 w-full">
+                  <label htmlFor="avatar-upload" className="block text-center cursor-pointer bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 text-sm">
+                    Thay đổi ảnh đại diện
+                  </label>
                   <input
-                    type="text"
-                    value={doctorProfile.account?.[field] || ""}
-                    onChange={(e) =>
-                      handleChange("account", field, e.target.value)
-                    }
-                    className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
                   />
-                ) : (
-                  <p className="text-gray-800">
-                    {doctorProfile.account?.[field] || ""}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Thông tin cá nhân */}
-        <section className="mb-6">
-          <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-            Thông tin cá nhân
-          </h3>
-          <div className="space-y-3">
-            {[
-              ["full_name", "Họ và tên"],
-              ["dob", "Ngày sinh"],
-              ["gender", "Giới tính"],
-              ["address", "Địa chỉ"],
-            ].map(([field, label]) => (
-              <div key={field}>
-                <label className="block text-gray-600 font-medium mb-1">
-                  {label}
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={doctorProfile.user?.[field] || ""}
-                    onChange={(e) =>
-                      handleChange("user", field, e.target.value)
-                    }
-                    className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                ) : (
-                  <p className="text-gray-800">{doctorProfile.user?.[field]}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Thông tin chuyên môn */}
-        <section>
-          <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-            Thông tin chuyên môn
-          </h3>
-          <div className="space-y-3">
-            {[
-              ["title", "Chức danh"],
-              ["degree", "Bằng cấp"],
-              ["experience", "Kinh nghiệm"],
-              ["description", "Mô tả"],
-            ].map(([field, label]) => (
-              <div key={field}>
-                <label className="block text-gray-600 font-medium mb-1">
-                  {label}
-                </label>
-                {isEditing ? (
-                  <textarea
-                    rows={field === "description" ? 3 : 1}
-                    value={doctorProfile.doctor?.[field] || ""}
-                    onChange={(e) =>
-                      handleChange("doctor", field, e.target.value)
-                    }
-                    className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                ) : (
-                  <p className="text-gray-800 whitespace-pre-line">
-                    {doctorProfile.doctor?.[field]}
-                  </p>
-                )}
-              </div>
-            ))}
-
-            {/* Danh sách chuyên khoa */}
-            <div>
-              <label className="block text-gray-600 font-medium mb-1">
-                Chuyên khoa
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={(doctorProfile.doctor?.specialties || []).join(", ")}
-                  onChange={(e) =>
-                    handleChange(
-                      "doctor",
-                      "specialties",
-                      e.target.value.split(",").map((s) => s.trim())
-                    )
-                  }
-                  className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                />
-              ) : (
-                <p className="text-gray-800">
-                  {(doctorProfile.doctor?.specialties || []).join(", ")}
-                </p>
+                </div>
               )}
+              <h3 className="mt-4 text-xl font-bold text-gray-800 text-center">
+                {doctorProfile.user?.full_name || "Chưa cập nhật tên"}
+              </h3>
+            </div>
+            
+            {/* Thông tin tài khoản */}
+            <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+              <h3 className="text-xl font-bold text-blue-700 mb-4 border-b pb-2 flex items-center">
+                <FaLock className="mr-2 h-5 w-5" /> Thông tin tài khoản
+              </h3>
+              <div className="space-y-4">
+                <InfoRow
+                  label="Tên đăng nhập"
+                  value={doctorProfile.account?.username}
+                  isEditing={isEditing}
+                  onChange={(e) => handleChange("account", "username", e.target.value)}
+                />
+                <InfoRow
+                  label="Email"
+                  value={doctorProfile.account?.email}
+                  isEditing={isEditing}
+                  onChange={(e) => handleChange("account", "email", e.target.value)}
+                  type="email"
+                />
+                <InfoRow
+                  label="Số điện thoại"
+                  value={doctorProfile.account?.phone_number}
+                  isEditing={isEditing}
+                  onChange={(e) => handleChange("account", "phone_number", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Cột phải: Personal & Professional Info */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Thông tin cá nhân */}
+            <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+              <h3 className="text-xl font-bold text-blue-700 mb-4 border-b pb-2 flex items-center">
+                <FaUserMd className="mr-2 h-5 w-5" /> Thông tin cá nhân
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoRow
+                  label="Ngày sinh"
+                  value={doctorProfile.user?.dob}
+                  isEditing={isEditing}
+                  onChange={(e) => handleChange("user", "dob", e.target.value)}
+                  type="date"
+                />
+                <InfoRow
+                  label="Giới tính"
+                  value={doctorProfile.user?.gender}
+                  isEditing={isEditing}
+                  onChange={(e) => handleChange("user", "gender", e.target.value)}
+                />
+                <div className="md:col-span-2">
+                  <InfoRow
+                    label="Địa chỉ"
+                    value={doctorProfile.user?.address}
+                    isEditing={isEditing}
+                    onChange={(e) => handleChange("user", "address", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Thông tin chuyên môn */}
+            <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+              <h3 className="text-xl font-bold text-blue-700 mb-4 border-b pb-2 flex items-center">
+                <FaIdCard className="mr-2 h-5 w-5" /> Thông tin chuyên môn
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InfoRow
+                        label="Chức danh"
+                        value={doctorProfile.doctor?.title}
+                        isEditing={isEditing}
+                        onChange={(e) => handleChange("doctor", "title", e.target.value)}
+                    />
+                    <InfoRow
+                        label="Bằng cấp"
+                        value={doctorProfile.doctor?.degree}
+                        isEditing={isEditing}
+                        onChange={(e) => handleChange("doctor", "degree", e.target.value)}
+                    />
+                    <div className="md:col-span-2">
+                      <InfoRow
+                          label="Chuyên khoa"
+                          value={(doctorProfile.doctor?.specialties || []).join(", ")}
+                          isEditing={isEditing}
+                          onChange={(e) => handleChange("doctor", "specialties", e.target.value.split(",").map((s) => s.trim()))}
+                      />
+                    </div>
+                </div>
+                <InfoRow
+                    label="Kinh nghiệm (năm)"
+                    value={doctorProfile.doctor?.experience}
+                    isEditing={isEditing}
+                    onChange={(e) => handleChange("doctor", "experience", e.target.value)}
+                    type="number"
+                />
+                <InfoRow
+                    label="Mô tả"
+                    value={doctorProfile.doctor?.description}
+                    isEditing={isEditing}
+                    onChange={(e) => handleChange("doctor", "description", e.target.value)}
+                    type="textarea"
+                    rows={3}
+                />
+              </div>
             </div>
 
             {/* Chứng chỉ hành nghề */}
-            <section className="mt-10">
-              <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-                Chứng chỉ hành nghề
+            <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+              <h3 className="text-xl font-bold text-blue-700 mb-4 border-b pb-2 flex items-center">
+                <FaIdCard className="mr-2 h-5 w-5" /> Chứng chỉ hành nghề
               </h3>
-
+              
               {/* Danh sách chứng chỉ */}
-              <div className="space-y-3 mb-6">
+              <div className="space-y-4 mb-6">
                 {(doctorProfile.licenses || []).length > 0 ? (
                   doctorProfile.licenses.map((lic, idx) => (
                     <div
                       key={idx}
-                      className="p-4 border border-blue-100 rounded-lg bg-blue-50 shadow-sm"
+                      className="p-4 border border-blue-200 rounded-lg bg-blue-50 shadow-sm transition duration-300 hover:shadow-md"
                     >
-                      <p>
-                        <strong>Số hiệu:</strong> {lic.licenseNumber}
-                      </p>
-                      <p>
-                        <strong>Cơ quan cấp:</strong> {lic.issued_by}
-                      </p>
-                      <p>
-                        <strong>Ngày cấp:</strong>{" "}
-                        {formatDateShort(lic.issued_date)}
-                      </p>
-                      <p>
-                        <strong>Ngày hết hạn:</strong>{" "}
-                        {/* Sửa lỗi crash nếu expiry_date là null */}
-                        {lic.expiry_date
-                          ? formatDateShort(lic.expiry_date)
-                          : "Không có"}
-                      </p>
-                      <p>
-                        <strong>File:</strong>{" "}
-                        <a
-                          href={`${FILE_SERVER_URL}/${lic.document_url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline"
-                        >
-                          {lic.document_url}
-                        </a>
-                      </p>
-                      <p>
-                        <strong>Trạng thái:</strong>{" "}
-                        <span
-                          className={`font-semibold ${
-                            lic.status === "APPROVED"
-                              ? "text-green-600"
-                              : lic.status === "REJECTED"
-                              ? "text-red-600"
-                              : "text-yellow-600"
-                          }`}
-                        >
-                          {lic.status}
-                        </span>
-                      </p>
+                      <div className="flex justify-between items-center mb-2">
+                          <p className="text-lg font-semibold text-blue-700">Số hiệu: {lic.licenseNumber}</p>
+                          <StatusTag status={lic.status} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 text-sm text-gray-700">
+                          <div>
+                            <p><strong>Cơ quan cấp:</strong> {lic.issued_by}</p>
+                            <p><strong>Ngày cấp:</strong> {formatDateShort(lic.issued_date)}</p>
+                          </div>
+                          <div>
+                            <p>
+                                <strong>Ngày hết hạn:</strong>{" "}
+                                {lic.expiry_date
+                                  ? formatDateShort(lic.expiry_date)
+                                  : <span className="text-gray-500">Không có</span>}
+                            </p>
+                            <p>
+                                <strong>File đính kèm:</strong>{" "}
+                                <a
+                                  href={`${FILE_SERVER_URL}/${lic.document_url}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline transition duration-150"
+                                >
+                                  Tải về
+                                </a>
+                            </p>
+                          </div>
+                      </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500">
-                    Chưa có chứng chỉ nào được gửi.
-                  </p>
+                  <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                    <FaIdCard className="mx-auto h-8 w-8 mb-2" />
+                    <p>Chưa có chứng chỉ nào được gửi.</p>
+                  </div>
                 )}
               </div>
 
-              {/* Form gửi chứng chỉ (Đã bọc điều kiện) */}
+              {/* Form gửi chứng chỉ */}
               {shouldShowUploadForm && (
-                <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
-                  <h4 className="text-blue-700 font-semibold mb-4">
-                    Gửi chứng chỉ mới
+                <div className="p-6 border border-green-300 rounded-xl shadow-inner bg-green-50">
+                  <h4 className="text-green-700 font-bold mb-4 flex items-center">
+                    <FaUpload className="mr-2" /> Gửi chứng chỉ mới
                   </h4>
                   <form
                     onSubmit={async (e) => {
                       e.preventDefault();
                       await handleUploadLicense();
                     }}
-                    className="space-y-3"
+                    className="space-y-4"
                   >
                     <div>
-                      <label className="block text-gray-600 font-medium mb-1">
-                        Số hiệu chứng chỉ
-                      </label>
+                      <label className="block text-gray-600 font-medium mb-1">Số hiệu chứng chỉ</label>
                       <input
                         type="text"
-                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-green-500 focus:border-green-500 outline-none"
                         value={newLicense.licenseNumber}
-                        onChange={(e) =>
-                          setNewLicense({
-                            ...newLicense,
-                            licenseNumber: e.target.value,
-                          })
-                        }
+                        onChange={(e) => setNewLicense({ ...newLicense, licenseNumber: e.target.value })}
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-medium mb-1">
-                        Cơ quan cấp
-                      </label>
+                      <label className="block text-gray-600 font-medium mb-1">Cơ quan cấp</label>
                       <input
                         type="text"
-                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-green-500 focus:border-green-500 outline-none"
                         value={newLicense.issued_by}
-                        onChange={(e) =>
-                          setNewLicense({
-                            ...newLicense,
-                            issued_by: e.target.value,
-                          })
-                        }
+                        onChange={(e) => setNewLicense({ ...newLicense, issued_by: e.target.value })}
                         required
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-gray-600 font-medium mb-1">
-                          Ngày cấp
-                        </label>
+                        <label className="block text-gray-600 font-medium mb-1">Ngày cấp</label>
                         <input
                           type="date"
-                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-green-500 focus:border-green-500 outline-none"
                           value={newLicense.issued_date}
-                          onChange={(e) =>
-                            setNewLicense({
-                              ...newLicense,
-                              issued_date: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setNewLicense({ ...newLicense, issued_date: e.target.value })}
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-600 font-medium mb-1">
-                          Ngày hết hạn
-                        </label>
+                        <label className="block text-gray-600 font-medium mb-1">Ngày hết hạn (Nếu có)</label>
                         <input
                           type="date"
-                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-green-500 focus:border-green-500 outline-none"
                           value={newLicense.expiry_date}
-                          onChange={(e) =>
-                            setNewLicense({
-                              ...newLicense,
-                              expiry_date: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setNewLicense({ ...newLicense, expiry_date: e.target.value })}
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-medium mb-1">
-                        Tệp chứng chỉ (PDF)
-                      </label>
+                      <label className="block text-gray-600 font-medium mb-1">Tệp chứng chỉ (PDF)</label>
                       <input
                         type="file"
                         accept="application/pdf"
                         onChange={(e) => handleFileChange(e)}
-                        className="text-sm text-gray-600"
+                        className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
                         required
                       />
                     </div>
 
                     <Button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition duration-300"
                     >
                       Gửi phê duyệt
                     </Button>
                   </form>
                 </div>
               )}
-            </section>
+            </div>
           </div>
-        </section>
+        </div>
+
       </div>
     </div>
   );
