@@ -1,66 +1,68 @@
 const {
   createDoctor,
-  getClinicByAdmin,
+  getClinicByAdmin: getClinicByAdminSvc,
   getDoctorsByAdminClinic,
   createAssistant,
   getAssistantsByClinic,
-  deleteAssistant,
+  deleteAssistant: deleteAssistantSvc,
   getPendingDoctorLicenses,
-  updateLicenseStatus,
+  updateLicenseStatus: updateLicenseStatusSvc,
 } = require("../../service/admin_clinic/adminClinic.service");
 
-//Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
+// Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
 exports.createAccountDoctor = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
+    const clinicResult = await getClinicByAdminSvc(accountId);
     if (!clinicResult.ok) return res.status(400).json(clinicResult);
 
     const clinic = clinicResult.data;
 
-    console.log("res.body: ", req.body);
-    
+    // Chuẩn hoá specialty_id về mảng string unique + sạch (khớp model Doctor)
+    const rawSpec = Array.isArray(req.body?.specialty_id) ? req.body.specialty_id : [];
+    const specialty_id = [...new Set(rawSpec.map(String))].filter(Boolean);
 
-    const payload = { ...req.body, clinic_id: clinic._id };
+    const payload = { ...req.body, clinic_id: clinic._id, specialty_id };
+
     const result = await createDoctor(payload);
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//Lấy clinic mà admin clinic hiện tại quản lý
+// Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
-    const result = await getClinicByAdmin(accountId);
-    res.status(result.ok ? 200 : 400).json(result);
+    const result = await getClinicByAdminSvc(accountId);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//Lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
+// Lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
 exports.getDoctorsOfAdminClinic = async (req, res, next) => {
   try {
     const adminAccountId = req.user?.sub || req.query.adminAccountId;
     if (!adminAccountId) {
       return res
         .status(400)
-        .json({ message: "Thiếu adminAccountId hoặc token" });
+        .json({ success: false, message: "Thiếu adminAccountId hoặc token" });
     }
 
     const doctors = await getDoctorsByAdminClinic(adminAccountId);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       total: doctors.length,
       data: doctors,
     });
   } catch (err) {
     console.error("Lỗi trong controller getDoctorsOfAdminClinic:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Không thể lấy danh sách bác sĩ",
       error: err.message,
@@ -68,79 +70,88 @@ exports.getDoctorsOfAdminClinic = async (req, res, next) => {
   }
 };
 
-//tạo tài khoản trợ lý cho bác sĩ
+// Tạo tài khoản trợ lý cho bác sĩ
 exports.createAccountAssistant = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
+    const clinicResult = await getClinicByAdminSvc(accountId);
     if (!clinicResult.ok) return res.status(400).json(clinicResult);
 
     const clinic = clinicResult.data;
 
-    const payload = { ...req.body, clinic_id: clinic._id };
+    // FE có thể gửi roles[] hoặc type[] → gộp & chuẩn hoá sang type[] (unique + sạch)
+    const rolesArr = Array.isArray(req.body?.roles) ? req.body.roles : [];
+    const typeArr = Array.isArray(req.body?.type) ? req.body.type : [];
+    const type = [...new Set([...rolesArr, ...typeArr].map(String))].filter(Boolean);
+
+    const payload = { ...req.body, clinic_id: clinic._id, type };
 
     const result = await createAssistant(payload);
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//lấy danh sách trợ lý theo clinic mà admin_clinic đang quản lý
+// Lấy danh sách trợ lý theo clinic mà admin_clinic đang quản lý
 exports.getAssistants = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
+    const clinicResult = await getClinicByAdminSvc(accountId);
     if (!clinicResult.ok) return res.status(400).json(clinicResult);
 
     const clinic = clinicResult.data;
 
     const result = await getAssistantsByClinic(clinic._id);
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//xoá trợ lý theo clinic mà admin_clinic đang quản lý
+// Xoá trợ lý theo clinic mà admin_clinic đang quản lý
 exports.deleteAssistant = async (req, res, next) => {
   try {
-    await deleteAssistant(req.params.id);
-    res.status(200).json({ ok: true, message: "Xoá trợ lý thành công." });
+    await deleteAssistantSvc(req.params.id);
+    return res
+      .status(200)
+      .json({ ok: true, message: "Xoá trợ lý thành công." });
   } catch (err) {
     next(err);
   }
 };
 
-//lấy danh sách giấy phép bác sĩ đang chờ duyệt
+// Lấy danh sách giấy phép bác sĩ đang chờ duyệt (PENDING)
 exports.getPendingLicenses = async (req, res, next) => {
   try {
-    const adminAccountId = req.user?.sub;
-
+    const adminAccountId = req.user?.sub || req.query.adminAccountId;
     const result = await getPendingDoctorLicenses(adminAccountId);
-
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//cập nhật trạng thái giấy phép bác sĩ
+// Cập nhật trạng thái giấy phép bác sĩ (APPROVED / REJECTED)
 exports.updateLicenseStatus = async (req, res, next) => {
   try {
-    const { id: licenseId } = req.params;
-    const { status, rejected_reason } = req.body;
     const adminAccountId = req?.user?.sub;
+    const { id: licenseId } = req.params;
+    const { status } = req.body;
+    // chấp nhận cả rejectionReason & rejected_reason từ FE
+    const rejectionReason =
+      req.body?.rejectionReason ?? req.body?.rejected_reason ?? "";
 
-    const result = await updateLicenseStatus(
+    const result = await updateLicenseStatusSvc(
       adminAccountId,
       licenseId,
       status,
-      rejected_reason
+      rejectionReason
     );
-    res.status(result.ok ? 200 : 400).json(result);
+
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
