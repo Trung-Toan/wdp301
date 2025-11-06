@@ -232,6 +232,8 @@ async function createAppointmentStatusUpdateNotification(appointmentData, newSta
     }
 }
 
+
+
 module.exports = {
     createAppointmentNotification,
     getNotifications,

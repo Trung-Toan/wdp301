@@ -124,17 +124,23 @@ export const formatTimeRange = (startTime, endTime) => {
  * @returns {string} - Thời gian format (ví dụ: "14:30")
  */
 export const formatISOTime = (isoString) => {
-    if (!isoString) return "N/A";
-    
-    try {
-        const date = new Date(isoString);
-        if (isNaN(date.getTime())) return "N/A";
-        
-        return formatTime(date);
-    } catch (error) {
-        console.error("Error formatting ISO time:", error);
-        return "N/A";
-    }
+  if (!isoString) return "N/A";
+  
+  const dateObj = new Date(isoString);
+
+  // Kiểm tra lỗi "Invalid Date"
+  if (isNaN(dateObj.getTime())) {
+    console.error(`Invalid Date value for ISO string: ${isoString}`);
+    return "Lỗi định dạng thời gian"; 
+  }
+
+  // Sử dụng toLocaleTimeString với timeZone: 'UTC'
+  return dateObj.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: 'UTC' // <--- **ĐẢM BẢO HIỂN THỊ THEO MÚI GIỜ 0**
+  });
 };
 
 /**
