@@ -19,9 +19,6 @@ exports.create = async (req, res) => {
         }
 
         if (/duplicate key|Duplicate booking|E11000/i.test(msg)) {
-            // console.log('🔍 Original error message:', msg);
-            // console.log('🔍 Error stack:', err.stack);
-            // console.log('🔍 Full error object:', JSON.stringify(err, null, 2));
             return fail(res, new Error("Duplicate booking for this slot"), 409);
         }
 
@@ -113,7 +110,6 @@ exports.checkSlotAvailability = async (req, res) => {
 
         const result = await svc.checkSlotAvailability(slotId, new Date(scheduledDate));
 
-        // Kiểm tra bệnh nhân đã có lịch trong slot này chưa
         if (patientId && mongoose.Types.ObjectId.isValid(patientId)) {
             const existingAppointment = await Appointment.findOne({
                 slot_id: new mongoose.Types.ObjectId(slotId),
