@@ -11,6 +11,8 @@ import {
   Bell,
   PersonCircle,
 } from "react-bootstrap-icons";
+import { useAuth } from "../hooks/useAuth";
+import { logoutApi } from "../api/auth/logout/LogoutApt";
 import "../styles/doctor/DoctorLayout.css";
 const { useDataByUrl } = require("../utility/data.utils");
 
@@ -61,10 +63,28 @@ const DoctorLayout = () => {
 
   // 🟢 Lấy menu tương ứng với type (hoặc rỗng)
   const menuItems = menusByType[assistantProfile?.type] || [];
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout với refreshToken
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await logoutApi.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+      // Vẫn tiếp tục logout local nếu API thất bại
+    } finally {
+      // Gọi logout từ useAuth để clear auth context
+      logout();
+      // Clear localStorage nếu có
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("refreshToken");
+      // Navigate về trang login
+      navigate("/login");
+    }
   };
 
   return (
