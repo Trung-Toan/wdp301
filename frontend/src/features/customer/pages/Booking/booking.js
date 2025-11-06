@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, Clock, MapPin, User, FileText, ChevronLeft, AlertCircle, CheckCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, User, FileText, ChevronLeft, AlertCircle, CheckCircle, Heart } from "lucide-react";
 import { toast } from "react-toastify";
 import BookingSuccess from "./bookingSuccess";
 import { patientsApi } from "../../../../api/patients/patientsApi";
@@ -23,6 +23,31 @@ const getImageUrl = (url) => {
     return `${FILE_SERVER_URL}/${url}`;
 };
 
+// Helper function để tính tuổi từ ngày sinh
+const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    try {
+        const birthDate = new Date(dateOfBirth);
+        const today = new Date();
+        
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        // Nếu chưa tới sinh nhật năm nay
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        if (isNaN(age) || age < 0) return null;
+        return age;
+    } catch (err) {
+        return null;
+    }
+};
+
+// Ngưỡng tuổi để xác định người già (>= 60 tuổi)
+const ELDERLY_AGE_THRESHOLD = 60;
+
 export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId, doctor } = location.state || {};
@@ -38,6 +63,10 @@ export function BookingContent() {
         ward: "",
         address: "",
         reason: "",
+        // Thông tin người thân (cho người già)
+        relativeName: "",
+        relativePhone: "",
+        relativeRelationship: "",
     });
 
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -53,6 +82,10 @@ export function BookingContent() {
     const [pendingSubmit, setPendingSubmit] = useState(false);
     const [clinicData, setClinicData] = useState(null);
     const [doctorData, setDoctorData] = useState(null);
+    
+    // States cho người già
+    const [isElderly, setIsElderly] = useState(false);
+    const [patientAge, setPatientAge] = useState(null);
 
     const [storedAccount, setStoredAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
     const [storedUser, setStoredUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
@@ -160,6 +193,18 @@ export function BookingContent() {
         }
         fetchWards();
     }, [formData.province]);
+
+    // Tính tuổi và xác định người già
+    useEffect(() => {
+        if (formData.dateOfBirth) {
+            const age = calculateAge(formData.dateOfBirth);
+            setPatientAge(age);
+            setIsElderly(age !== null && age >= ELDERLY_AGE_THRESHOLD);
+        } else {
+            setPatientAge(null);
+            setIsElderly(false);
+        }
+    }, [formData.dateOfBirth]);
 
     // Gán dữ liệu user vào form
     useEffect(() => {
@@ -615,6 +660,16 @@ export function BookingContent() {
             return;
         }
 
+        // Kiểm tra thông tin người thân cho người già (khuyến nghị, không bắt buộc)
+        if (isElderly && !formData.relativeName && !formData.relativePhone) {
+            const shouldContinue = window.confirm(
+                "Bạn là người cao tuổi. Chúng tôi khuyến nghị bạn nên điền thông tin người thân để được hỗ trợ tốt hơn. Bạn có muốn tiếp tục đặt lịch không?"
+            );
+            if (!shouldContinue) {
+                return;
+            }
+        }
+
         // Kiểm tra cảnh báo chéo thành phố và yêu cầu xác nhận
         if (locationWarning?.isCrossCity && !pendingSubmit) {
             setShowConfirmModal(true);
@@ -660,6 +715,14 @@ export function BookingContent() {
                 ward_code: formData.ward,
                 address_text: formData.address,
                 reason: formData.reason,
+                // Thông tin người thân (cho người già)
+                ...(isElderly && {
+                    relative_name: formData.relativeName || null,
+                    relative_phone: formData.relativePhone || null,
+                    relative_relationship: formData.relativeRelationship || null,
+                    is_elderly: true,
+                    patient_age: patientAge,
+                }),
             };
 
             setShowConfirmModal(false);
@@ -855,7 +918,28 @@ export function BookingContent() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-8">
+                        <form onSubmit={handleSubmit} className={`space-y-8 ${isElderly ? 'elderly-mode' : ''}`} style={isElderly ? {
+                            fontSize: '1.1rem',
+                        } : {}}>
+                            {/* Elderly User Notice */}
+                            {isElderly && (
+                                <div className="flex items-start gap-3 p-5 rounded-2xl shadow-sm border-2 bg-gradient-to-r from-pink-50 to-rose-50 border-pink-300">
+                                    <div className="flex-shrink-0 p-2 rounded-xl bg-pink-100">
+                                        <Heart className="h-6 w-6 text-pink-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-bold mb-2 text-lg text-pink-900">
+                                            💝 Hỗ trợ đặc biệt cho người cao tuổi
+                                        </p>
+                                        <p className="text-sm leading-relaxed text-pink-800">
+                                            Chúng tôi hiểu rằng bạn là người cao tuổi ({patientAge} tuổi). 
+                                            Để đảm bảo bạn được chăm sóc tốt nhất, chúng tôi khuyến nghị bạn điền thông tin người thân bên dưới. 
+                                            Điều này giúp chúng tôi liên hệ với người thân nếu cần thiết.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Location Warning */}
                             {locationWarning && (
                                 <div className={`flex items-start gap-3 p-5 rounded-2xl shadow-sm border-2 ${
@@ -907,20 +991,24 @@ export function BookingContent() {
                                 {/* Họ tên và SĐT */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block mb-2 font-semibold text-gray-700">Họ và tên <span className="text-red-500">*</span></label>
+                                        <label className={`block mb-2 font-semibold text-gray-700 ${isElderly ? 'text-lg' : ''}`}>
+                                            Họ và tên <span className="text-red-500">*</span>
+                                        </label>
                                         <input
                                             type="text"
-                                            className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                            className={`w-full border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${isElderly ? 'p-4 text-lg' : 'p-3'}`}
                                             value={formData.fullName}
                                             onChange={e => handleChange("fullName", e.target.value)}
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block mb-2 font-semibold text-gray-700">Số điện thoại <span className="text-red-500">*</span></label>
+                                        <label className={`block mb-2 font-semibold text-gray-700 ${isElderly ? 'text-lg' : ''}`}>
+                                            Số điện thoại <span className="text-red-500">*</span>
+                                        </label>
                                         <input
                                             type="tel"
-                                            className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                            className={`w-full border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${isElderly ? 'p-4 text-lg' : 'p-3'}`}
                                             value={formData.phone}
                                             onChange={e => handleChange("phone", e.target.value)}
                                             required
@@ -940,10 +1028,17 @@ export function BookingContent() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block mb-2 font-semibold text-gray-700">Ngày sinh <span className="text-red-500">*</span></label>
+                                        <label className={`block mb-2 font-semibold text-gray-700 ${isElderly ? 'text-lg' : ''}`}>
+                                            Ngày sinh <span className="text-red-500">*</span>
+                                            {patientAge !== null && (
+                                                <span className="ml-2 text-blue-600 font-normal">
+                                                    ({patientAge} tuổi)
+                                                </span>
+                                            )}
+                                        </label>
                                         <input
                                             type="date"
-                                            className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                            className={`w-full border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${isElderly ? 'p-4 text-lg' : 'p-3'}`}
                                             value={formData.dateOfBirth}
                                             onChange={e => handleChange("dateOfBirth", e.target.value)}
                                             required
@@ -1036,6 +1131,67 @@ export function BookingContent() {
                                     />
                                 </div>
                             </div>
+
+                            {/* Thông tin người thân (cho người già) */}
+                            {isElderly && (
+                                <div className="space-y-4 p-6 bg-pink-50/50 rounded-xl border-2 border-pink-200">
+                                    <h3 className="text-xl font-bold flex items-center gap-3 text-gray-900">
+                                        <div className="p-2 bg-pink-600 rounded-lg">
+                                            <Heart className="h-5 w-5 text-white" /> 
+                                        </div>
+                                        Thông tin người thân (Khuyến nghị)
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Vui lòng điền thông tin người thân để chúng tôi có thể liên hệ trong trường hợp cần thiết.
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block mb-2 font-semibold text-gray-700">
+                                                Họ tên người thân
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
+                                                value={formData.relativeName}
+                                                onChange={e => handleChange("relativeName", e.target.value)}
+                                                placeholder="Nhập họ tên người thân"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block mb-2 font-semibold text-gray-700">
+                                                Số điện thoại người thân
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
+                                                value={formData.relativePhone}
+                                                onChange={e => handleChange("relativePhone", e.target.value)}
+                                                placeholder="Nhập số điện thoại"
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block mb-2 font-semibold text-gray-700">
+                                            Mối quan hệ
+                                        </label>
+                                        <select
+                                            className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none cursor-pointer"
+                                            value={formData.relativeRelationship}
+                                            onChange={e => handleChange("relativeRelationship", e.target.value)}
+                                        >
+                                            <option value="">-- Chọn mối quan hệ --</option>
+                                            <option value="con">Con</option>
+                                            <option value="chau">Cháu</option>
+                                            <option value="vo_chong">Vợ/Chồng</option>
+                                            <option value="anh_chi_em">Anh/Chị/Em</option>
+                                            <option value="ban">Bạn</option>
+                                            <option value="khac">Khác</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
 
                             <button
                                 type="submit"

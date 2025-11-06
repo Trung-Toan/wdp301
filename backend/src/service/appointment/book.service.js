@@ -192,7 +192,10 @@ async function createAsync(payload) {
         slot_id, doctor_id, patient_id, specialty_id, clinic_id,
         full_name, phone, email, dob, gender,
         province_code, ward_code, address_text, reason,
-        scheduled_date // Thêm scheduled_date để kiểm tra theo ngày
+        scheduled_date, // Thêm scheduled_date để kiểm tra theo ngày
+        // Thông tin người thân (cho người già)
+        relative_name, relative_phone, relative_relationship,
+        is_elderly, patient_age
     } = payload;
 
     //Auto-assign doctor nếu không có doctor_id ***
@@ -339,7 +342,15 @@ async function createAsync(payload) {
                 province_code, ward_code, address_text, reason,
                 booking_code,
                 fee_amount,
-                scheduled_date: scheduled_date ? dateOnlyUTC(new Date(scheduled_date)) : dateOnlyUTC(new Date(slot.start_time))
+                scheduled_date: scheduled_date ? dateOnlyUTC(new Date(scheduled_date)) : dateOnlyUTC(new Date(slot.start_time)),
+                // Thông tin người thân (cho người già)
+                ...(is_elderly && {
+                    relative_name: relative_name || null,
+                    relative_phone: relative_phone || null,
+                    relative_relationship: relative_relationship || null,
+                    is_elderly: true,
+                    patient_age: patient_age || null
+                })
             });
 
             await appt.save({ session });
@@ -492,6 +503,12 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
         patientName: a.patient_id?.user_id?.full_name || "",
         phone: a.phone,
         reason: a.reason,
+        // Thông tin người thân (cho người già)
+        is_elderly: a.is_elderly || false,
+        patient_age: a.patient_age || null,
+        relative_name: a.relative_name || null,
+        relative_phone: a.relative_phone || null,
+        relative_relationship: a.relative_relationship || null,
     }));
     function mapStatus(status) {
         switch (status) {
@@ -532,7 +549,10 @@ async function clinicBookingAsync(payload) {
     let {
         clinic_id, specialty_id, scheduled_date, patient_id,
         auto_assign = false, doctor_id, slot_id,
-        full_name, phone, email, reason
+        full_name, phone, email, reason,
+        // Thông tin người thân (cho người già)
+        relative_name, relative_phone, relative_relationship,
+        is_elderly, patient_age
     } = payload;
 
     // Validate required fields
@@ -601,7 +621,13 @@ async function clinicBookingAsync(payload) {
         phone,
         email,
         reason,
-        scheduled_date: scheduled_date
+        scheduled_date: scheduled_date,
+        // Thông tin người thân (cho người già)
+        relative_name,
+        relative_phone,
+        relative_relationship,
+        is_elderly,
+        patient_age
     };
 
     const result = await createAsync(bookingPayload);
