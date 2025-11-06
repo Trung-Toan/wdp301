@@ -65,30 +65,6 @@ const AssistantManagement = () => {
     return () => clearTimeout(timeout);
   }, [searchTerm]);
 
-  // Thêm trợ lý mới
-  const handleAddAssistant = async (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email || !formData.password) {
-      setMessage({ type: "error", text: "Vui lòng nhập đầy đủ thông tin." });
-      return;
-    }
-    try {
-      const res = await doctorApi.addAssistant(formData);
-      if (res.data?.ok) {
-        setMessage({ type: "success", text: "Đã thêm trợ lý thành công!" });
-        setFormData({ name: "", email: "", password: "" });
-        fetchAssistants();
-      } else {
-        setMessage({
-          type: "error",
-          text: res.data?.message || "Thêm thất bại.",
-        });
-      }
-    } catch (error) {
-      setMessage({ type: "error", text: "Lỗi khi thêm trợ lý." });
-    }
-  };
-
   // Xóa trợ lý
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa tài khoản trợ lý này?")) return;
@@ -132,56 +108,6 @@ const AssistantManagement = () => {
         </div>
       )}
 
-      {/* Form thêm trợ lý */}
-      <form
-        onSubmit={handleAddAssistant}
-        className="bg-white shadow rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-end"
-      >
-        <div className="flex-1">
-          <label className="block text-sm text-gray-600 mb-1">Họ và tên</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Nhập họ và tên..."
-          />
-        </div>
-
-        <div className="flex-1">
-          <label className="block text-sm text-gray-600 mb-1">Email</label>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
-            }
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="example@email.com"
-          />
-        </div>
-
-        <div className="flex-1">
-          <label className="block text-sm text-gray-600 mb-1">Mật khẩu</label>
-          <input
-            type="password"
-            value={formData.password}
-            onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
-            }
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Nhập mật khẩu..."
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all"
-        >
-          <PlusCircle size={18} /> Thêm
-        </button>
-      </form>
-
       {/* Thanh tìm kiếm */}
       <div className="flex items-center bg-white p-3 rounded-xl shadow gap-3">
         <Search size={18} className="text-gray-500" />
@@ -211,7 +137,6 @@ const AssistantManagement = () => {
                   <th className="p-3">Email</th>
                   <th className="p-3">Trạng thái</th>
                   <th className="p-3">Ngày tạo</th>
-                  <th className="p-3 text-center">Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,14 +160,6 @@ const AssistantManagement = () => {
                     </td>
                     <td className="p-3 text-gray-500">
                       {new Date(a.createdAt).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => handleDelete(a._id)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
                     </td>
                   </tr>
                 ))}
