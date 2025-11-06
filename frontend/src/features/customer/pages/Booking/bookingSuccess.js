@@ -2,19 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, User, MapPin, Calendar, Clock, FileText } from "lucide-react";
-
-// Helper format date/time
-const formatDate = (isoDate) => new Date(isoDate).toLocaleDateString("vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-});
-
-const formatTime = (isoDate) => new Date(isoDate).toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit"
-});
+import { formatDate, formatTime } from "../../../../utils/dateTimeUtils";
 
 export default function BookingSuccess({ bookingInfo }) {
     if (!bookingInfo) return null;
@@ -122,7 +110,7 @@ export default function BookingSuccess({ bookingInfo }) {
                                     <div className="flex items-center gap-3">
                                         <Clock className="h-6 w-6 text-orange-600 flex-shrink-0" />
                                         <div>
-                                            <div className="text-xs text-gray-500 uppercase font-semibold">Giờ khám</div>
+                                            <div className="text-xs text-gray-500 uppercase font-semibold">Giờ đăt lịch khám</div>
                                             <div className="font-bold text-gray-900">{successData.time}</div>
                                         </div>
                                     </div>

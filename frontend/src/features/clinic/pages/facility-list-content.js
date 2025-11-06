@@ -2,6 +2,18 @@ import React, { useEffect, useState } from "react";
 import { Search, MapPin, Phone, CheckCircle, Mail, Filter, X, Building2, Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { clinicApi } from "../../../api";
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function FacilitiesList() {
     const [clinics, setClinics] = useState([]);
@@ -276,7 +288,7 @@ export default function FacilitiesList() {
                                         : ["Đa khoa", "Nội tổng hợp"];
 
                                 const isImageLoaded = loadedImages.has(clinic.id);
-                                const imageSrc = clinic.logo_url || "/modern-hospital-exterior.png";
+                                const imageSrc = clinic.logo_url ? getImageUrl(clinic.logo_url) : "/modern-hospital-exterior.png";
 
                                 return (
                                     <div
@@ -354,7 +366,7 @@ export default function FacilitiesList() {
                                                             >
                                                                 {s.icon_url && (
                                                                     <img
-                                                                        src={s.icon_url}
+                                                                        src={getImageUrl(s.icon_url)}
                                                                         alt={s.name}
                                                                         className="w-4 h-4 rounded-full object-cover"
                                                                         onError={(e) => e.target.style.display = 'none'}

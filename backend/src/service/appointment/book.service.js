@@ -78,8 +78,9 @@ async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, e
         };
 
         // Add specialty filter if provided
+        // Note: specialty_id is an array in Doctor model, so we need to use $in
         if (specialtyId && Types.ObjectId.isValid(specialtyId)) {
-            doctorFilter.specialty_id = new Types.ObjectId(specialtyId);
+            doctorFilter.specialty_id = { $in: [new Types.ObjectId(specialtyId)] };
         }
 
         // Lấy danh sách bác sĩ trong phòng khám
@@ -263,6 +264,15 @@ async function createAsync(payload) {
             // 4) Kiểm tra bệnh nhân
             const patient = await Patient.findById(patient_id).session(session).lean();
             if (!patient) throw new Error("Patient not found");
+
+            // 4.5) Nếu không có clinic_id, lấy từ doctor
+            if (!clinic_id && doctor_id) {
+                const doctor = await Doctor.findById(doctor_id).session(session).select("clinic_id").lean();
+                if (doctor && doctor.clinic_id) {
+                    clinic_id = doctor.clinic_id;
+                    console.log("✅ Auto-retrieved clinic_id from doctor:", clinic_id);
+                }
+            }
 
             // 5) Tạo appointment
             const booking_code = randomBookingCode();

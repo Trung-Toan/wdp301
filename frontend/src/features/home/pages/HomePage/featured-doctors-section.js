@@ -6,6 +6,17 @@ import { useAuth } from "../../../../hooks/useAuth";
 import "../../../../styles/FeaturedDoctorsSection.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
+
 export function FeaturedDoctorsSection() {
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -72,13 +83,14 @@ export function FeaturedDoctorsSection() {
                                     {/* Doctor Image */}
                                     <div className="doctor-image-wrapper">
                                         <img
-                                            src={doctor.avatar_url 
-                                                ? doctor.avatar_url.startsWith("http")
-                                                    ? doctor.avatar_url
-                                                    : `${FILE_SERVER_URL}/${doctor.avatar_url}`
+                                            src={doctor.avatar_url
+                                                ? getImageUrl(doctor.avatar_url)
                                                 : "/placeholder.svg"}
                                             alt={doctor.full_name || "Bác sĩ"}
                                             className="doctor-image"
+                                            onError={(e) => {
+                                                e.target.src = "/placeholder.svg";
+                                            }}
                                         />
                                         <div className="doctor-image-overlay"></div>
                                     </div>

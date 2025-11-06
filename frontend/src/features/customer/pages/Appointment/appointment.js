@@ -20,6 +20,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
+
 export default function AppointmentsContent() {
     const [selectedTab, setSelectedTab] = useState("upcoming");
     const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -229,13 +240,12 @@ export default function AppointmentsContent() {
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <div className="relative flex-shrink-0">
                                         <img
-                                            src={appointment.image
-                                                ? appointment.image.startsWith("http")
-                                                    ? appointment.image
-                                                    : `${FILE_SERVER_URL}/${appointment.image}`
-                                                : "/placeholder.svg"}
+                                            src={appointment.image ? getImageUrl(appointment.image) : "/placeholder.svg"}
                                             alt={appointment.doctorName}
                                             className="w-24 h-24 md:w-28 md:h-28 rounded-xl object-cover border-2 border-gray-200 shadow-md"
+                                            onError={(e) => {
+                                                e.target.src = "/placeholder.svg";
+                                            }}
                                         />
                                         <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center shadow-md">
                                             <Stethoscope className="h-4 w-4 text-blue-600" />
@@ -356,7 +366,7 @@ export default function AppointmentsContent() {
                                 {/* Doctor Info */}
                                 <div className="flex items-start gap-4 bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
                                     <img
-                                        src={selectedAppointment.image || "/placeholder.svg"}
+                                        src={selectedAppointment.image ? getImageUrl(selectedAppointment.image) : "/placeholder.svg"}
                                         alt={selectedAppointment.doctorName}
                                         className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-md"
                                     />

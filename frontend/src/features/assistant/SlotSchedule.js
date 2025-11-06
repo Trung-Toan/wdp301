@@ -10,6 +10,7 @@ import {
 import { Dialog, Transition } from "@headlessui/react";
 import { SLOT_API } from "../../api/assistant/assistant.api";
 import toast, { Toaster } from "react-hot-toast";
+import { formatISOTime } from "../../utils/dateTimeUtils";
 
 // --- Helpers cho Modal ---
 const hours = Array.from({ length: 24 }, (_, i) =>
@@ -30,26 +31,6 @@ const getLocalDate = () => {
   const month = (today.getMonth() + 1).toString().padStart(2, "0");
   const day = today.getDate().toString().padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-const formatISOTime = (isoString) => {
-  if (!isoString) return "N/A";
-  
-  const dateObj = new Date(isoString);
-
-  // Kiểm tra lỗi "Invalid Date"
-  if (isNaN(dateObj.getTime())) {
-    console.error(`Invalid Date value for ISO string: ${isoString}`);
-    return "Lỗi định dạng thời gian"; 
-  }
-
-  // Sử dụng toLocaleTimeString với timeZone: 'UTC'
-  return dateObj.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: 'UTC' // <--- **ĐẢM BẢO HIỂN THỊ THEO MÚI GIỜ 0**
-  });
 };
 
 const SlotSchedule = () => {

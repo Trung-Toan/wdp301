@@ -30,19 +30,32 @@ const storage = multer.diskStorage({
     // --- KẾT THÚC THAY ĐỔI ---
 });
 
-// 3. Cấu hình bộ lọc file (FileFilter) - Giữ nguyên
+// 3. Cấu hình bộ lọc file (FileFilter) - Mở rộng hỗ trợ nhiều loại file
 const fileFilter = (req, file, cb) => {
     const allowedMimes = [
+        // Image types
         'image/jpeg',
+        'image/jpg',
         'image/png',
         'image/gif',
-        'application/pdf'
+        'image/webp',
+        'image/bmp',
+        'image/svg+xml',
+        // Document types
+        'application/pdf',
+        // MS Office documents
+        'application/msword', // .doc
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/vnd.ms-excel', // .xls
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-powerpoint', // .ppt
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
     ];
 
     if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Chỉ hỗ trợ file ảnh (JPEG, PNG, GIF) và PDF.'), false);
+        cb(new Error('Chỉ hỗ trợ file ảnh (JPEG, PNG, GIF, WEBP, BMP, SVG), PDF và tài liệu Office (DOC, DOCX, XLS, XLSX, PPT, PPTX).'), false);
     }
 };
 

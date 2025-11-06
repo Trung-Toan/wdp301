@@ -10,6 +10,7 @@ import Button from "../../../components/ui/Button";
 import Card, { CardContent } from "../../../components/ui/Card";
 import CardHeader from "../../../components/ui/CardHeader";
 import CardTitle from "../../../components/ui/CardTitle";
+import { formatISOTime } from "../../../utils/dateTimeUtils";
 
 export function DoctorBookingCalendar({ doctor }) {
     const { id } = useParams();
@@ -32,12 +33,7 @@ export function DoctorBookingCalendar({ doctor }) {
 
     const slots = doctor.slots || [];
 
-    const formatUTCtoHHmm = (utcString) => {
-        if (!utcString) return "";
-        const [_, timePart] = utcString.split("T");
-        const [hours, minutes] = timePart.split(":");
-        return `${hours}:${minutes}`;
-    };
+    const formatUTCtoHHmm = formatISOTime;
 
     const availableSlots = selectedDate
         ? slots

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import ViewModal from "./ViewModal";
 import { adminSystemAPI } from "../../api/admin-system/adminSystemAPI";
 import { toast } from "react-toastify";
+import { formatDateShort } from "../../utils/dateTimeUtils";
 
 const ApprovedClinics = () => {
   const [clinics, setClinics] = useState([]);
