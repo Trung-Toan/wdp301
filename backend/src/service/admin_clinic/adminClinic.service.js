@@ -193,9 +193,60 @@ exports.getAssistantsByClinic = async (clinicId) => {
       path: "doctor_id",
       populate: { path: "user_id", select: "full_name" },
     })
+    .populate({
+      path: "clinic_id",
+      select: "name",
+    })
     .lean();
 
   return { ok: true, data };
+};
+
+//Lấy danh sách trợ lý từ tất cả các phòng khám mà admin quản lý
+exports.getAssistantsByAdminClinic = async (adminAccountId) => {
+  try {
+    // Lấy user tương ứng với account id
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) {
+      throw new Error("Không tìm thấy user của admin clinic");
+    }
+
+    // Tìm bản ghi AdminClinic tương ứng
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic");
+    }
+
+    // Lấy TẤT CẢ các clinics mà admin clinic này quản lý
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id");
+    if (!clinics.length) {
+      return { ok: true, data: [] };
+    }
+
+    const clinicIds = clinics.map((c) => c._id);
+
+    // Lấy tất cả assistants từ tất cả các clinics
+    const data = await Assistant.find({ clinic_id: { $in: clinicIds } })
+      .populate({
+        path: "user_id",
+        populate: { path: "account_id", select: "username phone_number status" },
+      })
+      .populate({
+        path: "doctor_id",
+        populate: { path: "user_id", select: "full_name" },
+      })
+      .populate({
+        path: "clinic_id",
+        select: "name",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { ok: true, data };
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách trợ lý:", error);
+    return { ok: false, message: error.message };
+  }
 };
 
 //xoá trợ lý

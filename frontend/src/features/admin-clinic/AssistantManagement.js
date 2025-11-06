@@ -1,15 +1,17 @@
 import { memo, useState, useEffect } from "react";
-import { Plus, Trash2, Search, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Trash2, Search, CheckCircle, XCircle, Building2 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
 
 const AssistantManagement = () => {
   const [assistants, setAssistants] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [clinics, setClinics] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterClinic, setFilterClinic] = useState("ALL");
 
   const [formData, setFormData] = useState({
     username: "",
@@ -37,6 +39,7 @@ const AssistantManagement = () => {
           const acc = user.account_id;
           const doctor = assistant.doctor_id;
           const doctorUser = doctor?.user_id;
+          const clinic = assistant.clinic_id;
 
           return {
             id: assistant._id,
@@ -55,6 +58,8 @@ const AssistantManagement = () => {
             assignedDoctor: doctorUser
               ? `BS. ${doctorUser.full_name}`
               : "Chưa gán bác sĩ",
+            clinicId: clinic?._id?.toString() || null,
+            clinicName: clinic?.name || "Không xác định",
             assistantData: assistant,
           };
         });
@@ -66,6 +71,16 @@ const AssistantManagement = () => {
     } catch (err) {
       console.error(err);
       toast.error("Lỗi khi tải danh sách trợ lý");
+    }
+  };
+
+  const fetchClinics = async () => {
+    try {
+      const res = await adminclinicAPI.getAllClinics();
+      const clinicsData = res.data?.data || [];
+      setClinics(clinicsData);
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách phòng khám:", err);
     }
   };
 
@@ -81,6 +96,7 @@ const AssistantManagement = () => {
   useEffect(() => {
     fetchAssistants();
     fetchDoctors();
+    fetchClinics();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -121,15 +137,18 @@ const AssistantManagement = () => {
     const matchesSearch =
       asst.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       asst.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asst.assignedDoctor?.toLowerCase().includes(searchTerm.toLowerCase());
+      asst.assignedDoctor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asst.clinicName?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRole =
       filterRole === "ALL" ||
       roles.find((r) => r.label === asst.role)?.value === filterRole;
     const matchesStatus =
       filterStatus === "ALL" || asst.status === filterStatus;
+    const matchesClinic =
+      filterClinic === "ALL" || asst.clinicId === filterClinic;
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus && matchesClinic;
   });
 
   return (
@@ -157,7 +176,7 @@ const AssistantManagement = () => {
           <Search size={20} className="text-gray-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm trợ lý..."
+            placeholder="Tìm kiếm trợ lý, email, bác sĩ, phòng khám..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 border-none outline-none text-sm text-gray-900 placeholder-gray-400"
@@ -173,6 +192,19 @@ const AssistantManagement = () => {
           {roles.map((r) => (
             <option key={r.value} value={r.value}>
               {r.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterClinic}
+          onChange={(e) => setFilterClinic(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="ALL">Tất cả phòng khám</option>
+          {clinics.map((clinic) => (
+            <option key={clinic._id} value={clinic._id}>
+              {clinic.name}
             </option>
           ))}
         </select>
@@ -198,6 +230,9 @@ const AssistantManagement = () => {
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Chức vụ
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Phòng khám
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Bác sĩ phụ trách
@@ -230,6 +265,14 @@ const AssistantManagement = () => {
                   <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
                     {assistant.role}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 size={16} className="text-gray-400" />
+                    <span className="text-sm text-gray-700 font-medium">
+                      {assistant.clinicName}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
@@ -348,13 +391,28 @@ const AssistantManagement = () => {
                 ))}
               </select>
               <select
+                value={formData.clinic_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, clinic_id: e.target.value })
+                }
+                className="border p-2 rounded w-full"
+                required
+              >
+                <option value="">-- Chọn phòng khám --</option>
+                {clinics.map((clinic) => (
+                  <option key={clinic._id} value={clinic._id}>
+                    {clinic.name}
+                  </option>
+                ))}
+              </select>
+              <select
                 value={formData.doctor_id}
                 onChange={(e) =>
                   setFormData({ ...formData, doctor_id: e.target.value })
                 }
                 className="border p-2 rounded w-full"
               >
-                <option value="">-- Gán bác sĩ --</option>
+                <option value="">-- Gán bác sĩ (tùy chọn) --</option>
                 {doctors.map((doc) => (
                   <option key={doc._id} value={doc._id}>
                     {doc.user_id?.full_name}

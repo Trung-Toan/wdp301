@@ -6,6 +6,7 @@ const {
   getDoctorsByAdminClinic,
   createAssistant,
   getAssistantsByClinic,
+  getAssistantsByAdminClinic,
   deleteAssistant,
   getPendingDoctorLicenses,
   updateLicenseStatus,
@@ -124,17 +125,12 @@ exports.createAccountAssistant = async (req, res, next) => {
   }
 };
 
-//lấy danh sách trợ lý theo clinic mà admin_clinic đang quản lý
+//lấy danh sách trợ lý từ tất cả các phòng khám mà admin_clinic đang quản lý
 exports.getAssistants = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
-    if (!clinicResult.ok) return res.status(400).json(clinicResult);
-
-    const clinic = clinicResult.data;
-
-    const result = await getAssistantsByClinic(clinic._id);
+    const result = await getAssistantsByAdminClinic(accountId);
     res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
