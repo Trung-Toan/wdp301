@@ -204,31 +204,40 @@ const PatientMedicalRecords = () => {
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen p-4 md:p-6">
+    <div className="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen p-4 md:p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Hồ sơ bệnh án</h1>
-        <p className="text-base text-gray-600 mt-1">
-          Xem chi tiết hồ sơ bệnh án và lịch sử khám bệnh của bệnh nhân
-        </p>
+        <div className="flex items-center gap-4 mb-3">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+            <FileText className="text-white" size={32} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Hồ sơ bệnh án
+            </h1>
+            <p className="text-base text-gray-600 mt-1 font-medium">
+              Xem chi tiết hồ sơ bệnh án và lịch sử khám bệnh của bệnh nhân
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
           <input
             type="text"
             placeholder="Tìm kiếm theo bệnh nhân, mã, chẩn đoán..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-500" />
+        <div className="flex items-center gap-2 bg-white rounded-xl shadow-md px-4 py-2 border-2 border-gray-200">
+          <Filter className="w-5 h-5 text-blue-500" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg shadow-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border-none rounded-lg px-2 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent font-semibold text-gray-700 cursor-pointer"
           >
             <option value="ALL">Tất cả</option>
             <option value="PUBLIC">Công khai</option>
@@ -237,12 +246,17 @@ const PatientMedicalRecords = () => {
         </div>
       </div>
 
-      <div className="bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Danh sách hồ sơ bệnh án
-          </h2>
-          <span className="text-sm font-medium text-gray-500">
+      <div className="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <FileText className="text-white" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">
+              Danh sách hồ sơ bệnh án
+            </h2>
+          </div>
+          <span className="text-sm font-bold text-blue-600 bg-white px-4 py-1.5 rounded-full border-2 border-blue-200">
             {filteredRecords.length} bản ghi
           </span>
         </div>
@@ -338,7 +352,7 @@ const PatientMedicalRecords = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
-                          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
                           onClick={() => handleViewRecord(record)}
                           title="Xem chi tiết"
                         >

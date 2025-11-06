@@ -380,14 +380,23 @@ const PatientList = () => {
     <div className="patient-list-container">
       {/* Header */}
       <div className="page-header">
-        <h1 className="page-title">Danh sách bệnh nhân</h1>
-        <p className="page-subtitle">Quản lý thông tin bệnh nhân</p>
+        <div className="flex items-center gap-4 mb-2">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+            <Briefcase className="text-white" size={28} />
+          </div>
+          <div>
+            <h1 className="page-title text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Danh sách bệnh nhân
+            </h1>
+            <p className="page-subtitle text-gray-600 mt-1">Quản lý thông tin bệnh nhân</p>
+          </div>
+        </div>
       </div>
 
       {/* Search Section */}
       <div className="search-section">
-        <div className="search-input-wrapper">
-          <Search className="search-icon" size={20} />
+        <div className="search-input-wrapper shadow-md hover:shadow-lg transition-shadow duration-300">
+          <Search className="search-icon text-blue-500" size={20} />
           <input
             type="text"
             placeholder="Tìm kiếm theo tên, số điện thoại hoặc email..."
@@ -402,16 +411,16 @@ const PatientList = () => {
       </div>
 
       {/* Patients Table */}
-      <div className="patients-table-wrapper">
+      <div className="patients-table-wrapper shadow-xl">
         <div className="overflow-x-auto">
           <table className="patients-table">
             <thead>
-              <tr>
-                <th>Mã BN</th>
-                <th>Họ và tên</th>
-                <th>Email</th>
-                <th>SĐT</th>
-                <th className="text-center">Thao tác</th>
+              <tr className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                <th className="font-bold text-gray-800">Mã BN</th>
+                <th className="font-bold text-gray-800">Họ và tên</th>
+                <th className="font-bold text-gray-800">Email</th>
+                <th className="font-bold text-gray-800">SĐT</th>
+                <th className="text-center font-bold text-gray-800">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -452,7 +461,7 @@ const PatientList = () => {
                     <td className="text-center">
                       <button
                         onClick={() => handleViewDetails(patient)}
-                        className="action-btn action-btn-view"
+                        className="action-btn action-btn-view hover:scale-110 transition-transform duration-200 shadow-md hover:shadow-lg"
                         title="Xem chi tiết"
                         disabled={isModalLoading}
                       >
@@ -468,15 +477,16 @@ const PatientList = () => {
 
         {/* Pagination */}
         {totalPages > 1 && !isPatientListLoading && (
-          <div className="flex justify-center items-center gap-3 mt-1 mb-2">
+          <div className="flex justify-center items-center gap-3 mt-6 mb-4">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="px-4 py-2 border-2 border-blue-300 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >
+              <ChevronLeft size={16} className="inline mr-1" />
               Trang trước
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border-2 border-blue-200 shadow-sm">
               <input
                 type="number"
                 min="1"
@@ -488,16 +498,17 @@ const PatientList = () => {
                     setPage(value);
                   }
                 }}
-                className="w-16 text-center border border-gray-300 rounded-md p-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-16 text-center border-2 border-blue-200 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold"
               />
-              <span>/ {totalPages}</span>
+              <span className="text-gray-600 font-medium">/ {totalPages}</span>
             </div>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="px-4 py-2 border-2 border-blue-300 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
             >
               Trang sau
+              <ChevronRight size={16} className="inline ml-1" />
             </button>
           </div>
         )}
@@ -514,9 +525,11 @@ const PatientList = () => {
 
           {/* Panel */}
           <div className="relative z-50 w-full sm:w-[600px] h-full bg-white shadow-2xl rounded-l-2xl transform transition-transform duration-300 translate-x-0 flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <FileText className="text-blue-500" size={20} />
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <FileText className="text-white" size={20} />
+                </div>
                 {/* Tiêu đề động */}
                 {selectedRecordId
                   ? "Chi tiết bệnh án"
@@ -524,9 +537,9 @@ const PatientList = () => {
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="p-2 hover:bg-gray-100 rounded-full transition"
+                className="p-2 hover:bg-red-100 rounded-full transition-colors duration-200"
               >
-                <X size={20} className="text-gray-600" />
+                <X size={20} className="text-gray-600 hover:text-red-600" />
               </button>
             </div>
 
@@ -555,7 +568,7 @@ const PatientList = () => {
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
+            <div className="flex justify-end gap-3 border-t border-gray-200 p-6 bg-gray-50">
               <button
                 onClick={() => {
                   handleCloseModal();
@@ -563,7 +576,7 @@ const PatientList = () => {
                     `/doctor/record-requests?patient-code=${selectedPatient.patient_code}`
                   );
                 }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl font-semibold"
                 disabled={isModalLoading || !selectedPatient}
               >
                 <FileText size={16} />
@@ -571,7 +584,7 @@ const PatientList = () => {
               </button>
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
+                className="bg-white border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all font-semibold shadow-sm hover:shadow-md"
               >
                 Đóng
               </button>
