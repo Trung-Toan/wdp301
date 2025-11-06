@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const addressDetailSchema = new Schema({
-    // Tham chiếu đến đơn vị hành chính
     province: {
         code: { type: String, required: true },
         name: { type: String, required: true }
@@ -12,19 +11,16 @@ const addressDetailSchema = new Schema({
         name: { type: String, required: true }
     },
 
-    // Chi tiết địa chỉ (user tự nhập)
     houseNumber: { type: String },
     street: { type: String },
     alley: { type: String },
 
-    // Địa chỉ đầy đủ (tự động tạo)
     fullAddress: { type: String }
 }, {
     timestamps: true,
     collection: "address_details"
 });
 
-// Index cho tìm kiếm
 addressDetailSchema.index({ "province.code": 1, "ward.code": 1 });
 
 // Middleware tự động tạo fullAddress
