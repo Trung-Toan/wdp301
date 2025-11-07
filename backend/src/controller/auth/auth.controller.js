@@ -48,9 +48,28 @@ exports.googleLogin = async (req, res) => {
             stack: e.stack,
             name: e.name
         });
-        res.status(400).json({
+        
+        // Provide more specific error messages
+        let errorMessage = 'Google login thất bại';
+        let statusCode = 400;
+        
+        if (e.message.includes('Missing id_token')) {
+            errorMessage = 'Thiếu thông tin xác thực từ Google';
+        } else if (e.message.includes('Invalid Google token') || e.message.includes('Invalid issuer')) {
+            errorMessage = 'Token xác thực Google không hợp lệ';
+        } else if (e.message.includes('Client ID mismatch')) {
+            errorMessage = 'Cấu hình Google OAuth không đúng. Vui lòng liên hệ quản trị viên.';
+            statusCode = 500;
+        } else if (e.message.includes('Token has expired')) {
+            errorMessage = 'Token đã hết hạn. Vui lòng thử lại.';
+        } else if (e.message.includes('Account is null')) {
+            errorMessage = 'Không thể tạo tài khoản. Vui lòng thử lại.';
+            statusCode = 500;
+        }
+        
+        res.status(statusCode).json({
             ok: false,
-            message: 'Google login thất bại',
+            message: errorMessage,
             error: process.env.NODE_ENV === 'development' ? e.message : undefined
         });
     }
