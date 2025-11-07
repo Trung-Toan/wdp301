@@ -570,14 +570,31 @@ exports.updateProfile = async (req, res) => {
     const user = await assistantService.getUserByAccountId(req.user.sub);
     if (!user) return resUtils.notFoundResponse(res, "Không tìm thấy thông tin người dùng");
 
-    const updateData = req.body;
-    const updatedUser = await assistantService.updateUserById(user._id, updateData);
+    const { account, information, assistant } = req.body || {};
+
+    // Chạy các update song song (trừ user để còn lấy doc đã cập nhật)
+    const tasks = [];
+
+    if (account && typeof account === "object") {
+      tasks.push(assistantService.updateAccountById(req.user.sub, account));
+    }
+
+    if (assistant && typeof assistant === "object" && Object.prototype.hasOwnProperty.call(assistant, "note")) {
+      tasks.push(assistantService.updateAssistantById(assistance._id, { note: assistant.note }));
+    }
+
+    await Promise.all(tasks);
+
+    // Cập nhật user (information.*) – hàm này hỗ trợ payload lồng trong `information`
+    const updatedUser = await assistantService.updateUserById(user._id, { information });
+
     return resUtils.updatedResponse(res, updatedUser, "Cập nhật thông tin profile trợ lý thành công");
   } catch (error) {
     console.log("Lỗi cập nhật profile trợ lý: ", error);
     return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể cập nhật thông tin profile trợ lý");
   }
 };
+
 
 // POST /change-password
 exports.changePassword = async (req, res) => {
