@@ -4,6 +4,7 @@ import AssistantDashboard from "../../features/assistant/AssistantDashboard";
 import SlotSchedule from "../../features/assistant/SlotSchedule";
 import ApproveAppointment from "../../features/assistant/ApproveAppointment";
 import PatientList from "../../features/assistant/PatientList";
+import AssistantProfile from "../../features/assistant/assistant.profile";
 
 export default function AssistantRoutes() {
     return (
@@ -14,6 +15,8 @@ export default function AssistantRoutes() {
                 <Route path="slot-schedule" element={<SlotSchedule />} />
                 <Route path="appointments" element={<ApproveAppointment />} />
                 <Route path="patients" element={<PatientList />} />
+                <Route path="profile" element={<AssistantProfile />} />
+                <Route path="change-password" element={<PatientList />} />
             </Route>
         </Routes>
 

@@ -18,6 +18,34 @@ exports.getAssistantByAccountId = async (accountId) => {
     }
 };
 
+exports.getAssistantByAccountIdPopulate = async (accountId) => {
+    try {
+        const user = await User.findOne({ account_id: accountId }).lean();
+
+        if (!user) {
+            return null;
+        }
+        const assistant = await Assistant.findOne({ user_id: user._id })
+            .populate({
+                path: 'doctor_id', 
+                select: '-__v -createdAt -updatedAt', 
+                populate: {
+                    path: 'user_id', 
+                    select: "-__v -createdAt -updatedAt -notify_marketing "
+                }
+            })
+            .populate({
+                path: "clinic_id", 
+                select: "name phone email logo_url banner_url address specialties"
+            })
+            .lean();
+        return assistant || null;
+    } catch (error) {
+        console.error("Lỗi khi tìm trợ lý bằng accountId:", error);
+        return null;
+    }
+};
+
 exports.getUserByAccountId = async (accountId) => {
     try {
         const user = await User.findOne({ account_id: accountId }).lean();
@@ -112,7 +140,7 @@ exports.changePassword = async (id, currentPassword, newPassword) => {
         return updated;
 
     } catch (err) {
-         console.log(`Lỗi tại changePassword(${id}): `, err);
+        console.log(`Lỗi tại changePassword(${id}): `, err);
         throw err;
     }
 }

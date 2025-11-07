@@ -544,7 +544,7 @@ exports.createMedicalRecord = async (req, res) => {
 // GET /profile
 exports.viewProfile = async (req, res) => {
   try {
-    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    const assistance = await assistantService.getAssistantByAccountIdPopulate(req.user.sub);
     const user = await assistantService.getUserByAccountId(req.user.sub);
     const account = await assistantService.getAccountById(req.user.sub);
     

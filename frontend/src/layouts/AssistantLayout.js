@@ -151,7 +151,11 @@ const DoctorLayout = () => {
               <span className="notification-badge">3</span>
             </button>
 
-            <div className="user-profile">
+            <div
+              className={`user-profile`}
+              onClick={() => navigate("/assistant/profile")}
+              style={{ cursor: "pointer" }}
+            >
               <PersonCircle size={32} />
               <div className="user-info">
                 <span className="user-name">
