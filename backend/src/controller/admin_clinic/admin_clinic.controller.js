@@ -1,19 +1,20 @@
 const adminClinicService = require("../../service/admin_clinic/adminClinic.service");
 const {
   createDoctor,
-  getClinicByAdmin,
+  getClinicByAdmin: getClinicByAdminSvc,
   getAllClinicsByAdmin,
   getDoctorsByAdminClinic,
   createAssistant,
   getAssistantsByClinic,
   getAssistantsByAdminClinic,
-  deleteAssistant,
+  deleteAssistant: deleteAssistantSvc,
   getPendingDoctorLicenses,
-  updateLicenseStatus,
+  updateLicenseStatus: updateLicenseStatusSvc,
   updateClinicByAdmin,
+  deleteDoctor: deleteDoctorSvc,
 } = adminClinicService;
 
-//Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
+// Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
 exports.createAccountDoctor = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
@@ -43,32 +44,36 @@ exports.createAccountDoctor = async (req, res, next) => {
       }
     } else {
       // Fallback: lấy phòng khám đầu tiên nếu không có clinic_id
-      const clinicResult = await getClinicByAdmin(accountId);
+      const clinicResult = await getClinicByAdminSvc(accountId);
       if (!clinicResult.ok) return res.status(400).json(clinicResult);
       clinicId = clinicResult.data._id;
     }
 
-    const payload = { ...req.body, clinic_id: clinicId };
+    // Chuẩn hoá specialty_id về mảng string unique + sạch (khớp model Doctor)
+    const rawSpec = Array.isArray(req.body?.specialty_id) ? req.body.specialty_id : [];
+    const specialty_id = [...new Set(rawSpec.map(String))].filter(Boolean);
+
+    const payload = { ...req.body, clinic_id: clinicId, specialty_id };
 
     const result = await createDoctor(payload);
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//Lấy clinic mà admin clinic hiện tại quản lý
+// Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
-    const result = await getClinicByAdmin(accountId);
-    res.status(result.ok ? 200 : 400).json(result);
+    const result = await getClinicByAdminSvc(accountId);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+// Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
 exports.getAllClinics = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
@@ -79,26 +84,26 @@ exports.getAllClinics = async (req, res, next) => {
   }
 };
 
-//Lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
+// Lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
 exports.getDoctorsOfAdminClinic = async (req, res, next) => {
   try {
     const adminAccountId = req.user?.sub || req.query.adminAccountId;
     if (!adminAccountId) {
       return res
         .status(400)
-        .json({ message: "Thiếu adminAccountId hoặc token" });
+        .json({ success: false, message: "Thiếu adminAccountId hoặc token" });
     }
 
     const doctors = await getDoctorsByAdminClinic(adminAccountId);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       total: doctors.length,
       data: doctors,
     });
   } catch (err) {
     console.error("Lỗi trong controller getDoctorsOfAdminClinic:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Không thể lấy danh sách bác sĩ",
       error: err.message,
@@ -106,48 +111,82 @@ exports.getDoctorsOfAdminClinic = async (req, res, next) => {
   }
 };
 
-//tạo tài khoản trợ lý cho bác sĩ
+// Tạo tài khoản trợ lý cho bác sĩ
 exports.createAccountAssistant = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
 
-    const clinicResult = await getClinicByAdmin(accountId);
+    const clinicResult = await getClinicByAdminSvc(accountId);
     if (!clinicResult.ok) return res.status(400).json(clinicResult);
 
     const clinic = clinicResult.data;
 
-    const payload = { ...req.body, clinic_id: clinic._id };
+    // FE có thể gửi roles[] hoặc type[] → gộp & chuẩn hoá sang type[] (unique + sạch)
+    const rolesArr = Array.isArray(req.body?.roles) ? req.body.roles : [];
+    const typeArr = Array.isArray(req.body?.type) ? req.body.type : [];
+    const type = [...new Set([...rolesArr, ...typeArr].map(String))].filter(Boolean);
+
+    const payload = { ...req.body, clinic_id: clinic._id, type };
 
     const result = await createAssistant(payload);
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//lấy danh sách trợ lý từ tất cả các phòng khám mà admin_clinic đang quản lý
+// Lấy danh sách trợ lý - hỗ trợ cả 2 cách: từ tất cả clinics hoặc từ clinic cụ thể
 exports.getAssistants = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
-
-    const result = await getAssistantsByAdminClinic(accountId);
-    res.status(result.ok ? 200 : 400).json(result);
+    
+    // Nếu có query param clinic_id, lấy từ clinic cụ thể
+    // Nếu không, lấy từ tất cả clinics của admin
+    if (req.query.clinic_id) {
+      const clinicResult = await getClinicByAdminSvc(accountId);
+      if (!clinicResult.ok) return res.status(400).json(clinicResult);
+      
+      const clinic = clinicResult.data;
+      // Validate clinic_id có thuộc về admin không
+      const allClinicsResult = await getAllClinicsByAdmin(accountId);
+      if (allClinicsResult.ok) {
+        const clinics = allClinicsResult.data || [];
+        const clinicExists = clinics.some(
+          (c) => c._id.toString() === req.query.clinic_id.toString()
+        );
+        if (!clinicExists) {
+          return res.status(403).json({
+            ok: false,
+            message: "Phòng khám không thuộc quyền quản lý của bạn",
+          });
+        }
+      }
+      
+      const result = await getAssistantsByClinic(req.query.clinic_id);
+      return res.status(result.ok ? 200 : 400).json(result);
+    } else {
+      // Lấy từ tất cả clinics
+      const result = await getAssistantsByAdminClinic(accountId);
+      res.status(result.ok ? 200 : 400).json(result);
+    }
   } catch (err) {
     next(err);
   }
 };
 
-//xoá trợ lý theo clinic mà admin_clinic đang quản lý
+// Xoá trợ lý theo clinic mà admin_clinic đang quản lý
 exports.deleteAssistant = async (req, res, next) => {
   try {
-    await deleteAssistant(req.params.id);
-    res.status(200).json({ ok: true, message: "Xoá trợ lý thành công." });
+    await deleteAssistantSvc(req.params.id);
+    return res
+      .status(200)
+      .json({ ok: true, message: "Xoá trợ lý thành công." });
   } catch (err) {
     next(err);
   }
 };
 
-//xoá bác sĩ (bao gồm Doctor, User, Account)
+// Xoá bác sĩ (bao gồm Doctor, User, Account)
 exports.deleteDoctor = async (req, res, next) => {
   try {
     const adminAccountId = req.user?.sub;
@@ -166,7 +205,7 @@ exports.deleteDoctor = async (req, res, next) => {
       });
     }
 
-    const result = await adminClinicService.deleteDoctor(doctorId, adminAccountId);
+    const result = await deleteDoctorSvc(doctorId, adminAccountId);
     
     if (result.ok) {
       res.status(200).json(result);
@@ -178,39 +217,41 @@ exports.deleteDoctor = async (req, res, next) => {
   }
 };
 
-//lấy danh sách giấy phép bác sĩ đang chờ duyệt
+// Lấy danh sách giấy phép bác sĩ đang chờ duyệt (PENDING)
 exports.getPendingLicenses = async (req, res, next) => {
   try {
-    const adminAccountId = req.user?.sub;
-
+    const adminAccountId = req.user?.sub || req.query.adminAccountId;
     const result = await getPendingDoctorLicenses(adminAccountId);
-
-    res.status(result.ok ? 200 : 400).json(result);
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//cập nhật trạng thái giấy phép bác sĩ
+// Cập nhật trạng thái giấy phép bác sĩ (APPROVED / REJECTED)
 exports.updateLicenseStatus = async (req, res, next) => {
   try {
-    const { id: licenseId } = req.params;
-    const { status, rejected_reason } = req.body;
     const adminAccountId = req?.user?.sub;
+    const { id: licenseId } = req.params;
+    const { status } = req.body;
+    // chấp nhận cả rejectionReason & rejected_reason từ FE
+    const rejectionReason =
+      req.body?.rejectionReason ?? req.body?.rejected_reason ?? "";
 
-    const result = await updateLicenseStatus(
+    const result = await updateLicenseStatusSvc(
       adminAccountId,
       licenseId,
       status,
-      rejected_reason
+      rejectionReason
     );
-    res.status(result.ok ? 200 : 400).json(result);
+
+    return res.status(result.ok ? 200 : 400).json(result);
   } catch (err) {
     next(err);
   }
 };
 
-//cập nhật thông tin phòng khám
+// Cập nhật thông tin phòng khám
 exports.updateClinic = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;

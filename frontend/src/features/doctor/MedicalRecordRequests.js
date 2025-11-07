@@ -1,4 +1,4 @@
-import { memo, useState } from "react"; // Bỏ useEffect
+import { memo, useState, useEffect } from "react";
 import {
   UserPlus,
   Send,
@@ -8,10 +8,12 @@ import {
   XCircle,
   Clock,
   FolderOpen,
+  Search, // Thêm icon Search
 } from "lucide-react";
 import { doctorApi } from "../../api/doctor/doctorApi";
-// Import hook của bạn
-import { useDataByUrl } from "../../utility/data.utils"; 
+import { useDataByUrl } from "../../utility/data.utils";
+import { toast } from "react-toastify";
+import { Spinner } from "react-bootstrap"; // Dùng Spinner cho trạng thái tải
 
 const MedicalRecordRequests = () => {
   const [patientCode, setPatientCode] = useState("");
@@ -20,34 +22,34 @@ const MedicalRecordRequests = () => {
   const [message, setMessage] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [reason, setReason] = useState("");
+  const [isSearching, setIsSearching] = useState(false); // State cho trạng thái tìm kiếm
   
-  // State mới cho phân trang
+  // State mới cho phân trang lịch sử
   const [page, setPage] = useState(1);
-  const limit = 10; // Cấu hình số lượng item mỗi trang
+  const limit = 10;
 
-  // --- 1. Thay thế useEffect bằng useDataByUrl ---
+  // --- 1. Lấy dữ liệu Lịch sử yêu cầu ---
   const { 
     data: historyData, 
     isLoading: isHistoryLoading, 
     error: historyError,
-    refetch: refetchHistory // Lấy hàm refetch
+    refetch: refetchHistory
   } = useDataByUrl({
     url: doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD,
-    key: ["medical-record-request-history", page], // Key động theo trang
-    params: { page, limit }, // Gửi params phân trang
+    key: ["medical-record-request-history", page],
+    params: { page, limit },
   });
 
-  // Lấy danh sách yêu cầu từ data của hook (theo cấu trúc mới)
   const accessRequests = historyData?.data?.history_request || [];
-  // Lấy dữ liệu phân trang
-  const pagination = historyData?.pagination || { page: 1, totalPages: 1 };
+  const pagination = historyData?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
   const totalPages = pagination.totalPages;
 
-  if (historyError) {
-    console.error("Lỗi khi tải lịch sử yêu cầu:", historyError);
-  }
-  // ---------------------------------------------------
-  
+  useEffect(() => {
+    if (historyError) {
+        toast.error("Lỗi khi tải lịch sử yêu cầu truy cập.");
+    }
+  }, [historyError]);
+
   // Hàm định dạng ngày
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -61,31 +63,36 @@ const MedicalRecordRequests = () => {
     });
   };
 
-  // Giữ nguyên, vì đây là hành động "tìm kiếm" (imperative)
+  // Hàm xử lý tìm bệnh nhân (imperative)
   const handleFindPatient = async (e) => {
     e.preventDefault();
-    if (!patientCode.trim()) return;
+    if (!patientCode.trim()) {
+      setMessage({ type: "error", text: "Vui lòng nhập mã bệnh nhân." });
+      return;
+    }
+
+    setIsSearching(true);
+    setFoundPatient(null);
+    setPatientRecords([]);
+    setMessage(null);
 
     try {
-      // ... (Giữ nguyên logic tìm kiếm) ...
       const res = await doctorApi.searchMedicalRecords(patientCode.trim());
       const records = res.data?.data || [];
 
       if (records.length === 0) {
-        setFoundPatient(null);
-        setPatientRecords([]);
         setMessage({
           type: "error",
-          text: "Không tìm thấy hồ sơ bệnh án nào cho mã bệnh nhân này.",
+          text: `Không tìm thấy hồ sơ bệnh án nào cho mã BN: ${patientCode}.`,
         });
         return;
       }
 
-      console.log("thông tin", records);
-
+      // Giả định API trả về patient_id và patient_name trong các record
       const patientInfo = {
-        _id: records[0].patient_id,
+        _id: records[0].patient_id, // Lấy ID của bệnh nhân từ record đầu tiên
         name: records[0].patient_name,
+        code: records[0].patient_code,
       };
 
       setFoundPatient(patientInfo);
@@ -97,24 +104,24 @@ const MedicalRecordRequests = () => {
     } catch (error) {
       console.error(error);
       setMessage({ type: "error", text: "Lỗi khi tìm hồ sơ bệnh án." });
+    } finally {
+        setIsSearching(false);
     }
   };
 
-  // --- 2. Cập nhật handleSendRequest để dùng refetch ---
+  // --- 2. Xử lý gửi yêu cầu ---
   const handleSendRequest = async () => {
     if (!selectedRecord) {
-      setMessage({
-        type: "error",
-        text: "Vui lòng chọn hồ sơ cần gửi yêu cầu.",
-      });
+      toast.error("Vui lòng chọn hồ sơ cần gửi yêu cầu.");
       return;
     }
     if (!reason.trim()) {
-      setMessage({ type: "error", text: "Vui lòng nhập lý do xem hồ sơ." });
+      toast.error("Vui lòng nhập lý do xem hồ sơ.");
       return;
     }
 
     try {
+      // Giả định API requestMedicalRecordAccess nhận patientId, recordId, reason
       const res = await doctorApi.requestMedicalRecordAccess(
         foundPatient._id,
         selectedRecord._id,
@@ -122,27 +129,24 @@ const MedicalRecordRequests = () => {
       );
 
       if (res.data?.ok) {
-        setMessage({
-          type: "success",
-          text: "Đã gửi yêu cầu truy cập hồ sơ thành công.",
-        });
+        toast.success("Đã gửi yêu cầu truy cập hồ sơ thành công!");
 
         // Gọi refetch để tải lại danh sách lịch sử
         refetchHistory();
-        // Reset về trang 1 nếu bạn muốn
+        // Reset về trang 1 nếu đang không ở trang 1
         if (page !== 1) setPage(1);
 
         setSelectedRecord(null);
         setReason("");
+        setPatientRecords([]); // Xóa danh sách tìm kiếm
+        setFoundPatient(null);
+        setPatientCode("");
       } else {
-        setMessage({
-          type: "error",
-          text: res.data?.message || "Gửi yêu cầu thất bại.",
-        });
+        toast.error(res.data?.message || "Gửi yêu cầu thất bại.");
       }
     } catch (error) {
       console.error(error);
-      setMessage({ type: "error", text: "Có lỗi xảy ra khi gửi yêu cầu." });
+      toast.error("Có lỗi xảy ra khi gửi yêu cầu.");
     }
   };
 
@@ -150,128 +154,134 @@ const MedicalRecordRequests = () => {
     switch (status) {
       case "APPROVED":
         return (
-          <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium">
+          <span className="flex items-center gap-1.5 text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
             <CheckCircle size={14} /> Đã duyệt
           </span>
         );
       case "PENDING":
         return (
-          <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full text-xs font-medium">
+          <span className="flex items-center gap-1.5 text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
             <Clock size={14} /> Chờ duyệt
           </span>
         );
       case "REJECTED":
         return (
-          <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-full text-xs font-medium">
+          <span className="flex items-center gap-1.5 text-red-700 bg-red-100 px-3 py-1 rounded-full text-xs font-bold border border-red-200">
             <XCircle size={14} /> Từ chối
           </span>
         );
       default:
-        // Thêm trạng thái EXPIRED từ API
+        // EXPIRED, REVOKED, etc.
         return (
-          <span className="flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-medium">
-            <Clock size={14} /> Hết hạn
+          <span className="flex items-center gap-1.5 text-gray-600 bg-gray-100 px-3 py-1 rounded-full text-xs font-bold border border-gray-200">
+            <Clock size={14} /> Khác
           </span>
         );
     }
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 p-6 bg-gray-50 min-h-screen">
-      {/* Cột trái (Giữ nguyên) */}
-      <div className="w-full md:w-1/3 bg-white rounded-2xl shadow p-6 space-y-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-700">
-          <UserPlus size={22} /> Tìm bệnh nhân
+    <div className="flex flex-col md:flex-row gap-8 p-6 lg:p-10 bg-gray-50 min-h-screen">
+      
+      {/* --- Cột trái: Tìm kiếm và Gửi yêu cầu --- */}
+      <div className="w-full md:w-1/3 bg-white rounded-xl shadow-lg p-6 space-y-6 border border-gray-100 flex-shrink-0">
+        <h2 className="text-2xl font-bold flex items-center gap-3 text-blue-700 border-b pb-3">
+          <UserPlus size={24} /> Yêu cầu Truy cập Hồ sơ
         </h2>
 
         {message && (
           <div
-            className={`p-3 rounded-lg text-sm ${
+            className={`p-3 rounded-lg text-sm font-medium ${
               message.type === "success"
-                ? "bg-green-50 text-green-700"
-                : "bg-red-50 text-red-700"
+                ? "bg-green-100 text-green-700 border border-green-300"
+                : "bg-red-100 text-red-700 border border-red-300"
             }`}
           >
             {message.text}
           </div>
         )}
 
+        {/* Form Tìm kiếm */}
         <form onSubmit={handleFindPatient} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-600">
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
               Mã bệnh nhân
             </label>
-            <input
-              type="text"
-              value={patientCode}
-              onChange={(e) => setPatientCode(e.target.value)}
-              placeholder="Nhập mã bệnh nhân..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-            />
+            <div className="relative">
+                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    value={patientCode}
+                    onChange={(e) => setPatientCode(e.target.value)}
+                    placeholder="Nhập mã bệnh nhân..."
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition duration-150"
+                    disabled={isSearching}
+                />
+            </div>
           </div>
 
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-500/30 disabled:bg-gray-400"
+            disabled={isSearching}
           >
-            <FolderOpen size={18} /> Tìm bệnh án
+            {isSearching ? <Spinner animation="border" size="sm" className="mr-2" /> : <FolderOpen size={18} />}
+            {isSearching ? "Đang tìm..." : "Tìm hồ sơ"}
           </button>
         </form>
 
+        {/* Kết quả Tìm kiếm và Form Gửi yêu cầu */}
         {foundPatient && (
-          <div className="mt-6 border-t pt-4">
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Hồ sơ bệnh án ({patientRecords.length})
+          <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+            <h3 className="font-bold text-gray-800 text-lg">
+                <span className="text-blue-600">{foundPatient.name}</span> ({foundPatient.code})
             </h3>
+            
+            <h4 className="font-semibold text-gray-700 text-base mb-2">
+              Chọn hồ sơ cần yêu cầu ({patientRecords.length})
+            </h4>
 
             {patientRecords.length === 0 ? (
-              <p className="text-gray-500 text-sm italic">
+              <p className="text-gray-500 text-sm italic p-3 bg-gray-50 rounded-lg">
                 Không có hồ sơ nào.
               </p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-3 max-h-64 overflow-y-auto pr-2">
                 {patientRecords.map((rec) => {
-                  const isSelected =
-                    selectedRecord &&
-                    String(selectedRecord._id) === String(rec._id);
-
+                  const isSelected = selectedRecord?._id === rec._id;
                   return (
                     <li
                       key={rec._id}
                       onClick={() => setSelectedRecord(rec)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                      className={`flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 shadow-sm ${
                         isSelected
-                          ? "border-green-500 bg-green-50"
+                          ? "border-green-500 bg-green-50 ring-2 ring-green-300"
                           : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
+                      {/* Thông tin hồ sơ */}
+                      <div className="flex flex-col flex-grow truncate">
+                        <p className="text-sm font-bold text-gray-800 truncate">
+                          {rec.diagnosis || "Chưa có chẩn đoán"}
+                        </p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                          <Calendar size={12} /> Ngày khám:{" "}
+                          {formatDate(rec.createdAt).split(",")[0]}
+                        </p>
+                      </div>
+
                       {/* Vòng tròn radio */}
                       <span
-                        className={`w-5 h-5 flex items-center justify-center rounded-full border-2 ${
+                        className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full border-2 transition-colors ${
                           isSelected
                             ? "border-green-600 bg-green-600"
-                            : "border-gray-300 bg-white"
+                            : "border-gray-400 bg-white"
                         }`}
                       >
                         {isSelected && (
                           <span className="w-2 h-2 bg-white rounded-full"></span>
                         )}
                       </span>
-
-                      {/* Thông tin hồ sơ */}
-                      <div className="flex flex-col">
-                        <p className="text-sm font-medium text-gray-800">
-                          {rec.diagnosis || "Không có chẩn đoán"}
-                        </p>
-                        {rec.createdAt && (
-                          <p className="text-xs text-gray-500">
-                            Ngày tạo:{" "}
-                            {new Date(rec.createdAt).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </p>
-                        )}
-                      </div>
                     </li>
                   );
                 })}
@@ -280,24 +290,24 @@ const MedicalRecordRequests = () => {
 
             {selectedRecord && (
               <>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-600">
-                    Lý do muốn xem hồ sơ
+                <div className="mt-6">
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Lý do xem hồ sơ <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Nhập lý do..."
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                    placeholder="Nhập lý do chi tiết..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm resize-none"
                   />
                 </div>
 
                 <button
                   onClick={handleSendRequest}
-                  className="mt-3 w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 font-semibold transition-all"
+                  className="mt-3 w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all shadow-md shadow-green-500/30"
                 >
-                  <Send size={18} /> Gửi yêu cầu truy cập hồ sơ
+                  <Send size={18} /> Gửi yêu cầu truy cập
                 </button>
               </>
             )}
@@ -305,70 +315,78 @@ const MedicalRecordRequests = () => {
         )}
       </div>
 
-      {/* Cột phải (Đã cập nhật) */}
-      <div className="w-full md:w-2/3 bg-white rounded-2xl shadow p-6 flex flex-col">
-        <h2 className="text-xl font-semibold flex items-center gap-2 mb-4 text-blue-700">
-          <FileText size={22} /> Danh sách yêu cầu đã gửi
+      {/* --- Cột phải: Danh sách yêu cầu đã gửi (Lịch sử) --- */}
+      <div className="w-full md:w-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col border border-gray-100">
+        <h2 className="text-2xl font-bold flex items-center gap-3 mb-6 text-blue-700 border-b pb-3">
+          <FileText size={24} /> Lịch sử Yêu cầu Truy cập
         </h2>
 
         {isHistoryLoading ? (
-          <p className="text-gray-500 italic text-sm">Đang tải lịch sử...</p>
+            <div className="flex flex-col items-center justify-center p-10 flex-grow">
+                <Spinner animation="border" variant="primary" />
+                <p className="mt-3 text-gray-600">Đang tải lịch sử...</p>
+            </div>
         ) : accessRequests.length === 0 ? (
-          <p className="text-gray-500 italic text-sm">
-            Chưa có yêu cầu nào được gửi.
-          </p>
+          <div className="flex flex-col items-center justify-center p-10 flex-grow text-gray-500">
+             <FileText size={48} className="mb-3 text-gray-400" />
+             <p className="font-medium text-lg">Chưa có yêu cầu nào được gửi.</p>
+             <p className="text-sm">Hãy tìm kiếm bệnh nhân và gửi yêu cầu xem hồ sơ.</p>
+          </div>
         ) : (
-          // Thêm flex-grow và overflow-auto để phân trang dính xuống dưới
           <div className="flex flex-col flex-grow justify-between">
             {/* Danh sách */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {accessRequests.map((req, idx) => (
                 <div
                   key={idx}
-                  className="p-4 border border-gray-200 rounded-xl flex justify-between items-center hover:bg-gray-50 transition"
+                  className="p-4 border border-gray-200 rounded-xl flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition shadow-sm"
                 >
-                  <div>
-                    <p className="font-semibold text-blue-700">
-                      Hồ sơ:{" "}
-                      {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-800">
+                      Hồ sơ: <span className="text-blue-700">{req?.medical_record?.diagnosis || "Không có chẩn đoán"}</span>
                     </p>
-                    {/* Trường patient_code không có sẵn trong
-                      đối tượng `history_request` (vì `patient` là null).
-                      Bạn có thể hiển thị patient_id nếu muốn:
-                    */}
                     <p className="text-sm text-gray-600">
-                      Patient code: {req?.patient?.patient_code || "N/A"}
+                        Bệnh nhân: **{req?.patient?.patient_name || req?.patient?.patient_code || "N/A"}**
                     </p>
                     <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                      <Calendar size={14} /> Ngày gửi:{" "}
-                      {formatDate(req.requested_at)} {/* Dùng hàm mới */}
+                      <Calendar size={14} /> Ngày gửi: {formatDate(req.requested_at)}
                     </p>
+                    {req.status === "APPROVED" && (
+                         <p className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                            <CheckCircle size={12} /> Được duyệt lúc: {formatDate(req.approved_at)}
+                         </p>
+                    )}
                   </div>
                   {getStatusBadge(req.status)}
                 </div>
               ))}
             </div>
 
-            {/* Phân trang (MỚI) */}
+            {/* Phân trang */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-3 mt-6">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1 || isHistoryLoading}
-                  className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                >
-                  Trang trước
-                </button>
-                <span className="text-sm text-gray-700">
-                  Trang {page} / {totalPages}
+              <div className="flex justify-between items-center mt-8 pt-4 border-t border-gray-200">
+                <span className="text-sm text-gray-600">
+                    Tổng số {pagination.totalItems} yêu cầu
                 </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages || isHistoryLoading}
-                  className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                >
-                  Trang sau
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1 || isHistoryLoading}
+                        className="p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition"
+                    >
+                        Trang trước
+                    </button>
+                    <span className="text-sm font-semibold text-gray-700">
+                        {page} / {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages || isHistoryLoading}
+                        className="p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition"
+                    >
+                        Trang sau
+                    </button>
+                </div>
               </div>
             )}
           </div>

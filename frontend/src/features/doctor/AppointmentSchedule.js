@@ -2,15 +2,19 @@ import { memo, useState } from "react";
 import {
   Calendar,
   Clock,
-  Person,
+  User, // Thay thế Person
   CheckCircle,
   XCircle,
-  ClockHistory,
+  History, // Thay thế ClockHistory
   X,
-} from "react-bootstrap-icons";
-import "../../styles/doctor/appointment-schedule.css";
+  Hourglass, // Icon bổ sung cho trạng thái
+  Search, // Icon bổ sung cho nút chi tiết
+} from "lucide-react"; // Sử dụng Lucide React cho giao diện hiện đại
+import { Spinner } from "react-bootstrap";
+// import "../../styles/doctor/appointment-schedule.css"; // Đã bỏ CSS ngoài
 import { doctorApi } from "../../api/doctor/doctorApi";
 import { useDataByUrl } from "../../utility/data.utils";
+import { toast } from "react-toastify"; // Thêm toast để thông báo lỗi
 
 const AppointmentSchedule = () => {
   // State cho bộ lọc
@@ -44,7 +48,7 @@ const AppointmentSchedule = () => {
   });
 
   if (error) {
-    console.error("Error fetching appointments:", error);
+    toast.error("Lỗi khi tải dữ liệu lịch hẹn.");
   }
 
   // Lấy dữ liệu từ hook
@@ -53,23 +57,47 @@ const AppointmentSchedule = () => {
   const selectedSlotInfo = data?.data?.slot?.slot_select;
 
   // Lấy dữ liệu phân trang
-  const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
+  const pagination = data?.pagination || {
+    page: 1,
+    totalPages: 1,
+    totalItems: 0,
+  };
   const totalPages = pagination.totalPages;
   const totalItems = pagination.totalItems;
 
-  // --- 2. Định nghĩa status ---
+  // --- 2. Định nghĩa status (dùng Tailwind) ---
   const getStatusBadge = (status) => {
     const config = {
-      SCHEDULED: { label: "Đã lên lịch", class: "status-scheduled", icon: ClockHistory },
-      APPROVE: { label: "Chờ khám", class: "status-approve", icon: Person },
-      COMPLETED: { label: "Hoàn thành", class: "status-completed", icon: CheckCircle },
-      CANCELLED: { label: "Đã hủy", class: "status-cancelled", icon: XCircle },
-      NO_SHOW: { label: "Không đến", class: "status-no-show", icon: XCircle },
+      SCHEDULED: {
+        label: "Đã lên lịch",
+        class: "bg-blue-100 text-blue-700 border-blue-200",
+        icon: History,
+      },
+      APPROVE: {
+        label: "Chờ khám",
+        class: "bg-green-100 text-green-700 border-green-200",
+        icon: User,
+      },
+      COMPLETED: {
+        label: "Hoàn thành",
+        class: "bg-gray-200 text-gray-700 border-gray-300",
+        icon: CheckCircle,
+      },
+      CANCELLED: {
+        label: "Đã hủy",
+        class: "bg-red-100 text-red-700 border-red-200",
+        icon: XCircle,
+      },
+      NO_SHOW: {
+        label: "Không đến",
+        class: "bg-yellow-100 text-yellow-700 border-yellow-200",
+        icon: Hourglass,
+      },
     };
-    return config[status] || config.SCHEDULED;
+    return config[status] || { label: status, class: "bg-gray-100 text-gray-600 border-gray-300", icon: Clock };
   };
 
-  // --- 3. Các hàm định dạng (Đã sửa múi giờ) ---
+  // --- 3. Các hàm định dạng (Giữ nguyên) ---
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     try {
@@ -109,24 +137,28 @@ const AppointmentSchedule = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <div className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/50">
               <Calendar className="text-white" size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Lịch khám bệnh</h1>
-              <p className="text-gray-500 mt-1">Quản lý và theo dõi lịch hẹn của bạn</p>
+              <h1 className="text-3xl font-bold text-gray-800">
+                Lịch khám bệnh
+              </h1>
+              <p className="text-gray-500 mt-1">
+                Quản lý và theo dõi lịch hẹn của bạn
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Bộ lọc (Giữ nguyên) */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Bộ lọc */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               {/* Lọc ngày */}
               <div className="relative">
@@ -141,7 +173,7 @@ const AppointmentSchedule = () => {
                     setSelectedDate(e.target.value);
                     setPage(1);
                   }}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition duration-150"
                 />
               </div>
 
@@ -152,7 +184,7 @@ const AppointmentSchedule = () => {
                   setFilterStatus(e.target.value);
                   setPage(1);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition duration-150 appearance-none bg-white"
               >
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="SCHEDULED">Đã lên lịch</option>
@@ -164,10 +196,12 @@ const AppointmentSchedule = () => {
             </div>
 
             {/* Tổng số */}
-            <div className="px-4 py-2 bg-blue-50 rounded-lg">
-              <span className="text-blue-700 font-semibold">
+            <div className="px-4 py-2 bg-blue-100 rounded-lg border border-blue-200">
+              <span className="text-blue-700 font-semibold text-sm">
                 Tổng số:{" "}
-                <strong className="text-blue-900">{totalItems}</strong>{" "}
+                <strong className="text-blue-900 text-lg">
+                  {totalItems}
+                </strong>{" "}
                 lịch hẹn
               </span>
             </div>
@@ -175,24 +209,24 @@ const AppointmentSchedule = () => {
 
           {/* Lọc theo khung giờ (Slots) */}
           {slots.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <Clock size={16} /> Lọc theo khung giờ:
+            <div className="mt-5 pt-3 border-t border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <Clock size={16} className="text-blue-500" /> Chọn khung giờ khám:
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {/* Nút "Tất cả" */}
                 <button
                   onClick={() => {
                     setSelectedSlot(null);
                     setPage(1);
                   }}
-                  className={`px-4 py-2 rounded-lg font-medium ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all shadow-sm ${
                     selectedSlot === null
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
+                      ? "bg-blue-600 text-white shadow-blue-300/50"
+                      : "bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600 border border-gray-300"
                   }`}
                 >
-                  Tất cả
+                  Tất cả khung giờ
                 </button>
 
                 {/* Danh sách slots */}
@@ -203,10 +237,10 @@ const AppointmentSchedule = () => {
                       setSelectedSlot(slot._id);
                       setPage(1);
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all shadow-sm ${
                       selectedSlot === slot._id
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-50 hover:bg-gray-100"
+                        ? "bg-blue-600 text-white shadow-blue-300/50"
+                        : "bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600 border border-gray-300"
                     }`}
                   >
                     {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
@@ -217,122 +251,130 @@ const AppointmentSchedule = () => {
           )}
         </div>
 
-        {/* === DANH SÁCH LỊCH HẸN (GIAO DIỆN BẢNG MỚI) === */}
+        {/* === DANH SÁCH LỊCH HẸN (BẢNG) === */}
         {loading ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-600">
-            Đang tải dữ liệu...
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-600 flex justify-center items-center">
+            <Spinner animation="border" variant="primary" size="sm" />
+            <span className="ml-3">Đang tải dữ liệu...</span>
           </div>
         ) : appointments.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
-            Không có lịch hẹn nào phù hợp.
+            <Calendar size={48} className="mx-auto text-gray-400 mb-3" />
+            <p className="text-lg font-medium">Không có lịch hẹn nào phù hợp.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    STT
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Bệnh nhân
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Số điện thoại
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Giờ khám
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Trạng thái
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {appointments.map((item, index) => {
-                  const { appointment, patient } = item;
-                  const statusInfo = getStatusBadge(appointment.status);
-                  const StatusIcon = statusInfo.icon;
-                  const itemNumber = (page - 1) * limit + index + 1;
+          <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-blue-50/50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                    >
+                      STT
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                    >
+                      Bệnh nhân
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider hidden sm:table-cell"
+                    >
+                      Số điện thoại
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                    >
+                      Giờ khám
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                    >
+                      Trạng thái
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider"
+                    >
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {appointments.map((item, index) => {
+                    const { appointment, patient } = item;
+                    const statusInfo = getStatusBadge(appointment.status);
+                    const StatusIcon = statusInfo.icon;
+                    const itemNumber = (page - 1) * limit + index + 1;
 
-                  return (
-                    <tr key={appointment.appointment_id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {itemNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">
-                          {patient.patient_name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Mã BN: {patient.patient_code}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {patient.phone_number}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {selectedSlotInfo
-                          ? formatTime(selectedSlotInfo.start_time)
-                          : formatDate(appointment.scheduled_date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusInfo.class}`}
-                        >
-                          <StatusIcon size={14} />
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <button
-                          onClick={() => handleViewDetails(item)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr
+                        key={appointment.appointment_id}
+                        className="hover:bg-gray-50 transition duration-150"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {itemNumber}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {patient.patient_name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Mã BN: {patient.patient_code}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden sm:table-cell">
+                          {patient.phone_number}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
+                          {selectedSlotInfo
+                            ? formatTime(selectedSlotInfo.start_time)
+                            : formatDate(appointment.scheduled_date)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm border ${statusInfo.class}`}
+                          >
+                            <StatusIcon size={14} />
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                          <button
+                            onClick={() => handleViewDetails(item)}
+                            className="text-blue-600 p-2 rounded-full hover:bg-blue-100 transition"
+                            title="Xem chi tiết"
+                          >
+                            <Search size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
-        {/* === KẾT THÚC BẢNG === */}
 
         {/* --- PHÂN TRANG --- */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-3 mt-6">
+          <div className="flex justify-center items-center gap-3 mt-8 p-3 bg-white rounded-xl shadow-md border border-gray-100">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
-              className="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition"
             >
               Trang trước
             </button>
             <div className="flex items-center gap-2">
+              <span className="text-gray-600">Trang</span>
               <input
                 type="number"
                 min="1"
@@ -344,7 +386,7 @@ const AppointmentSchedule = () => {
                   else if (value > totalPages) setPage(totalPages);
                   else if (value < 1) setPage(1);
                 }}
-                className="w-16 text-center border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-16 text-center border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
                 disabled={loading}
               />
               <span className="text-gray-600">/ {totalPages}</span>
@@ -352,7 +394,7 @@ const AppointmentSchedule = () => {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages || loading}
-              className="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-200 disabled:opacity-40 transition"
             >
               Trang sau
             </button>
@@ -360,89 +402,95 @@ const AppointmentSchedule = () => {
         )}
       </div>
 
-      {/* === MODAL CHI TIẾT (Giữ nguyên giao diện modal đẹp) === */}
+      {/* === MODAL CHI TIẾT (Slide-in Panel) === */}
       {showModal && selectedAppointment && (
-        <div className="appointment-modal-overlay">
-          <div className="appointment-modal-backdrop" onClick={handleCloseModal}></div>
-          <div className="appointment-modal-panel">
-            {/* Header */}
-            <div className="appointment-modal-header">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <Calendar className="text-blue-600" size={20} /> Chi tiết lịch khám
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40 transition-opacity duration-300"
+            onClick={handleCloseModal}
+          ></div>
+          
+          {/* Panel */}
+          <div className="relative z-50 w-full sm:w-[450px] h-full bg-white shadow-2xl rounded-l-xl transform transition-transform duration-300 ease-in-out translate-x-0 flex flex-col">
+            
+            {/* Header Modal */}
+            <div className="flex justify-between items-center p-5 border-b border-gray-200 bg-blue-50">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <Calendar className="text-blue-600" size={24} /> Chi tiết lịch khám
               </h2>
-              <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
+              <button
+                onClick={handleCloseModal}
+                className="p-2 hover:bg-gray-200 rounded-full transition text-gray-600"
+              >
                 <X size={24} />
               </button>
             </div>
 
             {/* Content */}
-            <div className="appointment-modal-content p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Thông tin bệnh nhân */}
-              <div>
-                <h4 className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
-                  <Person className="text-blue-500" size={18} />
-                  Thông tin bệnh nhân
+              <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+                <h4 className="flex items-center gap-2 text-blue-700 font-bold mb-3 border-b pb-2">
+                  <User size={18} /> Thông tin bệnh nhân
                 </h4>
-                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2 text-sm">
+                <div className="space-y-2 text-sm">
                   <p>
-                    <span className="font-medium text-gray-600">Họ và tên:</span>{" "}
-                    <span className="font-semibold text-gray-800">{selectedAppointment.patient?.patient_name}</span>
+                    <span className="font-semibold text-gray-700">Họ và tên:</span>{" "}
+                    {selectedAppointment.patient?.patient_name}
                   </p>
                   <p>
-                    <span className="font-medium text-gray-600">Mã BN:</span>{" "}
+                    <span className="font-semibold text-gray-700">Mã BN:</span>{" "}
                     {selectedAppointment.patient?.patient_code}
                   </p>
                   <p>
-                    <span className="font-medium text-gray-600">Số điện thoại:</span>{" "}
+                    <span className="font-semibold text-gray-700">SĐT:</span>{" "}
                     {selectedAppointment.patient?.phone_number}
                   </p>
                 </div>
               </div>
 
               {/* Thông tin lịch hẹn */}
-              <div>
-                <h4 className="flex items-center gap-2 text-gray-700 font-semibold mb-2">
-                  <ClockHistory className="text-blue-500" size={18} />
-                  Thông tin lịch hẹn
+              <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+                <h4 className="flex items-center gap-2 text-blue-700 font-bold mb-3 border-b pb-2">
+                  <History size={18} /> Thông tin lịch hẹn
                 </h4>
-                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2 text-sm">
+                <div className="space-y-2 text-sm">
                   <p>
-                    <span className="font-medium text-gray-600">Ngày khám:</span>{" "}
+                    <span className="font-semibold text-gray-700">Ngày khám:</span>{" "}
                     {formatDate(selectedAppointment.appointment?.scheduled_date)}
                   </p>
-                  
                   <p>
-                    <span className="font-medium text-gray-600">Giờ khám:</span>{" "}
+                    <span className="font-semibold text-gray-700">Giờ khám:</span>{" "}
                     {selectedSlotInfo 
                       ? formatTime(selectedSlotInfo.start_time)
-                      : <span className="text-gray-500 italic">Không rõ (xem cả ngày)</span>
+                      : <span className="text-gray-500 italic">Xem cả ngày</span>
                     }
                   </p>
-                  
-                  <p className="flex items-center">
-                    <span className="font-medium text-gray-600 mr-2">Trạng thái:</span>{" "}
+                  <div className="flex items-center">
+                    <span className="font-semibold text-gray-700 mr-2">Trạng thái:</span>{" "}
                     {(() => {
                         const statusInfo = getStatusBadge(selectedAppointment.appointment?.status);
                         const StatusIcon = statusInfo.icon;
                         return (
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusInfo.class}`}
+                            className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm border ${statusInfo.class}`}
                           >
                             <StatusIcon size={14} />
                             {statusInfo.label}
                           </span>
                         );
                     })()}
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="appointment-modal-footer p-4 bg-gray-50 border-t">
+            <div className="p-4 bg-gray-50 border-t flex justify-end">
               <button
                 onClick={handleCloseModal}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2 font-semibold"
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-xl px-5 py-2 font-semibold transition"
               >
                 Đóng
               </button>
@@ -450,7 +498,6 @@ const AppointmentSchedule = () => {
           </div>
         </div>
       )}
-      {/* === KẾT THÚC MODAL === */}
     </div>
   );
 };

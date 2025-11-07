@@ -42,7 +42,7 @@ export const adminclinicAPI = {
   },
 
   //tạo tài khoản trợ lý cho bác sĩ
-  createAccountAssistant: (data) => {
+  createAccountAssistant: (data) => {    
     return axiosInstance.post("/admin_clinic/create_assistant", data);
   },
 

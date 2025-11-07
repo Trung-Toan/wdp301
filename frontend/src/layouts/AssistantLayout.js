@@ -24,11 +24,20 @@ const DoctorLayout = () => {
 
   const profile = data?.data?.information || {};
   const assistantProfile = data?.data?.assistant || {};
+
+  // Hỗ trợ nhiều role: type có thể là mảng hoặc string (tương thích ngược)
+  const roles = Array.isArray(assistantProfile?.type)
+    ? assistantProfile.type
+    : assistantProfile?.type
+    ? [assistantProfile.type]
+    : [];
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menusByType = {
+  // Menu theo từng vai trò
+  const MENUS_BY_ROLE = {
     RECEPTIONIST: [
       {
         title: "Trang chủ",
@@ -40,7 +49,6 @@ const DoctorLayout = () => {
         icon: <ClipboardCheck size={20} />,
         link: "/assistant/appointments",
       },
-      
     ],
     NURSE: [
       {
@@ -61,8 +69,19 @@ const DoctorLayout = () => {
     ],
   };
 
-  // 🟢 Lấy menu tương ứng với type (hoặc rỗng)
-  const menuItems = menusByType[assistantProfile?.type] || [];
+  // Hợp nhất menu từ nhiều roles → loại trùng theo link
+  const menuItems = roles
+    .flatMap((r) => MENUS_BY_ROLE[r] || [])
+    .reduce((acc, item) => {
+      if (!acc.some((x) => x.link === item.link)) acc.push(item);
+      return acc;
+    }, []);
+
+  // Nếu không có role khớp, fallback an toàn (tránh rỗng)
+  const effectiveMenu = menuItems.length
+    ? menuItems
+    : MENUS_BY_ROLE.RECEPTIONIST || [];
+
   const { logout } = useAuth();
 
   const handleLogout = async () => {
@@ -87,6 +106,12 @@ const DoctorLayout = () => {
     }
   };
 
+  // Mapping label vai trò để hiển thị badge
+  const roleLabels = {
+    RECEPTIONIST: "Lễ tân",
+    NURSE: "Y tá",
+  };
+
   return (
     <div className="doctor-layout">
       {/* Sidebar */}
@@ -102,20 +127,23 @@ const DoctorLayout = () => {
           </div>
         </div>
 
-        {/* 🟢 Render menu bằng map */}
+        {/* Menu */}
         <nav className="sidebar-nav">
-          {menuItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.link}
-              className={`nav-item ${
-                location.pathname === item.link ? "nav-item-active" : ""
-              }`}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {sidebarOpen && <span className="nav-text">{item.title}</span>}
-            </Link>
-          ))}
+          {effectiveMenu.map((item, index) => {
+            const active =
+              location.pathname === item.link ||
+              location.pathname.startsWith(item.link + "/");
+            return (
+              <Link
+                key={index}
+                to={item.link}
+                className={`nav-item ${active ? "nav-item-active" : ""}`}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                {sidebarOpen && <span className="nav-text">{item.title}</span>}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
@@ -133,12 +161,13 @@ const DoctorLayout = () => {
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="toggle-sidebar-btn"
+            aria-label={sidebarOpen ? "Đóng sidebar" : "Mở sidebar"}
           >
             {sidebarOpen ? <X size={24} /> : <List size={24} />}
           </button>
 
           <div className="header-right">
-            <button className="notification-btn">
+            <button className="notification-btn" aria-label="Thông báo">
               <Bell size={20} />
               <span className="notification-badge">3</span>
             </button>
@@ -149,12 +178,20 @@ const DoctorLayout = () => {
                 <span className="user-name">
                   Trợ lý. {profile?.full_name || "Nguyễn Văn A"}
                 </span>
-                <span className="user-role">
-                  {assistantProfile?.type === "RECEPTIONIST"
-                    ? "Lễ tân"
-                    : assistantProfile?.type === "NURSE"
-                    ? "Y tá"
-                    : "Trợ lý"}
+
+                {/* Vai trò: hiển thị nhiều badge nếu có nhiều role */}
+                <span className="user-role" style={{ display: "block" }}>
+                  {roles.length > 0 ? (
+                    <span className="inline-badges">
+                      {roles.map((r) => (
+                        <span key={r} className="role-badge">
+                          {roleLabels[r] || r}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="role-badge">Trợ lý</span>
+                  )}
                 </span>
               </div>
             </div>
@@ -184,6 +221,18 @@ const DoctorLayout = () => {
           </div>
         </footer>
       </div>
+
+      {/* Inline style cho badge vai trò (hoặc thêm vào CSS của bạn) */}
+      <style>{`
+        .inline-badges { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+        .role-badge {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 12px; font-weight: 600;
+          background: #eef6ff; color: #1e66f5;
+          border: 1px solid #cfe3ff; border-radius: 9999px;
+          padding: 4px 10px;
+        }
+      `}</style>
     </div>
   );
 };
