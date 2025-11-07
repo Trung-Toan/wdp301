@@ -11,6 +11,8 @@ import {
   Phone,
   User,
   GraduationCap,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
@@ -33,16 +35,6 @@ const DoctorManagement = () => {
   const [loadingSpecialties, setLoadingSpecialties] = useState(true);
   const [searchSpecialty, setSearchSpecialty] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-<<<<<<< HEAD
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
-    phone_number: "",
-    full_name: "",
-    specialty_id: "",
-    specialtyName: "",
-    clinic_id: "",
-=======
 
   // 🧩 Mutation - Tạo bác sĩ
   const { mutate, isLoading: creatingDoctor } = useMutation({
@@ -59,7 +51,6 @@ const DoctorManagement = () => {
         error?.response?.data?.message || "Không thể tạo bác sĩ, thử lại!"
       );
     },
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
   });
 
   // 🧠 Formik + Yup
@@ -145,14 +136,11 @@ const DoctorManagement = () => {
           const specialties = Array.isArray(doc.specialty_id)
             ? doc.specialty_id.map((s) => s.name).join(", ")
             : "N/A";
-<<<<<<< HEAD
 
           const clinic = doc.clinic_id;
           const clinicName = clinic?.name || "Không xác định";
           const clinicId = clinic?._id?.toString() || null;
 
-=======
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
           return {
             id: doc._id,
             name: doc.user_id?.full_name || "Không rõ",
@@ -164,12 +152,9 @@ const DoctorManagement = () => {
               doc.user_id?.account_id?.status === "ACTIVE"
                 ? "ACTIVE"
                 : "INACTIVE",
-<<<<<<< HEAD
             clinicId: clinicId,
             clinicName: clinicName,
             doctorData: doc,
-=======
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
           };
         });
         setDoctors(transformed);
@@ -181,58 +166,9 @@ const DoctorManagement = () => {
     fetchDoctors();
   }, []);
 
-<<<<<<< HEAD
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingId) {
-        toast.info("Chức năng chỉnh sửa đang phát triển");
-        setShowModal(false);
-        return;
-      }
-
-      if (!formData.clinic_id) {
-        toast.error("Vui lòng chọn phòng khám");
-        return;
-      }
-
-      const payload = {
-        username: formData.username,
-        password: formData.password,
-        phone_number: formData.phone_number,
-        full_name: formData.full_name,
-        specialty_id: [formData.specialty_id],
-        clinic_id: formData.clinic_id,
-      };
-
-      const res = await adminclinicAPI.createAccountDoctor(payload);
-      if (res.data?.data) {
-        toast.success("Tạo bác sĩ thành công");
-        setShowModal(false);
-        window.location.reload(); // refresh danh sách
-      }
-    } catch (err) {
-      console.error("Lỗi khi tạo bác sĩ:", err);
-      toast.error("Không thể tạo bác sĩ: " + err.message);
-    }
-  };
-
-  const handleAddDoctor = () => {
-    setEditingId(null);
-    setFormData({
-      username: "",
-      password: "",
-      phone_number: "",
-      full_name: "",
-      specialty_id: "",
-      specialtyName: "",
-      clinic_id: "",
-    });
-=======
   const handleAddDoctor = () => {
     setEditingId(null);
     formik.resetForm();
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
     setShowModal(true);
   };
 
@@ -267,17 +203,11 @@ const DoctorManagement = () => {
     const matchesSearch =
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-<<<<<<< HEAD
       doc.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.clinicName.toLowerCase().includes(searchTerm.toLowerCase());
+      (doc.clinicName && doc.clinicName.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesClinic = filterClinic === "ALL" || doc.clinicId === filterClinic;
     return matchesSearch && matchesClinic;
-=======
-      doc.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === "ALL" || doc.status === filterStatus;
-    return matchesSearch && matchesFilter;
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
   });
 
   return (
@@ -329,14 +259,10 @@ const DoctorManagement = () => {
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Tên bác sĩ
               </th>
-<<<<<<< HEAD
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Phòng khám
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-=======
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                 Chuyên khoa
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
@@ -345,14 +271,10 @@ const DoctorManagement = () => {
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Điện thoại
               </th>
-<<<<<<< HEAD
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-=======
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Trạng thái
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                 Hành động
               </th>
             </tr>
@@ -386,14 +308,12 @@ const DoctorManagement = () => {
                   {doctor.phone}
                 </td>
                 <td className="px-4 py-3">
-<<<<<<< HEAD
-=======
-                  <button
-                    onClick={() => handleToggleStatus(doctor.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE"
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                      doctor.status === "ACTIVE"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-600"
-                      }`}
+                    }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -404,28 +324,21 @@ const DoctorManagement = () => {
                         <XCircle size={16} /> Không hoạt động
                       </>
                     )}
-                  </button>
+                  </span>
                 </td>
                 <td className="px-4 py-3">
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleViewDetail(doctor)}
                       className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-<<<<<<< HEAD
                       title="Xem chi tiết"
-=======
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                     >
                       <Eye size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteDoctor(doctor.id)}
                       className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
-<<<<<<< HEAD
                       title="Xóa tài khoản"
-=======
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                     >
                       <Trash2 size={18} />
                     </button>
@@ -493,105 +406,6 @@ const DoctorManagement = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mật khẩu <span className="text-red-500">*</span>
                 </label>
-<<<<<<< HEAD
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone_number}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone_number: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập số điện thoại"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Phòng khám *
-                </label>
-                <select
-                  required
-                  value={formData.clinic_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clinic_id: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Chọn phòng khám --</option>
-                  {clinics.map((clinic) => (
-                    <option key={clinic._id} value={clinic._id}>
-                      {clinic.name}
-                    </option>
-                  ))}
-                </select>
-                {clinics.length === 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Chưa có phòng khám nào. Vui lòng tạo phòng khám trước.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Chuyên khoa *
-                </label>
-
-                {/* Ô tìm kiếm */}
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm chuyên khoa..."
-                  value={searchSpecialty}
-                  onChange={(e) => setSearchSpecialty(e.target.value)}
-                  className="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-
-                {/* Dropdown cuộn */}
-                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg">
-                  {/* Hiển thị loading */}
-                  {loadingSpecialties ? (
-                    <div className="flex justify-center items-center p-4">
-                      <Spinner animation="border" size="sm" />
-                      <span className="ml-2 text-sm text-gray-500">
-                        Đang tải...
-                      </span>
-                    </div>
-                  ) : (
-                    // Hiển thị danh sách
-                    specialties
-                      .filter((s) =>
-                        s.name
-                          .toLowerCase()
-                          .includes(searchSpecialty.toLowerCase())
-                      )
-                      .map((s) => (
-                        <div
-                          key={s._id}
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-
-                              specialty_id: s._id,
-                              specialtyName: s.name,
-                            })
-                          }
-                          className={`px-3 py-2 cursor-pointer text-sm hover:bg-blue-50 ${
-                            formData.specialty_id === s._id
-                              ? "bg-blue-100 text-blue-700 font-semibold"
-                              : "text-gray-700"
-                          }`}
-                          _id
-                        >
-                          {s.name}
-                        </div>
-                      ))
-                  )}
-                  {/* Hiển thị nếu không có chuyên khoa */}
-                  {!loadingSpecialties && specialties.length === 0 && (
-                    <p className="p-3 text-sm text-gray-500 italic">
-                      Không tìm thấy chuyên khoa nào. Vui lòng thêm chuyên khoa
-                      tại trang "Tạo phòng khám".
-                    </p>
-                  )}
-=======
                 <div className="relative">
                   <input
                     id="password"
@@ -616,7 +430,6 @@ const DoctorManagement = () => {
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                 </div>
                 {formik.touched.password && formik.errors.password && (
                   <p className="text-xs text-red-600 mt-1">
@@ -742,7 +555,6 @@ const DoctorManagement = () => {
         </ElegantModal>
       )}
 
-<<<<<<< HEAD
       {/* Modal xem chi tiết bác sĩ */}
       {showDetailModal && selectedDoctor && (
         <div
@@ -917,8 +729,6 @@ const DoctorManagement = () => {
           </div>
         </div>
       )}
-=======
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
     </div>
   );
 };

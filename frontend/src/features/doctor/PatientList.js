@@ -381,38 +381,6 @@ const PatientList = () => {
 
   // --- JSX Trả về ---
   return (
-<<<<<<< HEAD
-    <div className="patient-list-container">
-      {/* Header */}
-      <div className="page-header">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-            <Briefcase className="text-white" size={28} />
-          </div>
-          <div>
-            <h1 className="page-title text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Danh sách bệnh nhân
-            </h1>
-            <p className="page-subtitle text-gray-600 mt-1">Quản lý thông tin bệnh nhân</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Search Section */}
-      <div className="search-section">
-        <div className="search-input-wrapper shadow-md hover:shadow-lg transition-shadow duration-300">
-          <Search className="search-icon text-blue-500" size={20} />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên, số điện thoại hoặc email..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setPage(1);
-            }}
-            className="search-input"
-          />
-=======
     <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -423,26 +391,8 @@ const PatientList = () => {
           <p className="text-md text-gray-500 mt-1">
             Quản lý thông tin và lịch sử khám bệnh của bệnh nhân.
           </p>
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
         </div>
 
-<<<<<<< HEAD
-      {/* Patients Table */}
-      <div className="patients-table-wrapper shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="patients-table">
-            <thead>
-              <tr className="bg-gradient-to-r from-blue-50 to-indigo-50">
-                <th className="font-bold text-gray-800">Mã BN</th>
-                <th className="font-bold text-gray-800">Họ và tên</th>
-                <th className="font-bold text-gray-800">Email</th>
-                <th className="font-bold text-gray-800">SĐT</th>
-                <th className="text-center font-bold text-gray-800">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isPatientListLoading ? (
-=======
         {/* Search Section */}
         <div className="mb-6 p-4 bg-white rounded-xl shadow-md border border-gray-100">
           <div className="relative">
@@ -465,7 +415,6 @@ const PatientList = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mã BN</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Họ và tên</th>
@@ -473,85 +422,6 @@ const PatientList = () => {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">SĐT</th>
                   <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Thao tác</th>
                 </tr>
-<<<<<<< HEAD
-              ) : patients?.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="empty-state">
-                    <div className="empty-content">
-                      <AlertCircle size={48} className="empty-icon" />
-                      <p>Không tìm thấy bệnh nhân nào</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                patients.map((patient, index) => (
-                  <tr key={patient?.patient_id || index}>
-                    <td className="patient-id">#{patient.patient_code}</td>
-                    <td>
-                      <div className="patient-avatar-wrapper">
-                        <div className="patient-avatar">
-                          {patient?.full_name?.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="patient-name">
-                          {patient?.full_name}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{patient.email || "N/A"}</td>
-                    <td>{patient?.phone || "N/A"}</td>
-                    <td className="text-center">
-                      <button
-                        onClick={() => handleViewDetails(patient)}
-                        className="action-btn action-btn-view hover:scale-110 transition-transform duration-200 shadow-md hover:shadow-lg"
-                        title="Xem chi tiết"
-                        disabled={isModalLoading}
-                      >
-                        <Eye size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && !isPatientListLoading && (
-          <div className="flex justify-center items-center gap-3 mt-6 mb-4">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-4 py-2 border-2 border-blue-300 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <ChevronLeft size={16} className="inline mr-1" />
-              Trang trước
-            </button>
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border-2 border-blue-200 shadow-sm">
-              <input
-                type="number"
-                min="1"
-                max={totalPages}
-                value={page}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  if (value >= 1 && value <= totalPages) {
-                    setPage(value);
-                  }
-                }}
-                className="w-16 text-center border-2 border-blue-200 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold"
-              />
-              <span className="text-gray-600 font-medium">/ {totalPages}</span>
-            </div>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-4 py-2 border-2 border-blue-300 rounded-xl text-sm font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              Trang sau
-              <ChevronRight size={16} className="inline ml-1" />
-            </button>
-=======
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {isPatientListLoading ? (
@@ -597,7 +467,6 @@ const PatientList = () => {
                 )}
               </tbody>
             </table>
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
           </div>
 
           {/* Pagination */}
@@ -637,39 +506,21 @@ const PatientList = () => {
           ></div>
 
           {/* Panel */}
-<<<<<<< HEAD
-          <div className="relative z-50 w-full sm:w-[600px] h-full bg-white shadow-2xl rounded-l-2xl transform transition-transform duration-300 translate-x-0 flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="p-2 bg-blue-500 rounded-lg">
-                  <FileText className="text-white" size={20} />
-                </div>
-                {/* Tiêu đề động */}
-=======
           <div 
-            className={`relative z-50 w-full sm:w-[500px] lg:w-[600px] h-full bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
-              showModal ? "translate-x-0" : "translate-x-full"
-            } flex flex-col`}
+            className={`relative z-50 w-full sm:w-[500px] lg:w-[600px] h-full bg-white shadow-2xl transition-transform duration-300 ease-in-out translate-x-0 flex flex-col`}
           >
             <div className="flex justify-between items-center p-5 border-b border-gray-200 bg-gray-50">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
                 <FileText className="text-blue-500" size={24} />
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
                 {selectedRecordId
                   ? "Chi tiết Bệnh án"
                   : "Hồ sơ Bệnh nhân"}
               </h2>
               <button
                 onClick={handleCloseModal}
-<<<<<<< HEAD
-                className="p-2 hover:bg-red-100 rounded-full transition-colors duration-200"
-              >
-                <X size={20} className="text-gray-600 hover:text-red-600" />
-=======
                 className="p-2 hover:bg-gray-200 rounded-full transition text-gray-600"
               >
                 <X size={24} />
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
               </button>
             </div>
 
@@ -695,28 +546,8 @@ const PatientList = () => {
               )}
             </div>
 
-<<<<<<< HEAD
-            {/* Footer */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 p-6 bg-gray-50">
-              <button
-                onClick={() => {
-                  handleCloseModal();
-                  navigate(
-                    `/doctor/record-requests?patient-code=${selectedPatient.patient_code}`
-                  );
-                }}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl font-semibold"
-                disabled={isModalLoading || !selectedPatient}
-              >
-                <FileText size={16} />
-                Yêu cầu xem hồ sơ bệnh án
-              </button>
-              <button
-                onClick={handleCloseModal}
-                className="bg-white border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all font-semibold shadow-sm hover:shadow-md"
-=======
             {/* Footer - Thao tác */}
-            <div className="flex flex-wrap justify-end gap-3 border-t border-gray-200 p-4 bg-white shadow-top">
+            <div className="flex flex-wrap justify-end gap-3 border-t border-gray-200 p-4 bg-white">
               {selectedPatient && !selectedRecordId && (
                 <button
                   onClick={() => {
@@ -735,7 +566,6 @@ const PatientList = () => {
               <button
                 onClick={handleCloseModal}
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition font-medium text-sm"
->>>>>>> 7c241f8a5960c784193aaf5d264fd08f1e1a8821
               >
                 Đóng hồ sơ
               </button>
