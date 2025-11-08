@@ -1,12 +1,16 @@
+// src/service/doctor/doctor.service.js
+"use strict";
+
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
-const appointmentService = require("../appointment/appointment.service");
+const appointmentService = require("../appointment/appointment.service"); // (đang không dùng ở file này, giữ lại nếu dùng nơi khác)
 const patientService = require("../patient/patient.service");
 const License = require("../../model/clinic/License");
 const User = require("../../model/user/User");
 const Account = require("../../model/auth/Account");
+
 /**
- * Hàm tìm kiếm một bác sĩ dựa trên user_id.
+ * Tìm bác sĩ theo user_id
  */
 exports.findDoctorByUserId = async (userId) => {
   try {
@@ -19,16 +23,20 @@ exports.findDoctorByUserId = async (userId) => {
 };
 
 /**
- * Thực hiện phân trang trên một mảng ID.
+ * (Helper) Phân trang một mảng id (nếu cần dùng)
  */
 const getPaginatedIds = (allIds, { page, limit }) => {
   const skip = (page - 1) * limit;
   return allIds.slice(skip, skip + limit);
 };
 
+/**
+ * Tìm bác sĩ theo account_id
+ */
 exports.findDoctorByAccountId = async (accountId) => {
   try {
     const user = await userService.findUserByAccountId(accountId);
+    if (!user) return null;
     const doctor = await exports.findDoctorByUserId(user._id);
     return doctor;
   } catch (error) {
@@ -38,22 +46,20 @@ exports.findDoctorByAccountId = async (accountId) => {
 };
 
 /**
- * Lấy danh sách người dùng là bệnh nhân của bác sĩ (đã khám xong) kèm theo phân trang.
+ * Lấy danh sách bệnh nhân đã khám xong của bác sĩ (có phân trang + search)
  */
 exports.getListPatients = async (req) => {
   const { page = 1, limit = 10, search = "" } = req.query;
 
   try {
-    // Bước 1: Xác thực và lấy thông tin bác sĩ
     const accountId = req.user.sub;
-
     const doctor = await exports.findDoctorByAccountId(accountId);
     if (!doctor) throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
 
     return await patientService.getPatientAvailableOfDoctor(
       doctor._id,
-      parseInt(page),
-      parseInt(limit),
+      parseInt(page, 10),
+      parseInt(limit, 10),
       search
     );
   } catch (error) {
@@ -61,7 +67,9 @@ exports.getListPatients = async (req) => {
   }
 };
 
-//lấy Profile bác sĩ
+/**
+ * Lấy hồ sơ bác sĩ theo accountId
+ */
 exports.getProfile = async (accountId) => {
   const user = await User.findOne({ account_id: accountId });
   if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
@@ -83,21 +91,28 @@ exports.getProfile = async (accountId) => {
   return doctor;
 };
 
-//chỉnh sửa profile
+/**
+ * Cập nhật hồ sơ bác sĩ (doctor + user + account)
+ * - Chỉ cập nhật các trường được gửi lên (!== undefined)
+ * - Trả về hồ sơ đã populate sau cập nhật
+ */
 exports.updateProfile = async (accountId, data) => {
   const {
+    // Doctor
     title,
     degree,
     experience,
     description,
+    // User
     gender,
     dob,
     address,
     avatar_url,
+    // Account
     username,
     email,
     phone_number,
-  } = data;
+  } = data || {};
 
   const user = await User.findOne({ account_id: accountId });
   if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
@@ -105,34 +120,42 @@ exports.updateProfile = async (accountId, data) => {
   const doctor = await Doctor.findOne({ user_id: user._id });
   if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
 
+  // Cập nhật các trường của Doctor nếu có gửi lên
   if (title !== undefined) doctor.title = title;
   if (degree !== undefined) doctor.degree = degree;
   if (experience !== undefined) doctor.experience = experience;
   if (description !== undefined) doctor.description = description;
+
   await doctor.save();
 
-  await User.findByIdAndUpdate(
-    doctor.user_id,
-    {
-      ...(gender && { gender }),
-      ...(dob && { dob }),
-      ...(address && { address }),
-      ...(avatar_url && { avatar_url }),
-    },
-    { new: true }
-  );
+  // Chuẩn bị payload update cho User
+  const userUpdate = {};
+  if (gender !== undefined) userUpdate.gender = gender;
+  if (dob !== undefined) {
+    // Cho phép null/"" để xoá ngày sinh
+    userUpdate.dob = dob ? new Date(dob) : null;
+  }
+  if (address !== undefined) userUpdate.address = address;
+  if (avatar_url !== undefined) userUpdate.avatar_url = avatar_url;
 
-  await Account.findByIdAndUpdate(
-    accountId,
-    {
-      ...(username && { username }),
-      ...(email && { email }),
-      ...(phone_number && { phone_number }),
-    },
-    { new: true }
-  );
+  // Chuẩn bị payload update cho Account
+  const accountUpdate = {};
+  if (username !== undefined) accountUpdate.username = username;
+  if (email !== undefined) accountUpdate.email = email;
+  if (phone_number !== undefined) accountUpdate.phone_number = phone_number;
 
-  const updatedDoctor = await Doctor.findById(doctor._id)
+  // Thực hiện cập nhật song song (chỉ chạy nếu có trường cần update)
+  await Promise.all([
+    Object.keys(userUpdate).length
+      ? User.findByIdAndUpdate(doctor.user_id, { $set: userUpdate }, { new: true })
+      : Promise.resolve(null),
+    Object.keys(accountUpdate).length
+      ? Account.findByIdAndUpdate(accountId, { $set: accountUpdate }, { new: true })
+      : Promise.resolve(null),
+  ]);
+
+  // Trả về hồ sơ đã cập nhật (giống getProfile)
+  const updatedProfile = await Doctor.findOne({ user_id: user._id })
     .populate({
       path: "user_id",
       select: "full_name dob gender address avatar_url account_id",
@@ -145,10 +168,38 @@ exports.updateProfile = async (accountId, data) => {
     .populate("specialty_id", "name")
     .lean();
 
-  return updatedDoctor;
+  if (!updatedProfile) throw new Error("Không tìm thấy hồ sơ bác sĩ sau cập nhật");
+  return updatedProfile;
 };
 
-//gửi chứng chỉ
+/**
+ * Đổi mật khẩu tài khoản bác sĩ
+ * - Validation & đối chiếu mật khẩu cũ làm ở Controller
+ * - Ở Service chỉ thực hiện gán mật khẩu mới và save()
+ * - Account model có pre('save') để hash
+ */
+exports.changePassword = async (acc_id, newPassword) => {
+  try {
+    const account = await Account.findById(acc_id);
+    if (!account) throw new Error("Không tìm thấy tài khoản.");
+
+    account.password = newPassword;
+
+    // (tuỳ chọn) nếu có field passwordChangedAt thì cập nhật
+    if ("passwordChangedAt" in account) {
+      account.passwordChangedAt = new Date();
+    }
+
+    await account.save(); // pre-save sẽ hash
+    return true;
+  } catch (error) {
+    throw new Error("Đổi mật khẩu thất bại: " + error.message);
+  }
+};
+
+/**
+ * Gửi chứng chỉ hành nghề (tạo bản ghi License ở trạng thái PENDING)
+ */
 exports.uploadLicense = async (accountId, payload) => {
   const user = await User.findOne({ account_id: accountId });
   if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");
@@ -156,8 +207,7 @@ exports.uploadLicense = async (accountId, payload) => {
   const doctor = await Doctor.findOne({ user_id: user._id });
   if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
 
-  const { licenseNumber, issued_by, issued_date, expiry_date, document_url } =
-    payload;
+  const { licenseNumber, issued_by, issued_date, expiry_date, document_url } = payload || {};
 
   const license = await License.create({
     licenseNumber,
@@ -173,7 +223,9 @@ exports.uploadLicense = async (accountId, payload) => {
   return license;
 };
 
-//lấy chứng chỉ bác sĩ
+/**
+ * Lấy danh sách chứng chỉ của bác sĩ
+ */
 exports.getMyLicense = async (accountId) => {
   const user = await User.findOne({ account_id: accountId });
   if (!user) throw new Error("Không tìm thấy người dùng của tài khoản này");

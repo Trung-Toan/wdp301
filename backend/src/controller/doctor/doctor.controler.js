@@ -4,6 +4,7 @@ const patientService = require("../../service/patient/patient.service");
 const appointmentService = require("../../service/appointment/appointment.service");
 const formatDataUtils = require("../../utils/formatData");
 const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
+const Account = require("../../model/auth/Account");
 
 const assistantService = require("../../service/doctor/doctor.assistant.service");
 
@@ -456,6 +457,49 @@ exports.updateProfile = async (req, res, next) => {
     next(err);
   }
 };
+
+// PUT /doctor/change-password
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = req.body || {};
+
+    // Validate đầu vào
+    if (typeof oldPassword !== "string" || typeof newPassword !== "string") {
+      return resUtils.badRequestResponse(res, "Dữ liệu đầu vào không hợp lệ.");
+    }
+    if (!oldPassword || !newPassword) {
+      return resUtils.badRequestResponse(res, "Vui lòng nhập đủ mật khẩu cũ và mật khẩu mới.");
+    }
+    if (newPassword.length < 6) {
+      return resUtils.badRequestResponse(res, "Mật khẩu mới phải có ít nhất 6 ký tự.");
+    }
+    if (oldPassword === newPassword) {
+      return resUtils.badRequestResponse(res, "Mật khẩu mới không được giống mật khẩu cũ.");
+    }
+
+    // Lấy account + kiểm tra trạng thái & đối chiếu mật khẩu cũ
+    const account = await Account.findById(req.user.sub).select("+password +status");
+    if (!account) {
+      return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản.");
+    }
+    if (account.status && account.status !== "ACTIVE") {
+      return resUtils.badRequestResponse(res, "Tài khoản không ở trạng thái cho phép đổi mật khẩu.");
+    }
+
+    const isMatch = await account.comparePassword(oldPassword);
+    if (!isMatch) {
+      return resUtils.badRequestResponse(res, "Mật khẩu hiện tại không đúng.");
+    }
+
+    // Chỉ thực hiện thay đổi
+    await doctorService.changePassword(req.user.sub, newPassword);
+
+    return resUtils.successResponse(res, { message: "Đổi mật khẩu thành công." }, "Đổi mật khẩu thành công");
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 // POST /doctor/license
 exports.uploadLicense = async (req, res, next) => {

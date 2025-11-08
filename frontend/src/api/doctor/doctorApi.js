@@ -8,9 +8,12 @@ export const doctorApi = {
   VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD: "/doctor/medical-records/requests/history",
   GET_ALL_MEDICAL_RECORDS: "/doctor/medical-records",
   GET_MEDICAL_RECORD_BY_ID: (id) => `/doctor/medical-records/${id}`,
+  CHANGE_PASSWORD: "/doctor/change-password",
 
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
   getDoctorTop: (limit) => axiosInstance.get("/doctor/top", { params: { limit } }),
+
+  putChangePassword: (data) =>axiosInstance.put(doctorApi.CHANGE_PASSWORD, data),
 
   // Lấy bác sĩ top gần đây (nếu không truyền limit -> lấy tất cả)
   getDoctorTopNearMe: (limit) => axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
