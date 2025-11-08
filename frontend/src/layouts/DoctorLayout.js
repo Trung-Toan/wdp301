@@ -7,7 +7,6 @@ import {
   FileText,
   ClipboardCheck,
   ChatLeftText,
-  PersonBadge,
   List,
   X,
   BoxArrowRight,
