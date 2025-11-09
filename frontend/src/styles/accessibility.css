@@ -1,48 +1,60 @@
 /* Accessibility Styles for Elderly Users and Users with Low Tech Literacy */
+/* Improved version with better visual balance and aesthetics */
 
 /* ============================================
-   Base Accessibility Classes
+   Base Accessibility Classes - Refined
    ============================================ */
 
-/* Large Font Mode */
+/* Large Font Mode - More subtle and balanced */
 .accessibility-large-font,
 .accessibility-elderly-mode {
-    font-size: 18px !important;
+    font-size: 17px !important; /* Slightly larger but not too much */
+    line-height: 1.6; /* Better readability */
 }
 
-.accessibility-large-font *,
-.accessibility-elderly-mode * {
-    font-size: inherit;
-}
-
+/* Typography Scale - Proportional and beautiful */
 .accessibility-large-font h1,
 .accessibility-elderly-mode h1 {
-    font-size: 2.5rem !important;
-    line-height: 1.3;
+    font-size: 2.25rem !important; /* Reduced from 2.5rem */
+    line-height: 1.3 !important;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
 }
 
 .accessibility-large-font h2,
 .accessibility-elderly-mode h2 {
-    font-size: 2rem !important;
-    line-height: 1.3;
+    font-size: 1.875rem !important; /* Reduced from 2rem */
+    line-height: 1.35 !important;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.875rem;
 }
 
 .accessibility-large-font h3,
 .accessibility-elderly-mode h3 {
-    font-size: 1.75rem !important;
-    line-height: 1.4;
+    font-size: 1.5rem !important; /* Reduced from 1.75rem */
+    line-height: 1.4 !important;
+    margin-bottom: 0.75rem;
+}
+
+.accessibility-large-font h4,
+.accessibility-elderly-mode h4 {
+    font-size: 1.25rem !important;
+    line-height: 1.45 !important;
+    margin-bottom: 0.625rem;
 }
 
 .accessibility-large-font p,
 .accessibility-elderly-mode p {
-    font-size: 1.125rem !important;
-    line-height: 1.7;
+    font-size: 1.0625rem !important; /* Slightly larger, 17px equivalent */
+    line-height: 1.7 !important;
+    margin-bottom: 1rem;
 }
 
 .accessibility-large-font label,
 .accessibility-elderly-mode label {
-    font-size: 1.125rem !important;
+    font-size: 1rem !important;
     font-weight: 600;
+    line-height: 1.5;
 }
 
 .accessibility-large-font input,
@@ -51,143 +63,112 @@
 .accessibility-elderly-mode input,
 .accessibility-elderly-mode textarea,
 .accessibility-elderly-mode select {
-    font-size: 1.125rem !important;
-    padding: 0.875rem 1rem !important;
+    font-size: 1.0625rem !important;
+    padding: 0.75rem 1rem !important; /* Better padding */
+    line-height: 1.5;
+    border-radius: 8px;
 }
 
-/* Large Buttons Mode */
-.accessibility-large-buttons button,
-.accessibility-elderly-mode button,
-.accessibility-large-buttons .btn,
-.accessibility-elderly-mode .btn {
-    min-height: 52px !important;
-    min-width: 120px !important;
-    padding: 0.875rem 1.5rem !important;
-    font-size: 1.125rem !important;
+/* Large Buttons Mode - More elegant sizing */
+.accessibility-large-buttons button:not(.accessibility-button-large),
+.accessibility-elderly-mode button:not(.accessibility-button-large) {
+    min-height: 48px !important; /* Reduced from 52px */
+    min-width: auto !important; /* Don't force width */
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1.0625rem !important;
     font-weight: 600;
-    border-radius: 12px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
+    gap: 0.5rem;
 }
 
-.accessibility-large-buttons a,
-.accessibility-elderly-mode a {
+/* Don't override specific button styles */
+.accessibility-large-buttons .btn-primary,
+.accessibility-elderly-mode .btn-primary,
+.accessibility-large-buttons .btn-secondary,
+.accessibility-elderly-mode .btn-secondary {
+    padding: 0.75rem 1.75rem !important;
+}
+
+.accessibility-large-buttons a:not(.header-nav-link),
+.accessibility-elderly-mode a:not(.header-nav-link) {
     min-height: 44px !important;
-    padding: 0.75rem 1.25rem !important;
-    font-size: 1.125rem !important;
+    padding: 0.625rem 1.25rem !important;
+    font-size: 1.0625rem !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 8px;
 }
 
 .accessibility-button-large {
     min-height: 56px !important;
     min-width: 56px !important;
     padding: 1rem !important;
-    font-size: 1.25rem !important;
+    font-size: 1.125rem !important;
 }
 
-/* High Contrast Mode */
-.accessibility-high-contrast,
+/* ============================================
+   Simplified UI Mode - Clean and Modern
+   ============================================ */
+
+.accessibility-simplified,
 .accessibility-elderly-mode {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f0f0f0;
-    --text-primary: #000000;
-    --text-secondary: #333333;
-    --border-color: #000000;
-    --accent-color: #0066cc;
-    --accent-text: #ffffff;
+    /* Remove unnecessary decorations but keep it beautiful */
 }
 
-.accessibility-high-contrast *,
-.accessibility-elderly-mode * {
-    background-color: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
-}
-
-.accessibility-high-contrast button,
-.accessibility-elderly-mode button,
-.accessibility-high-contrast .btn,
-.accessibility-elderly-mode .btn {
-    background-color: var(--accent-color) !important;
-    color: var(--accent-text) !important;
-    border: 3px solid var(--border-color) !important;
-    font-weight: 700;
-}
-
-.accessibility-high-contrast button:hover,
-.accessibility-elderly-mode button:hover,
-.accessibility-high-contrast .btn:hover,
-.accessibility-elderly-mode .btn:hover {
-    background-color: #0052a3 !important;
-    transform: scale(1.05);
-}
-
-.accessibility-high-contrast input,
-.accessibility-high-contrast textarea,
-.accessibility-high-contrast select,
-.accessibility-elderly-mode input,
-.accessibility-elderly-mode textarea,
-.accessibility-elderly-mode select {
-    border: 3px solid var(--border-color) !important;
-    background-color: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
-}
-
-.accessibility-high-contrast input:focus,
-.accessibility-high-contrast textarea:focus,
-.accessibility-high-contrast select:focus,
-.accessibility-elderly-mode input:focus,
-.accessibility-elderly-mode textarea:focus,
-.accessibility-elderly-mode select:focus {
-    outline: 4px solid var(--accent-color) !important;
-    outline-offset: 2px;
-    border-color: var(--accent-color) !important;
-}
-
-/* Simplified UI Mode */
 .accessibility-simplified .header-modern,
 .accessibility-elderly-mode .header-modern {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .accessibility-simplified .header-nav-desktop,
 .accessibility-elderly-mode .header-nav-desktop {
-    gap: 1.5rem !important;
+    gap: 1.25rem !important; /* Better spacing */
 }
 
 .accessibility-simplified .header-nav-link,
 .accessibility-elderly-mode .header-nav-link {
-    font-size: 1.125rem !important;
-    padding: 0.75rem 1.25rem !important;
+    font-size: 1.0625rem !important;
+    padding: 0.625rem 1.125rem !important;
     font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
-/* Hide decorative elements in simplified mode */
+.accessibility-simplified .header-nav-link:hover,
+.accessibility-elderly-mode .header-nav-link:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Simplify gradients but keep them subtle */
 .accessibility-simplified .hero-title-gradient-1,
 .accessibility-simplified .hero-title-gradient-2,
 .accessibility-elderly-mode .hero-title-gradient-1,
 .accessibility-elderly-mode .hero-title-gradient-2 {
-    background: none !important;
-    -webkit-background-clip: unset !important;
-    background-clip: unset !important;
-    -webkit-text-fill-color: var(--text-primary) !important;
-    color: var(--text-primary) !important;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
 }
 
-/* Reduce Motion */
+/* ============================================
+   Reduce Motion - Smooth Transitions
+   ============================================ */
+
 .accessibility-reduce-motion *,
 .accessibility-reduce-motion *::before,
 .accessibility-reduce-motion *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0.15s !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.15s !important;
     scroll-behavior: auto !important;
 }
 
 /* ============================================
-   Form Improvements
+   Form Improvements - Better UX
    ============================================ */
 
 .accessibility-large-font form,
@@ -197,67 +178,72 @@
 
 .accessibility-large-font .form-group,
 .accessibility-elderly-mode .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem; /* Better spacing */
 }
 
 .accessibility-large-font input[type="radio"],
 .accessibility-large-font input[type="checkbox"],
 .accessibility-elderly-mode input[type="radio"],
 .accessibility-elderly-mode input[type="checkbox"] {
-    width: 24px !important;
-    height: 24px !important;
-    min-width: 24px !important;
-    min-height: 24px !important;
-    margin-right: 0.75rem;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin-right: 0.625rem;
     cursor: pointer;
+    accent-color: #6366f1; /* Modern accent color */
 }
 
 .accessibility-large-font label,
 .accessibility-elderly-mode label {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.625rem;
     cursor: pointer;
     margin-bottom: 0.5rem;
 }
 
 /* ============================================
-   Navigation Improvements
+   Navigation Improvements - Elegant
    ============================================ */
 
 .accessibility-large-buttons .header-nav-link,
 .accessibility-elderly-mode .header-nav-link {
-    padding: 1rem 1.5rem !important;
-    min-height: 48px !important;
-    font-size: 1.125rem !important;
+    padding: 0.75rem 1.25rem !important;
+    min-height: 44px !important; /* Reduced from 48px */
+    font-size: 1.0625rem !important;
+    border-radius: 8px;
 }
 
 .accessibility-large-buttons .header-login-btn,
 .accessibility-elderly-mode .header-login-btn {
-    padding: 0.875rem 2rem !important;
-    min-height: 52px !important;
-    font-size: 1.125rem !important;
+    padding: 0.75rem 1.75rem !important;
+    min-height: 48px !important; /* Reduced from 52px */
+    font-size: 1.0625rem !important;
     font-weight: 600;
+    border-radius: 10px;
 }
 
 /* ============================================
-   Button Improvements
+   Button Improvements - Balanced
    ============================================ */
 
 .accessibility-large-buttons .hero-search-button,
 .accessibility-elderly-mode .hero-search-button {
-    min-height: 56px !important;
-    padding: 1rem 2rem !important;
-    font-size: 1.25rem !important;
+    min-height: 52px !important; /* Reduced from 56px */
+    padding: 0.875rem 1.75rem !important;
+    font-size: 1.125rem !important;
     font-weight: 600;
+    border-radius: 12px;
 }
 
 .accessibility-large-buttons select,
 .accessibility-elderly-mode select {
-    min-height: 52px !important;
-    padding: 0.875rem 1rem !important;
-    font-size: 1.125rem !important;
+    min-height: 48px !important; /* Reduced from 52px */
+    padding: 0.75rem 1rem !important;
+    font-size: 1.0625rem !important;
     cursor: pointer;
+    border-radius: 8px;
 }
 
 /* ============================================
@@ -266,34 +252,47 @@
 
 .accessibility-large-font .card,
 .accessibility-elderly-mode .card {
-    padding: 2rem !important;
-    border-radius: 16px;
-    border: 2px solid var(--border-color, #e5e7eb);
+    padding: 1.75rem !important; /* Reduced from 2rem */
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.accessibility-high-contrast .card,
-.accessibility-elderly-mode .card {
-    border: 3px solid var(--border-color, #000000) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+.accessibility-large-font .card:hover,
+.accessibility-elderly-mode .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
 }
 
 /* ============================================
-   Spacing Improvements
+   Spacing Improvements - Proportional
    ============================================ */
 
 .accessibility-large-font .space-y-4 > * + *,
 .accessibility-elderly-mode .space-y-4 > * + * {
-    margin-top: 1.5rem !important;
+    margin-top: 1.25rem !important; /* Reduced from 1.5rem */
 }
 
 .accessibility-large-font .space-y-6 > * + *,
 .accessibility-elderly-mode .space-y-6 > * + * {
-    margin-top: 2rem !important;
+    margin-top: 1.75rem !important; /* Reduced from 2rem */
 }
 
 .accessibility-large-font .space-y-8 > * + *,
 .accessibility-elderly-mode .space-y-8 > * + * {
-    margin-top: 2.5rem !important;
+    margin-top: 2.25rem !important; /* Reduced from 2.5rem */
+}
+
+/* Better gap spacing */
+.accessibility-large-font .gap-4,
+.accessibility-elderly-mode .gap-4 {
+    gap: 1.25rem !important;
+}
+
+.accessibility-large-font .gap-6,
+.accessibility-elderly-mode .gap-6 {
+    gap: 1.75rem !important;
 }
 
 /* ============================================
@@ -301,71 +300,158 @@
    ============================================ */
 
 .accessibility-help-text {
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
     color: #666;
     margin-top: 0.5rem;
-    font-style: italic;
+    line-height: 1.6;
 }
 
 .accessibility-large-font .accessibility-help-text,
 .accessibility-elderly-mode .accessibility-help-text {
     font-size: 1rem !important;
-    margin-top: 0.75rem;
-    line-height: 1.6;
+    margin-top: 0.625rem;
+    line-height: 1.65;
 }
 
 .accessibility-step-indicator {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.625rem;
     margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
-    background-color: #e3f2fd;
-    border-left: 4px solid #2196f3;
-    border-radius: 4px;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+    border-left: 4px solid #6366f1;
+    border-radius: 8px;
 }
 
 .accessibility-large-font .accessibility-step-indicator,
 .accessibility-elderly-mode .accessibility-step-indicator {
     padding: 1rem 1.25rem;
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
 }
 
 /* ============================================
-   Focus Indicators
+   Focus Indicators - Subtle and Clear
    ============================================ */
 
 .accessibility-large-font *:focus,
-.accessibility-elderly-mode *:focus,
-.accessibility-high-contrast *:focus {
-    outline: 3px solid #0066cc !important;
-    outline-offset: 3px !important;
+.accessibility-elderly-mode *:focus {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: 2px !important;
+    border-radius: 4px;
 }
 
 .accessibility-large-font button:focus,
 .accessibility-elderly-mode button:focus {
-    outline: 4px solid #0066cc !important;
-    outline-offset: 4px !important;
+    outline: 3px solid #6366f1 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.accessibility-large-font input:focus,
+.accessibility-large-font textarea:focus,
+.accessibility-large-font select:focus,
+.accessibility-elderly-mode input:focus,
+.accessibility-elderly-mode textarea:focus,
+.accessibility-elderly-mode select:focus {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: 2px !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* ============================================
-   Icon Improvements
+   Icon Improvements - Proportional
    ============================================ */
 
-.accessibility-large-buttons svg,
-.accessibility-elderly-mode svg {
-    width: 1.5em !important;
-    height: 1.5em !important;
+.accessibility-large-buttons svg:not(.header-nav-icon):not(.accessibility-button-large svg),
+.accessibility-elderly-mode svg:not(.header-nav-icon):not(.accessibility-button-large svg) {
+    width: 1.25em !important; /* Reduced from 1.5em */
+    height: 1.25em !important;
 }
 
 .accessibility-large-buttons .header-nav-icon,
 .accessibility-elderly-mode .header-nav-icon {
-    width: 22px !important;
-    height: 22px !important;
+    width: 20px !important; /* Reduced from 22px */
+    height: 20px !important;
 }
 
 /* ============================================
-   Mobile Improvements
+   Container and Layout Improvements
+   ============================================ */
+
+/* Better container max-widths */
+.accessibility-large-font .container,
+.accessibility-elderly-mode .container {
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* Better grid gaps */
+.accessibility-large-font .grid,
+.accessibility-elderly-mode .grid {
+    gap: 1.5rem;
+}
+
+.accessibility-large-font .grid-cols-1,
+.accessibility-elderly-mode .grid-cols-1 {
+    gap: 1.25rem;
+}
+
+/* ============================================
+   Modal and Overlay Improvements
+   ============================================ */
+
+.accessibility-large-font .modal,
+.accessibility-elderly-mode .modal {
+    padding: 1.5rem;
+}
+
+.accessibility-large-buttons .modal button,
+.accessibility-elderly-mode .modal button {
+    margin: 0.5rem;
+}
+
+/* ============================================
+   List and Item Improvements
+   ============================================ */
+
+.accessibility-large-font ul,
+.accessibility-large-font ol,
+.accessibility-elderly-mode ul,
+.accessibility-elderly-mode ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.accessibility-large-font li,
+.accessibility-elderly-mode li {
+    margin-bottom: 0.5rem;
+    line-height: 1.7;
+}
+
+/* ============================================
+   Table Improvements
+   ============================================ */
+
+.accessibility-large-font table,
+.accessibility-elderly-mode table {
+    font-size: 1.0625rem;
+    border-spacing: 0;
+    border-collapse: separate;
+}
+
+.accessibility-large-font th,
+.accessibility-large-font td,
+.accessibility-elderly-mode th,
+.accessibility-elderly-mode td {
+    padding: 0.875rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   Mobile Improvements - Responsive
    ============================================ */
 
 @media (max-width: 768px) {
@@ -374,18 +460,68 @@
         font-size: 16px !important;
     }
 
+    .accessibility-large-font h1,
+    .accessibility-elderly-mode h1 {
+        font-size: 1.875rem !important;
+    }
+
+    .accessibility-large-font h2,
+    .accessibility-elderly-mode h2 {
+        font-size: 1.5rem !important;
+    }
+
     .accessibility-large-buttons button,
     .accessibility-elderly-mode button {
-        min-height: 48px !important;
-        min-width: 100px !important;
-        padding: 0.75rem 1.25rem !important;
+        min-height: 44px !important;
+        min-width: auto !important;
+        padding: 0.625rem 1.25rem !important;
+        font-size: 1rem !important;
     }
 
     .accessibility-large-buttons .header-mobile-link,
     .accessibility-elderly-mode .header-mobile-link {
-        padding: 1rem 1.5rem !important;
-        font-size: 1.125rem !important;
-        min-height: 52px !important;
+        padding: 0.875rem 1.25rem !important;
+        font-size: 1.0625rem !important;
+        min-height: 48px !important;
+    }
+
+    /* Better spacing on mobile */
+    .accessibility-large-font .space-y-4 > * + *,
+    .accessibility-elderly-mode .space-y-4 > * + * {
+        margin-top: 1rem !important;
+    }
+
+    .accessibility-large-font .space-y-6 > * + *,
+    .accessibility-elderly-mode .space-y-6 > * + * {
+        margin-top: 1.5rem !important;
+    }
+}
+
+/* ============================================
+   Tablet Improvements
+   ============================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .accessibility-large-font,
+    .accessibility-elderly-mode {
+        font-size: 17px !important;
+    }
+}
+
+/* ============================================
+   Desktop Improvements - Fine-tuned
+   ============================================ */
+
+@media (min-width: 1025px) {
+    .accessibility-large-font,
+    .accessibility-elderly-mode {
+        font-size: 17px !important;
+    }
+
+    /* Better max-widths for readability */
+    .accessibility-large-font .container,
+    .accessibility-elderly-mode .container {
+        max-width: 1280px;
     }
 }
 
@@ -410,3 +546,535 @@
     }
 }
 
+/* ============================================
+   Smooth Transitions for All Changes
+   ============================================ */
+
+.accessibility-large-font *,
+.accessibility-elderly-mode *,
+.accessibility-large-buttons *,
+.accessibility-simplified * {
+    transition: font-size 0.2s ease, padding 0.2s ease, margin 0.2s ease, min-height 0.2s ease, min-width 0.2s ease;
+}
+
+/* ============================================
+   Special Cases - Keep Design Integrity
+   ============================================ */
+
+/* Don't override very specific components */
+.accessibility-large-font .text-xs,
+.accessibility-elderly-mode .text-xs {
+    font-size: 0.8125rem !important; /* Keep small text small */
+}
+
+.accessibility-large-font .text-sm,
+.accessibility-elderly-mode .text-sm {
+    font-size: 0.9375rem !important;
+}
+
+/* Keep badge sizes reasonable */
+.accessibility-large-font .badge,
+.accessibility-elderly-mode .badge,
+.accessibility-large-font .tag,
+.accessibility-elderly-mode .tag {
+    font-size: 0.8125rem !important;
+    padding: 0.25rem 0.625rem !important;
+}
+
+/* Keep icon-only buttons reasonable */
+.accessibility-large-buttons button svg:only-child,
+.accessibility-elderly-mode button svg:only-child {
+    width: 1.25em !important;
+    height: 1.25em !important;
+}
+
+/* ============================================
+   Improved Visual Balance
+   ============================================ */
+
+/* Better shadows for depth */
+.accessibility-large-font .shadow-md,
+.accessibility-elderly-mode .shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.accessibility-large-font .shadow-lg,
+.accessibility-elderly-mode .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Better border radius for modern look */
+.accessibility-large-font .rounded,
+.accessibility-elderly-mode .rounded {
+    border-radius: 8px !important;
+}
+
+.accessibility-large-font .rounded-lg,
+.accessibility-elderly-mode .rounded-lg {
+    border-radius: 12px !important;
+}
+
+.accessibility-large-font .rounded-xl,
+.accessibility-elderly-mode .rounded-xl {
+    border-radius: 16px !important;
+}
+
+/* ============================================
+   Color Contrast - Subtle Improvements
+   ============================================ */
+
+/* Slightly increase contrast without being harsh */
+.accessibility-elderly-mode {
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --border-color: #d1d5db;
+}
+
+.accessibility-elderly-mode .text-gray-600 {
+    color: #4b5563 !important;
+}
+
+.accessibility-elderly-mode .text-gray-700 {
+    color: #374151 !important;
+}
+
+.accessibility-elderly-mode .text-gray-900 {
+    color: #111827 !important;
+}
+
+/* ============================================
+   Layout and Visual Balance Improvements
+   ============================================ */
+
+/* Ensure containers maintain proper proportions */
+.accessibility-large-font .max-w-7xl,
+.accessibility-elderly-mode .max-w-7xl {
+    max-width: 1280px;
+}
+
+.accessibility-large-font .max-w-6xl,
+.accessibility-elderly-mode .max-w-6xl {
+    max-width: 1152px;
+}
+
+.accessibility-large-font .max-w-5xl,
+.accessibility-elderly-mode .max-w-5xl {
+    max-width: 1024px;
+}
+
+/* Better padding for sections */
+.accessibility-large-font section,
+.accessibility-elderly-mode section {
+    padding: 3rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .accessibility-large-font section,
+    .accessibility-elderly-mode section {
+        padding: 4rem 2rem;
+    }
+}
+
+/* Improve card layouts */
+.accessibility-large-font .grid > *,
+.accessibility-elderly-mode .grid > * {
+    min-width: 0; /* Prevent overflow */
+}
+
+/* Better image scaling */
+.accessibility-large-font img,
+.accessibility-elderly-mode img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+/* Improve form layouts */
+.accessibility-large-font .form-control,
+.accessibility-elderly-mode .form-control {
+    border-radius: 8px;
+    border: 1.5px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.accessibility-large-font .form-control:focus,
+.accessibility-elderly-mode .form-control:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* ============================================
+   Header Specific Improvements
+   ============================================ */
+
+.accessibility-large-font .header-modern,
+.accessibility-elderly-mode .header-modern {
+    padding: 1rem 1.5rem;
+}
+
+.accessibility-large-buttons .header-login-btn,
+.accessibility-elderly-mode .header-login-btn {
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.accessibility-large-buttons .header-login-btn:hover,
+.accessibility-elderly-mode .header-login-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   Hero Section Improvements
+   ============================================ */
+
+.accessibility-large-font .hero-section,
+.accessibility-elderly-mode .hero-section {
+    padding: 3rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .accessibility-large-font .hero-section,
+    .accessibility-elderly-mode .hero-section {
+        padding: 4rem 2rem;
+    }
+}
+
+.accessibility-large-font .hero-title,
+.accessibility-elderly-mode .hero-title {
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.accessibility-large-font .hero-subtitle,
+.accessibility-elderly-mode .hero-subtitle {
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+/* ============================================
+   Button Group Improvements
+   ============================================ */
+
+.accessibility-large-buttons .btn-group,
+.accessibility-elderly-mode .btn-group {
+    gap: 0.75rem;
+}
+
+.accessibility-large-buttons .btn-group button,
+.accessibility-elderly-mode .btn-group button {
+    margin: 0;
+}
+
+/* ============================================
+   Search Bar Improvements
+   ============================================ */
+
+.accessibility-large-font .search-bar,
+.accessibility-elderly-mode .search-bar {
+    padding: 1.5rem;
+    border-radius: 16px;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.accessibility-large-font .search-input,
+.accessibility-elderly-mode .search-input {
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1.5px solid #e5e7eb;
+    font-size: 1.0625rem;
+}
+
+/* ============================================
+   Card Grid Improvements
+   ============================================ */
+
+.accessibility-large-font .card-grid,
+.accessibility-elderly-mode .card-grid {
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+@media (max-width: 768px) {
+    .accessibility-large-font .card-grid,
+    .accessibility-elderly-mode .card-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+}
+
+/* ============================================
+   Specialty Cards Improvements
+   ============================================ */
+
+.accessibility-large-font .specialty-card,
+.accessibility-elderly-mode .specialty-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.accessibility-large-font .specialty-card:hover,
+.accessibility-elderly-mode .specialty-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================
+   Doctor Cards Improvements
+   ============================================ */
+
+.accessibility-large-font .doctor-card,
+.accessibility-elderly-mode .doctor-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.accessibility-large-font .doctor-card img,
+.accessibility-elderly-mode .doctor-card img {
+    border-radius: 12px;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+/* ============================================
+   Modal and Dialog Improvements
+   ============================================ */
+
+.accessibility-large-font .modal-content,
+.accessibility-elderly-mode .modal-content {
+    border-radius: 16px;
+    padding: 1.5rem;
+    max-width: 90vw;
+}
+
+.accessibility-large-buttons .modal-footer button,
+.accessibility-elderly-mode .modal-footer button {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+}
+
+/* ============================================
+   Toast and Notification Improvements
+   ============================================ */
+
+.accessibility-large-font .Toastify__toast,
+.accessibility-elderly-mode .Toastify__toast {
+    font-size: 1.0625rem;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+}
+
+.accessibility-large-buttons .Toastify__toast,
+.accessibility-elderly-mode .Toastify__toast {
+    min-height: 56px;
+}
+
+/* ============================================
+   Dropdown and Menu Improvements
+   ============================================ */
+
+.accessibility-large-font .dropdown-menu,
+.accessibility-elderly-mode .dropdown-menu {
+    border-radius: 10px;
+    padding: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.accessibility-large-font .dropdown-item,
+.accessibility-elderly-mode .dropdown-item {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.accessibility-large-font .dropdown-item:hover,
+.accessibility-elderly-mode .dropdown-item:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+/* ============================================
+   Badge and Tag Improvements
+   ============================================ */
+
+.accessibility-large-font .badge,
+.accessibility-elderly-mode .badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+}
+
+/* ============================================
+   Progress Bar Improvements
+   ============================================ */
+
+.accessibility-large-font .progress-bar,
+.accessibility-elderly-mode .progress-bar {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.accessibility-large-buttons .progress-bar,
+.accessibility-elderly-mode .progress-bar {
+    height: 10px;
+}
+
+/* ============================================
+   Avatar Improvements
+   ============================================ */
+
+.accessibility-large-font .avatar,
+.accessibility-elderly-mode .avatar {
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   Loading Spinner Improvements
+   ============================================ */
+
+.accessibility-large-font .spinner,
+.accessibility-elderly-mode .spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-width: 3px;
+}
+
+/* ============================================
+   Tooltip Improvements
+   ============================================ */
+
+.accessibility-large-font .tooltip,
+.accessibility-elderly-mode .tooltip {
+    font-size: 0.9375rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    max-width: 250px;
+}
+
+/* ============================================
+   Pagination Improvements
+   ============================================ */
+
+.accessibility-large-font .pagination,
+.accessibility-elderly-mode .pagination {
+    gap: 0.5rem;
+}
+
+.accessibility-large-buttons .pagination button,
+.accessibility-elderly-mode .pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 8px;
+}
+
+/* ============================================
+   Tabs Improvements
+   ============================================ */
+
+.accessibility-large-font .tabs,
+.accessibility-elderly-mode .tabs {
+    gap: 0.5rem;
+}
+
+.accessibility-large-font .tab,
+.accessibility-elderly-mode .tab {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.accessibility-large-font .tab:hover,
+.accessibility-elderly-mode .tab:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
+/* ============================================
+   Accordion Improvements
+   ============================================ */
+
+.accessibility-large-font .accordion-item,
+.accessibility-elderly-mode .accordion-item {
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.accessibility-large-font .accordion-header,
+.accessibility-elderly-mode .accordion-header {
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+}
+
+.accessibility-large-font .accordion-content,
+.accessibility-elderly-mode .accordion-content {
+    padding: 1rem 1.25rem;
+    line-height: 1.7;
+}
+
+/* ============================================
+   Alert and Banner Improvements
+   ============================================ */
+
+.accessibility-large-font .alert,
+.accessibility-elderly-mode .alert {
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border-left-width: 4px;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+}
+
+/* ============================================
+   Keep Visual Hierarchy
+   ============================================ */
+
+/* Ensure important elements stand out */
+.accessibility-large-font .important,
+.accessibility-elderly-mode .important {
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Keep decorative elements subtle */
+.accessibility-simplified .decoration,
+.accessibility-elderly-mode .decoration {
+    opacity: 0.6;
+}
+
+/* ============================================
+   Smooth Scrolling
+   ============================================ */
+
+.accessibility-large-font html,
+.accessibility-elderly-mode html {
+    scroll-behavior: smooth;
+}
+
+/* ============================================
+   Focus Visible Improvements
+   ============================================ */
+
+.accessibility-large-font *:focus-visible,
+.accessibility-elderly-mode *:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ============================================
+   Selection Color
+   ============================================ */
+
+.accessibility-large-font ::selection,
+.accessibility-elderly-mode ::selection {
+    background-color: rgba(99, 102, 241, 0.2);
+    color: #111827;
+}

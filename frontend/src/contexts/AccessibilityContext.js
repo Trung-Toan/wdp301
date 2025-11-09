@@ -37,7 +37,6 @@ export const AccessibilityProvider = ({ children }) => {
                         elderlyMode: true,
                         largeFont: true,
                         largeButtons: true,
-                        highContrast: true,
                         simplifiedUI: true,
                         autoEnabled: true
                     };
@@ -60,13 +59,6 @@ export const AccessibilityProvider = ({ children }) => {
         } else {
             root.style.fontSize = '';
             root.classList.remove('accessibility-large-font');
-        }
-
-        // High contrast
-        if (settings.highContrast) {
-            root.classList.add('accessibility-high-contrast');
-        } else {
-            root.classList.remove('accessibility-high-contrast');
         }
 
         // Simplified UI
@@ -110,7 +102,6 @@ export const AccessibilityProvider = ({ children }) => {
             elderlyMode: newElderlyMode,
             largeFont: newElderlyMode,
             largeButtons: newElderlyMode,
-            highContrast: newElderlyMode,
             simplifiedUI: newElderlyMode,
         });
     };
@@ -176,7 +167,6 @@ function getDefaultSettings() {
         elderlyMode: false,
         largeFont: false,
         largeButtons: false,
-        highContrast: false,
         simplifiedUI: false,
         reduceMotion: false,
         textToSpeech: false,

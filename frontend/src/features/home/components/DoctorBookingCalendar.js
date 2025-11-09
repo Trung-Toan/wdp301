@@ -35,15 +35,49 @@ export function DoctorBookingCalendar({ doctor }) {
 
     const formatUTCtoHHmm = formatISOTime;
 
+    // Helper function để lấy date string từ ISO string (YYYY-MM-DD)
+    // Có 2 cách:
+    // 1. Nếu backend lưu theo UTC: dùng getUTCFullYear(), getUTCMonth(), getUTCDate()
+    // 2. Nếu backend lưu theo local time nhưng format UTC: extract trực tiếp từ string hoặc dùng local methods
+    // Thử extract trực tiếp từ string trước (ví dụ: "2025-11-09T17:00:00.000Z" -> "2025-11-9")
+    const getLocalDateStringFromISO = (isoString) => {
+        if (!isoString) return null;
+        
+        // Thử extract date trực tiếp từ ISO string (YYYY-MM-DD)
+        // Nếu format là "2025-11-09T17:00:00.000Z", lấy phần "2025-11-09"
+        const dateMatch = isoString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (dateMatch) {
+            const year = parseInt(dateMatch[1], 10);
+            const month = parseInt(dateMatch[2], 10) - 1; // month is 0-indexed
+            const day = parseInt(dateMatch[3], 10);
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Fallback: parse thành Date và dùng local methods
+        const date = new Date(isoString);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        return `${year}-${month}-${day}`;
+    };
+
+    // Helper function để lấy date string từ Date object (local time)
+    const getDateStringFromDate = (date) => {
+        if (!date) return null;
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        return `${year}-${month}-${day}`;
+    };
+
     const availableSlots = selectedDate
         ? slots
             .filter((slot) => {
-                const slotDate = new Date(slot.start_time);
-                return (
-                    slotDate.getFullYear() === selectedDate.getFullYear() &&
-                    slotDate.getMonth() === selectedDate.getMonth() &&
-                    slotDate.getDate() === selectedDate.getDate()
-                );
+                // So sánh date string: cả hai đều dùng local time
+                // Convert UTC date từ backend sang local time để so với selectedDate (local)
+                const slotDateStr = getLocalDateStringFromISO(slot.start_time);
+                const selectedDateStr = getDateStringFromDate(selectedDate);
+                return slotDateStr === selectedDateStr;
             })
             .map((slot) => ({
                 id: slot._id,
@@ -55,10 +89,10 @@ export function DoctorBookingCalendar({ doctor }) {
             }))
         : [];
 
-    const workingDates = slots.map((slot) => {
-        const d = new Date(slot.start_time);
-        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    });
+    // Tạo workingDates từ local date (convert từ UTC) để đánh dấu đúng ngày trong calendar
+    const workingDates = [...new Set(slots.map((slot) => {
+        return getLocalDateStringFromISO(slot.start_time);
+    }))];
 
     // Hàm kiểm tra đăng nhập
     const handleBooking = () => {
