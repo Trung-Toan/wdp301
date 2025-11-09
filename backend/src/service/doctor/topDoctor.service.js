@@ -6,7 +6,6 @@ const Feedback = require("../../model/patient/Feedback");
 async function getTopDoctors({ limit, provinceCode, wardCode }) {
     const doctorFilter = {};
 
-    // Chỉ lọc theo province_code (thành phố), bỏ ward_code
     if (provinceCode) {
         const clinicFilter = { "address.province.code": String(provinceCode) };
         const clinics = await Clinic.find(clinicFilter).select("_id").lean();
@@ -17,7 +16,6 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         doctorFilter.clinic_id = { $in: clinicIds };
     }
 
-    // --- Lấy danh sách bác sĩ ---
     let query = Doctor.find(doctorFilter)
         .sort({ createdAt: -1 })
         .populate({
@@ -40,7 +38,6 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
 
     const doctors = await query;
 
-    // --- Lấy rating trung bình + tổng feedback ---
     const doctorIds = doctors.map(d => d._id);
     const feedbackStats = await Feedback.aggregate([
         { $match: { doctor_id: { $in: doctorIds } } },
@@ -61,7 +58,6 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         return acc;
     }, {});
 
-    // --- Trả kết quả ---
     const results = doctors.map(d => {
         const ratingData = ratingMap[d._id.toString()] || { averageRating: null, totalFeedbacks: 0 };
         const avg = ratingData.averageRating ? Number(ratingData.averageRating.toFixed(1)) : null;
@@ -95,10 +91,8 @@ async function getTopDoctors({ limit, provinceCode, wardCode }) {
         };
     });
 
-    // Chỉ hiển thị bác sĩ có rating >= 3.5
     const filtered = results.filter(item => item.rating !== null && item.rating >= 3.5);
 
-    // Áp dụng limit sau khi lọc để đảm bảo đủ số lượng
     if (limit && Number(limit) > 0) {
         return filtered.slice(0, Number(limit));
     }
