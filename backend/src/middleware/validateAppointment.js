@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 // Validation rules cho appointment booking
 const validateAppointmentBooking = [
 
-    // Required fields
     body('slot_id')
         .notEmpty()
         .withMessage('slot_id is required')
@@ -49,7 +48,6 @@ const validateAppointmentBooking = [
         }),
 
 
-    // Optional clinic_id
     body('clinic_id')
         .optional()
         .custom((value) => {
@@ -60,7 +58,6 @@ const validateAppointmentBooking = [
         }),
 
 
-    // Personal information
     body('full_name')
         .notEmpty()
         .withMessage('full_name is required')
@@ -83,7 +80,6 @@ const validateAppointmentBooking = [
         .normalizeEmail(),
 
 
-    // Optional fields
     body('dob')
         .optional()
         .isISO8601()
@@ -131,7 +127,6 @@ const validateAppointmentBooking = [
 
 // Validation rules cho clinic booking (với auto_assign support)
 const validateClinicBooking = [
-    // Required fields
     body('clinic_id')
         .notEmpty()
         .withMessage('clinic_id is required')
