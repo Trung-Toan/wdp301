@@ -81,7 +81,7 @@ exports.registerClinicOwner = async ({ username, email, password, phone_number, 
         phone_number: phone_number?.trim(),
         password: hash,
         role: role || 'ADMIN_CLINIC',
-        status: 'PENDING', // Clinic owners need approval
+        status: 'PENDING',
         email_verified: false,
     });
 
@@ -169,7 +169,6 @@ exports.login = async ({ email, password, ip, user_agent }) => {
         throw new Error("Email hoặc mật khẩu sai");
     }
 
-    //Đăng nhập thành công
     await LoginAttempt.create({
         ip,
         email: emailNorm,
@@ -181,7 +180,6 @@ exports.login = async ({ email, password, ip, user_agent }) => {
     const payload = { sub: String(acc._id), role: acc.role, email_verified: !!acc.email_verified };
     const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_EXPIRES });
 
-    // Tạo refresh token
     const refreshToken = randomToken(48);
     const refreshHash = await hashOpaque(refreshToken);
     const refreshFingerprint = fpRefresh(refreshToken);
