@@ -4,7 +4,12 @@ const { authRequired, roleRequired } = require("./../../middleware/auth");
 
 // Import controller for doctor
 const AssistanceController = require("../../controller/assistance/assistance.controler");
-
+router.get(
+  "/dashboard",
+  authRequired,
+  roleRequired("ASSISTANT"),
+  AssistanceController.viewDashboard
+);
 /* ========================= PATIENTS ========================= */
 // GET /patients?page=1
 // view list patient of doctor with pagination

@@ -1,4 +1,3 @@
-const assistantService = require("../../service/assistant/assistant.service");
 const formatDataUtils = require("../../utils/formatData");
 const resUtils = require("../../utils/responseUtils");
 const appointmentService = require("../../service/appointment/appointment.service");
@@ -6,10 +5,28 @@ const slotService = require("../../service/slot/slot.service");
 const dateUtils = require("../../utils/date.utils");
 const medical_recordService = require("../../service/medical_record/medicalRecord.service");
 const moment = require("moment-timezone");
-const MedicalRecord = require("../../model/patient/MedicalRecord");
 const notificationService = require("../../service/notification/notification.service");
 const Appointment = require("../../model/appointment/Appointment");
-const mongoose = require("mongoose"); // Thêm dòng này vì bạn dùng mongoose.Types.ObjectId.isValid trong updateAppointment
+const mongoose = require("mongoose"); 
+const MedicalRecord = require("../../model/patient/MedicalRecord");
+const assistantService = require("../../service/assistant/assistant.service");
+const doctorService = require("../../service/doctor/doctor.service");
+
+const startOfDay = d => new Date(new Date(d).setHours(0,0,0,0));
+const endOfDay   = d => new Date(new Date(d).setHours(23,59,59,999));
+
+exports.viewDashboard = async (req, res) => {
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+    
+    const data = await assistantService.getDashboard(assistance._id);
+
+    return resUtils.successResponse(res, data, "Lấy danh sách dashboard thành công");
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
 
 /* ========================= PATIENTS ========================= */
 // GET /patients

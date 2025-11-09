@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect } from "react";
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import {
   People,
@@ -9,129 +9,55 @@ import {
   Activity,
   CalendarHeart,
 } from "react-bootstrap-icons";
-import {
-  getDashboardStats,
-  getAppointments, 
-} from "../../services/assistantService";
 import AppointmentComponent from "./appointment.component";
-const getLocalDate = () => {
-  return "2025-10-27";
-};
+import { useDataByUrl } from "../../utility/data.utils";
+import { ASSISTANT_API } from "../../api/assistant/assistant.api";
 
 const DoctorDashboard = () => {
-  const [stats, setStats] = useState({
-    todayPatients: 0,
-    appointmentChange: 0,
-    pendingPrescriptions: 0,
-    pendingRequests: 0,
-    totalPatients: 0,
-    upcomingAppointments: 0,
+  // Lấy dashboard stats qua hook
+  const { data, isLoading, error } = useDataByUrl({
+    url: ASSISTANT_API.GET_DASHBOARD,
+    key: "dashboard-assistant",
   });
 
-  const [loading, setLoading] = useState(true);
-  const doctorId = "DOC001"; // Cấu hình ID bác sĩ
+  console.log("data: ", data);
+  
 
-  // --- THAY ĐỔI 4: Cập nhật logic fetch data ---
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      const today = getLocalDate(); // Lấy ngày hôm nay
-
-      // Fetch dashboard stats (đã có trong assistantService)
-      const statsResponse = await getDashboardStats(doctorId);
-      if (statsResponse.success) {
-        setStats(statsResponse.data);
-      }
-
-      // Fetch today's appointments (dùng getAppointments)
-      const appointmentsResponse = await getAppointments({
-        doctorId: doctorId,
-        date: today,
-      });
-
-      if (appointmentsResponse.success) {
-        // Format appointments cho đúng cấu trúc data
-        const formattedAppointments = appointmentsResponse.data.map((apt) => ({
-          id: apt._id, // Sửa id -> _id
-          patientName: apt.patient?.name || "Bệnh nhân ẩn", // Sửa đường dẫn
-          start_time: apt.shift?.start_time || "N/A", // Sửa đường dẫn
-          end_time: apt.shift?.end_time || "N/A", // Sửa đường dẫn
-          type: apt.reason || "Khám bệnh",
-          status: apt.status, // SCHEDULED, COMPLETED, CANCELLED
-        }));
-
-        // Sắp xếp lịch hẹn (Chờ duyệt lên đầu)
-        const statusSortOrder = { SCHEDULED: 1, COMPLETED: 2, CANCELLED: 3 };
-        formattedAppointments.sort((a, b) => {
-          const orderA = statusSortOrder[a.status] || 99;
-          const orderB = statusSortOrder[b.status] || 99;
-          return orderA - orderB;
-        });
-      }
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setLoading(false);
-    }
+  // Map dữ liệu an toàn cho UI
+  const stats = {
+    todayPatients: data?.data?.todayPatients ?? 0,
+    appointmentChange: data?.data?.appointmentChange ?? 0,
+    pendingPrescriptions: data?.data?.pendingPrescriptions ?? 0,
+    pendingRequests: data?.data?.pendingRequests ?? 0,
+    totalPatients: data?.data?.totalPatients ?? 0,
+    upcomingAppointments: data?.data?.upcomingAppointments ?? 0,
   };
-  // ===========================================
 
-  // --- THAY ĐỔI 5: Cập nhật Stat Cards (theo data mới) ---
   const statCards = [
     {
       title: "Bệnh nhân đã duyệt",
-      value: stats.todayPatients, // Số BN đã duyệt (COMPLETED)
+      value: stats.todayPatients, // COMPLETED hôm nay
       icon: <CalendarCheck size={32} />,
       color: "green",
       link: "/assistant/appointments",
     },
     {
       title: "Lịch hẹn chờ duyệt",
-      value: stats.pendingRequests, // Số BN chờ duyệt (SCHEDULED)
+      value: stats.pendingRequests, // SCHEDULED hôm nay
       icon: <Clock size={32} />,
       color: "orange",
       link: "/assistant/appointments",
     },
     {
       title: "Tổng lịch hẹn hôm nay",
-      value: stats.upcomingAppointments, // Tổng số
+      value: stats.upcomingAppointments, // Tổng lịch hôm nay
       icon: <People size={32} />,
       color: "blue",
       link: "/assistant/appointments",
     },
   ];
 
-  // --- THAY ĐỔI 6: Cập nhật Quick Actions (đổi icon, đổi link) ---
-  const quickActions = [
-    {
-      title: "Duyệt lịch hẹn",
-      description: "Duyệt hoặc hủy lịch hẹn",
-      icon: <CalendarCheck size={24} />,
-      link: "/assistant/approve-appointments",
-      color: "blue",
-    },
-    {
-      title: "Quản lý ca làm việc",
-      description: "Thêm, sửa, xóa ca làm việc",
-      icon: <CalendarHeart size={24} />,
-      link: "/assistant/shift-schedule",
-      color: "green",
-    },
-    {
-      title: "Xem bệnh nhân",
-      description: "Danh sách bệnh nhân",
-      icon: <People size={24} />,
-      link: "/doctor/patients", // Giả sử link này
-      color: "purple",
-    },
-  ];
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-slate-50">
         <div className="flex flex-col items-center">
@@ -167,6 +93,13 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
+        {/* Error banner (nếu có) */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-md p-3 mb-4">
+            Không thể tải thống kê dashboard. Vui lòng thử lại sau.
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {statCards.map((card, index) => (
@@ -174,9 +107,10 @@ const DoctorDashboard = () => {
               key={index}
               to={card.link}
               className={`bg-white rounded-lg shadow-sm p-5 transition-all hover:shadow-md border-l-4
-                ${card.color === "blue"
-                  ? "border-blue-500"
-                  : card.color === "green"
+                ${
+                  card.color === "blue"
+                    ? "border-blue-500"
+                    : card.color === "green"
                     ? "border-green-500"
                     : "border-orange-500"
                 }
@@ -191,9 +125,10 @@ const DoctorDashboard = () => {
                 </div>
                 <div
                   className={`p-3 rounded-lg
-                    ${card.color === "blue"
-                      ? "bg-blue-100 text-blue-600"
-                      : card.color === "green"
+                    ${
+                      card.color === "blue"
+                        ? "bg-blue-100 text-blue-600"
+                        : card.color === "green"
                         ? "bg-green-100 text-green-600"
                         : "bg-orange-100 text-orange-600"
                     }
@@ -223,7 +158,8 @@ const DoctorDashboard = () => {
                 </Link>
               </div>
 
-              <AppointmentComponent/>
+              {/* AppointmentComponent đã dùng hook useDataByUrl nội bộ */}
+              <AppointmentComponent />
             </div>
           </div>
 
@@ -234,14 +170,37 @@ const DoctorDashboard = () => {
                 Thao tác nhanh
               </h2>
               <div className="grid grid-cols-1 gap-4">
-                {quickActions.map((action, index) => (
+                {[
+                  {
+                    title: "Duyệt lịch hẹn",
+                    description: "Duyệt hoặc hủy lịch hẹn",
+                    icon: <CalendarCheck size={24} />,
+                    link: "/assistant/approve-appointments",
+                    color: "blue",
+                  },
+                  {
+                    title: "Quản lý ca làm việc",
+                    description: "Thêm, sửa, xóa ca làm việc",
+                    icon: <CalendarHeart size={24} />,
+                    link: "/assistant/shift-schedule",
+                    color: "green",
+                  },
+                  {
+                    title: "Xem bệnh nhân",
+                    description: "Danh sách bệnh nhân",
+                    icon: <People size={24} />,
+                    link: "/doctor/patients",
+                    color: "purple",
+                  },
+                ].map((action, index) => (
                   <Link
                     key={index}
                     to={action.link}
                     className={`p-4 rounded-lg flex items-center gap-4 transition-all
-                      ${action.color === "blue"
-                        ? "bg-blue-50 hover:bg-blue-100"
-                        : action.color === "green"
+                      ${
+                        action.color === "blue"
+                          ? "bg-blue-50 hover:bg-blue-100"
+                          : action.color === "green"
                           ? "bg-green-50 hover:bg-green-100"
                           : "bg-purple-50 hover:bg-purple-100"
                       }
@@ -249,9 +208,10 @@ const DoctorDashboard = () => {
                   >
                     <div
                       className={`p-2 rounded-lg
-                        ${action.color === "blue"
-                          ? "bg-blue-100 text-blue-600"
-                          : action.color === "green"
+                        ${
+                          action.color === "blue"
+                            ? "bg-blue-100 text-blue-600"
+                            : action.color === "green"
                             ? "bg-green-100 text-green-600"
                             : "bg-purple-100 text-purple-600"
                         }

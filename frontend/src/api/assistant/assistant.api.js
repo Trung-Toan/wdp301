@@ -76,6 +76,7 @@ export const SLOT_API = {
 };
 
 export const ASSISTANT_API = {
+    GET_DASHBOARD: "/assistant/dashboard",
     GET_PROFILE: "/assistant/profile",
     UPDATE_PROFILE: "/assistant/profile",
     CHANGE_PASSWORD: "/assistant/change-password",
