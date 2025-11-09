@@ -1,8 +1,6 @@
 const { getClinicDetail, getClinicDoctors, getClinicReviews } = require("../../service/clinic/clinicDetail.service");
 
-/**
- * Lấy thông tin chi tiết clinic
- */
+
 exports.getClinicDetail = async (req, res, next) => {
     try {
         const { clinicId } = req.params;
@@ -14,9 +12,7 @@ exports.getClinicDetail = async (req, res, next) => {
     }
 };
 
-/**
- * Lấy danh sách bác sĩ của clinic
- */
+
 exports.getClinicDoctors = async (req, res, next) => {
     try {
         const { clinicId } = req.params;
@@ -34,9 +30,7 @@ exports.getClinicDoctors = async (req, res, next) => {
     }
 };
 
-/**
- * Lấy reviews của clinic
- */
+
 exports.getClinicReviews = async (req, res, next) => {
     try {
         const { clinicId } = req.params;
