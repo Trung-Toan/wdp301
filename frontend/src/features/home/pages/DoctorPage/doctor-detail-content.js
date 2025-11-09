@@ -16,6 +16,7 @@ import { DoctorBookingCalendar } from "../../components/DoctorBookingCalendar";
 import { doctorApi } from "../../../../api";
 import { useAuth } from "../../../../hooks/useAuth";
 import { axiosInstance } from "../../../../api/axiosInstance";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import "../../../../styles/DoctorDetailContent.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -483,6 +484,7 @@ export function DoctorDetailContent({ doctorId }) {
                     />
                 </div>
             </div>
+            <FirstTimeGuide page="doctor_detail" />
         </div>
     );
 }

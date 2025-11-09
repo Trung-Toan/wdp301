@@ -7,6 +7,7 @@ import { provinceApi, wardApi } from "../../api";
 import { Spinner } from "react-bootstrap";
 import { toast } from "react-toastify";
 import "../../styles/Register.css";
+import FirstTimeGuide from "../../components/FirstTimeGuide";
 
 export default function RegisterForm() {
     const navigate = useNavigate();
@@ -780,6 +781,7 @@ export default function RegisterForm() {
                 type={notification.type}
                 onClose={() => setNotification({ type: "", message: "" })}
             />
+            <FirstTimeGuide page="register" />
         </div>
     );
 }

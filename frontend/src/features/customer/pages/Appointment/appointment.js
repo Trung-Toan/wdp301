@@ -19,6 +19,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
 import { toast } from "react-toastify";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -616,6 +617,7 @@ export default function AppointmentsContent() {
                     </div>
                 )}
             </div>
+            <FirstTimeGuide page="appointments" />
         </div>
     );
 }

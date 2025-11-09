@@ -3,6 +3,7 @@ import { Search, MapPin, Star, Hospital, Award, Stethoscope } from "lucide-react
 import { Link } from "react-router-dom";
 import { doctorApi } from "../../../../api";
 import "../../../../styles/DoctorsListContent.css";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -305,6 +306,7 @@ export default function DoctorsListContent() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="doctor_list" />
         </div>
     );
 }

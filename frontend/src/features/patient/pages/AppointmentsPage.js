@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Calendar, Clock, MapPin, User, FileText, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import { appointmentApi } from "../../../api/patients/appointmentApi";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
 
 export default function AppointmentsPage() {
     const { user } = useAuth();
@@ -287,6 +288,7 @@ export default function AppointmentsPage() {
                     </>
                 )}
             </div>
+            <FirstTimeGuide page="appointments" />
         </div>
     );
 }

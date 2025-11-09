@@ -1,11 +1,13 @@
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AllRouter from "./routes/AllRouter";
+import AccessibilitySettings from "./components/AccessibilitySettings";
 
 function App() {
   return (
     <>
       <AllRouter />
+      <AccessibilitySettings />
       <ToastContainer
         position="top-right"
         autoClose={3000}

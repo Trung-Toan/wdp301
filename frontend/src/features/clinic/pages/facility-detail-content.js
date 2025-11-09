@@ -5,6 +5,7 @@ import { clinicApi } from "../../../api/clinic/clinicApi";
 import { useAuth } from "../../../hooks/useAuth";
 import ClinicBookingForm from "../components/ClinicBookingForm";
 import { formatDate } from "../../../utils/dateTimeUtils";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -1080,6 +1081,7 @@ export default function FacilityDetail() {
                     }}
                 />
             )}
+            <FirstTimeGuide page="facility_detail" />
         </div>
     );
 }

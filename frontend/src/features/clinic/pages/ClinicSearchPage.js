@@ -4,6 +4,7 @@ import { Building2, MapPin, Phone, Globe, Star, Search } from "lucide-react";
 import { clinicApi } from "../../../api";
 import Loading from "../../../components/Loading";
 import Badge from "../../../components/ui/Badge";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -215,6 +216,7 @@ export default function ClinicSearchPage() {
                     </>
                 )}
             </div>
+            <FirstTimeGuide page="clinic_search" />
         </div>
     );
 }

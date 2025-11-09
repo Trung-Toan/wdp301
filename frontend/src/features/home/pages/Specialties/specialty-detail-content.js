@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { doctorApi } from "../../../../api";
 import { specialtyApi } from "../../../../api";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import "../../../../styles/SpecialtyDetailContent.css";
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
@@ -213,6 +214,7 @@ export default function SpecialtyDetail() {
                     </div>
                 )}
             </div>
+            <FirstTimeGuide page="specialty_detail" />
         </div>
     );
 }

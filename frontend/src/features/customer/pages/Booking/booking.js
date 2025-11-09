@@ -10,6 +10,8 @@ import { clinicApi } from "../../../../api/clinic/clinicApi";
 import { doctorApi } from "../../../../api/doctor/doctorApi";
 import { SLOT_API } from "../../../../api/assistant/assistant.api";
 import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
+import { useAccessibility } from "../../../../contexts/AccessibilityContext";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -51,6 +53,8 @@ const ELDERLY_AGE_THRESHOLD = 60;
 export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId, doctor } = location.state || {};
+    const { settings } = useAccessibility();
+    const isElderlyMode = settings.elderlyMode || settings.autoEnabled;
 
 
     const [formData, setFormData] = useState({
@@ -1257,6 +1261,7 @@ export function BookingContent() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="booking" />
         </div>
         </>
     );

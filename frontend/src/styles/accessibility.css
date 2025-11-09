@@ -1,0 +1,412 @@
+/* Accessibility Styles for Elderly Users and Users with Low Tech Literacy */
+
+/* ============================================
+   Base Accessibility Classes
+   ============================================ */
+
+/* Large Font Mode */
+.accessibility-large-font,
+.accessibility-elderly-mode {
+    font-size: 18px !important;
+}
+
+.accessibility-large-font *,
+.accessibility-elderly-mode * {
+    font-size: inherit;
+}
+
+.accessibility-large-font h1,
+.accessibility-elderly-mode h1 {
+    font-size: 2.5rem !important;
+    line-height: 1.3;
+}
+
+.accessibility-large-font h2,
+.accessibility-elderly-mode h2 {
+    font-size: 2rem !important;
+    line-height: 1.3;
+}
+
+.accessibility-large-font h3,
+.accessibility-elderly-mode h3 {
+    font-size: 1.75rem !important;
+    line-height: 1.4;
+}
+
+.accessibility-large-font p,
+.accessibility-elderly-mode p {
+    font-size: 1.125rem !important;
+    line-height: 1.7;
+}
+
+.accessibility-large-font label,
+.accessibility-elderly-mode label {
+    font-size: 1.125rem !important;
+    font-weight: 600;
+}
+
+.accessibility-large-font input,
+.accessibility-large-font textarea,
+.accessibility-large-font select,
+.accessibility-elderly-mode input,
+.accessibility-elderly-mode textarea,
+.accessibility-elderly-mode select {
+    font-size: 1.125rem !important;
+    padding: 0.875rem 1rem !important;
+}
+
+/* Large Buttons Mode */
+.accessibility-large-buttons button,
+.accessibility-elderly-mode button,
+.accessibility-large-buttons .btn,
+.accessibility-elderly-mode .btn {
+    min-height: 52px !important;
+    min-width: 120px !important;
+    padding: 0.875rem 1.5rem !important;
+    font-size: 1.125rem !important;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.accessibility-large-buttons a,
+.accessibility-elderly-mode a {
+    min-height: 44px !important;
+    padding: 0.75rem 1.25rem !important;
+    font-size: 1.125rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.accessibility-button-large {
+    min-height: 56px !important;
+    min-width: 56px !important;
+    padding: 1rem !important;
+    font-size: 1.25rem !important;
+}
+
+/* High Contrast Mode */
+.accessibility-high-contrast,
+.accessibility-elderly-mode {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f0f0f0;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --border-color: #000000;
+    --accent-color: #0066cc;
+    --accent-text: #ffffff;
+}
+
+.accessibility-high-contrast *,
+.accessibility-elderly-mode * {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.accessibility-high-contrast button,
+.accessibility-elderly-mode button,
+.accessibility-high-contrast .btn,
+.accessibility-elderly-mode .btn {
+    background-color: var(--accent-color) !important;
+    color: var(--accent-text) !important;
+    border: 3px solid var(--border-color) !important;
+    font-weight: 700;
+}
+
+.accessibility-high-contrast button:hover,
+.accessibility-elderly-mode button:hover,
+.accessibility-high-contrast .btn:hover,
+.accessibility-elderly-mode .btn:hover {
+    background-color: #0052a3 !important;
+    transform: scale(1.05);
+}
+
+.accessibility-high-contrast input,
+.accessibility-high-contrast textarea,
+.accessibility-high-contrast select,
+.accessibility-elderly-mode input,
+.accessibility-elderly-mode textarea,
+.accessibility-elderly-mode select {
+    border: 3px solid var(--border-color) !important;
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+.accessibility-high-contrast input:focus,
+.accessibility-high-contrast textarea:focus,
+.accessibility-high-contrast select:focus,
+.accessibility-elderly-mode input:focus,
+.accessibility-elderly-mode textarea:focus,
+.accessibility-elderly-mode select:focus {
+    outline: 4px solid var(--accent-color) !important;
+    outline-offset: 2px;
+    border-color: var(--accent-color) !important;
+}
+
+/* Simplified UI Mode */
+.accessibility-simplified .header-modern,
+.accessibility-elderly-mode .header-modern {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.accessibility-simplified .header-nav-desktop,
+.accessibility-elderly-mode .header-nav-desktop {
+    gap: 1.5rem !important;
+}
+
+.accessibility-simplified .header-nav-link,
+.accessibility-elderly-mode .header-nav-link {
+    font-size: 1.125rem !important;
+    padding: 0.75rem 1.25rem !important;
+    font-weight: 600;
+}
+
+/* Hide decorative elements in simplified mode */
+.accessibility-simplified .hero-title-gradient-1,
+.accessibility-simplified .hero-title-gradient-2,
+.accessibility-elderly-mode .hero-title-gradient-1,
+.accessibility-elderly-mode .hero-title-gradient-2 {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Reduce Motion */
+.accessibility-reduce-motion *,
+.accessibility-reduce-motion *::before,
+.accessibility-reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* ============================================
+   Form Improvements
+   ============================================ */
+
+.accessibility-large-font form,
+.accessibility-elderly-mode form {
+    max-width: 100%;
+}
+
+.accessibility-large-font .form-group,
+.accessibility-elderly-mode .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.accessibility-large-font input[type="radio"],
+.accessibility-large-font input[type="checkbox"],
+.accessibility-elderly-mode input[type="radio"],
+.accessibility-elderly-mode input[type="checkbox"] {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    margin-right: 0.75rem;
+    cursor: pointer;
+}
+
+.accessibility-large-font label,
+.accessibility-elderly-mode label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   Navigation Improvements
+   ============================================ */
+
+.accessibility-large-buttons .header-nav-link,
+.accessibility-elderly-mode .header-nav-link {
+    padding: 1rem 1.5rem !important;
+    min-height: 48px !important;
+    font-size: 1.125rem !important;
+}
+
+.accessibility-large-buttons .header-login-btn,
+.accessibility-elderly-mode .header-login-btn {
+    padding: 0.875rem 2rem !important;
+    min-height: 52px !important;
+    font-size: 1.125rem !important;
+    font-weight: 600;
+}
+
+/* ============================================
+   Button Improvements
+   ============================================ */
+
+.accessibility-large-buttons .hero-search-button,
+.accessibility-elderly-mode .hero-search-button {
+    min-height: 56px !important;
+    padding: 1rem 2rem !important;
+    font-size: 1.25rem !important;
+    font-weight: 600;
+}
+
+.accessibility-large-buttons select,
+.accessibility-elderly-mode select {
+    min-height: 52px !important;
+    padding: 0.875rem 1rem !important;
+    font-size: 1.125rem !important;
+    cursor: pointer;
+}
+
+/* ============================================
+   Card and Container Improvements
+   ============================================ */
+
+.accessibility-large-font .card,
+.accessibility-elderly-mode .card {
+    padding: 2rem !important;
+    border-radius: 16px;
+    border: 2px solid var(--border-color, #e5e7eb);
+}
+
+.accessibility-high-contrast .card,
+.accessibility-elderly-mode .card {
+    border: 3px solid var(--border-color, #000000) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   Spacing Improvements
+   ============================================ */
+
+.accessibility-large-font .space-y-4 > * + *,
+.accessibility-elderly-mode .space-y-4 > * + * {
+    margin-top: 1.5rem !important;
+}
+
+.accessibility-large-font .space-y-6 > * + *,
+.accessibility-elderly-mode .space-y-6 > * + * {
+    margin-top: 2rem !important;
+}
+
+.accessibility-large-font .space-y-8 > * + *,
+.accessibility-elderly-mode .space-y-8 > * + * {
+    margin-top: 2.5rem !important;
+}
+
+/* ============================================
+   Help Text and Guidance
+   ============================================ */
+
+.accessibility-help-text {
+    font-size: 0.95rem;
+    color: #666;
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+.accessibility-large-font .accessibility-help-text,
+.accessibility-elderly-mode .accessibility-help-text {
+    font-size: 1rem !important;
+    margin-top: 0.75rem;
+    line-height: 1.6;
+}
+
+.accessibility-step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    border-radius: 4px;
+}
+
+.accessibility-large-font .accessibility-step-indicator,
+.accessibility-elderly-mode .accessibility-step-indicator {
+    padding: 1rem 1.25rem;
+    font-size: 1.125rem;
+}
+
+/* ============================================
+   Focus Indicators
+   ============================================ */
+
+.accessibility-large-font *:focus,
+.accessibility-elderly-mode *:focus,
+.accessibility-high-contrast *:focus {
+    outline: 3px solid #0066cc !important;
+    outline-offset: 3px !important;
+}
+
+.accessibility-large-font button:focus,
+.accessibility-elderly-mode button:focus {
+    outline: 4px solid #0066cc !important;
+    outline-offset: 4px !important;
+}
+
+/* ============================================
+   Icon Improvements
+   ============================================ */
+
+.accessibility-large-buttons svg,
+.accessibility-elderly-mode svg {
+    width: 1.5em !important;
+    height: 1.5em !important;
+}
+
+.accessibility-large-buttons .header-nav-icon,
+.accessibility-elderly-mode .header-nav-icon {
+    width: 22px !important;
+    height: 22px !important;
+}
+
+/* ============================================
+   Mobile Improvements
+   ============================================ */
+
+@media (max-width: 768px) {
+    .accessibility-large-font,
+    .accessibility-elderly-mode {
+        font-size: 16px !important;
+    }
+
+    .accessibility-large-buttons button,
+    .accessibility-elderly-mode button {
+        min-height: 48px !important;
+        min-width: 100px !important;
+        padding: 0.75rem 1.25rem !important;
+    }
+
+    .accessibility-large-buttons .header-mobile-link,
+    .accessibility-elderly-mode .header-mobile-link {
+        padding: 1rem 1.5rem !important;
+        font-size: 1.125rem !important;
+        min-height: 52px !important;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+
+@media print {
+    .accessibility-large-font,
+    .accessibility-elderly-mode {
+        font-size: 14pt !important;
+    }
+
+    .accessibility-large-font h1,
+    .accessibility-elderly-mode h1 {
+        font-size: 24pt !important;
+    }
+
+    .accessibility-large-font h2,
+    .accessibility-elderly-mode h2 {
+        font-size: 20pt !important;
+    }
+}
+

@@ -8,6 +8,7 @@ import SettingsTab from "./components/SettingsTab";
 import Sidebar from "./components/Sidebar";
 import { Loader2, ChevronLeft } from "lucide-react";
 import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 
 export default function ProfilePatient() {
     const [activeTab, setActiveTab] = useState("personal");
@@ -100,6 +101,7 @@ export default function ProfilePatient() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="profile" />
         </div>
     );
 }
