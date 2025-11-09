@@ -38,8 +38,8 @@ exports.createRegistrationRequest = async ({
       closing_hours: clinic_info.closing_hours,
       address: clinic_info.address,
       specialties: clinic_info.specialties,
-      created_by: admin_clinic_id, // Từ token qua middleware
-      status: "PENDING", // Chờ phê duyệt
+      created_by: admin_clinic_id,
+      status: "PENDING",
     });
 
     await clinic.save();
@@ -91,7 +91,6 @@ exports.getPendingClinics = async () => {
   }
 };
 
-// Duyệt phòng khám
 exports.approveClinic = async ({ clinic_id, admin_system_id, review_notes }) => {
   try {
     const clinic = await Clinic.findById(clinic_id);
@@ -118,7 +117,6 @@ exports.approveClinic = async ({ clinic_id, admin_system_id, review_notes }) => 
   }
 };
 
-// Từ chối phòng khám
 exports.rejectClinic = async ({ clinic_id, admin_system_id, rejection_reason }) => {
   try {
     const clinic = await Clinic.findById(clinic_id);
