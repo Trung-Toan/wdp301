@@ -16,8 +16,8 @@ import { formatISOTime } from "../../utils/dateTimeUtils";
 const hours = Array.from({ length: 24 }, (_, i) =>
   i.toString().padStart(2, "0")
 );
-const minutes = Array.from({ length: 12 }, (_, i) =>
-  (i * 5).toString().padStart(2, "0")
+const minutes = Array.from({ length: 60 }, (_, i) =>
+  i.toString().padStart(2, "0")
 );
 // -----------------------------
 
@@ -209,8 +209,6 @@ const SlotSchedule = () => {
       return;
     }
 
-    console.log(startHour, "-", endHour);
-
     const dateObj = new Date(selectedDate);
 
     const startDateTime =
@@ -312,6 +310,8 @@ const SlotSchedule = () => {
       return isAvailable === isFilteringForAvailable;
     });
   }, [Slots, statusFilter]);
+
+  
 
   // === (Phần JSX return giữ nguyên) ===
   return (

@@ -18,7 +18,7 @@ const endOfDay   = d => new Date(new Date(d).setHours(23,59,59,999));
 exports.viewDashboard = async (req, res) => {
   try {
     const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
-    
+
     const data = await assistantService.getDashboard(assistance._id);
 
     return resUtils.successResponse(res, data, "Lấy danh sách dashboard thành công");
@@ -277,8 +277,8 @@ exports.createAppointmentSlot = async (req, res) => {
       return resUtils.badRequestResponse(res, "Sai định dạng ngày giờ");
 
     // Lấy giờ và phút (local time) để so sánh
-    const startMinutes = start_time.getHours() * 60 + start_time.getMinutes();
-    const endMinutes = end_time.getHours() * 60 + end_time.getMinutes();
+    const startMinutes = start_time.getUTCHours() * 60 + start_time.getUTCMinutes();
+    const endMinutes = end_time.getUTCHours() * 60 + end_time.getUTCMinutes();
 
     if (startMinutes >= endMinutes)
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
@@ -337,8 +337,8 @@ exports.updateAppointmentSlot = async (req, res) => {
     }
 
     // So sánh giờ và phút (local time)
-    const startMinutes = updated_start_time.getHours() * 60 + updated_start_time.getMinutes();
-    const endMinutes = updated_end_time.getHours() * 60 + updated_end_time.getMinutes();
+    const startMinutes = updated_start_time.getUTCHours() * 60 + updated_start_time.getUTCMinutes();
+    const endMinutes = updated_end_time.getUTCHours() * 60 + updated_end_time.getUTCMinutes();
 
     if (startMinutes >= endMinutes)
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
