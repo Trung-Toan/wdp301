@@ -13,7 +13,6 @@ async function getBookingStatistics(clinicId, { startDate, endDate } = {}) {
     const matchFilter = { clinic_id: new mongoose.Types.ObjectId(clinicId) };
 
 
-    // Nếu có khoảng thời gian, thêm filter
     if (startDate || endDate) {
         matchFilter.booked_at = {};
         if (startDate) matchFilter.booked_at.$gte = new Date(startDate);
@@ -61,7 +60,6 @@ async function getBookingStatistics(clinicId, { startDate, endDate } = {}) {
         };
     }
 
-    // Tạo object byStatus để dễ truy cập
     const byStatus = {
         SCHEDULED: 0,
         COMPLETED: 0,
@@ -100,7 +98,6 @@ async function getBookingTrends(clinicId, { period = 'day', startDate, endDate }
         if (startDate) matchFilter.booked_at.$gte = new Date(startDate);
         if (endDate) matchFilter.booked_at.$lte = new Date(endDate);
     }
-    // Xác định format ngày theo period
     let dateFormat;
 
     switch (period) {
@@ -160,7 +157,6 @@ async function getTopSpecialties(clinicId, { startDate, endDate, limit = 10 } = 
 
     const matchFilter = { clinic_id: new mongoose.Types.ObjectId(clinicId) };
 
-    // Nếu có khoảng thời gian, thêm filter
     if (startDate || endDate) {
         matchFilter.booked_at = {};
         if (startDate) matchFilter.booked_at.$gte = new Date(startDate);
@@ -228,7 +224,6 @@ async function getTopSpecialties(clinicId, { startDate, endDate, limit = 10 } = 
 
     const results = await Appointment.aggregate(pipeline);
 
-    // Tính tổng để có percentage
     const totalAll = results.reduce((sum, item) => sum + item.totalBookings, 0);
 
     return results.map(item => ({
@@ -334,7 +329,6 @@ async function getDoctorPerformance(clinicId, { startDate, endDate, limit = 20, 
         if (endDate) matchFilter.booked_at.$lte = new Date(endDate);
     }
 
-    // Xác định field để sort
     let sortField = {};
     switch (sortBy) {
         case 'completionRate':
