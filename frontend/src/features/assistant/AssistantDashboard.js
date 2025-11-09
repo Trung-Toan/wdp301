@@ -39,14 +39,14 @@ const DoctorDashboard = () => {
       value: stats.todayPatients, // COMPLETED hôm nay
       icon: <CalendarCheck size={32} />,
       color: "green",
-      link: "/assistant/appointments",
+      link: "/assistant/appointments?status=COMPLETED",
     },
     {
       title: "Lịch hẹn chờ duyệt",
       value: stats.pendingRequests, // SCHEDULED hôm nay
       icon: <Clock size={32} />,
       color: "orange",
-      link: "/assistant/appointments",
+      link: "/assistant/appointments?status=SCHEDULED",
     },
     {
       title: "Tổng lịch hẹn hôm nay",

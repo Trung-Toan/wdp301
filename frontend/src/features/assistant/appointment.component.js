@@ -2,7 +2,7 @@ import { memo, useState, Fragment } from "react";
 import {
   Calendar,
   Person,
-  Telephone, 
+  Telephone,
   CheckCircle,
   XCircle,
   FileEarmarkPlus,
@@ -10,8 +10,8 @@ import {
   Clipboard2Pulse,
   PlusCircle,
   XCircleFill,
-  EyeFill,      
-  PencilFill,   
+  EyeFill,
+  PencilFill,
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
@@ -106,18 +106,23 @@ const AppointmentComponent = () => {
   const appointments = data?.data?.appointments || [];
   const slots = data?.data?.slot?.slot_list || [];
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
-  const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
+  const pagination = data?.pagination || {
+    page: 1,
+    totalPages: 1,
+    totalItems: 0,
+  };
   const totalPages = pagination.totalPages;
+
 
   const handleVerifyStatus = async (appointmentId, newStatus) => {
     try {
       await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
       refetch();
-
     } catch (error) {
       if (error.response) {
       }
-      const errorMessage = error.response?.data?.message || "Lỗi khi xác minh lịch hẹn.";
+      const errorMessage =
+        error.response?.data?.message || "Lỗi khi xác minh lịch hẹn.";
       alert(errorMessage);
     }
   };
@@ -130,10 +135,11 @@ const AppointmentComponent = () => {
     if ((mode === "EDIT" || mode === "VIEW") && existingRecord) {
       setRecordFormData({
         diagnosis: existingRecord.diagnosis || "",
-        symptoms: (existingRecord.symptoms || []).join(', '), // Chuyển mảng thành chuỗi
+        symptoms: (existingRecord.symptoms || []).join(", "), // Chuyển mảng thành chuỗi
         notes: existingRecord.notes || "",
-        attachments: (existingRecord.attachments || []).join(', '), // Chuyển mảng thành chuỗi
-        prescription: existingRecord.prescription || initialRecordFormData.prescription,
+        attachments: (existingRecord.attachments || []).join(", "), // Chuyển mảng thành chuỗi
+        prescription:
+          existingRecord.prescription || initialRecordFormData.prescription,
         status: existingRecord.status || "PRIVATE",
       });
     } else {
@@ -185,7 +191,9 @@ const AppointmentComponent = () => {
   };
   const removeMedicine = (index) => {
     setRecordFormData((prev) => {
-      const newMedicines = (prev.prescription?.medicines || []).filter((_, i) => i !== index);
+      const newMedicines = (prev.prescription?.medicines || []).filter(
+        (_, i) => i !== index
+      );
       return {
         ...prev,
         prescription: { ...(prev.prescription || {}), medicines: newMedicines },
@@ -247,7 +255,10 @@ const AppointmentComponent = () => {
 
       console.log("📦 Payload gửi backend:", requestBody);
 
-      const response = await MEDICAL_RECORD_API.createMedicalRecord(appointment_id, requestBody);
+      const response = await MEDICAL_RECORD_API.createMedicalRecord(
+        appointment_id,
+        requestBody
+      );
       console.log("Phản hồi từ server: ", response);
 
       // === SỬA 2: SỬA LOGIC KIỂM TRA THÀNH CÔNG (để sửa lỗi "Tạo hồ sơ thất bại") ===
@@ -258,11 +269,15 @@ const AppointmentComponent = () => {
         closeRecordModal();
         refetch();
       } else {
-        setRecordModalError(response?.data?.message || response?.message || "Tạo hồ sơ thất bại.");
+        setRecordModalError(
+          response?.data?.message || response?.message || "Tạo hồ sơ thất bại."
+        );
       }
     } catch (error) {
       console.error("❌ Lỗi tạo hồ sơ:", error);
-      setRecordModalError(error.response?.data?.message || error.message || "Lỗi hệ thống");
+      setRecordModalError(
+        error.response?.data?.message || error.message || "Lỗi hệ thống"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -271,7 +286,8 @@ const AppointmentComponent = () => {
     const appointment = item.appointment;
     const appointmentId = appointment.appointment_id;
     const status = appointment.status;
-    const recordPrescriptionStatus = appointment.medical_record?.prescription?.status;
+    const recordPrescriptionStatus =
+      appointment.medical_record?.prescription?.status;
     switch (status) {
       // 1. Chờ duyệt
       case "SCHEDULED":
@@ -357,9 +373,11 @@ const AppointmentComponent = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* filter */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
+          <div className="d-flex mb-3 justify-content-between flex-wrap items-center gap-4">
+            {/* Date */}
+            <div className="gap-2 pr-4">
               <Calendar className="text-gray-400" size={20} />
               <input
                 type="date"
@@ -371,33 +389,62 @@ const AppointmentComponent = () => {
                 className="pl-2 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            <div className="flex-1 flex flex-wrap items-center gap-2">
-              {isLoading ? (
-                <span className="text-gray-500 text-sm">Đang tải ca...</span>
-              ) : slots.length > 0 ? (
-                <>
-                  {slots.map((slot) => (
-                    <button
-                      key={slot._id}
-                      onClick={() => {
-                        setSelectedSlot(slot._id);
-                        setPage(1);
-                      }}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${selectedSlot === slot._id
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                    >
-                      Ca: {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                    </button>
-                  ))}
-                </>
-              ) : (
-                <span className="text-gray-500 text-sm">Không có ca nào trong ngày này.</span>
-              )}
+
+            {/* Status filter (THÊM MỚI) */}
+            <div className="gap-2 pr-4 flex items-center">
+              <span className="text-sm font-medium text-gray-700 mr-2">
+                Trạng thái:
+              </span>
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-2 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Tất cả</option>
+                <option value="SCHEDULED">Chờ duyệt</option>
+                <option value="APPROVE">Đã duyệt</option>
+                <option value="COMPLETED">Đã khám xong</option>
+                <option value="CANCELLED">Đã hủy</option>
+                <option value="NO_SHOW">Vắng mặt</option>
+                <option value="REJECTED">Đã từ chối</option>
+              </select>
             </div>
           </div>
+
+          <div className="flex-1 flex flex-wrap items-center gap-2">
+            {isLoading ? (
+              <span className="text-gray-500 text-sm">Đang tải ca...</span>
+            ) : slots.length > 0 ? (
+              <>
+                {slots.map((slot) => (
+                  <button
+                    key={slot._id}
+                    onClick={() => {
+                      setSelectedSlot(slot._id);
+                      setPage(1);
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      selectedSlot === slot._id
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Ca: {formatTime(slot.start_time)} -{" "}
+                    {formatTime(slot.end_time)}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <span className="text-gray-500 text-sm">
+                Không có ca nào trong ngày này.
+              </span>
+            )}
+          </div>
         </div>
+
         {isLoading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -410,7 +457,8 @@ const AppointmentComponent = () => {
               <div className="bg-blue-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
                 <div className="flex items-center gap-4">
                   <span className="font-bold text-blue-700">
-                    Ca: {formatTime(selectedSlotInfo.start_time)} - {formatTime(selectedSlotInfo.end_time)}
+                    Ca: {formatTime(selectedSlotInfo.start_time)} -{" "}
+                    {formatTime(selectedSlotInfo.end_time)}
                   </span>
                 </div>
               </div>
@@ -427,19 +475,31 @@ const AppointmentComponent = () => {
 
                   // === 6. CẬP NHẬT MÀU BADGE ===
                   let badgeColor = "bg-gray-100 text-gray-700";
-                  if (statusInfo.className === "status-scheduled") badgeColor = "bg-blue-100 text-blue-700";
-                  else if (statusInfo.className === "status-approved") badgeColor = "bg-green-100 text-green-700";
-                  else if (statusInfo.className === "status-completed") badgeColor = "bg-indigo-100 text-indigo-700";
-                  else if (statusInfo.className === "status-cancelled" || statusInfo.className === "status-no-show" ||
-                    statusInfo.className === "status-rejected") badgeColor = "bg-red-100 text-red-700";
+                  if (statusInfo.className === "status-scheduled")
+                    badgeColor = "bg-blue-100 text-blue-700";
+                  else if (statusInfo.className === "status-approved")
+                    badgeColor = "bg-green-100 text-green-700";
+                  else if (statusInfo.className === "status-completed")
+                    badgeColor = "bg-indigo-100 text-indigo-700";
+                  else if (
+                    statusInfo.className === "status-cancelled" ||
+                    statusInfo.className === "status-no-show" ||
+                    statusInfo.className === "status-rejected"
+                  )
+                    badgeColor = "bg-red-100 text-red-700";
 
                   return (
-                    <div key={appointment.appointment_id} className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm">
+                    <div
+                      key={appointment.appointment_id}
+                      className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm"
+                    >
                       {/* Thông tin bệnh nhân (Giữ nguyên) */}
                       <div className="flex items-center gap-4 mb-2 sm:mb-0">
                         <Person className="text-blue-600" size={20} />
                         <div>
-                          <p className="font-semibold">{patient.patient_name || "Bệnh nhân ẩn"}</p>
+                          <p className="font-semibold">
+                            {patient.patient_name || "Bệnh nhân ẩn"}
+                          </p>
                           <p className="text-gray-500 text-sm">
                             <Telephone className="inline mr-1" />
                             {patient.phone_number || "Không rõ"}
@@ -457,11 +517,14 @@ const AppointmentComponent = () => {
 
                       {/* === 7. SỬ DỤNG HÀM RENDER MỚI === */}
                       <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}>{statusInfo.label}</span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}
+                        >
+                          {statusInfo.label}
+                        </span>
                         {/* Gọi hàm render */}
                         {renderAppointmentActions(item)}
                       </div>
-
                     </div>
                   );
                 })
@@ -478,7 +541,9 @@ const AppointmentComponent = () => {
                 >
                   Trang trước
                 </button>
-                <span className="text-sm">Trang {page} / {totalPages}</span>
+                <span className="text-sm">
+                  Trang {page} / {totalPages}
+                </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages || isLoading}
@@ -523,9 +588,9 @@ const AppointmentComponent = () => {
                     className="text-xl font-bold text-gray-900 mb-4"
                   >
                     {/* === 8. CẬP NHẬT TIÊU ĐỀ MODAL === */}
-                    {modalMode === 'CREATE' && 'Tạo hồ sơ bệnh án'}
-                    {modalMode === 'EDIT' && 'Sửa hồ sơ bệnh án'}
-                    {modalMode === 'VIEW' && 'Xem hồ sơ bệnh án'}
+                    {modalMode === "CREATE" && "Tạo hồ sơ bệnh án"}
+                    {modalMode === "EDIT" && "Sửa hồ sơ bệnh án"}
+                    {modalMode === "VIEW" && "Xem hồ sơ bệnh án"}
                   </Dialog.Title>
 
                   {/* === THAY ĐỔI 2: CẬP NHẬT KHUNG THÔNG TIN BỆNH NHÂN === */}
@@ -537,15 +602,15 @@ const AppointmentComponent = () => {
                       </p>
                       <p className="text-gray-700 text-sm mt-1">
                         <Telephone className="inline mr-2" size={14} />
-                        {selectedAptForRecord.patient?.phone_number || "Không rõ"}
+                        {selectedAptForRecord.patient?.phone_number ||
+                          "Không rõ"}
                       </p>
                     </div>
                   )}
                   {/* === KẾT THÚC THAY ĐỔI 2 === */}
 
-
                   {/* === 9. VÔ HIỆU HÓA FORM KHI 'VIEW' === */}
-                  <fieldset disabled={modalMode === 'VIEW'}>
+                  <fieldset disabled={modalMode === "VIEW"}>
                     <div className="flex flex-col gap-4">
                       {/* Form (giữ nguyên) */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -610,62 +675,97 @@ const AppointmentComponent = () => {
                         </h4>
                         {/* Danh sách thuốc */}
                         <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
-                          {(recordFormData.prescription?.medicines || []).map((med, index) => (
-                            <div key={index} className="p-3 border rounded-lg bg-gray-50 relative">
-                              {/* Ẩn nút xóa khi VIEW */}
-                              {modalMode !== 'VIEW' && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeMedicine(index)}
-                                  className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
-                                  title="Xóa thuốc"
-                                >
-                                  <XCircleFill size={16} />
-                                </button>
-                              )}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input
-                                  type="text"
-                                  placeholder="Tên thuốc"
-                                  value={med.name}
-                                  onChange={(e) => handleMedicineChange(index, "name", e.target.value)}
-                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Liều lượng (vd: 500mg)"
-                                  value={med.dosage}
-                                  onChange={(e) => handleMedicineChange(index, "dosage", e.target.value)}
-                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Tần suất (vd: 2 lần/ngày)"
-                                  value={med.frequency}
-                                  onChange={(e) => handleMedicineChange(index, "frequency", e.target.value)}
-                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Thời hạn (vd: 5 ngày)"
-                                  value={med.duration}
-                                  onChange={(e) => handleMedicineChange(index, "duration", e.target.value)}
-                                  className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                          {(recordFormData.prescription?.medicines || []).map(
+                            (med, index) => (
+                              <div
+                                key={index}
+                                className="p-3 border rounded-lg bg-gray-50 relative"
+                              >
+                                {/* Ẩn nút xóa khi VIEW */}
+                                {modalMode !== "VIEW" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeMedicine(index)}
+                                    className="absolute -top-2 -right-2 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                    title="Xóa thuốc"
+                                  >
+                                    <XCircleFill size={16} />
+                                  </button>
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="Tên thuốc"
+                                    value={med.name}
+                                    onChange={(e) =>
+                                      handleMedicineChange(
+                                        index,
+                                        "name",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Liều lượng (vd: 500mg)"
+                                    value={med.dosage}
+                                    onChange={(e) =>
+                                      handleMedicineChange(
+                                        index,
+                                        "dosage",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Tần suất (vd: 2 lần/ngày)"
+                                    value={med.frequency}
+                                    onChange={(e) =>
+                                      handleMedicineChange(
+                                        index,
+                                        "frequency",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Thời hạn (vd: 5 ngày)"
+                                    value={med.duration}
+                                    onChange={(e) =>
+                                      handleMedicineChange(
+                                        index,
+                                        "duration",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                                  />
+                                </div>
+                                <textarea
+                                  placeholder="Ghi chú cho thuốc..."
+                                  rows={2}
+                                  value={med.note}
+                                  onChange={(e) =>
+                                    handleMedicineChange(
+                                      index,
+                                      "note",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full text-sm mt-3 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                                 />
                               </div>
-                              <textarea
-                                placeholder="Ghi chú cho thuốc..."
-                                rows={2}
-                                value={med.note}
-                                onChange={(e) => handleMedicineChange(index, "note", e.target.value)}
-                                className="w-full text-sm mt-3 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                              />
-                            </div>
-                          ))}
+                            )
+                          )}
                         </div>
 
                         {/* Ẩn nút thêm thuốc khi VIEW */}
-                        {modalMode !== 'VIEW' && (
+                        {modalMode !== "VIEW" && (
                           <button
                             type="button"
                             onClick={addMedicine}
@@ -684,7 +784,9 @@ const AppointmentComponent = () => {
                           <textarea
                             name="instruction"
                             rows={3}
-                            value={recordFormData.prescription?.instruction || ""}
+                            value={
+                              recordFormData.prescription?.instruction || ""
+                            }
                             onChange={handlePrescriptionInstructionChange}
                             placeholder="Vd: Uống sau khi ăn, kiêng đồ cay nóng..."
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
@@ -712,18 +814,22 @@ const AppointmentComponent = () => {
                       disabled={isSubmitting}
                     >
                       {/* Nếu là VIEW thì là "Đóng", còn lại là "Hủy" */}
-                      {modalMode === 'VIEW' ? 'Đóng' : 'Hủy'}
+                      {modalMode === "VIEW" ? "Đóng" : "Hủy"}
                     </button>
 
                     {/* Ẩn nút "Lưu" khi ở chế độ VIEW */}
-                    {modalMode !== 'VIEW' && (
+                    {modalMode !== "VIEW" && (
                       <button
                         type="button"
                         className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:bg-gray-400"
                         onClick={handleSaveRecord} // <-- Đổi tên hàm
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? "Đang lưu..." : (modalMode === 'EDIT' ? "Lưu thay đổi" : "Lưu bệnh án")}
+                        {isSubmitting
+                          ? "Đang lưu..."
+                          : modalMode === "EDIT"
+                          ? "Lưu thay đổi"
+                          : "Lưu bệnh án"}
                       </button>
                     )}
                   </div>
