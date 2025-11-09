@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const bcrypt = require("bcryptjs"); // <- THÊM DÒNG NÀY
 
 const accountSchema = new Schema(
   {
@@ -14,5 +15,16 @@ const accountSchema = new Schema(
   { timestamps: true, collection: "accounts" }
 );
 
+// Hash trước khi lưu (chỉ khi password bị đổi)
+accountSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
+  this.password = await bcrypt.hash(this.password, saltRounds);
+  next();
+});
 
+// So sánh plaintext với hash trong DB
+accountSchema.methods.comparePassword = function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 module.exports = mongoose.model("Account", accountSchema);

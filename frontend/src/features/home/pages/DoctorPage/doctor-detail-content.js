@@ -8,6 +8,7 @@ import {
     Hospital,
     Send
 } from "lucide-react";
+import { formatDateShort } from "../../../../utils/dateTimeUtils";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -15,6 +16,7 @@ import { DoctorBookingCalendar } from "../../components/DoctorBookingCalendar";
 import { doctorApi } from "../../../../api";
 import { useAuth } from "../../../../hooks/useAuth";
 import { axiosInstance } from "../../../../api/axiosInstance";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import "../../../../styles/DoctorDetailContent.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -263,7 +265,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                                 <strong>Cấp bởi:</strong> {l.issued_by}
                                                             </div>
                                                             <div className="doctor-license-field">
-                                                                <strong>Hiệu lực:</strong> {new Date(l.issued_date).toLocaleDateString()} - {new Date(l.expiry_date).toLocaleDateString()}
+                                                                <strong>Hiệu lực:</strong> {formatDateShort(l.issued_date)} - {formatDateShort(l.expiry_date)}
                                                             </div>
                                                             <div className="doctor-license-field">
                                                                 <strong>Trạng thái:</strong> {l.status}
@@ -401,12 +403,35 @@ export function DoctorDetailContent({ doctorId }) {
                                                                     </>
                                                                 ) : (
                                                                     <>
-                                                                        <img
-                                                                            src={fb.patient?.user_id?.avatar_url ? getImageUrl(fb.patient.user_id.avatar_url) : "/default-avatar.png"}
-                                                                            alt={fb.patient?.user_id?.full_name || "Người dùng"}
+                                                                        {fb.patient?.avatar_url ? (
+                                                                            <img
+                                                                                src={getImageUrl(fb.patient.avatar_url)}
+                                                                                alt={fb.patient?.full_name || "Người dùng"}
+                                                                                className="doctor-review-avatar"
+                                                                                onError={(e) => {
+                                                                                    e.target.style.display = 'none';
+                                                                                    e.target.nextSibling.style.display = 'flex';
+                                                                                }}
+                                                                            />
+                                                                        ) : null}
+                                                                        <div 
                                                                             className="doctor-review-avatar"
-                                                                        />
-                                                                        <span className="doctor-review-name">{fb.patient?.user_id?.full_name || "Người dùng"}</span>
+                                                                            style={{ 
+                                                                                display: fb.patient?.avatar_url ? 'none' : 'flex',
+                                                                                backgroundColor: '#e0f2fe',
+                                                                                color: '#0369a1',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                borderRadius: '50%',
+                                                                                width: '48px',
+                                                                                height: '48px',
+                                                                                fontSize: '18px',
+                                                                                fontWeight: 'bold'
+                                                                            }}
+                                                                        >
+                                                                            {fb.patient?.full_name?.charAt(0)?.toUpperCase() || "?"}
+                                                                        </div>
+                                                                        <span className="doctor-review-name">{fb.patient?.full_name || "Người dùng"}</span>
                                                                     </>
                                                                 )}
                                                             </div>
@@ -451,12 +476,15 @@ export function DoctorDetailContent({ doctorId }) {
                                     hospital: d.clinic?.name || "Chưa có phòng khám",
                                     price: slotToSend.fee || d.pricing?.minFee || "Chưa có giá",
                                     doctorAvatar: d.avatar_url || null,
+                                    clinicId: slotToSend.clinicId || d.clinic?._id || d.clinic_id || null, // Thêm clinicId vào state
+                                    doctor: d, // Thêm toàn bộ doctor object để có thể lấy clinic_id sau
                                 } 
                             });
                         }}
                     />
                 </div>
             </div>
+            <FirstTimeGuide page="doctor_detail" />
         </div>
     );
 }

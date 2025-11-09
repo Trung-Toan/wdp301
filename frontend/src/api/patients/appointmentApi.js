@@ -58,4 +58,15 @@ export const appointmentApi = {
         axiosInstance.get(`/appointments/slots/${slotId}/check-availability`, {
             params: { scheduledDate, patientId },
         }),
+
+    /**
+     * Hủy lịch hẹn
+     * @param {string} appointmentId - ID của appointment
+     * @param {string} patientId - ID của bệnh nhân
+     * @returns {Promise} - Updated appointment data
+     */
+    cancelAppointment: (appointmentId, patientId) =>
+        axiosInstance.put(`/appointments/${appointmentId}/cancel`, {
+            patientId,
+        }),
 };

@@ -2,36 +2,20 @@
 
 import { memo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-// --- THAY ĐỔI 1: Đổi thư viện icon ---
 import {
   People,
   CalendarCheck,
   Clock,
   Activity,
   CalendarHeart,
-  FileText,
 } from "react-bootstrap-icons";
-// --- THAY ĐỔI 2: Dùng assistantService ---
 import {
   getDashboardStats,
-  getAppointments, // Dùng getAppointments thay vì getTodayAppointmentsList
+  getAppointments, 
 } from "../../services/assistantService";
-// --- THAY ĐỔI 3: Bỏ file CSS cũ ---
-// import "../../styles/doctor/DoctorDashboard.css";
-
-// Helper lấy ngày Local (YYYY-MM-DD)
+import AppointmentComponent from "./appointment.component";
 const getLocalDate = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = (today.getMonth() + 1).toString().padStart(2, "0");
-  const day = today.getDate().toString().padStart(2, "0");
-
-  // NOTE: Dùng ngày này để khớp với mock data trong assistantService.js
-  // Khi chạy thật, hãy xóa dòng này
   return "2025-10-27";
-
-  // Dùng dòng này khi chạy thật
-  // return `${year}-${month}-${day}`;
 };
 
 const DoctorDashboard = () => {
@@ -44,7 +28,6 @@ const DoctorDashboard = () => {
     upcomingAppointments: 0,
   });
 
-  const [recentAppointments, setRecentAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const doctorId = "DOC001"; // Cấu hình ID bác sĩ
 
@@ -89,8 +72,6 @@ const DoctorDashboard = () => {
           const orderB = statusSortOrder[b.status] || 99;
           return orderA - orderB;
         });
-
-        setRecentAppointments(formattedAppointments);
       }
 
       setLoading(false);
@@ -150,18 +131,6 @@ const DoctorDashboard = () => {
       color: "purple",
     },
   ];
-
-  // Helper render trạng thái (giống màn hình Duyệt lịch)
-  const getStatusBadge = (status) => {
-    const config = {
-      SCHEDULED: { label: "Chờ duyệt", color: "blue" },
-      COMPLETED: { label: "Đã duyệt", color: "green" },
-      CANCELLED: { label: "Đã hủy", color: "red" },
-    };
-    return config[status] || { label: status, color: "gray" };
-  };
-
-  // --- THAY ĐỔI 7: Giao diện Loading (dùng Tailwind) ---
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-slate-50">
@@ -173,7 +142,6 @@ const DoctorDashboard = () => {
     );
   }
 
-  // --- THAY ĐỔI 8: Toàn bộ JSX được thiết kế lại bằng Tailwind ---
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -255,65 +223,7 @@ const DoctorDashboard = () => {
                 </Link>
               </div>
 
-              {/* Danh sách lịch hẹn (thiết kế lại) */}
-              {recentAppointments.length === 0 ? (
-                <div className="text-center py-10">
-                  <CalendarHeart size={48} className="mx-auto text-gray-400" />
-                  <h3 className="mt-2 text-lg font-medium text-gray-700">
-                    Không có lịch hẹn
-                  </h3>
-                  <p className="mt-1 text-gray-500">
-                    Bạn chưa có lịch hẹn nào trong hôm nay.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {recentAppointments.map((apt) => {
-                    const status = getStatusBadge(apt.status);
-                    return (
-                      <div
-                        key={apt.id}
-                        className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm"
-                      >
-                        <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                          <div className="flex-shrink-0">
-                            <People className="text-blue-600" size={20} />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {apt.patientName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Lý do: {apt.type}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1 text-gray-600">
-                            <Clock size={16} />
-                            {/* Hiển thị trực tiếp, bỏ formatTime */}
-                            <span className="text-sm font-medium">
-                              {apt.start_time} - {apt.end_time}
-                            </span>
-                          </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold
-                              ${status.color === "blue"
-                                ? "bg-blue-100 text-blue-700"
-                                : status.color === "green"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }
-                            `}
-                          >
-                            {status.label}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <AppointmentComponent/>
             </div>
           </div>
 

@@ -10,7 +10,7 @@ const appointmentSchema = new Schema({
   specialty_id: { type: Schema.Types.ObjectId, ref: "Specialty", required: true, index: true },
   clinic_id: { type: Schema.Types.ObjectId, ref: "Clinic", index: true },
   //Thêm Enum ai đặtlịchh
-  
+
   full_name: { type: String, required: true },
   phone: { type: String, required: true },
   email: { type: String, required: true },
@@ -20,6 +20,17 @@ const appointmentSchema = new Schema({
   ward_code: { type: String },
   address_text: { type: String },
   reason: { type: String },
+
+  // Thông tin người thân (cho người già)
+  relative_name: { type: String },
+  relative_phone: { type: String },
+  relative_relationship: { 
+    type: String, 
+    enum: ["con", "chau", "vo_chong", "anh_chi_em", "ban", "khac"],
+    default: null
+  },
+  is_elderly: { type: Boolean, default: false },
+  patient_age: { type: Number },
 
   // Trạng thái & ngày tháng
   status: { type: String, enum: statusEnum, default: "SCHEDULED" },

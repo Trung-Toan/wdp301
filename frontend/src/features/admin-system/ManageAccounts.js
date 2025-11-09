@@ -3,6 +3,7 @@ import { adminSystemAPI } from "../../api/admin-system/adminSystemAPI";
 import ConfirmModal from "./ConfirmModal";
 import Toast from "../../components/ui/Toast";
 import { Spinner } from "react-bootstrap";
+import { formatDateShort as formatDate } from "../../utils/dateTimeUtils";
 
 export default function ManageAccounts() {
   const [accounts, setAccounts] = useState([]);
@@ -221,12 +222,6 @@ export default function ManageAccounts() {
       default:
         return status;
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN");
   };
 
   return (

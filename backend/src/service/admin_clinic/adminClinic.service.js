@@ -12,7 +12,11 @@ const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
 
-//tạo bác sĩ
+/* ======================================
+ *               DOCTOR
+ * ====================================== */
+
+// tạo bác sĩ
 exports.createDoctor = async (payload) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -21,30 +25,38 @@ exports.createDoctor = async (payload) => {
     const {
       username,
       password,
+      email,
       phone_number,
       full_name,
       clinic_id,
       specialty_id,
     } = payload;
 
-    //Tạo tài khoản
+    // Chuẩn hoá & kiểm tra specialty_id: mảng, unique, không rỗng
+    const specRaw = Array.isArray(specialty_id) ? specialty_id : [];
+    const spec = [...new Set(specRaw.map(String))].filter(Boolean);
+    if (spec.length === 0) {
+      throw new Error("Phải chọn ít nhất 1 chuyên khoa");
+    }
+
+    // Tạo tài khoản
     const hashedPassword = await hashPassword(password);
     const acc = await Account.create(
       [
         {
-          username: username.trim(),
-          email: `doc-${username}@example.com`,
+          username: username?.trim(),
+          email: email?.trim(),
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "DOCTOR",
           status: "ACTIVE",
-          email_verified: false,
+          email_verified: true,
         },
       ],
       { session }
     );
 
-    //Tạo User (liên kết Account)
+    // Tạo User (liên kết Account)
     const user = await User.create(
       [
         {
@@ -58,7 +70,7 @@ exports.createDoctor = async (payload) => {
       { session }
     );
 
-    //Tạo Doctor (liên kết User)
+    // Tạo Doctor (liên kết User)
     const doctor = await Doctor.create(
       [
         {
@@ -67,7 +79,7 @@ exports.createDoctor = async (payload) => {
           description: "",
           experience: "",
           clinic_id,
-          specialty_id,
+          specialty_id: spec, // model đã có validator & dedupe pre-save
           user_id: user[0]._id,
         },
       ],
@@ -97,7 +109,11 @@ exports.createDoctor = async (payload) => {
   }
 };
 
-//tạo trợ lý
+/* ======================================
+ *              ASSISTANT
+ * ====================================== */
+
+// tạo trợ lý
 exports.createAssistant = async (payload) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -105,33 +121,45 @@ exports.createAssistant = async (payload) => {
   try {
     const {
       username,
-      password,
+      email,
       phone_number,
+      password,
       full_name,
       note,
-      type,
+      type,        // mong đợi: mảng ["NURSE","RECEPTIONIST"]
+      roles,       // (dự phòng) nếu FE lỡ gửi roles[]
       doctor_id,
       clinic_id,
     } = payload;
 
-    //Tạo tài khoản
+    // Chuẩn hoá & kiểm tra role: gom từ type/roles → unique + sạch + không rỗng
+    const roleRaw = [
+      ...(Array.isArray(type) ? type : []),
+      ...(Array.isArray(roles) ? roles : []),
+    ];
+    const roleArr = [...new Set(roleRaw.map(String))].filter(Boolean);
+    if (roleArr.length === 0) {
+      throw new Error("Phải chọn ít nhất 1 vai trò (type)");
+    }
+
+    // Tạo tài khoản
     const hashedPassword = await hashPassword(password);
     const acc = await Account.create(
       [
         {
-          username: username.trim(),
-          email: `assistant-${username}@example.com`,
+          username: `${username?.trim()}`,
+          email: email?.trim(),
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "ASSISTANT",
           status: "ACTIVE",
-          email_verified: false,
+          email_verified: true,
         },
       ],
       { session }
     );
 
-    //Tạo User (liên kết Account)
+    // Tạo User (liên kết Account)
     const user = await User.create(
       [
         {
@@ -145,12 +173,12 @@ exports.createAssistant = async (payload) => {
       { session }
     );
 
-    //Tạo Assistant (liên kết User)
+    // Tạo Assistant (liên kết User)
     const assistant = await Assistant.create(
       [
         {
           note,
-          type,
+          type: roleArr, // model Assistant: mảng enum + validator + dedupe pre-save
           doctor_id,
           clinic_id,
           user_id: user[0]._id,
@@ -164,7 +192,7 @@ exports.createAssistant = async (payload) => {
 
     return {
       ok: true,
-      message: "Tạo trợ lý thành cong",
+      message: "Tạo trợ lý thành công",
       data: {
         account: acc[0],
         user: user[0],
@@ -182,32 +210,165 @@ exports.createAssistant = async (payload) => {
   }
 };
 
-//Lấy danh sách trợ lý theo clinic
+/* ======================================
+ *         ASSISTANTS (READ/DELETE)
+ * ====================================== */
+
+// Lấy danh sách trợ lý theo clinic
 exports.getAssistantsByClinic = async (clinicId) => {
   const data = await Assistant.find({ clinic_id: clinicId })
     .populate({
       path: "user_id",
-      populate: { path: "account_id", select: "username phone_number status" },
+      select: "full_name avatar_url account_id",
+      populate: { path: "account_id", select: "username email phone_number status" },
     })
     .populate({
       path: "doctor_id",
+      select: "user_id",
       populate: { path: "user_id", select: "full_name" },
+    })
+    .populate({
+      path: "clinic_id",
+      select: "name",
     })
     .lean();
 
   return { ok: true, data };
 };
 
-//xoá trợ lý
+// Lấy danh sách trợ lý từ tất cả các phòng khám mà admin quản lý
+exports.getAssistantsByAdminClinic = async (adminAccountId) => {
+  try {
+    // Lấy user tương ứng với account id
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) {
+      throw new Error("Không tìm thấy user của admin clinic");
+    }
+
+    // Tìm bản ghi AdminClinic tương ứng
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic");
+    }
+
+    // Lấy TẤT CẢ các clinics mà admin clinic này quản lý
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id");
+    if (!clinics.length) {
+      return { ok: true, data: [] };
+    }
+
+    const clinicIds = clinics.map((c) => c._id);
+
+    // Lấy tất cả assistants từ tất cả các clinics
+    const data = await Assistant.find({ clinic_id: { $in: clinicIds } })
+      .populate({
+        path: "user_id",
+        populate: { path: "account_id", select: "username phone_number status" },
+      })
+      .populate({
+        path: "doctor_id",
+        populate: { path: "user_id", select: "full_name" },
+      })
+      .populate({
+        path: "clinic_id",
+        select: "name",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { ok: true, data };
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách trợ lý:", error);
+    return { ok: false, message: error.message };
+  }
+};
+
+// Xoá trợ lý
 exports.deleteAssistant = async (assistantId) => {
   const assistant = await Assistant.findById(assistantId);
   if (!assistant) throw new Error("Assistant not found");
 
   await Assistant.findByIdAndDelete(assistantId);
+  // (tuỳ nghiệp vụ) có thể xoá kèm User/Account trong một transaction
   return true;
 };
 
-//Lấy clinic mà admin clinic hiện tại quản lý
+/* ======================================
+ *        DOCTOR (DELETE)
+ * ====================================== */
+
+// Xoá bác sĩ (bao gồm Doctor, User, Account)
+exports.deleteDoctor = async (doctorId, adminAccountId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Kiểm tra bác sĩ có tồn tại không
+    const doctor = await Doctor.findById(doctorId).session(session);
+    if (!doctor) {
+      throw new Error("Bác sĩ không tồn tại");
+    }
+
+    // Kiểm tra bác sĩ có thuộc về admin clinic này không
+    const user = await User.findOne({ account_id: adminAccountId }).session(session);
+    if (!user) {
+      throw new Error("Không tìm thấy user của admin clinic");
+    }
+
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id }).session(session);
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic");
+    }
+
+    // Lấy danh sách clinics của admin
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).session(session);
+    const clinicIds = clinics.map((c) => c._id.toString());
+
+    // Kiểm tra bác sĩ có thuộc clinic của admin không
+    if (!clinicIds.includes(doctor.clinic_id.toString())) {
+      throw new Error("Bác sĩ không thuộc quyền quản lý của bạn");
+    }
+
+    // Lấy user_id và account_id từ doctor
+    const doctorUser = await User.findById(doctor.user_id).session(session);
+    if (!doctorUser) {
+      throw new Error("Không tìm thấy user của bác sĩ");
+    }
+
+    const accountId = doctorUser.account_id;
+
+    // Xóa Doctor
+    await Doctor.findByIdAndDelete(doctorId).session(session);
+
+    // Xóa User
+    await User.findByIdAndDelete(doctor.user_id).session(session);
+
+    // Xóa Account
+    await Account.findByIdAndDelete(accountId).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      ok: true,
+      message: "Xóa bác sĩ thành công",
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Lỗi khi xóa bác sĩ:", error);
+    return {
+      ok: false,
+      message: error.message || "Không thể xóa bác sĩ",
+    };
+  }
+};
+
+/* ======================================
+ *        CLINIC / ADMIN HELPERS
+ * ====================================== */
+
+// Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (accountId) => {
   try {
     const user = await User.findOne({ account_id: accountId });
@@ -233,32 +394,63 @@ exports.getClinicByAdmin = async (accountId) => {
   }
 };
 
-//lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
+// Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+exports.getAllClinicsByAdmin = async (accountId) => {
+  try {
+    const user = await User.findOne({ account_id: accountId });
+    if (!user)
+      throw new Error("Không tìm thấy user tương ứng với account này.");
+
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic)
+      throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
+
+    const clinics = await Clinic.find({
+      created_by: adminClinic._id,
+    })
+      .populate("specialties")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { ok: true, data: clinics };
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách clinics của admin:", error);
+    return { ok: false, message: error.message };
+  }
+};
+
+/* ======================================
+ *         DOCTORS (READ LIST)
+ * ====================================== */
+
+// Lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
 exports.getDoctorsByAdminClinic = async (adminAccountId) => {
   try {
-    //Lấy user tương ứng với account id
     const user = await User.findOne({ account_id: adminAccountId });
     if (!user) throw new Error("Không tìm thấy user của admin clinic");
 
-    //Tìm bản ghi AdminClinic tương ứng
     const adminClinic = await AdminClinic.findOne({ user_id: user._id });
     if (!adminClinic) throw new Error("Không tìm thấy admin clinic");
 
-    //Lấy clinic do admin clinic này tạo
     const clinics = await Clinic.find({ created_by: adminClinic._id });
     if (!clinics.length) return [];
 
     const clinicIds = clinics.map((c) => c._id);
 
-    //Lấy danh sách bác sĩ thuộc các clinic đó
     const doctors = await Doctor.find({ clinic_id: { $in: clinicIds } })
       .populate({
         path: "user_id",
-        populate: { path: "account_id", model: "Account" },
-        select: "full_name avatar_url",
+        // ✅ chỉ include, KHÔNG kèm -__v
+        select: "full_name avatar_url account_id",
+        populate: {
+          path: "account_id",
+          model: "Account",
+          select: "email phone_number status username", // chỉ include
+        },
       })
-      .populate("specialty_id")
-      .populate("clinic_id");
+      .populate({ path: "specialty_id", select: "name" })
+      .populate({ path: "clinic_id", select: "name status" })
+      .lean();
 
     return doctors;
   } catch (err) {
@@ -267,37 +459,61 @@ exports.getDoctorsByAdminClinic = async (adminAccountId) => {
   }
 };
 
-// Lấy danh sách chứng chỉ (PENDING)
+/* ======================================
+ *               LICENSE
+ * ====================================== */
+
+// Lấy danh sách chứng chỉ (PENDING) từ tất cả các phòng khám mà admin quản lý
 exports.getPendingDoctorLicenses = async (adminAccountId) => {
   try {
-    const clinicData = await exports.getClinicByAdmin(adminAccountId);
-    if (!clinicData.ok) {
-      throw new Error(
-        "Không tìm thấy phòng khám của admin: " + clinicData.message
-      );
+    // Lấy user tương ứng với account id
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) {
+      throw new Error("Không tìm thấy user của admin clinic");
     }
-    const clinicId = clinicData.data._id;
 
-    const doctorsInClinic = await Doctor.find({ clinic_id: clinicId }).select(
+    // Tìm bản ghi AdminClinic tương ứng
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic");
+    }
+
+    // Lấy TẤT CẢ các clinics mà admin clinic này quản lý
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id");
+    if (!clinics.length) {
+      return { ok: true, data: [] };
+    }
+
+    const clinicIds = clinics.map((c) => c._id);
+
+    // Lấy tất cả các doctors từ tất cả các clinics
+    const doctorsInClinics = await Doctor.find({ clinic_id: { $in: clinicIds } }).select(
       "_id"
     );
-    const doctorIds = doctorsInClinic.map((doc) => doc._id);
+    const doctorIds = doctorsInClinics.map((doc) => doc._id);
 
     if (doctorIds.length === 0) {
       return { ok: true, data: [] };
     }
 
+    // Lấy tất cả licenses PENDING của các doctors này
     const licenses = await License.find({
       doctor_id: { $in: doctorIds },
       status: "PENDING",
     })
       .populate({
         path: "doctor_id",
-        select: "user_id",
-        populate: {
-          path: "user_id",
-          select: "full_name avatar_url",
-        },
+        select: "user_id title clinic_id",
+        populate: [
+          {
+            path: "user_id",
+            select: "full_name avatar_url",
+          },
+          {
+            path: "clinic_id",
+            select: "name",
+          },
+        ],
       })
       .sort({ createdAt: -1 })
       .lean();
@@ -309,7 +525,7 @@ exports.getPendingDoctorLicenses = async (adminAccountId) => {
   }
 };
 
-//cập nhật trạng thái chứng chỉ
+// cập nhật trạng thái chứng chỉ
 exports.updateLicenseStatus = async (
   adminAccountId,
   licenseId,
@@ -349,6 +565,96 @@ exports.updateLicenseStatus = async (
     return { ok: true, data: license };
   } catch (error) {
     console.error("Lỗi khi cập nhật trạng thái chứng chỉ:", error);
+    return { ok: false, message: error.message };
+  }
+};
+
+//cập nhật thông tin phòng khám
+exports.updateClinicByAdmin = async (adminAccountId, updateData) => {
+  try {
+    // Lấy user và admin clinic để verify ownership
+    const user = await User.findOne({ account_id: adminAccountId });
+    if (!user) {
+      throw new Error("Không tìm thấy user tương ứng với account này.");
+    }
+
+    const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+    if (!adminClinic) {
+      throw new Error("Không tìm thấy admin clinic tương ứng với user này.");
+    }
+
+    // Nếu có clinic_id trong updateData, verify ownership và update clinic đó
+    let clinicId;
+    if (updateData.clinic_id) {
+      const clinic = await Clinic.findOne({
+        _id: updateData.clinic_id,
+        created_by: adminClinic._id,
+      });
+      if (!clinic) {
+        throw new Error("Không tìm thấy phòng khám hoặc bạn không có quyền cập nhật phòng khám này.");
+      }
+      clinicId = updateData.clinic_id;
+    } else {
+      // Fallback: lấy clinic đầu tiên của admin
+      const clinicResult = await exports.getClinicByAdmin(adminAccountId);
+      if (!clinicResult.ok) {
+        throw new Error(clinicResult.message || "Không tìm thấy phòng khám");
+      }
+      clinicId = clinicResult.data._id;
+    }
+
+    // Chuẩn bị dữ liệu cập nhật (loại bỏ clinic_id vì không phải field của model)
+    const { clinic_id, ...updateFieldsData } = updateData;
+    const updateFields = {};
+    
+    // Các trường cơ bản
+    if (updateFieldsData.name !== undefined) updateFields.name = updateFieldsData.name;
+    if (updateFieldsData.phone !== undefined) updateFields.phone = updateFieldsData.phone;
+    if (updateFieldsData.email !== undefined) updateFields.email = updateFieldsData.email;
+    if (updateFieldsData.website !== undefined) updateFields.website = updateFieldsData.website;
+    if (updateFieldsData.description !== undefined) updateFields.description = updateFieldsData.description;
+    if (updateFieldsData.logo_url !== undefined) updateFields.logo_url = updateFieldsData.logo_url;
+    if (updateFieldsData.banner_url !== undefined) updateFields.banner_url = updateFieldsData.banner_url;
+    if (updateFieldsData.registration_number !== undefined) updateFields.registration_number = updateFieldsData.registration_number;
+    if (updateFieldsData.opening_hours !== undefined) updateFields.opening_hours = updateFieldsData.opening_hours;
+    if (updateFieldsData.closing_hours !== undefined) updateFields.closing_hours = updateFieldsData.closing_hours;
+
+    // Cập nhật địa chỉ
+    if (updateFieldsData.address) {
+      // Lấy clinic hiện tại để merge address
+      const currentClinic = await Clinic.findById(clinicId).lean();
+      updateFields.address = {
+        ...(currentClinic?.address || {}),
+        ...updateFieldsData.address,
+      };
+      // Nếu có province hoặc ward, giữ nguyên format
+      if (updateFieldsData.address.province) {
+        updateFields.address.province = updateFieldsData.address.province;
+      }
+      if (updateFieldsData.address.ward) {
+        updateFields.address.ward = updateFieldsData.address.ward;
+      }
+    }
+
+    // Cập nhật chuyên khoa
+    if (updateFieldsData.specialties !== undefined) {
+      updateFields.specialties = updateFieldsData.specialties;
+    }
+
+    // Cập nhật clinic
+    const updatedClinic = await Clinic.findByIdAndUpdate(
+      clinicId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).populate("specialties");
+
+    if (!updatedClinic) {
+      throw new Error("Không thể cập nhật phòng khám");
+    }
+
+    return { ok: true, message: "Cập nhật phòng khám thành công", data: updatedClinic };
+  } catch (error) {
+    console.error("Lỗi khi cập nhật phòng khám:", error);
     return { ok: false, message: error.message };
   }
 };

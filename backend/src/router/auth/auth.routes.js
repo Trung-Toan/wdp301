@@ -15,7 +15,7 @@ const { authRequired } = require('../../middleware/auth');
  * /api/auth/register:
  *   post:
  *     tags: [Auth]
- *     summary: Register Patient or Clinic Owner
+ *     summary: Register Patient or Admin Clinic (Clinic Owner)
  *     security: []
  *     requestBody:
  *       required: true

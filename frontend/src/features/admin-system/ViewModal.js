@@ -6,6 +6,7 @@ import {
   Clock,
   CheckCircle
 } from "lucide-react"
+import { formatDateTime } from "../../utils/dateTimeUtils"
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads"
 
@@ -206,7 +207,7 @@ const ViewModal = ({ data, onClose }) => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Ngày gửi</span>
-                  <span>{new Date(data.createdAt).toLocaleString("vi-VN")}</span>
+                  <span>{formatDateTime(data.createdAt)}</span>
                 </div>
                 {data.status && (
                   <div className="flex justify-between">
@@ -240,7 +241,7 @@ const ViewModal = ({ data, onClose }) => {
                 {data.review_info.reviewed_at && (
                   <div className="flex justify-between">
                     <span className="text-gray-500">Ngày duyệt</span>
-                    <span>{new Date(data.review_info.reviewed_at).toLocaleString("vi-VN")}</span>
+                    <span>{formatDateTime(data.review_info.reviewed_at)}</span>
                   </div>
                 )}
                 {data.review_info.review_notes && (

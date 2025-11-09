@@ -106,9 +106,7 @@ export function HeroSection() {
                                 </select>
                             </div>
 
-                            <div className="hero-location-wrapper">
-                                <LocationSelector onChange={handleLocationChange} />
-                            </div>
+                            <LocationSelector onChange={handleLocationChange} />
 
                             <button
                                 onClick={handleSearch}

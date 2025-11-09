@@ -6,7 +6,7 @@ const Slot = require("../../model/appointment/Slot");
 const Patient = require("../../model/patient/Patient");
 const Doctor = require("../../model/doctor/Doctor");
 const { sendBookingEmail } = require("../../mail/mail");
-const { createAppointmentNotification } = require("../notification/notification.service");
+const { createAppointmentNotification, createAppointmentStatusUpdateNotification } = require("../notification/notification.service");
 
 function randomBookingCode() {
     return `BK${Math.floor(100000 + Math.random() * 900000)}`;
@@ -71,26 +71,50 @@ async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, e
         const endOfDay = new Date(targetDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // Build doctor filter
+        // Build doctor filter (Note: status is in Account, not Doctor)
         const doctorFilter = {
-            clinic_id: new Types.ObjectId(clinicId),
-            status: "ACTIVE"
+            clinic_id: new Types.ObjectId(clinicId)
         };
 
-        // Add specialty filter if provided
+        // Add specialty filter if provided (specialty_id is an array in Doctor model)
         if (specialtyId && Types.ObjectId.isValid(specialtyId)) {
-            doctorFilter.specialty_id = new Types.ObjectId(specialtyId);
+            doctorFilter.specialty_id = { $in: [new Types.ObjectId(specialtyId)] };
         }
 
-        // Lấy danh sách bác sĩ trong phòng khám
-        const doctors = await Doctor.find(doctorFilter).select("_id").lean();
+        // Lấy danh sách bác sĩ trong phòng khám (populate để check status từ Account)
+        const doctors = await Doctor.find(doctorFilter)
+            .populate({
+                path: "user_id",
+                select: "account_id",
+                populate: {
+                    path: "account_id",
+                    select: "status",
+                    model: "Account"
+                }
+            })
+            .select("_id user_id")
+            .lean();
 
-        if (doctors.length === 0) {
+        console.log(`🔍 Found ${doctors.length} doctors in clinic ${clinicId} (before status filter)`);
+
+        // Filter doctors có status ACTIVE trong Account
+        const activeDoctors = doctors.filter(doctor => {
+            const account = doctor.user_id?.account_id;
+            const isActive = account && account.status === "ACTIVE";
+            if (!isActive) {
+                console.log(`⚠️ Doctor ${doctor._id} is not active. Account status: ${account?.status || 'N/A'}`);
+            }
+            return isActive;
+        });
+
+        console.log(`✅ Found ${activeDoctors.length} active doctors in clinic ${clinicId}`);
+
+        if (activeDoctors.length === 0) {
             throw new Error("No doctors found in this clinic");
         }
 
         // Tìm bác sĩ có slot available trong ngày
-        for (const doctor of doctors) {
+        for (const doctor of activeDoctors) {
             const doctorSlots = await Slot.find({
                 doctor_id: doctor._id,
                 start_time: {
@@ -168,10 +192,13 @@ async function createAsync(payload) {
         slot_id, doctor_id, patient_id, specialty_id, clinic_id,
         full_name, phone, email, dob, gender,
         province_code, ward_code, address_text, reason,
-        scheduled_date // Thêm scheduled_date để kiểm tra theo ngày
+        scheduled_date, // Thêm scheduled_date để kiểm tra theo ngày
+        // Thông tin người thân (cho người già)
+        relative_name, relative_phone, relative_relationship,
+        is_elderly, patient_age
     } = payload;
 
-    // *** LOGIC MỚI: Auto-assign doctor nếu không có doctor_id ***
+    //Auto-assign doctor nếu không có doctor_id ***
     let autoAssignedDoctor = false;
     if (!doctor_id && clinic_id) {
         console.log("🤖 Auto-assigning doctor for clinic:", clinic_id);
@@ -236,6 +263,33 @@ async function createAsync(payload) {
 
             if (slot.status !== "AVAILABLE") throw new Error("Slot is unavailable");
 
+            // 2.1) Kiểm tra doctor tồn tại và active TRƯỚC KHI kiểm tra slot
+            // Note: status is in Account, not Doctor, so we need to populate
+            const doctor = await Doctor.findById(doctor_id)
+                .populate({
+                    path: "user_id",
+                    select: "account_id",
+                    populate: {
+                        path: "account_id",
+                        select: "status",
+                        model: "Account"
+                    }
+                })
+                .session(session)
+                .lean();
+            if (!doctor) throw new Error("Không tìm thấy bác sĩ");
+
+            // Check status from Account
+            const account = doctor.user_id?.account_id;
+            if (!account || account.status !== "ACTIVE") {
+                throw new Error("Bác sĩ không hoạt động");
+            }
+
+            // 2.2) Kiểm tra slot có thuộc về doctor được chọn không
+            if (slot.doctor_id.toString() !== doctor_id.toString()) {
+                throw new Error("Slot không thuộc về bác sĩ đã chọn");
+            }
+
             // 3) Kiểm tra bệnh nhân đã có lịch trong slot này CÙNG NGÀY chưa
             const startOfDay = new Date(targetDate);
 
@@ -264,6 +318,15 @@ async function createAsync(payload) {
             const patient = await Patient.findById(patient_id).session(session).lean();
             if (!patient) throw new Error("Patient not found");
 
+            // 4.5) Nếu không có clinic_id, lấy từ doctor
+            if (!clinic_id && doctor_id) {
+                const doctor = await Doctor.findById(doctor_id).session(session).select("clinic_id").lean();
+                if (doctor && doctor.clinic_id) {
+                    clinic_id = doctor.clinic_id;
+                    console.log("✅ Auto-retrieved clinic_id from doctor:", clinic_id);
+                }
+            }
+
             // 5) Tạo appointment
             const booking_code = randomBookingCode();
             const fee_amount = Number(slot.fee_amount ?? 0);
@@ -279,7 +342,15 @@ async function createAsync(payload) {
                 province_code, ward_code, address_text, reason,
                 booking_code,
                 fee_amount,
-                scheduled_date: scheduled_date ? dateOnlyUTC(new Date(scheduled_date)) : dateOnlyUTC(new Date(slot.start_time))
+                scheduled_date: scheduled_date ? dateOnlyUTC(new Date(scheduled_date)) : dateOnlyUTC(new Date(slot.start_time)),
+                // Thông tin người thân (cho người già)
+                ...(is_elderly && {
+                    relative_name: relative_name || null,
+                    relative_phone: relative_phone || null,
+                    relative_relationship: relative_relationship || null,
+                    is_elderly: true,
+                    patient_age: patient_age || null
+                })
             });
 
             await appt.save({ session });
@@ -404,7 +475,8 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
 
     // Chuẩn hóa dữ liệu để frontend dễ dùng
     const formatted = appointments.map((a) => ({
-        id: a._id,
+        _id: a._id?.toString() || a._id, // Đảm bảo _id là string
+        id: a._id?.toString() || a._id, // Giữ id để dùng cho key trong React
         status: a.status.toLowerCase(), // vd: upcoming
         doctorName: a.doctor_id?.user_id?.full_name
             ? `BS. ${a.doctor_id.user_id.full_name}`
@@ -431,6 +503,12 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
         patientName: a.patient_id?.user_id?.full_name || "",
         phone: a.phone,
         reason: a.reason,
+        // Thông tin người thân (cho người già)
+        is_elderly: a.is_elderly || false,
+        patient_age: a.patient_age || null,
+        relative_name: a.relative_name || null,
+        relative_phone: a.relative_phone || null,
+        relative_relationship: a.relative_relationship || null,
     }));
     function mapStatus(status) {
         switch (status) {
@@ -471,7 +549,10 @@ async function clinicBookingAsync(payload) {
     let {
         clinic_id, specialty_id, scheduled_date, patient_id,
         auto_assign = false, doctor_id, slot_id,
-        full_name, phone, email, reason
+        full_name, phone, email, reason,
+        // Thông tin người thân (cho người già)
+        relative_name, relative_phone, relative_relationship,
+        is_elderly, patient_age
     } = payload;
 
     // Validate required fields
@@ -540,7 +621,13 @@ async function clinicBookingAsync(payload) {
         phone,
         email,
         reason,
-        scheduled_date: scheduled_date
+        scheduled_date: scheduled_date,
+        // Thông tin người thân (cho người già)
+        relative_name,
+        relative_phone,
+        relative_relationship,
+        is_elderly,
+        patient_age
     };
 
     const result = await createAsync(bookingPayload);
@@ -553,6 +640,62 @@ async function clinicBookingAsync(payload) {
     };
 }
 
+/**
+ * Hủy lịch hẹn (chỉ cho bệnh nhân)
+ * @param {string} appointmentId - ID của appointment
+ * @param {string} patientId - ID của bệnh nhân (để verify quyền)
+ * @returns {Promise<Object>} Updated appointment
+ */
+async function cancelAppointmentAsync(appointmentId, patientId) {
+    if (!Types.ObjectId.isValid(appointmentId)) {
+        throw new Error("Invalid appointmentId");
+    }
+    if (!Types.ObjectId.isValid(patientId)) {
+        throw new Error("Invalid patientId");
+    }
+
+    // Tìm appointment và verify quyền
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+        throw new Error("Appointment not found");
+    }
+
+    // Verify appointment thuộc về patient này
+    if (appointment.patient_id.toString() !== patientId) {
+        throw new Error("You do not have permission to cancel this appointment");
+    }
+
+    // Chỉ cho phép hủy nếu status là SCHEDULED hoặc APPROVE
+    if (!["SCHEDULED", "APPROVE"].includes(appointment.status)) {
+        throw new Error(`Cannot cancel appointment with status: ${appointment.status}`);
+    }
+
+    // Cập nhật status thành CANCELLED
+    appointment.status = "CANCELLED";
+    await appointment.save();
+
+    // Populate để lấy thông tin đầy đủ cho notification
+    const populated = await Appointment.findById(appointment._id)
+        .populate({
+            path: "doctor_id",
+            select: "title degree user_id",
+            populate: { path: "user_id", select: "full_name" },
+        })
+        .populate("specialty_id", "name")
+        .populate("clinic_id", "name")
+        .lean();
+
+    // Tạo notification cho bệnh nhân
+    try {
+        await createAppointmentStatusUpdateNotification(populated, "CANCELLED");
+    } catch (notifError) {
+        console.error("Error creating cancellation notification:", notifError);
+        // Không throw error vì việc hủy appointment đã thành công
+    }
+
+    return populated;
+}
+
 module.exports = {
     createAsync,
     getByIdAsync,
@@ -560,5 +703,6 @@ module.exports = {
     checkSlotAvailability,
     getAvailableSlotsForDoctor,
     findAvailableDoctorForClinic,
-    clinicBookingAsync
+    clinicBookingAsync,
+    cancelAppointmentAsync
 };

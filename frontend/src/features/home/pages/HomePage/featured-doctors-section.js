@@ -83,7 +83,7 @@ export function FeaturedDoctorsSection() {
                                     {/* Doctor Image */}
                                     <div className="doctor-image-wrapper">
                                         <img
-                                            src={doctor.avatar_url 
+                                            src={doctor.avatar_url
                                                 ? getImageUrl(doctor.avatar_url)
                                                 : "/placeholder.svg"}
                                             alt={doctor.full_name || "Bác sĩ"}

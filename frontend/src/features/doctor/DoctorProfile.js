@@ -1,10 +1,30 @@
 import { memo, useState, useEffect } from "react";
-import { Button, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  GraduationCap,
+  FileText,
+  Edit2,
+  Save,
+  X,
+  Upload,
+  Building2,
+  Award,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Lock,
+  Camera,
+} from "lucide-react";
 import { doctorApi } from "../../api/doctor/doctorApi";
 import defaultAvatar from "../../assets/images/default-avatar.png";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { formatDateShort } from "../../utils/dateTimeUtils";
 
 const API_BASE_URL = "http://localhost:5000/api/file";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
@@ -12,11 +32,9 @@ const FILE_SERVER_URL = "http://localhost:5000/uploads";
 // Helper function để xử lý URL ảnh
 const getImageUrl = (url) => {
   if (!url) return null;
-  // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
   if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
-  // Nếu không, thêm FILE_SERVER_URL phía trước
   return `${FILE_SERVER_URL}/${url}`;
 };
 
@@ -91,7 +109,6 @@ const DoctorProfile = () => {
         document_file: null,
       });
 
-      // Dispatch event để DoctorLayout re-check profile completeness
       window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi gửi chứng chỉ:", err);
@@ -216,7 +233,6 @@ const DoctorProfile = () => {
       }
       setNewAvatarFile(null);
 
-      // Dispatch event để DoctorLayout re-check profile completeness
       window.dispatchEvent(new CustomEvent("doctorProfileUpdated"));
     } catch (err) {
       console.error("Lỗi khi cập nhật hồ sơ:", err);
@@ -225,291 +241,496 @@ const DoctorProfile = () => {
     }
   };
 
+  const handleCancel = () => {
+    setIsEditing(false);
+    setNewAvatarFile(null);
+    // Reload profile để reset về trạng thái ban đầu
+    window.location.reload();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Spinner animation="border" variant="primary" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (!doctorProfile) {
     return (
-      <div className="text-center text-gray-500 mt-10">
-        Không thể tải dữ liệu hồ sơ bác sĩ.
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">Không thể tải dữ liệu hồ sơ bác sĩ.</p>
+        </div>
       </div>
     );
   }
 
   const licenses = doctorProfile.licenses || [];
-
   const hasPendingLicense = licenses.some((lic) => lic.status === "PENDING");
-
   const hasValidApprovedLicense = licenses.some((lic) => {
     if (lic.status !== "APPROVED") return false;
-
     if (!lic.expiry_date) return true;
-
     const expiry = new Date(lic.expiry_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     return expiry >= today;
   });
-
   const shouldShowUploadForm = !hasPendingLicense && !hasValidApprovedLicense;
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case "REJECTED":
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      case "PENDING":
+        return <Clock className="h-5 w-5 text-yellow-600" />;
+      default:
+        return <AlertCircle className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return "Đã duyệt";
+      case "REJECTED":
+        return "Từ chối";
+      case "PENDING":
+        return "Chờ duyệt";
+      default:
+        return status;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-10 px-6">
-      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8 border border-blue-100">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-blue-700">Hồ sơ bác sĩ</h2>
-          <div className="space-x-3">
-            <Button
-              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isEditing ? "Lưu thay đổi" : "Chỉnh sửa"}
-            </Button>
-            <Button
-              onClick={() => navigate("/doctor/change-password")}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              Đổi mật khẩu
-            </Button>
-          </div>
-        </div>
-
-        {/* Avatar */}
-        <div className="flex flex-col items-center mb-6">
-          <img
-            src={
-              doctorProfile.user?.avatar_url
-                ? doctorProfile.user.avatar_url
-                : defaultAvatar
-            }
-            alt="Doctor Avatar"
-            className="w-32 h-32 rounded-full border-4 border-blue-300 shadow-md object-cover"
-          />
-          {isEditing && (
-            <div className="mt-3">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="text-sm text-gray-600"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Thông tin tài khoản */}
-        <section className="mb-6">
-          <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-            Thông tin tài khoản
-          </h3>
-          <div className="space-y-3">
-            {["username", "email", "phone_number"].map((field) => (
-              <div key={field}>
-                <label className="block text-gray-600 font-medium mb-1 capitalize">
-                  {field.replace("_", " ")}
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={doctorProfile.account?.[field] || ""}
-                    onChange={(e) =>
-                      handleChange("account", field, e.target.value)
-                    }
-                    className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                ) : (
-                  <p className="text-gray-800">
-                    {doctorProfile.account?.[field] || ""}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Thông tin cá nhân */}
-        <section className="mb-6">
-          <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-            Thông tin cá nhân
-          </h3>
-          <div className="space-y-3">
-            {[
-              ["full_name", "Họ và tên"],
-              ["dob", "Ngày sinh"],
-              ["gender", "Giới tính"],
-              ["address", "Địa chỉ"],
-            ].map(([field, label]) => (
-              <div key={field}>
-                <label className="block text-gray-600 font-medium mb-1">
-                  {label}
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={doctorProfile.user?.[field] || ""}
-                    onChange={(e) =>
-                      handleChange("user", field, e.target.value)
-                    }
-                    className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                ) : (
-                  <p className="text-gray-800">{doctorProfile.user?.[field]}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Thông tin chuyên môn */}
-        <section>
-          <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-            Thông tin chuyên môn
-          </h3>
-          <div className="space-y-3">
-            {[
-              ["title", "Chức danh"],
-              ["degree", "Bằng cấp"],
-              ["experience", "Kinh nghiệm"],
-              ["description", "Mô tả"],
-            ].map(([field, label]) => (
-              <div key={field}>
-                <label className="block text-gray-600 font-medium mb-1">
-                  {label}
-                </label>
-                {isEditing ? (
-                  <textarea
-                    rows={field === "description" ? 3 : 1}
-                    value={doctorProfile.doctor?.[field] || ""}
-                    onChange={(e) =>
-                      handleChange("doctor", field, e.target.value)
-                    }
-                    className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-                  />
-                ) : (
-                  <p className="text-gray-800 whitespace-pre-line">
-                    {doctorProfile.doctor?.[field]}
-                  </p>
-                )}
-              </div>
-            ))}
-
-            {/* Danh sách chuyên khoa */}
-            <div>
-              <label className="block text-gray-600 font-medium mb-1">
-                Chuyên khoa
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={(doctorProfile.doctor?.specialties || []).join(", ")}
-                  onChange={(e) =>
-                    handleChange(
-                      "doctor",
-                      "specialties",
-                      e.target.value.split(",").map((s) => s.trim())
-                    )
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Card */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Avatar Section */}
+            <div className="relative">
+              <div className="relative">
+                <img
+                  src={
+                    doctorProfile.user?.avatar_url
+                      ? doctorProfile.user.avatar_url
+                      : defaultAvatar
                   }
-                  className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                  alt="Doctor Avatar"
+                  className="w-32 h-32 rounded-full border-4 border-blue-500 shadow-xl object-cover"
                 />
-              ) : (
-                <p className="text-gray-800">
-                  {(doctorProfile.doctor?.specialties || []).join(", ")}
+                {isEditing && (
+                  <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
+                    <Camera className="h-4 w-4" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Profile Info */}
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {doctorProfile.user?.full_name || "Bác sĩ"}
+              </h1>
+              {doctorProfile.doctor?.title && (
+                <p className="text-lg text-blue-600 font-semibold mb-2">
+                  {doctorProfile.doctor.title}
                 </p>
+              )}
+              {doctorProfile.doctor?.degree && (
+                <p className="text-gray-600 mb-4">{doctorProfile.doctor.degree}</p>
+              )}
+              {doctorProfile.doctor?.clinic && (
+                <div className="flex items-center justify-center md:justify-start gap-2 text-gray-600">
+                  <Building2 className="h-5 w-5" />
+                  <span>{doctorProfile.doctor.clinic}</span>
+                </div>
               )}
             </div>
 
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md"
+                  >
+                    <Save className="h-5 w-5" />
+                    Lưu
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors shadow-md"
+                  >
+                    <X className="h-5 w-5" />
+                    Hủy
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md"
+                  >
+                    <Edit2 className="h-5 w-5" />
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    onClick={() => navigate("/doctor/change-password")}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors shadow-md"
+                  >
+                    <Lock className="h-5 w-5" />
+                    Đổi mật khẩu
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Thông tin tài khoản */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200">
+                <User className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-900">Thông tin tài khoản</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-gray-400 mt-1" />
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-600 mb-1">Tên đăng nhập</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={doctorProfile.account?.username || ""}
+                        onChange={(e) => handleChange("account", "username", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-medium">{doctorProfile.account?.username || "-"}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-gray-400 mt-1" />
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-600 mb-1">Email</label>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        value={doctorProfile.account?.email || ""}
+                        onChange={(e) => handleChange("account", "email", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-medium">{doctorProfile.account?.email || "-"}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Phone className="h-5 w-5 text-gray-400 mt-1" />
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-600 mb-1">Số điện thoại</label>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        value={doctorProfile.account?.phone_number || ""}
+                        onChange={(e) => handleChange("account", "phone_number", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-medium">{doctorProfile.account?.phone_number || "-"}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Thông tin cá nhân */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200">
+                <User className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-900">Thông tin cá nhân</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Họ và tên</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={doctorProfile.user?.full_name || ""}
+                      onChange={(e) => handleChange("user", "full_name", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  ) : (
+                    <p className="text-gray-900 font-medium">{doctorProfile.user?.full_name || "-"}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Ngày sinh</label>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={doctorProfile.user?.dob || ""}
+                      onChange={(e) => handleChange("user", "dob", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  ) : (
+                    <p className="text-gray-900 font-medium">
+                      {doctorProfile.user?.dob ? formatDateShort(doctorProfile.user.dob) : "-"}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Giới tính</label>
+                  {isEditing ? (
+                    <select
+                      value={doctorProfile.user?.gender || ""}
+                      onChange={(e) => handleChange("user", "gender", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    >
+                      <option value="">Chọn giới tính</option>
+                      <option value="MALE">Nam</option>
+                      <option value="FEMALE">Nữ</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  ) : (
+                    <p className="text-gray-900 font-medium">
+                      {doctorProfile.user?.gender === "MALE"
+                        ? "Nam"
+                        : doctorProfile.user?.gender === "FEMALE"
+                          ? "Nữ"
+                          : doctorProfile.user?.gender || "-"}
+                    </p>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-gray-600 mb-1">Địa chỉ</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={doctorProfile.user?.address || ""}
+                      onChange={(e) => handleChange("user", "address", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <p className="text-gray-900 font-medium">{doctorProfile.user?.address || "-"}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Thông tin chuyên môn */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200">
+                <GraduationCap className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-900">Thông tin chuyên môn</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Chức danh</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={doctorProfile.doctor?.title || ""}
+                        onChange={(e) => handleChange("doctor", "title", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-medium">{doctorProfile.doctor?.title || "-"}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Bằng cấp</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={doctorProfile.doctor?.degree || ""}
+                        onChange={(e) => handleChange("doctor", "degree", e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                    ) : (
+                      <p className="text-gray-900 font-medium">{doctorProfile.doctor?.degree || "-"}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Kinh nghiệm</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={3}
+                      value={doctorProfile.doctor?.experience || ""}
+                      onChange={(e) => handleChange("doctor", "experience", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  ) : (
+                    <p className="text-gray-900 whitespace-pre-line">{doctorProfile.doctor?.experience || "-"}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Mô tả</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={4}
+                      value={doctorProfile.doctor?.description || ""}
+                      onChange={(e) => handleChange("doctor", "description", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  ) : (
+                    <p className="text-gray-900 whitespace-pre-line">{doctorProfile.doctor?.description || "-"}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Chuyên khoa</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={(doctorProfile.doctor?.specialties || []).join(", ")}
+                      onChange={(e) =>
+                        handleChange(
+                          "doctor",
+                          "specialties",
+                          e.target.value.split(",").map((s) => s.trim())
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      placeholder="Nhập chuyên khoa, phân cách bằng dấu phẩy"
+                    />
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {(doctorProfile.doctor?.specialties || []).map((specialty, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                        >
+                          {specialty}
+                        </span>
+                      ))}
+                      {(!doctorProfile.doctor?.specialties || doctorProfile.doctor.specialties.length === 0) && (
+                        <span className="text-gray-500">Chưa có chuyên khoa</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Licenses */}
+          <div className="space-y-6">
             {/* Chứng chỉ hành nghề */}
-            <section className="mt-10">
-              <h3 className="text-lg font-semibold text-blue-600 border-b border-blue-200 pb-1 mb-3">
-                Chứng chỉ hành nghề
-              </h3>
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200">
+                <Award className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-900">Chứng chỉ hành nghề</h2>
+              </div>
 
               {/* Danh sách chứng chỉ */}
-              <div className="space-y-3 mb-6">
-                {(doctorProfile.licenses || []).length > 0 ? (
-                  doctorProfile.licenses.map((lic, idx) => (
+              <div className="space-y-4 mb-6">
+                {licenses.length > 0 ? (
+                  licenses.map((lic, idx) => (
                     <div
                       key={idx}
-                      className="p-4 border border-blue-100 rounded-lg bg-blue-50 shadow-sm"
+                      className="p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
-                      <p>
-                        <strong>Số hiệu:</strong> {lic.licenseNumber}
-                      </p>
-                      <p>
-                        <strong>Cơ quan cấp:</strong> {lic.issued_by}
-                      </p>
-                      <p>
-                        <strong>Ngày cấp:</strong>{" "}
-                        {new Date(lic.issued_date).toLocaleDateString()}
-                      </p>
-                      <p>
-                        <strong>Ngày hết hạn:</strong>{" "}
-                        {/* Sửa lỗi crash nếu expiry_date là null */}
-                        {lic.expiry_date
-                          ? new Date(lic.expiry_date).toLocaleDateString()
-                          : "Không có"}
-                      </p>
-                      <p>
-                        <strong>File:</strong>{" "}
-                        <a
-                          href={`${FILE_SERVER_URL}/${lic.document_url}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline"
-                        >
-                          {lic.document_url}
-                        </a>
-                      </p>
-                      <p>
-                        <strong>Trạng thái:</strong>{" "}
-                        <span
-                          className={`font-semibold ${
-                            lic.status === "APPROVED"
-                              ? "text-green-600"
-                              : lic.status === "REJECTED"
-                              ? "text-red-600"
-                              : "text-yellow-600"
-                          }`}
-                        >
-                          {lic.status}
-                        </span>
-                      </p>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(lic.status)}
+                          <span className="font-semibold text-gray-900">{getStatusText(lic.status)}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Số hiệu:</span>{" "}
+                          <span className="font-medium text-gray-900">{lic.licenseNumber}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Cơ quan cấp:</span>{" "}
+                          <span className="font-medium text-gray-900">{lic.issued_by}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Ngày cấp:</span>{" "}
+                          <span className="font-medium text-gray-900">
+                            {formatDateShort(lic.issued_date)}
+                          </span>
+                        </div>
+                        {lic.expiry_date && (
+                          <div>
+                            <span className="text-gray-600">Ngày hết hạn:</span>{" "}
+                            <span className="font-medium text-gray-900">
+                              {formatDateShort(lic.expiry_date)}
+                            </span>
+                          </div>
+                        )}
+                        {lic.document_url && (
+                          <div>
+                            <a
+                              href={`${FILE_SERVER_URL}/${lic.document_url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="text-sm">Xem tài liệu</span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500">
-                    Chưa có chứng chỉ nào được gửi.
-                  </p>
+                  <p className="text-gray-500 text-center py-4">Chưa có chứng chỉ nào được gửi.</p>
                 )}
               </div>
 
-              {/* Form gửi chứng chỉ (Đã bọc điều kiện) */}
+              {/* Form gửi chứng chỉ */}
               {shouldShowUploadForm && (
-                <div className="p-5 border border-blue-100 rounded-xl shadow-md bg-white">
-                  <h4 className="text-blue-700 font-semibold mb-4">
+                <div className="p-5 border border-blue-200 rounded-xl bg-blue-50">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Upload className="h-5 w-5 text-blue-600" />
                     Gửi chứng chỉ mới
-                  </h4>
+                  </h3>
                   <form
                     onSubmit={async (e) => {
                       e.preventDefault();
                       await handleUploadLicense();
                     }}
-                    className="space-y-3"
+                    className="space-y-4"
                   >
                     <div>
-                      <label className="block text-gray-600 font-medium mb-1">
-                        Số hiệu chứng chỉ
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Số hiệu chứng chỉ *
                       </label>
                       <input
                         type="text"
-                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         value={newLicense.licenseNumber}
                         onChange={(e) =>
                           setNewLicense({
@@ -522,12 +743,12 @@ const DoctorProfile = () => {
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-medium mb-1">
-                        Cơ quan cấp
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cơ quan cấp *
                       </label>
                       <input
                         type="text"
-                        className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                         value={newLicense.issued_by}
                         onChange={(e) =>
                           setNewLicense({
@@ -541,12 +762,12 @@ const DoctorProfile = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-gray-600 font-medium mb-1">
-                          Ngày cấp
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Ngày cấp *
                         </label>
                         <input
                           type="date"
-                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                           value={newLicense.issued_date}
                           onChange={(e) =>
                             setNewLicense({
@@ -558,12 +779,12 @@ const DoctorProfile = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-gray-600 font-medium mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Ngày hết hạn
                         </label>
                         <input
                           type="date"
-                          className="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                           value={newLicense.expiry_date}
                           onChange={(e) =>
                             setNewLicense({
@@ -576,30 +797,30 @@ const DoctorProfile = () => {
                     </div>
 
                     <div>
-                      <label className="block text-gray-600 font-medium mb-1">
-                        Tệp chứng chỉ (PDF)
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tệp chứng chỉ (PDF) *
                       </label>
                       <input
                         type="file"
                         accept="application/pdf"
                         onChange={(e) => handleFileChange(e)}
-                        className="text-sm text-gray-600"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
                         required
                       />
                     </div>
 
-                    <Button
+                    <button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-md"
                     >
                       Gửi phê duyệt
-                    </Button>
+                    </button>
                   </form>
                 </div>
               )}
-            </section>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );

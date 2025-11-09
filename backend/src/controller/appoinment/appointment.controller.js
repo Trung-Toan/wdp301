@@ -14,15 +14,17 @@ exports.create = async (req, res) => {
     } catch (err) {
         const msg = String(err?.message || err);
 
-        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id/i.test(msg)) {
+        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Missing required fields|Invalid .*_id|Không tìm thấy bác sĩ|Bác sĩ không hoạt động|Slot không thuộc về bác sĩ/i.test(msg)) {
             return fail(res, err, 400);
         }
 
-        if (/duplicate key|Duplicate booking|E11000/i.test(msg)) {
-            // console.log('🔍 Original error message:', msg);
-            // console.log('🔍 Error stack:', err.stack);
-            // console.log('🔍 Full error object:', JSON.stringify(err, null, 2));
-            return fail(res, new Error("Duplicate booking for this slot"), 409);
+        // Xử lý lỗi duplicate booking hoặc patient đã có appointment
+        if (/duplicate key|Duplicate booking|E11000|Patient already has an appointment/i.test(msg)) {
+            // Nếu message có chứa "Patient already has an appointment", dịch sang tiếng Việt
+            if (/Patient already has an appointment/i.test(msg)) {
+                return fail(res, new Error("Bệnh nhân đã có lịch khám trong slot này cho ngày này. Vui lòng chọn lịch khác!"), 409);
+            }
+            return fail(res, new Error("Lịch khám này đã được đặt. Vui lòng chọn lịch khác!"), 409);
         }
 
         if (/connection|timeout|network/i.test(msg)) {
@@ -140,5 +142,47 @@ exports.checkSlotAvailability = async (req, res) => {
         });
     } catch (err) {
         return fail(res, err);
+    }
+};
+
+/**
+ * Controller để hủy lịch hẹn (chỉ cho bệnh nhân)
+ * PUT /api/appointments/:appointmentId/cancel
+ */
+exports.cancel = async (req, res) => {
+    try {
+        const appointmentId = req.params.id; // Route là /:id/cancel nên dùng req.params.id
+        const { patientId } = req.body;
+
+        if (!appointmentId) {
+            return fail(res, new Error("appointmentId is required"), 400);
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+            return fail(res, new Error("Invalid appointmentId ObjectId."), 400);
+        }
+
+        if (!patientId) {
+            return fail(res, new Error("patientId is required"), 400);
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(patientId)) {
+            return fail(res, new Error("Invalid patientId ObjectId."), 400);
+        }
+
+        const result = await svc.cancelAppointmentAsync(appointmentId, patientId);
+        return ok(res, result);
+    } catch (err) {
+        const msg = String(err?.message || err);
+
+        if (/Appointment not found|Invalid .*_id/i.test(msg)) {
+            return fail(res, err, 404);
+        }
+
+        if (/do not have permission|Cannot cancel appointment/i.test(msg)) {
+            return fail(res, err, 403);
+        }
+
+        return fail(res, err, 500);
     }
 };

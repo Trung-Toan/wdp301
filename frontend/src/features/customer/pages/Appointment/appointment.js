@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { appointmentApi } from "../../../../api/patients/appointmentApi";
+import { toast } from "react-toastify";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
+import { formatISOTime, formatDate } from "../../../../utils/dateTimeUtils";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -39,6 +42,7 @@ export default function AppointmentsContent() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [cancelling, setCancelling] = useState(false);
     const navigate = useNavigate();
 
     // Gọi API lấy danh sách lịch hẹn của bệnh nhân
@@ -60,12 +64,77 @@ export default function AppointmentsContent() {
                 console.log("API response:", res.data);
 
                 // Lấy mảng thật và chuẩn hóa status
+                const mapStatus = (status) => {
+                    switch (status?.toUpperCase()) {
+                        case "SCHEDULED":
+                        case "APPROVE":
+                            return "upcoming";
+                        case "COMPLETED":
+                            return "completed";
+                        case "CANCELLED":
+                            return "cancelled";
+                        case "NO_SHOW":
+                            return "cancelled"; // hoặc "missed" tùy logic
+                        default:
+                            return status?.toLowerCase() || "upcoming";
+                    }
+                };
+
                 const data =
                     Array.isArray(res.data?.data?.data)
-                        ? res.data.data.data.map((apt) => ({
-                            ...apt,
-                            status: apt.status === "scheduled" ? "upcoming" : apt.status,
-                        }))
+                        ? res.data.data.data.map((apt) => {
+                            // Format time từ UTC sang local time
+                            let formattedTime = null;
+                            let formattedEndTime = null;
+                            let formattedDate = null;
+
+                            // Nếu có start_time (ISO string), format thành local time
+                            if (apt.start_time) {
+                                formattedTime = formatISOTime(apt.start_time, false); // false = local time
+                            } else if (apt.time) {
+                                // Nếu time đã là string, kiểm tra xem có phải ISO không
+                                if (apt.time.includes('T')) {
+                                    formattedTime = formatISOTime(apt.time, false);
+                                } else {
+                                    formattedTime = apt.time;
+                                }
+                            }
+
+                            // Format end_time
+                            if (apt.end_time) {
+                                if (apt.end_time.includes('T')) {
+                                    formattedEndTime = formatISOTime(apt.end_time, false);
+                                } else {
+                                    formattedEndTime = apt.end_time;
+                                }
+                            }
+
+                            // Format date
+                            if (apt.scheduled_date || apt.start_time) {
+                                const dateToFormat = apt.scheduled_date || apt.start_time;
+                                formattedDate = formatDate(dateToFormat, {
+                                    weekday: "long",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric"
+                                });
+                            } else if (apt.date) {
+                                formattedDate = apt.date;
+                            }
+
+                            return {
+                                ...apt,
+                                _id: apt._id || apt.id, // Đảm bảo _id luôn có
+                                id: apt._id || apt.id, // Giữ id cho React key
+                                status: mapStatus(apt.status),
+                                time: formattedTime || apt.time,
+                                end_time: formattedEndTime || apt.end_time,
+                                date: formattedDate || apt.date,
+                                // Giữ nguyên start_time và scheduled_date để dùng cho logic khác
+                                start_time: apt.start_time,
+                                scheduled_date: apt.scheduled_date,
+                            };
+                        })
                         : [];
 
                 setAppointments(data);
@@ -82,8 +151,11 @@ export default function AppointmentsContent() {
 
     // Badge trạng thái
     const getStatusBadge = (status) => {
-        switch (status) {
+        const normalizedStatus = status?.toLowerCase();
+        switch (normalizedStatus) {
             case "upcoming":
+            case "scheduled":
+            case "approve":
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border border-blue-200 rounded-lg text-sm font-semibold">
                         <Clock className="h-3.5 w-3.5" /> Sắp tới
@@ -96,6 +168,7 @@ export default function AppointmentsContent() {
                     </span>
                 );
             case "cancelled":
+            case "no_show":
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200 rounded-lg text-sm font-semibold">
                         <XCircle className="h-3.5 w-3.5" /> Đã hủy
@@ -111,10 +184,189 @@ export default function AppointmentsContent() {
         setCancelDialogOpen(true);
     };
 
-    const confirmCancel = () => {
-        console.log("Cancelling appointment:", appointmentToCancel?.id);
-        setCancelDialogOpen(false);
-        setAppointmentToCancel(null);
+    const confirmCancel = async () => {
+        if (!appointmentToCancel) {
+            setCancelDialogOpen(false);
+            return;
+        }
+
+        // Set loading state
+        setCancelling(true);
+
+        try {
+            // Lấy patient ID từ sessionStorage
+            const patientStr = sessionStorage.getItem("patient");
+            if (!patientStr) {
+                toast.error("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                setCancelling(false);
+                return;
+            }
+
+            const patient = JSON.parse(patientStr);
+            // Lấy appointment ID - ưu tiên _id vì đó là format từ MongoDB
+            let appointmentId = appointmentToCancel._id || appointmentToCancel.id || appointmentToCancel.appointment_id;
+
+            if (!appointmentId) {
+                console.error("Appointment object:", appointmentToCancel);
+                toast.error("Không tìm thấy ID lịch hẹn. Vui lòng thử lại sau.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                setCancelling(false);
+                return;
+            }
+
+            // Convert ObjectId object thành string nếu cần
+            if (typeof appointmentId === 'object' && appointmentId.toString) {
+                appointmentId = appointmentId.toString();
+            }
+
+            // Validate appointmentId là string
+            if (typeof appointmentId !== 'string') {
+                console.error("Invalid appointmentId type:", typeof appointmentId, appointmentId);
+                toast.error("ID lịch hẹn không hợp lệ. Vui lòng thử lại sau.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                setCancelling(false);
+                return;
+            }
+
+            // Kiểm tra appointmentId không rỗng
+            if (!appointmentId.trim()) {
+                console.error("AppointmentId is empty");
+                toast.error("ID lịch hẹn không hợp lệ.");
+                setCancelDialogOpen(false);
+                setAppointmentToCancel(null);
+                setCancelling(false);
+                return;
+            }
+
+            console.log("Cancelling appointment with ID:", appointmentId, "Type:", typeof appointmentId);
+            
+            // Gọi API hủy lịch hẹn
+            const response = await appointmentApi.cancelAppointment(appointmentId, patient._id);
+            
+            console.log("Cancel appointment response:", response);
+
+            // Kiểm tra response
+            if (response?.data?.success === false) {
+                throw new Error(response.data.message || "Không thể hủy lịch hẹn");
+            }
+
+            toast.success("Hủy lịch hẹn thành công!");
+            
+            // Đóng dialog và reset state
+            setCancelDialogOpen(false);
+            setAppointmentToCancel(null);
+
+            // Fetch lại danh sách appointments
+            const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
+            
+            const mapStatus = (status) => {
+                switch (status?.toUpperCase()) {
+                    case "SCHEDULED":
+                    case "APPROVE":
+                        return "upcoming";
+                    case "COMPLETED":
+                        return "completed";
+                    case "CANCELLED":
+                        return "cancelled";
+                    case "NO_SHOW":
+                        return "cancelled";
+                    default:
+                        return status?.toLowerCase() || "upcoming";
+                }
+            };
+
+            const data = Array.isArray(res.data?.data?.data)
+                ? res.data.data.data.map((apt) => {
+                    // Format time từ UTC sang local time
+                    let formattedTime = null;
+                    let formattedEndTime = null;
+                    let formattedDate = null;
+
+                    // Nếu có start_time (ISO string), format thành local time
+                    if (apt.start_time) {
+                        formattedTime = formatISOTime(apt.start_time, false); // false = local time
+                    } else if (apt.time) {
+                        // Nếu time đã là string, kiểm tra xem có phải ISO không
+                        if (apt.time.includes('T')) {
+                            formattedTime = formatISOTime(apt.time, false);
+                        } else {
+                            formattedTime = apt.time;
+                        }
+                    }
+
+                    // Format end_time
+                    if (apt.end_time) {
+                        if (apt.end_time.includes('T')) {
+                            formattedEndTime = formatISOTime(apt.end_time, false);
+                        } else {
+                            formattedEndTime = apt.end_time;
+                        }
+                    }
+
+                    // Format date
+                    if (apt.scheduled_date || apt.start_time) {
+                        const dateToFormat = apt.scheduled_date || apt.start_time;
+                        formattedDate = formatDate(dateToFormat, {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric"
+                        });
+                    } else if (apt.date) {
+                        formattedDate = apt.date;
+                    }
+
+                    return {
+                        ...apt,
+                        _id: apt._id || apt.id, // Đảm bảo _id luôn có
+                        id: apt._id || apt.id, // Giữ id cho React key
+                        status: mapStatus(apt.status),
+                        time: formattedTime || apt.time,
+                        end_time: formattedEndTime || apt.end_time,
+                        date: formattedDate || apt.date,
+                        // Giữ nguyên start_time và scheduled_date để dùng cho logic khác
+                        start_time: apt.start_time,
+                        scheduled_date: apt.scheduled_date,
+                    };
+                })
+                : [];
+            setAppointments(data);
+
+            // Chuyển sang tab "Đã hủy" để người dùng thấy lịch đã hủy
+            setSelectedTab("cancelled");
+        } catch (error) {
+            console.error("Error cancelling appointment:", error);
+            console.error("Error details:", {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+            });
+            
+            // Hiển thị thông báo lỗi chi tiết hơn
+            let errorMessage = "Không thể hủy lịch hẹn. Vui lòng thử lại.";
+            
+            if (error.response?.status === 404) {
+                errorMessage = "Không tìm thấy lịch hẹn này. Có thể đã bị xóa.";
+            } else if (error.response?.status === 403) {
+                errorMessage = "Bạn không có quyền hủy lịch hẹn này.";
+            } else if (error.response?.status === 400) {
+                errorMessage = error.response?.data?.message || "Không thể hủy lịch hẹn. Vui lòng kiểm tra lại.";
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            toast.error(errorMessage);
+        } finally {
+            setCancelling(false);
+        }
     };
 
     //  Lọc danh sách theo tab
@@ -234,7 +486,7 @@ export default function AppointmentsContent() {
                     <div className="space-y-4">
                         {filteredAppointments.map((appointment) => (
                             <div
-                                key={appointment.id}
+                                key={appointment._id || appointment.id}
                                 className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
                             >
                                 <div className="flex flex-col md:flex-row gap-6">
@@ -284,7 +536,7 @@ export default function AppointmentsContent() {
                                                 <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
                                                     <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" />
                                                     <span className="text-sm text-gray-700">
-                                                        {appointment.time || "?"} - {appointment.end_time || "?"}
+                                                        {appointment.time || "Chưa có giờ"} {appointment.end_time ? `- ${appointment.end_time}` : ""}
                                                     </span>
                                                 </div>
                                             )}
@@ -405,7 +657,7 @@ export default function AppointmentsContent() {
                                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg sm:col-span-2">
                                                 <Clock className="h-4 w-4 text-blue-600" />
                                                 <span className="text-sm text-gray-700">
-                                                    {selectedAppointment.time || "?"} - {selectedAppointment.end_time || "?"}
+                                                    {selectedAppointment.time || "Chưa có giờ"} {selectedAppointment.end_time ? `- ${selectedAppointment.end_time}` : ""}
                                                 </span>
                                             </div>
                                         )}
@@ -485,9 +737,17 @@ export default function AppointmentsContent() {
                                     </button>
                                     <button
                                         onClick={confirmCancel}
-                                        className="flex-1 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all font-semibold shadow-md hover:shadow-lg"
+                                        disabled={cancelling}
+                                        className="flex-1 px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
-                                        Xác nhận hủy
+                                        {cancelling ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Đang xử lý...
+                                            </>
+                                        ) : (
+                                            "Xác nhận hủy"
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -495,6 +755,7 @@ export default function AppointmentsContent() {
                     </div>
                 )}
             </div>
+            <FirstTimeGuide page="appointments" />
         </div>
     );
 }

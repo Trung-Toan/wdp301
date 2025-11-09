@@ -12,6 +12,19 @@ const GoogleLoginButton = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Kiểm tra Google Client ID
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  
+  useEffect(() => {
+    if (!googleClientId) {
+      console.error('❌ REACT_APP_GOOGLE_CLIENT_ID is not set!');
+      setError('Google Client ID chưa được cấu hình');
+    } else {
+      console.log('✅ Google Client ID found:', googleClientId.substring(0, 20) + '...');
+    }
+  }, [googleClientId]);
 
   // Mutation: gọi API login Google
   const googleLoginMutation = useMutation({
@@ -71,107 +84,76 @@ const GoogleLoginButton = () => {
 
   // Khi Google trả credential thành công
   const handleGoogleLogin = (credentialResponse) => {
+    console.log('✅ Google login success, credential received');
     const idToken = credentialResponse?.credential;
     if (!idToken) {
+      console.error('❌ No credential in response');
       Swal.fire("Lỗi", "Không nhận được thông tin từ Google", "error");
       return;
     }
+    console.log('🔄 Starting login mutation...');
     setIsLoading(true);
+    setError(null);
     googleLoginMutation.mutate(idToken);
   };
 
-  useEffect(() => {
-    // Style the Google login button after it renders
-    const styleGoogleButton = () => {
-      const interval = setInterval(() => {
-        const googleContainer = document.querySelector('div[id^="gsi"]');
-        const googleButton = googleContainer?.querySelector('button, div[role="button"]');
-        
-        if (googleButton) {
-          // Hide the default Google button
-          if (googleContainer) {
-            googleContainer.style.opacity = '0';
-            googleContainer.style.pointerEvents = 'none';
-            googleContainer.style.position = 'absolute';
-            googleContainer.style.width = '100%';
-            googleContainer.style.height = '100%';
-          }
-          clearInterval(interval);
-        }
-      }, 100);
-      
-      return () => clearInterval(interval);
-    };
-    
-    const cleanup = styleGoogleButton();
-    return cleanup;
-  }, []);
 
-  const handleCustomClick = () => {
-    // Find and click the hidden Google button
-    const googleContainer = document.querySelector('div[id^="gsi"]');
-    const googleButton = googleContainer?.querySelector('button, div[role="button"]');
-    
-    if (googleButton) {
-      googleButton.click();
-    }
-  };
-
-  return (
-    <div className="relative w-full">
-      {/* Hidden GoogleLogin button */}
-      <div className="absolute inset-0">
-        <GoogleLogin
-          onSuccess={handleGoogleLogin}
-          onError={() => {
-            Swal.fire("Lỗi", "Google login thất bại", "error");
-            setIsLoading(false);
-          }}
-          useOneTap
-          theme="filled_blue"
-          size="large"
-          text="signin_with"
-          shape="rectangular"
-          logo_alignment="left"
-        />
+  // Nếu không có Client ID, hiển thị thông báo lỗi
+  if (!googleClientId) {
+    return (
+      <div className="w-full p-4 bg-red-50 border-2 border-red-300 rounded-xl">
+        <p className="text-red-700 text-sm font-semibold">
+          ⚠️ Google Client ID chưa được cấu hình. Vui lòng liên hệ quản trị viên.
+        </p>
       </div>
+    );
+  }
+
+  // Sử dụng cách đơn giản hơn: hiển thị trực tiếp Google button với custom styling
+  return (
+    <div className="w-full">
+      {/* Error message */}
+      {error && (
+        <div className="mb-2 p-2 bg-red-50 border border-red-300 rounded text-red-700 text-sm">
+          {error}
+        </div>
+      )}
       
-      {/* Custom styled button overlay */}
-      <button
-        type="button"
-        onClick={handleCustomClick}
-        disabled={isLoading}
-        className="relative w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 z-10"
-      >
-        {isLoading ? (
-          <>
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-            <span>Đang đăng nhập...</span>
-          </>
-        ) : (
-          <>
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            <span>Đăng nhập với Google</span>
-          </>
-        )}
-      </button>
+      {/* Loading state */}
+      {isLoading && (
+        <div className="mb-2 p-2 bg-blue-50 border border-blue-300 rounded text-blue-700 text-sm flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          <span>Đang xử lý đăng nhập Google...</span>
+        </div>
+      )}
+
+      {/* Google Login Button - hiển thị trực tiếp với wrapper để style */}
+      <div className="w-full flex justify-center">
+        <div 
+          className="w-full"
+          style={{
+            opacity: isLoading ? 0.6 : 1,
+            pointerEvents: isLoading ? 'none' : 'auto'
+          }}
+        >
+          <GoogleLogin
+            onSuccess={handleGoogleLogin}
+            onError={(error) => {
+              console.error('❌ Google login error:', error);
+              Swal.fire("Lỗi", "Google login thất bại. Vui lòng thử lại.", "error");
+              setIsLoading(false);
+              setError('Google login thất bại: ' + (error?.error || 'Unknown error'));
+            }}
+            useOneTap={false}
+            theme="outline"
+            size="large"
+            text="signin_with"
+            shape="rectangular"
+            logo_alignment="left"
+            width="100%"
+          />
+        </div>
+      </div>
     </div>
   );
 };

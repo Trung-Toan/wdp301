@@ -19,6 +19,14 @@ router.get(
   adminclinicController.getClinicByAdmin
 );
 
+//lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+router.get(
+  "/get_clinics",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getAllClinics
+);
+
 //lấy danh sách bác sĩ của clinic mà admin clinic hiện tại quản lý
 router.get(
   "/get_doctors",
@@ -51,6 +59,14 @@ router.delete(
   adminclinicController.deleteAssistant
 );
 
+//xoá bác sĩ (bao gồm Doctor, User, Account)
+router.delete(
+  "/delete_doctor/:id",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.deleteDoctor
+);
+
 //lấy danh sách chứng chỉ bác sĩ chờ duyệt
 router.get(
   "/pending_licenses",
@@ -65,6 +81,14 @@ router.put(
   authRequired,
   roleRequired("ADMIN_CLINIC"),
   adminclinicController.updateLicenseStatus
+);
+
+//cập nhật thông tin phòng khám
+router.put(
+  "/update_clinic",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateClinic
 );
 
 module.exports = router;

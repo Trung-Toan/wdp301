@@ -19,11 +19,11 @@ exports.createClinicBooking = async (req, res) => {
             return fail(res, err, 400);
         }
 
-        if (/Không tìm thấy bác sĩ|No doctors found|No available doctors/i.test(msg)) {
+        if (/No doctors found|No available doctors/i.test(msg)) {
             return fail(res, err, 404);
         }
 
-        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found/i.test(msg)) {
+        if (/Slot is full|Slot is unavailable|Slot not found|Patient not found|Không tìm thấy bác sĩ|Bác sĩ không hoạt động|Slot không thuộc về bác sĩ/i.test(msg)) {
             return fail(res, err, 400);
         }
 
