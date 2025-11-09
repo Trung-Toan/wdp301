@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bell } from "lucide-react";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 
 export default function NotificationDetailPage() {
     const { id } = useParams();
@@ -34,6 +35,7 @@ export default function NotificationDetailPage() {
                 <p className="text-gray-700 leading-relaxed">{notification.content}</p>
                 <p className="text-sm text-gray-500 mt-4">{notification.time}</p>
             </div>
+            <FirstTimeGuide page="notifications" />
         </div>
     );
 }

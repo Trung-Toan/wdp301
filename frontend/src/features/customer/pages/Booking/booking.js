@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, Clock, MapPin, User, FileText, ChevronLeft, AlertCircle, CheckCircle, Heart } from "lucide-react";
+import { Calendar, Clock, MapPin, User, FileText, ChevronLeft, AlertCircle, CheckCircle, Heart, UserCircle, Info, X } from "lucide-react";
 import { toast } from "react-toastify";
 import BookingSuccess from "./bookingSuccess";
 import { patientsApi } from "../../../../api/patients/patientsApi";
@@ -10,6 +10,8 @@ import { clinicApi } from "../../../../api/clinic/clinicApi";
 import { doctorApi } from "../../../../api/doctor/doctorApi";
 import { SLOT_API } from "../../../../api/assistant/assistant.api";
 import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
+import { useAccessibility } from "../../../../contexts/AccessibilityContext";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -51,6 +53,8 @@ const ELDERLY_AGE_THRESHOLD = 60;
 export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId, doctor } = location.state || {};
+    const { settings } = useAccessibility();
+    const isElderlyMode = settings.elderlyMode || settings.autoEnabled;
 
 
     const [formData, setFormData] = useState({
@@ -86,6 +90,7 @@ export function BookingContent() {
     // States cho người già
     const [isElderly, setIsElderly] = useState(false);
     const [patientAge, setPatientAge] = useState(null);
+    const [showElderlyWarningModal, setShowElderlyWarningModal] = useState(false);
 
     const [storedAccount, setStoredAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
     const [storedUser, setStoredUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
@@ -662,12 +667,9 @@ export function BookingContent() {
 
         // Kiểm tra thông tin người thân cho người già (khuyến nghị, không bắt buộc)
         if (isElderly && !formData.relativeName && !formData.relativePhone) {
-            const shouldContinue = window.confirm(
-                "Bạn là người cao tuổi. Chúng tôi khuyến nghị bạn nên điền thông tin người thân để được hỗ trợ tốt hơn. Bạn có muốn tiếp tục đặt lịch không?"
-            );
-            if (!shouldContinue) {
-                return;
-            }
+            // Hiển thị modal thay vì alert
+            setShowElderlyWarningModal(true);
+            return;
         }
 
         // Kiểm tra cảnh báo chéo thành phố và yêu cầu xác nhận
@@ -677,6 +679,18 @@ export function BookingContent() {
         }
 
         // Tiếp tục submit nếu đã xác nhận hoặc không có cảnh báo
+        await performSubmit();
+    };
+
+    // Handler để tiếp tục đặt lịch sau khi xác nhận từ elderly warning modal
+    const handleContinueBookingAfterElderlyWarning = async () => {
+        setShowElderlyWarningModal(false);
+        // Kiểm tra cảnh báo chéo thành phố và yêu cầu xác nhận
+        if (locationWarning?.isCrossCity && !pendingSubmit) {
+            setShowConfirmModal(true);
+            return;
+        }
+        // Tiếp tục submit
         await performSubmit();
     };
 
@@ -1257,6 +1271,82 @@ export function BookingContent() {
                     </div>
                 </div>
             </div>
+            
+            {/* Elderly Warning Modal */}
+            {showElderlyWarningModal && (
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
+                    onClick={() => setShowElderlyWarningModal(false)}
+                >
+                    <div 
+                        className="bg-white rounded-3xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-100 animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="bg-gradient-to-br from-pink-500 via-rose-500 to-orange-500 text-white p-5 sm:p-6 rounded-t-3xl">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                    <div className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg flex-shrink-0">
+                                        <UserCircle className="h-6 w-6 sm:h-7 sm:w-7" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h2 className="text-xl sm:text-2xl font-bold mb-1">Thông báo quan trọng</h2>
+                                        <p className="text-white/90 text-xs sm:text-sm">Dành cho người cao tuổi</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowElderlyWarningModal(false)}
+                                    className="p-2 hover:bg-white/20 rounded-xl transition-all duration-200 hover:rotate-90 flex-shrink-0"
+                                    aria-label="Đóng"
+                                >
+                                    <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-5 sm:p-6 space-y-4">
+                            <div className="flex items-start gap-3 sm:gap-4">
+                                <div className="p-2.5 sm:p-3 bg-pink-100 rounded-xl flex-shrink-0">
+                                    <Info className="h-5 w-5 sm:h-6 sm:w-6 text-pink-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
+                                        Bạn là người cao tuổi. Chúng tôi <strong className="text-pink-600">khuyến nghị</strong> bạn nên điền thông tin người thân để được hỗ trợ tốt hơn trong trường hợp khẩn cấp.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <p className="text-xs sm:text-sm text-blue-900 leading-relaxed">
+                                        Thông tin người thân sẽ giúp chúng tôi liên hệ khi cần thiết và đảm bảo an toàn cho bạn.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-5 sm:p-6 pt-0 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
+                            <button
+                                onClick={() => setShowElderlyWarningModal(false)}
+                                className="flex-1 px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-semibold text-sm sm:text-base"
+                            >
+                                Quay lại điền thông tin
+                            </button>
+                            <button
+                                onClick={handleContinueBookingAfterElderlyWarning}
+                                className="flex-1 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl hover:from-pink-600 hover:to-rose-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 text-sm sm:text-base"
+                            >
+                                Tiếp tục đặt lịch
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <FirstTimeGuide page="booking" />
         </div>
         </>
     );

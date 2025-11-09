@@ -23,7 +23,7 @@ const notificationSchema = new Schema({
   },
   recipient_type: { 
     type: String, 
-    enum: ["PATIENT", "DOCTOR", "ASSISTANT", "ADMIN_CLINIC", "OWNER"],
+    enum: ["PATIENT", "DOCTOR", "ASSISTANT", "ADMIN_CLINIC"],
     required: true 
   },
   related_appointment: { 

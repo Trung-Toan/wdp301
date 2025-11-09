@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Search, MapPin, Phone, CheckCircle, Mail, Filter, X, Building2, Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { clinicApi } from "../../../api";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -483,6 +484,7 @@ export default function FacilitiesList() {
                     )}
                 </div>
             </div>
+            <FirstTimeGuide page="facility_list" />
         </div>
     );
 }

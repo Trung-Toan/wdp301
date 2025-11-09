@@ -12,6 +12,7 @@ import GoogleLoginButton from "./GoogleLoginButton";
 import "../../styles/Login.css";
 import { loginUser } from "../../api/auth/login/LoginController";
 import { useAuth } from "../../hooks/useAuth";
+import FirstTimeGuide from "../../components/FirstTimeGuide";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -315,6 +316,7 @@ const Login = () => {
           </p>
         </div>
       </Container>
+      <FirstTimeGuide page="login" />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import {
     getNotificationLink,
 } from "../../../../utils/notificationHelpers";
 import { Bell, Loader2, CheckCheck, Trash2, Filter, ChevronLeft } from "lucide-react";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 
 export default function NotificationListPage() {
     const navigate = useNavigate();
@@ -294,6 +295,7 @@ export default function NotificationListPage() {
                     </div>
                 )}
             </div>
+            <FirstTimeGuide page="notifications" />
         </div>
     );
 }
