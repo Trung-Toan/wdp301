@@ -60,7 +60,6 @@ async function checkSlotAvailability(slotId, targetDate) {
 }
 
 /**
- * Tự động assign bác sĩ available trong clinic
  * Tìm bác sĩ có slot trống trong ngày và phù hợp với specialty_id (nếu có)
  */
 async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, excludeSlotId = null) {
@@ -106,8 +105,6 @@ async function findAvailableDoctorForClinic(clinicId, specialtyId, targetDate, e
             }
             return isActive;
         });
-
-        console.log(`✅ Found ${activeDoctors.length} active doctors in clinic ${clinicId}`);
 
         if (activeDoctors.length === 0) {
             throw new Error("No doctors found in this clinic");
@@ -192,7 +189,7 @@ async function createAsync(payload) {
         slot_id, doctor_id, patient_id, specialty_id, clinic_id,
         full_name, phone, email, dob, gender,
         province_code, ward_code, address_text, reason,
-        scheduled_date // Thêm scheduled_date để kiểm tra theo ngày
+        scheduled_date
     } = payload;
 
     //Auto-assign doctor nếu không có doctor_id ***
@@ -206,7 +203,7 @@ async function createAsync(payload) {
                 clinic_id,
                 specialty_id,
                 targetDate,
-                slot_id // Exclude the chosen slot if any
+                slot_id
             );
 
             doctor_id = doctorAssignment.doctor_id;
@@ -216,9 +213,7 @@ async function createAsync(payload) {
             }
 
             autoAssignedDoctor = true;
-            console.log("✅ Auto-assigned doctor:", doctor_id, "slot:", slot_id);
         } catch (error) {
-            console.error("❌ Failed to auto-assign doctor:", error);
             throw new Error("Không tìm thấy bác sĩ phù hợp trong phòng khám. Vui lòng chọn bác sĩ cụ thể.");
         }
     }
@@ -307,7 +302,6 @@ async function createAsync(payload) {
             }).session(session);
 
             if (existingAppointment) {
-                console.log('🔍 Found existing appointment:', existingAppointment);
                 throw new Error("Patient already has an appointment in this slot for this date");
             }
 
