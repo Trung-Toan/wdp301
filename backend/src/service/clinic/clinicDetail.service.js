@@ -30,7 +30,6 @@ async function getClinicDetail(clinicId) {
         throw new Error("Clinic not found");
     }
 
-    // Tính rating trung bình từ feedback của các doctor trong clinic này
     const doctors = await Doctor.find({ clinic_id: clinicId }).select("_id").lean();
 
     const doctorIds = doctors.map((d) => d._id);
@@ -42,10 +41,8 @@ async function getClinicDetail(clinicId) {
         : 0;
     const totalReviews = feedbacks.length;
 
-    // Đếm số lượng bác sĩ
     const doctorCount = doctors.length;
 
-    // Đếm số lượng appointments
     const appointmentCount = await Appointment.countDocuments({ clinic_id: clinicId });
 
     return {
@@ -77,7 +74,6 @@ async function getClinicDetail(clinicId) {
                 email: clinic.created_by.email,
             }
             : null,
-        // Thêm thông tin thống kê
         rating: parseFloat(avgRating.toFixed(1)),
         total_reviews: totalReviews,
         doctor_count: doctorCount,
@@ -227,7 +223,6 @@ async function getClinicReviews(clinicId, { limit = 20, page = 1 } = {}) {
         throw new Error("Invalid clinic ID");
     }
 
-    // Lấy tất cả doctors của clinic
     const doctors = await Doctor.find({ clinic_id: clinicId }).select("_id").lean();
 
     const doctorIds = doctors.map((d) => new mongoose.Types.ObjectId(d._id));
