@@ -6,7 +6,6 @@ const fail = (res, err, status = 500) =>
 
 /**
  * Controller để tạo appointment booking tại phòng khám
- * Hỗ trợ auto-assign doctor và slot nếu auto_assign = true
  */
 exports.createClinicBooking = async (req, res) => {
     try {
