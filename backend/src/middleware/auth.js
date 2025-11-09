@@ -109,7 +109,6 @@ async function authenticateAdminClinic(req, res, next) {
 
         req.user = verifyAccessToken(token);
 
-        // Kiểm tra role
         if (req.user.role !== 'ADMIN_CLINIC') {
             return res.status(403).json({ ok: false, message: 'Forbidden - Admin Clinic access required' });
         }
@@ -156,7 +155,6 @@ async function authenticateAdminSystem(req, res, next) {
 
         req.user = verifyAccessToken(token);
 
-        // Kiểm tra role
         if (req.user.role !== 'ADMIN_SYSTEM') {
             return res.status(403).json({ ok: false, message: 'Forbidden - Admin System access required' });
         }
