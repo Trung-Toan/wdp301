@@ -13,8 +13,8 @@ exports.getMyProfile = async (req, res) => {
 
         const user = await User.findOne({ account_id: accountId })
             .populate("account_id", "username email status role")
-            .populate("patients", "province_code ward_code") // virtual
-            .lean({ virtuals: true }); // cần virtuals:true để có patients
+            .populate("patients", "province_code ward_code")
+            .lean({ virtuals: true });
 
         if (!user) return fail(res, new Error("User not found"), 404);
 
@@ -62,7 +62,6 @@ exports.updateMyProfile = async (req, res) => {
             surgery_history,
         } = req.body || {};
 
-        // --- Update User table ---
         const userSet = {};
         if (full_name !== undefined) userSet.full_name = full_name;
         if (dob !== undefined) userSet.dob = dob;
@@ -80,7 +79,6 @@ exports.updateMyProfile = async (req, res) => {
 
         const userId = user._id;
 
-        // --- Update Account table (email, phone) ---
         const accountSet = {};
 
         // Check phone duplication
@@ -117,7 +115,6 @@ exports.updateMyProfile = async (req, res) => {
             await Account.findByIdAndUpdate(accountId, { $set: accountSet });
         }
 
-        // ---Update Patient table ---
         const patientSet = {};
         if (province_code !== undefined) patientSet.province_code = province_code;
         if (ward_code !== undefined) patientSet.ward_code = ward_code;
