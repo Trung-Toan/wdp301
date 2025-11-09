@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StepByStepGuide from './StepByStepGuide';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 
-export default function FirstTimeGuide({ page = 'home' }) {
+export default function FirstTimeGuide({ page = 'home', forceShow = false, onComplete: externalOnComplete }) {
     const [showGuide, setShowGuide] = useState(false);
     const { settings } = useAccessibility();
     const isElderly = settings.elderlyMode || settings.autoEnabled;
@@ -18,6 +18,14 @@ export default function FirstTimeGuide({ page = 'home' }) {
             return;
         }
         
+        // Nếu forceShow = true, hiển thị ngay lập tức
+        if (forceShow) {
+            const timer = setTimeout(() => {
+                setShowGuide(true);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+        
         // Check if user has seen the guide for this page
         const hasSeenGuide = localStorage.getItem(`firstTimeGuide_${page}`);
         
@@ -29,11 +37,19 @@ export default function FirstTimeGuide({ page = 'home' }) {
             }, 1500); // Tăng delay để đảm bảo page đã render xong
             return () => clearTimeout(timer);
         }
-    }, [page]);
+    }, [page, forceShow]);
 
     const handleComplete = () => {
-        localStorage.setItem(`firstTimeGuide_${page}`, 'true');
+        // Chỉ lưu vào localStorage nếu không phải forceShow (xem lại)
+        // Nếu forceShow, không cần lưu lại vì user đã xem rồi
+        if (!forceShow) {
+            localStorage.setItem(`firstTimeGuide_${page}`, 'true');
+        }
         setShowGuide(false);
+        // Gọi callback từ bên ngoài nếu có
+        if (externalOnComplete) {
+            externalOnComplete();
+        }
     };
 
     const getStepsForPage = () => {

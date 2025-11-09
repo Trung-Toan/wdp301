@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Building2, MapPin, Phone, Globe, Star, Search } from "lucide-react";
+import { Building2, MapPin, Phone, Globe, Search } from "lucide-react";
 import { clinicApi } from "../../../api";
 import Loading from "../../../components/Loading";
 import Badge from "../../../components/ui/Badge";

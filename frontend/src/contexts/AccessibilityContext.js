@@ -121,6 +121,33 @@ export const AccessibilityProvider = ({ children }) => {
         localStorage.setItem('accessibilitySettings', JSON.stringify(defaultSettings));
     };
 
+    // Reset all first-time guides (xóa tất cả các hướng dẫn đã xem)
+    const resetGuides = () => {
+        const guideKeys = [
+            'firstTimeGuide_home',
+            'firstTimeGuide_booking',
+            'firstTimeGuide_profile',
+            'firstTimeGuide_login',
+            'firstTimeGuide_register',
+            'firstTimeGuide_forgot_password',
+            'firstTimeGuide_doctor_list',
+            'firstTimeGuide_doctor_detail',
+            'firstTimeGuide_specialty_list',
+            'firstTimeGuide_specialty_detail',
+            'firstTimeGuide_facility_list',
+            'firstTimeGuide_facility_detail',
+            'firstTimeGuide_facility_booking',
+            'firstTimeGuide_clinic_search',
+            'firstTimeGuide_appointments',
+            'firstTimeGuide_notifications',
+            'firstTimeGuide_record_detail',
+        ];
+        
+        guideKeys.forEach(key => {
+            localStorage.removeItem(key);
+        });
+    };
+
     return (
         <AccessibilityContext.Provider
             value={{
@@ -128,6 +155,7 @@ export const AccessibilityProvider = ({ children }) => {
                 updateSettings,
                 toggleElderlyMode,
                 resetSettings,
+                resetGuides,
             }}
         >
             {children}
