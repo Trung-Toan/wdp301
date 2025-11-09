@@ -33,7 +33,9 @@ export function DoctorBookingCalendar({ doctor }) {
 
     const slots = doctor.slots || [];
 
-    const formatUTCtoHHmm = formatISOTime;
+    // Format time với local timezone để hiển thị đúng giờ local (GMT+7)
+    // Dùng useUTC = false để convert UTC từ backend sang local time
+    const formatSlotTime = (isoString) => formatISOTime(isoString, false);
 
     // Helper function để lấy date string từ ISO string (YYYY-MM-DD)
     // Có 2 cách:
@@ -81,11 +83,14 @@ export function DoctorBookingCalendar({ doctor }) {
             })
             .map((slot) => ({
                 id: slot._id,
-                time: `${formatUTCtoHHmm(slot.start_time)} - ${formatUTCtoHHmm(slot.end_time)}`,
+                time: `${formatSlotTime(slot.start_time)} - ${formatSlotTime(slot.end_time)}`,
                 fee: slot.fee_amount || doctor.pricing?.minFee || 0,
                 clinicName: slot.clinic_name || doctor.clinic?.name || "Chưa có phòng khám",
                 clinicId: slot.clinic_id || doctor.clinic?._id || null,
                 specialtyId: resolvedSpecialtyId,
+                // Giữ nguyên start_time và end_time để dùng cho booking
+                start_time: slot.start_time,
+                end_time: slot.end_time,
             }))
         : [];
 
