@@ -437,6 +437,18 @@ exports.viewMedicalRecordDetail = async (req, res) => {
   }
 };
 
+// GET /medical-records/appointment/:appointmentId
+exports.viewMedicalRecordByAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const record = await medical_recordService.getMedicalRecordByAppointmentId(appointmentId);
+    return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
+  } catch (error) {
+    console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể lấy giữ liệu");
+  }
+};
+
 
 // PUT /medical-records/:recordId
 exports.updateMedicalRecord = async (req, res) => {

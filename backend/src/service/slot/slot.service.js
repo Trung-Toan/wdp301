@@ -3,8 +3,8 @@ const moment = require("moment-timezone");
 
 /**
  * lấy slot của bác sĩ này tại thời điểm này hoặc  
- * @param {*} doctor_id 
- * @param {*} date 
+ * @param {ObjectId} doctor_id 
+ * @param {Date} date 
  * @returns 
  */
 exports.getSlotAtDateByDocterId = async (doctor_id, date = new Date()) => {
@@ -29,8 +29,8 @@ exports.slotAvaiable = async (doctorId, dateFilter) => {
 
 /**
  * Lấy slot AVAILABLE đầu tiên (sớm nhất) trong một ngày cụ thể.
- * @param {*} doctor_id 
- * @param {*} date (Một đối tượng Date. Hàm sẽ tìm slot trong ngày của Date này)
+ * @param {ObjectId} doctor_id 
+ * @param {Date} date (Một đối tượng Date. Hàm sẽ tìm slot trong ngày của Date này)
  * @returns {object|null} - Trả về object slot hoặc null nếu không tìm thấy.
  */
 exports.getFirstAvailableSlotByDoctorId = async (doctor_id, date = new Date()) => {

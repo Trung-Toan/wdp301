@@ -20,9 +20,6 @@ const DoctorDashboard = () => {
     key: "dashboard-assistant",
   });
 
-  console.log("data: ", data);
-  
-
   // Map dữ liệu an toàn cho UI
   const stats = {
     todayPatients: data?.data?.todayPatients ?? 0,

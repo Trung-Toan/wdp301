@@ -57,6 +57,10 @@ router.put("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), Ass
 // view list medical record of patient with pagination
 router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.createMedicalRecord);
 
+// GET /medical-records/appointment/:appointmentId
+// view detail medical record by appointmentId
+router.get("/medical-records/appointment/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewMedicalRecordByAppointment);
+
 // GET /medical-records/:recordId
 // view detail medical record by recordId
 router.get("/medical-records/:recordId", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewMedicalRecordDetail);

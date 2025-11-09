@@ -1,4 +1,4 @@
-import { memo, useState, Fragment } from "react";
+import { memo, useState, useEffect, Fragment } from "react";
 import {
   Calendar,
   Person,
@@ -26,7 +26,7 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Cấu trúc form bệnh án (Giữ nguyên)
+// Cấu trúc form bệnh án
 const initialRecordFormData = {
   diagnosis: "",
   symptoms: "",
@@ -35,11 +35,12 @@ const initialRecordFormData = {
   prescription: {
     instruction: "",
     medicines: [],
+    // có thể có status từ API, để trống ở init
   },
   status: "PRIVATE",
 };
 
-// Helper định dạng thời gian (Giữ nguyên)
+// Helper định dạng thời gian
 const formatTime = (timeString) => {
   if (!timeString) return "N/A";
   try {
@@ -53,7 +54,7 @@ const formatTime = (timeString) => {
   }
 };
 
-// === 2. CẬP NHẬT TRẠNG THÁI BADGE ===
+// Badge trạng thái lịch hẹn
 const getStatusBadge = (status) => {
   const config = {
     SCHEDULED: { label: "Chờ duyệt", className: "status-scheduled" },
@@ -61,13 +62,12 @@ const getStatusBadge = (status) => {
     COMPLETED: { label: "Đã khám xong", className: "status-completed" },
     CANCELLED: { label: "Đã hủy", className: "status-cancelled" },
     NO_SHOW: { label: "Vắng mặt", className: "status-no-show" },
-    REJECTED: { label: "Đã từ chối", className: "status-rejected" }, // <-- THÊM MỚI
   };
   return config[status] || config.SCHEDULED;
 };
 
 const AppointmentComponent = () => {
-  // State cho bộ lọc (Giữ nguyên)
+  // Bộ lọc
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -76,14 +76,16 @@ const AppointmentComponent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { MEDICAL_RECORD_API } = require("./../../api/assistant/assistant.api");
 
-  // State cho Modal Bệnh Án (Cập nhật)
+  // Modal Hồ sơ
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [selectedAptForRecord, setSelectedAptForRecord] = useState(null);
   const [recordFormData, setRecordFormData] = useState(initialRecordFormData);
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Thêm state để biết modal đang ở chế độ VIEW, EDIT hay CREATE
   const [modalMode, setModalMode] = useState("CREATE"); // "CREATE", "VIEW", "EDIT"
+
+  // id appointment để fetch hồ sơ khi VIEW/EDIT
+  const [app_id_get_data, setApp_id_get_data] = useState(null);
 
   const params = {
     page: page,
@@ -94,15 +96,22 @@ const AppointmentComponent = () => {
     ...(searchTerm ? { search: searchTerm } : {}),
   };
 
+  const { data: getProfile } = useDataByUrl({
+    url: "/assistant/profile",
+    key: "assistantProfile",
+  });
+
+  const typeAss = getProfile?.data?.assistant?.type || [];
+
   const { data, isLoading, error, refetch } = useDataByUrl({
     url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
     key: ["appointments-list", ...Object.values(params)],
-    params: params, // Gửi params đã được làm sạch
+    params: params,
   });
 
   if (error) console.log("Error fetching appointments:", error);
 
-  // Đọc dữ liệu từ hook (Giữ nguyên)
+  // Dữ liệu danh sách
   const appointments = data?.data?.appointments || [];
   const slots = data?.data?.slot?.slot_list || [];
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
@@ -113,38 +122,44 @@ const AppointmentComponent = () => {
   };
   const totalPages = pagination.totalPages;
 
-
+  // Đổi trạng thái lịch hẹn
   const handleVerifyStatus = async (appointmentId, newStatus) => {
     try {
       await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
       refetch();
     } catch (error) {
-      if (error.response) {
-      }
       const errorMessage =
         error.response?.data?.message || "Lỗi khi xác minh lịch hẹn.";
       alert(errorMessage);
     }
   };
 
+  // Mở/đóng modal hồ sơ
   const openRecordModal = (item, mode = "CREATE") => {
     setSelectedAptForRecord(item);
-    setModalMode(mode); // Đặt chế độ
+    setModalMode(mode);
     setRecordModalError("");
+
     const existingRecord = item.appointment.medical_record;
     if ((mode === "EDIT" || mode === "VIEW") && existingRecord) {
+      // Prefill tạm từ snapshot; sẽ bị overwrite khi mrc về
       setRecordFormData({
         diagnosis: existingRecord.diagnosis || "",
-        symptoms: (existingRecord.symptoms || []).join(", "), // Chuyển mảng thành chuỗi
+        symptoms: (existingRecord.symptoms || []).join(", "),
         notes: existingRecord.notes || "",
-        attachments: (existingRecord.attachments || []).join(", "), // Chuyển mảng thành chuỗi
+        attachments: (existingRecord.attachments || []).join(", "),
         prescription:
           existingRecord.prescription || initialRecordFormData.prescription,
         status: existingRecord.status || "PRIVATE",
       });
     } else {
-      // Nếu là "CREATE", dùng form rỗng
       setRecordFormData(initialRecordFormData);
+    }
+
+    // Với VIEW/EDIT: set id để hook gọi DB lấy mới nhất
+    if (mode === "VIEW" || mode === "EDIT") {
+      const appointmentId = item?.appointment?.appointment_id;
+      if (appointmentId) setApp_id_get_data(appointmentId);
     }
 
     setIsRecordModalOpen(true);
@@ -153,9 +168,12 @@ const AppointmentComponent = () => {
   const closeRecordModal = () => {
     setIsRecordModalOpen(false);
     setSelectedAptForRecord(null);
+    setApp_id_get_data(null); // reset id để ngừng fetch
+    setRecordFormData(initialRecordFormData);
+    setRecordModalError("");
   };
 
-  // (Các hàm form, thuốc, ... giữ nguyên)
+  // Form handlers
   const handleRecordFormChange = (e) => {
     const { name, value } = e.target;
     setRecordFormData((prev) => ({ ...prev, [name]: value }));
@@ -201,7 +219,7 @@ const AppointmentComponent = () => {
     });
   };
 
-  // === BẮT ĐẦU SỬA LỖI ===
+  // Lưu hồ sơ
   const handleSaveRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
@@ -227,8 +245,6 @@ const AppointmentComponent = () => {
 
       const appointment_id = selectedAptForRecord.appointment.appointment_id;
       const patient_id = selectedAptForRecord.patient.patient_id;
-
-      // === SỬA 1: THÊM LẠI `doctor_id` (để sửa lỗi 400) ===
       const doctor_id = selectedAptForRecord.appointment.doctor_id;
 
       const requestBody = {
@@ -250,20 +266,14 @@ const AppointmentComponent = () => {
         },
         status: recordFormData.status || "PRIVATE",
         patient_id,
-        doctor_id, // <-- ĐÃ THÊM LẠI
+        doctor_id,
       };
-
-      console.log("📦 Payload gửi backend:", requestBody);
 
       const response = await MEDICAL_RECORD_API.createMedicalRecord(
         appointment_id,
         requestBody
       );
-      console.log("Phản hồi từ server: ", response);
 
-      // === SỬA 2: SỬA LOGIC KIỂM TRA THÀNH CÔNG (để sửa lỗi "Tạo hồ sơ thất bại") ===
-      // Giả định backend trả về { data: { success: true, ... } }
-      // (Dựa trên controller/service bạn gửi trước đó)
       if (response?.data?.success) {
         alert("Tạo hồ sơ bệnh án thành công!");
         closeRecordModal();
@@ -282,92 +292,362 @@ const AppointmentComponent = () => {
       setIsSubmitting(false);
     }
   };
-  const renderAppointmentActions = (item) => {
+
+   const handleEditRecord = async () => {
+    if (!recordFormData.diagnosis) {
+      setRecordModalError("Vui lòng nhập chẩn đoán.");
+      return;
+    }
+    if (modalMode === "VIEW") {
+      closeRecordModal();
+      return;
+    }
+
+    setIsSubmitting(true);
+    setRecordModalError("");
+
+    try {
+      const safeSymptoms = (recordFormData.symptoms || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
+      const safeAttachments = (recordFormData.attachments || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
+
+      const appointment_id = selectedAptForRecord.appointment.appointment_id;
+      const patient_id = selectedAptForRecord.patient.patient_id;
+      const doctor_id = selectedAptForRecord.appointment.doctor_id;
+
+      const requestBody = {
+        diagnosis: recordFormData.diagnosis,
+        symptoms: safeSymptoms,
+        notes: recordFormData.notes,
+        attachments: safeAttachments,
+        prescription: {
+          instruction: recordFormData.prescription?.instruction || "",
+          medicines: (recordFormData.prescription?.medicines || [])
+            .filter((m) => m.name && m.name.trim() !== "")
+            .map((med) => ({
+              name: med.name,
+              dosage: med.dosage,
+              frequency: med.frequency,
+              duration: med.duration,
+              note: med.note || "",
+            })),
+        },
+        status: recordFormData.status || "PRIVATE",
+        patient_id,
+        doctor_id,
+      };
+
+      const response = await MEDICAL_RECORD_API.updateMedicalRecord(
+        appointment_id,
+        requestBody
+      );
+
+      if (response?.data?.success) {
+        alert("Tạo hồ sơ bệnh án thành công!");
+        closeRecordModal();
+        refetch();
+      } else {
+        setRecordModalError(
+          response?.data?.message || response?.message || "Tạo hồ sơ thất bại."
+        );
+      }
+    } catch (error) {
+      console.error("❌ Lỗi tạo hồ sơ:", error);
+      setRecordModalError(
+        error.response?.data?.message || error.message || "Lỗi hệ thống"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  // ======================
+  // Fetch hồ sơ theo app_id_get_data (VIEW/EDIT) — API trả về { ok, message, data: [record] }
+  // ======================
+  const recordUrl = app_id_get_data
+    ? MEDICAL_RECORD_API.GET_MEDICAL_RECORD_BY_APPOINTMENT_ID(app_id_get_data)
+    : null;
+
+  const {
+    data: mrc,
+    isLoading: isMrcLoading,
+    error: mrcError,
+  } = useDataByUrl({
+    url: recordUrl, // hook enabled: !!url
+    key: "get-medical-record-by-appointment-id",
+  });
+
+  // Khi dữ liệu mrc về ở chế độ VIEW/EDIT, đổ vào form (luôn dùng DB làm nguồn chuẩn)
+  useEffect(() => {
+    if (!["VIEW", "EDIT"].includes(modalMode)) return;
+    if (!mrc || isMrcLoading || mrcError) return;
+
+    // API của bạn: mrc = { ok, message, data: [ { ...record } ] }
+    const apiRecord = Array.isArray(mrc?.data) ? mrc.data[0] : undefined;
+    if (!apiRecord) return;
+
+    setRecordFormData({
+      diagnosis: apiRecord.diagnosis || "",
+      symptoms: Array.isArray(apiRecord.symptoms)
+        ? apiRecord.symptoms.join(", ")
+        : apiRecord.symptoms || "",
+      notes: apiRecord.notes || "",
+      attachments: Array.isArray(apiRecord.attachments)
+        ? apiRecord.attachments.join(", ")
+        : apiRecord.attachments || "",
+      prescription: apiRecord.prescription || { instruction: "", medicines: [] },
+      status: apiRecord.status || "PRIVATE",
+    });
+  }, [modalMode, mrc, isMrcLoading, mrcError]);
+
+  // Trạng thái đơn thuốc hiện tại (dùng cho bật/tắt edit)
+  const presStatusFromApi = Array.isArray(mrc?.data)
+    ? mrc?.data?.[0]?.prescription?.status
+    : undefined;
+  const currentPresStatus =
+    presStatusFromApi ||
+    recordFormData?.prescription?.status ||
+    selectedAptForRecord?.appointment?.medical_record?.prescription?.status ||
+    undefined;
+
+  const isEditLocked =
+    modalMode === "EDIT" && currentPresStatus === "VERIFIED"; // VERIFIED thì không thể chỉnh sửa
+
+  // ======================
+  //  Actions theo vai trò & trạng thái
+  // ======================
+  const renderAppointmentActions = (item, statusInfo, badgeColor) => {
     const appointment = item.appointment;
     const appointmentId = appointment.appointment_id;
     const status = appointment.status;
-    const recordPrescriptionStatus =
-      appointment.medical_record?.prescription?.status;
-    switch (status) {
-      // 1. Chờ duyệt
-      case "SCHEDULED":
+
+    // record trong item (nếu API list trả kèm)
+    const record = appointment.medical_record || null;
+    const recordPrescriptionStatus = record?.prescription?.status; // "PENDING" | "VERIFIED" | "REJECTED"
+    const hasRecord = !!record;
+
+    // Vai trò
+    const roles = Array.isArray(typeAss) ? typeAss : [];
+    const isNurseOnly = roles.length === 1 && roles[0] === "NURSE";
+    const isReceptionistOnly = roles.length === 1 && roles[0] !== "NURSE"; // non-nurse
+    const hasBothRoles = roles.length >= 2; // NURSE + DOCTOR
+
+    // Buttons
+    const ApproveBtn = () => (
+      <button
+        onClick={() => handleVerifyStatus(appointmentId, "APPROVE")}
+        className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+        title="Duyệt"
+      >
+        <CheckCircle size={16} />
+      </button>
+    );
+
+    const CancelBtn = () => (
+      <button
+        onClick={() => handleVerifyStatus(appointmentId, "CANCELLED")}
+        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+        title="Từ chối"
+      >
+        <XCircle size={16} />
+      </button>
+    );
+
+    const NoShowBtn = () => (
+      <button
+        onClick={() => handleVerifyStatus(appointmentId, "NO_SHOW")}
+        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+        title="Đánh dấu vắng mặt"
+      >
+        <XCircle size={16} />
+      </button>
+    );
+
+    const CreateRecordBtn = () => (
+      <button
+        onClick={() => openRecordModal(item, "CREATE")}
+        className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+        title="Tạo bệnh án"
+      >
+        <FileEarmarkPlus size={16} />
+      </button>
+    );
+
+    const ViewRecordBtn = () => (
+      <button
+        onClick={() => {
+          setApp_id_get_data(appointmentId); // set id trước để hook fetch DB
+          openRecordModal(item, "VIEW");
+        }}
+        className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+        title="Xem bệnh án"
+      >
+        <EyeFill size={16} />
+      </button>
+    );
+
+    const EditRecordBtn = () => (
+      <button
+        onClick={() => {
+          setApp_id_get_data(appointmentId); // đảm bảo modal EDIT cũng fetch DB
+          openRecordModal(item, "EDIT");
+        }}
+        className="p-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200"
+        title="Sửa bệnh án"
+        disabled={recordPrescriptionStatus === "VERIFIED"} // VERIFIED thì không hiện/không cho thao tác
+      >
+        <PencilFill size={16} />
+      </button>
+    );
+
+    const StatusBadge = () => (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}
+      >
+        {statusInfo?.label || "Trạng thái"}
+      </span>
+    );
+
+    // 1) Chỉ NURSE
+    if (isNurseOnly) {
+      if (status === "SCHEDULED") {
         return (
           <>
-            <button
-              onClick={() => handleVerifyStatus(appointmentId, "APPROVE")} // <-- Dùng hàm Verify
-              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
-              title="Duyệt"
-            >
-              <CheckCircle size={16} />
-            </button>
-            <button
-              onClick={() => handleVerifyStatus(appointmentId, "CANCELLED")} // <-- Dùng hàm Verify
-              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-              title="Từ chối"
-            >
-              <XCircle size={16} />
-            </button>
+            <StatusBadge />
           </>
         );
-
-      // 2. Đã duyệt (Chờ khám)
-      case "APPROVE":
+      }
+      if (status === "APPROVE") {
         return (
           <>
-            <button
-              onClick={() => openRecordModal(item, "CREATE")}
-              className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-              title="Tạo bệnh án"
-            >
-              <FileEarmarkPlus size={16} />
-            </button>
+            <StatusBadge />
+            {!hasRecord && <CreateRecordBtn />}
           </>
         );
-
-      // 3. Đã khám xong (Backend tự chuyển status này khi tạo record)
-      case "COMPLETED":
-        // Logic này giờ sẽ chạy đúng theo ý bạn
-        if (recordPrescriptionStatus === "PENDING") {
-          return (
-            <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-              Chờ BS duyệt
-            </span>
-          );
-        }
-        if (recordPrescriptionStatus === "VERIFIED") {
-          return (
-            <button
-              onClick={() => openRecordModal(item, "VIEW")}
-              className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
-              title="Xem bệnh án (Đã duyệt)"
-            >
-              <EyeFill size={16} />
-            </button>
-          );
-        }
-        if (recordPrescriptionStatus === "REJECTED") {
-          return (
-            <button
-              onClick={() => openRecordModal(item, "EDIT")}
-              className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200"
-              title="Sửa bệnh án (Bị từ chối)"
-            >
-              <PencilFill size={16} />
-            </button>
-          );
-        }
+      }
+      if (status === "COMPLETED") {
         return (
-          <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-            Đã hoàn tất
-          </span>
+          <>
+            <StatusBadge />
+            {recordPrescriptionStatus === "PENDING" && (
+              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+                Đơn thuốc chờ duyệt
+              </span>
+            )}
+            <ViewRecordBtn />
+            {recordPrescriptionStatus !== "VERIFIED" && <EditRecordBtn />}
+          </>
         );
-
-      case "REJECTED":
-      case "CANCELLED":
-      case "NO_SHOW":
-      default:
-        return null;
+      }
+      if (status === "CANCELLED" || status === "NO_SHOW") {
+        return (
+          <>
+            <StatusBadge />
+          </>
+        );
+      }
     }
+
+    // 2) Chỉ role không phải NURSE (ví dụ: Doctor/Receptionist)
+    if (isReceptionistOnly) {
+      if (status === "SCHEDULED") {
+        return (
+          <>
+            <StatusBadge />
+            <ApproveBtn />
+            <CancelBtn />
+          </>
+        );
+      }
+      if (status === "APPROVE") {
+        return (
+          <>
+            <StatusBadge />
+            <NoShowBtn />
+          </>
+        );
+      }
+      if (status === "COMPLETED") {
+        return (
+          <>
+            <StatusBadge />
+            {recordPrescriptionStatus === "PENDING" && (
+              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+                Đơn thuốc chờ duyệt
+              </span>
+            )}
+            {!recordPrescriptionStatus && (
+              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+                Đã hoàn tất
+              </span>
+            )}
+          </>
+        );
+      }
+      if (status === "CANCELLED" || status === "NO_SHOW") {
+        return (
+          <>
+            <StatusBadge />
+          </>
+        );
+      }
+    }
+
+    // 3) Có cả 2 vai trò (NURSE + DOCTOR)
+    if (hasBothRoles) {
+      if (status === "SCHEDULED") {
+        return (
+          <>
+            <StatusBadge />
+            <ApproveBtn />
+            <CancelBtn />
+          </>
+        );
+      }
+      if (status === "APPROVE") {
+        return (
+          <>
+            <StatusBadge />
+            <NoShowBtn />
+            {!hasRecord && <CreateRecordBtn />}
+          </>
+        );
+      }
+      if (status === "COMPLETED") {
+        return (
+          <>
+            <StatusBadge />
+            {recordPrescriptionStatus === "PENDING" && (
+              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+                Đơn thuốc chờ duyệt
+              </span>
+            )}
+            <ViewRecordBtn />
+            {recordPrescriptionStatus !== "VERIFIED" && <EditRecordBtn />}
+          </>
+        );
+      }
+      if (status === "CANCELLED" || status === "NO_SHOW") {
+        return (
+          <>
+            <StatusBadge />
+          </>
+        );
+      }
+    }
+
+    // Fallback
+    return (
+      <>
+        <StatusBadge />
+      </>
+    );
   };
 
   return (
@@ -390,7 +670,7 @@ const AppointmentComponent = () => {
               />
             </div>
 
-            {/* Status filter (THÊM MỚI) */}
+            {/* Status filter */}
             <div className="gap-2 pr-4 flex items-center">
               <span className="text-sm font-medium text-gray-700 mr-2">
                 Trạng thái:
@@ -409,7 +689,6 @@ const AppointmentComponent = () => {
                 <option value="COMPLETED">Đã khám xong</option>
                 <option value="CANCELLED">Đã hủy</option>
                 <option value="NO_SHOW">Vắng mặt</option>
-                <option value="REJECTED">Đã từ chối</option>
               </select>
             </div>
           </div>
@@ -452,7 +731,7 @@ const AppointmentComponent = () => {
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {/* Shift Header (Giữ nguyên) */}
+            {/* Shift Header */}
             {selectedSlotInfo && (
               <div className="bg-blue-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
                 <div className="flex items-center gap-4">
@@ -473,7 +752,7 @@ const AppointmentComponent = () => {
                   const { appointment, patient } = item;
                   const statusInfo = getStatusBadge(appointment.status);
 
-                  // === 6. CẬP NHẬT MÀU BADGE ===
+                  // Màu badge
                   let badgeColor = "bg-gray-100 text-gray-700";
                   if (statusInfo.className === "status-scheduled")
                     badgeColor = "bg-blue-100 text-blue-700";
@@ -483,8 +762,7 @@ const AppointmentComponent = () => {
                     badgeColor = "bg-indigo-100 text-indigo-700";
                   else if (
                     statusInfo.className === "status-cancelled" ||
-                    statusInfo.className === "status-no-show" ||
-                    statusInfo.className === "status-rejected"
+                    statusInfo.className === "status-no-show"
                   )
                     badgeColor = "bg-red-100 text-red-700";
 
@@ -493,7 +771,7 @@ const AppointmentComponent = () => {
                       key={appointment.appointment_id}
                       className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm"
                     >
-                      {/* Thông tin bệnh nhân (Giữ nguyên) */}
+                      {/* Thông tin bệnh nhân */}
                       <div className="flex items-center gap-4 mb-2 sm:mb-0">
                         <Person className="text-blue-600" size={20} />
                         <div>
@@ -515,15 +793,9 @@ const AppointmentComponent = () => {
                         </div>
                       </div>
 
-                      {/* === 7. SỬ DỤNG HÀM RENDER MỚI === */}
+                      {/* Actions */}
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}
-                        >
-                          {statusInfo.label}
-                        </span>
-                        {/* Gọi hàm render */}
-                        {renderAppointmentActions(item)}
+                        {renderAppointmentActions(item, statusInfo, badgeColor)}
                       </div>
                     </div>
                   );
@@ -531,7 +803,7 @@ const AppointmentComponent = () => {
               )}
             </div>
 
-            {/* Phân trang (Giữ nguyên) */}
+            {/* Phân trang */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-3 p-4 border-t">
                 <button
@@ -587,13 +859,11 @@ const AppointmentComponent = () => {
                     as="h3"
                     className="text-xl font-bold text-gray-900 mb-4"
                   >
-                    {/* === 8. CẬP NHẬT TIÊU ĐỀ MODAL === */}
                     {modalMode === "CREATE" && "Tạo hồ sơ bệnh án"}
                     {modalMode === "EDIT" && "Sửa hồ sơ bệnh án"}
                     {modalMode === "VIEW" && "Xem hồ sơ bệnh án"}
                   </Dialog.Title>
 
-                  {/* === THAY ĐỔI 2: CẬP NHẬT KHUNG THÔNG TIN BỆNH NHÂN === */}
                   {selectedAptForRecord && (
                     <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
                       <p className="text-sm text-gray-600 mb-1">Bệnh nhân:</p>
@@ -607,12 +877,48 @@ const AppointmentComponent = () => {
                       </p>
                     </div>
                   )}
-                  {/* === KẾT THÚC THAY ĐỔI 2 === */}
 
-                  {/* === 9. VÔ HIỆU HÓA FORM KHI 'VIEW' === */}
-                  <fieldset disabled={modalMode === "VIEW"}>
+                  {/* Loading/Error khi VIEW/EDIT */}
+                  {["VIEW", "EDIT"].includes(modalMode) && isMrcLoading && (
+                    <div className="rounded-md bg-indigo-50 p-3 mb-3 text-sm text-indigo-700">
+                      Đang tải hồ sơ bệnh án...
+                    </div>
+                  )}
+                  {["VIEW", "EDIT"].includes(modalMode) && mrcError && (
+                    <div className="rounded-md bg-red-50 p-3 mb-3 text-sm text-red-700">
+                      Không thể tải hồ sơ bệnh án:{" "}
+                      {mrcError?.message || "Lỗi không xác định"}
+                    </div>
+                  )}
+
+                  {/* Chip trạng thái đơn thuốc nếu có */}
+                  {!isMrcLoading && !mrcError && (
+                    (() => {
+                      const mapLabel = {
+                        PENDING: "Đơn thuốc chờ duyệt",
+                        VERIFIED: "Đơn thuốc đã duyệt",
+                        REJECTED: "Đơn thuốc bị từ chối",
+                      };
+                      return currentPresStatus ? (
+                        <div className="mb-3">
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                            {mapLabel[currentPresStatus] ||
+                              `Trạng thái: ${currentPresStatus}`}
+                          </span>
+                          {isEditLocked && (
+                            <span className="ml-2 text-xs font-medium text-red-600">
+                              (Đã duyệt — không thể chỉnh sửa)
+                            </span>
+                          )}
+                        </div>
+                      ) : null;
+                    })()
+                  )}
+
+                  {/* Vô hiệu hóa form khi VIEW hoặc EDIT nhưng VERIFIED */}
+                  <fieldset disabled={modalMode === "VIEW" || isEditLocked}>
                     <div className="flex flex-col gap-4">
-                      {/* Form (giữ nguyên) */}
+                      {/* Form */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -668,7 +974,7 @@ const AppointmentComponent = () => {
                         </div>
                       </div>
 
-                      {/* Khu vực Đơn thuốc (Prescription) */}
+                      {/* Đơn thuốc */}
                       <div className="border-t border-gray-200 pt-4 mt-2">
                         <h4 className="text-lg font-semibold text-gray-800 mb-3">
                           Đơn thuốc
@@ -681,8 +987,8 @@ const AppointmentComponent = () => {
                                 key={index}
                                 className="p-3 border rounded-lg bg-gray-50 relative"
                               >
-                                {/* Ẩn nút xóa khi VIEW */}
-                                {modalMode !== "VIEW" && (
+                                {/* Ẩn nút xóa khi VIEW hoặc EDIT locked */}
+                                {!(modalMode === "VIEW" || isEditLocked) && (
                                   <button
                                     type="button"
                                     onClick={() => removeMedicine(index)}
@@ -764,8 +1070,8 @@ const AppointmentComponent = () => {
                           )}
                         </div>
 
-                        {/* Ẩn nút thêm thuốc khi VIEW */}
-                        {modalMode !== "VIEW" && (
+                        {/* Ẩn nút thêm thuốc khi VIEW hoặc EDIT locked */}
+                        {!(modalMode === "VIEW" || isEditLocked) && (
                           <button
                             type="button"
                             onClick={addMedicine}
@@ -796,7 +1102,7 @@ const AppointmentComponent = () => {
                     </div>
                   </fieldset>
 
-                  {/* Thông báo lỗi (Giữ nguyên) */}
+                  {/* Thông báo lỗi */}
                   {recordModalError && (
                     <div className="rounded-md bg-red-50 p-3 mt-4">
                       <p className="text-sm font-medium text-red-800">
@@ -805,7 +1111,7 @@ const AppointmentComponent = () => {
                     </div>
                   )}
 
-                  {/* === 10. CẬP NHẬT NÚT MODAL === */}
+                  {/* Nút Modal */}
                   <div className="flex justify-end gap-3 mt-6">
                     <button
                       type="button"
@@ -813,16 +1119,15 @@ const AppointmentComponent = () => {
                       onClick={closeRecordModal}
                       disabled={isSubmitting}
                     >
-                      {/* Nếu là VIEW thì là "Đóng", còn lại là "Hủy" */}
                       {modalMode === "VIEW" ? "Đóng" : "Hủy"}
                     </button>
 
-                    {/* Ẩn nút "Lưu" khi ở chế độ VIEW */}
-                    {modalMode !== "VIEW" && (
+                    {/* Ẩn nút Lưu khi VIEW hoặc EDIT nhưng VERIFIED */}
+                    {!(modalMode === "VIEW" || isEditLocked) && (
                       <button
                         type="button"
                         className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:bg-gray-400"
-                        onClick={handleSaveRecord} // <-- Đổi tên hàm
+                        onClick={handleEditRecord}
                         disabled={isSubmitting}
                       >
                         {isSubmitting
