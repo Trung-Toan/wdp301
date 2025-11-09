@@ -64,7 +64,6 @@ exports.getByPatient = async (req, res) => {
 
 /**
  * Controller để lấy slots available của bác sĩ trong ngày
- * GET /api/appointments/doctors/:doctorId/slots/available
  */
 exports.getAvailableSlots = async (req, res) => {
     try {
@@ -92,7 +91,6 @@ exports.getAvailableSlots = async (req, res) => {
 
 /**
  * Controller để kiểm tra slot availability
- * GET /api/appointments/slots/:slotId/check-availability
  */
 exports.checkSlotAvailability = async (req, res) => {
     try {
