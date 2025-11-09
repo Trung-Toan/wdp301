@@ -5,7 +5,6 @@ const patientSchema = new Schema(
   {
     patient_code: { type: String, unique: true },
     user_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    // Location preference for proximity filtering
     province_code: { type: String, index: true },
     ward_code: { type: String, index: true },
     blood_type: { type: String },
@@ -17,7 +16,6 @@ const patientSchema = new Schema(
   { timestamps: true }
 );
 
-//  Middleware: Tự động sinh mã bệnh nhân 8 số không trùng lặp
 patientSchema.pre("save", async function (next) {
   if (this.patient_code) return next();
 
@@ -35,7 +33,6 @@ patientSchema.pre("save", async function (next) {
   next();
 });
 
-// Fix lỗi model load trùng
 const Patient =
   mongoose.models.Patient || mongoose.model("Patient", patientSchema, "patients");
 
