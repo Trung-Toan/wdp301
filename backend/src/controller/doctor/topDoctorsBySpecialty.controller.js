@@ -11,7 +11,7 @@ async function getTopDoctorsBySpecialtyController(req, res) {
         const { limit = 10, statuses } = req.query;
 
         // Parse statuses nếu có (ví dụ: "SCHEDULED,APPROVE,COMPLETED")
-        let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED']; // Default
+        let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'];
         if (statuses) {
             parsedStatuses = typeof statuses === 'string'
                 ? statuses.split(',').map(s => s.trim())
@@ -64,7 +64,6 @@ async function getTopDoctorsBySingleSpecialtyController(req, res) {
             });
         }
 
-        // Parse statuses nếu có
         let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'];
 
         if (statuses) {
