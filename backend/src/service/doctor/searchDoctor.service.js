@@ -23,22 +23,18 @@ async function searchDoctors({
         { $lookup: { from: "specialties", localField: "specialty_id", foreignField: "_id", as: "specialties" } }
     );
     const and = [];
-    // Lọc theo phòng khám: ID hoặc tên
     if (clinicId) {
         const cid = toObjectId(clinicId);
         if (cid) and.push({ clinic_id: cid });
         else and.push({ "clinic.name": new RegExp(String(clinicId).trim(), "i") });
     }
-    // Lọc theo chuyên khoa: ID hoặc tên
     if (specialtyId) {
         const sid = toObjectId(specialtyId);
         if (sid) and.push({ specialty_id: { $in: [sid] } });
         else and.push({ "specialties.name": new RegExp(String(specialtyId).trim(), "i") });
     }
-    // Lọc theo địa chỉ phòng khám
     if (provinceCode) and.push({ "clinic.address.province.code": String(provinceCode) });
     if (wardCode) and.push({ "clinic.address.ward.code": String(wardCode) });
-    // Tìm kiếm tổng hợp theo q
     if (q && q.trim()) {
         const rx = new RegExp(q.trim(), "i");
         and.push({
@@ -54,7 +50,6 @@ async function searchDoctors({
         });
     }
     if (and.length) pipeline.push({ $match: { $and: and } });
-    // Sort whitelist
     const sortMap = {
         createdAt: { createdAt: 1 },
         "-createdAt": { createdAt: -1 },
