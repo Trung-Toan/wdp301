@@ -108,7 +108,7 @@ exports.getRecordDetail = async (req, res) => {
 
 exports.requestAccess = async (req, res) => {
     try {
-        const { id } = req.params; // record id
+        const { id } = req.params;
         const { doctor_id } = req.body || {};
         const updated = await MedicalRecord.findByIdAndUpdate(id, { $push: { access_requests: { doctor_id, status: "PENDING", requested_at: new Date() } } }, { new: true }).lean();
         return ok(res, updated);
@@ -133,8 +133,7 @@ exports.updateAccessRequest = async (req, res) => {
 
         // Tìm access request bằng _id hoặc index
         let reqItem = null;
-        
-        // Nếu requestId có format "INDEX:X" (cho các request cũ không có _id)
+
         if (requestId.startsWith('INDEX:')) {
             const index = parseInt(requestId.replace('INDEX:', ''));
             if (!isNaN(index) && index >= 0 && index < rec.access_requests.length) {
@@ -145,7 +144,7 @@ exports.updateAccessRequest = async (req, res) => {
             if (rec.access_requests.id) {
                 reqItem = rec.access_requests.id(requestId);
             }
-            
+
             // Nếu không tìm thấy, thử tìm bằng index (nếu requestId là số)
             if (!reqItem && !isNaN(requestId)) {
                 const index = parseInt(requestId);
@@ -153,22 +152,21 @@ exports.updateAccessRequest = async (req, res) => {
                     reqItem = rec.access_requests[index];
                 }
             }
-            
+
             // Nếu vẫn không tìm thấy, tìm bằng string comparison của _id
             if (!reqItem) {
-                reqItem = rec.access_requests.find(req => 
+                reqItem = rec.access_requests.find(req =>
                     req._id && req._id.toString() === requestId
                 );
             }
         }
 
         if (!reqItem) return fail(res, new Error("Access request not found"), 404);
-        
-        // Đảm bảo reason không bị mất khi update
+
         if (!reqItem.reason) {
             reqItem.reason = "Yêu cầu truy cập hồ sơ bệnh án";
         }
-        
+
         reqItem.status = status;
 
         if (status === 'APPROVED') reqItem.approved_at = new Date();
@@ -182,9 +180,9 @@ exports.updateAccessRequest = async (req, res) => {
 
         await rec.save();
         return ok(res, rec.toObject());
-    } catch (err) { 
+    } catch (err) {
         console.error("Error in updateAccessRequest:", err);
-        return fail(res, err); 
+        return fail(res, err);
     }
 };
 
