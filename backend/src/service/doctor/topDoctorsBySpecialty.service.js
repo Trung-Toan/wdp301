@@ -144,7 +144,6 @@ async function getTopDoctorsBySpecialty({ limit = 10, statuses = ['SCHEDULED', '
 
         const results = await Appointment.aggregate(pipeline);
 
-        // Nhóm lại theo specialty để trả về dạng object
         const groupedBySpecialty = {};
 
         results.forEach(item => {
@@ -157,7 +156,6 @@ async function getTopDoctorsBySpecialty({ limit = 10, statuses = ['SCHEDULED', '
                 };
             }
 
-            // Format doctor specialties
             const doctorSpecialties = (item.doctor.specialties || []).map(s => ({
                 _id: s._id,
                 name: s.name,
@@ -171,10 +169,8 @@ async function getTopDoctorsBySpecialty({ limit = 10, statuses = ['SCHEDULED', '
             });
         });
 
-        // Chuyển thành array và sort lại
         const finalResult = Object.values(groupedBySpecialty);
 
-        // Sort theo tên chuyên ngành
         finalResult.sort((a, b) => {
             const nameA = a.specialty.name || '';
             const nameB = b.specialty.name || '';
@@ -293,7 +289,6 @@ async function getTopDoctorsBySingleSpecialty(specialtyId, { limit = 10, statuse
 
         const doctors = await Appointment.aggregate(pipeline);
 
-        // Lấy thông tin chuyên ngành
         const specialty = await Specialty.findById(specialtyId).lean();
 
         return {

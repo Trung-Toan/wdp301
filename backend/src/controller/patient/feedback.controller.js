@@ -12,7 +12,6 @@ async function createFeedback(req, res) {
 
         const { doctorId, rating, comment, isAnonymous } = req.body;
 
-        // Validation
         if (!doctorId) {
             return res.status(400).json({ success: false, message: "doctorId is required" });
         }
@@ -30,7 +29,6 @@ async function createFeedback(req, res) {
             isAnonymous: isAnonymous || false
         });
 
-        // Populate để trả về thông tin đầy đủ
         await feedback.populate({
             path: "patient_id",
             select: "patient_code user_id",
@@ -48,14 +46,14 @@ async function createFeedback(req, res) {
     } catch (error) {
         console.error("createFeedback error:", error);
         const message = error.message || "Server error";
-        
+
         if (message.includes("not found")) {
             return res.status(404).json({ success: false, message });
         }
         if (message.includes("already submitted")) {
             return res.status(409).json({ success: false, message });
         }
-        
+
         return res.status(500).json({ success: false, message: "Server error" });
     }
 }
@@ -134,11 +132,11 @@ async function deleteFeedback(req, res) {
     } catch (error) {
         console.error("deleteFeedback error:", error);
         const message = error.message || "Server error";
-        
+
         if (message.includes("not found") || message.includes("permission")) {
             return res.status(404).json({ success: false, message });
         }
-        
+
         return res.status(500).json({ success: false, message: "Server error" });
     }
 }

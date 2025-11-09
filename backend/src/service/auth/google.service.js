@@ -57,11 +57,10 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
         acc = await Account.findById(link.account_id);
         console.log('Found existing account via AuthProviders:', acc ? acc._id : 'null');
 
-        // If AuthProviders exists but Account doesn't, clean up the orphaned record
         if (!acc) {
             console.log('Orphaned AuthProviders record found, cleaning up...');
             await AuthProviders.deleteOne({ _id: link._id });
-            link = null; // Reset link so we can proceed with normal account creation
+            link = null;
         }
     }
 
@@ -83,7 +82,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
         if (acc) {
             // Case 2a: Email đã tồn tại -> Link Google account với account hiện có và đăng nhập
             console.log('✅ Email đã tồn tại, linking Google account với account hiện có:', acc._id);
-            
+
             // Cập nhật email_verified nếu cần
             if (!acc.email_verified && email_verified) {
                 await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
@@ -213,11 +212,11 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     // Duplicate key - có thể account đã được tạo bởi request khác
                     acc = await Account.findOne({ email: emailCanon });
                     if (!acc) throw err;
-                    
+
                     // Thử tạo link nếu chưa có
-                    const existingLink = await AuthProviders.findOne({ 
-                        provider: "google", 
-                        provider_user_id 
+                    const existingLink = await AuthProviders.findOne({
+                        provider: "google",
+                        provider_user_id
                     });
                     if (!existingLink) {
                         await AuthProviders.create({
@@ -233,12 +232,6 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
             }
         }
     }
-
-    console.log('Final account state before token generation:', {
-        accountExists: !!acc,
-        accountId: acc?._id,
-        accountRole: acc?.role
-    });
 
     if (!acc) {
         throw new Error('Account is null after processing. This should not happen.');

@@ -1,7 +1,6 @@
 const nodemailer = require("nodemailer");
 const config = require("../config/env");
 
-// Chuẩn hoá kiểu dữ liệu cho SMTP
 const SMTP_PORT = Number(config.SMTP_PORT || 587);
 const SMTP_SECURE =
     String(config.SMTP_SECURE || "").toLowerCase() === "true" || SMTP_PORT === 465;
@@ -65,7 +64,6 @@ function bookingHtml({ booking, doctor, clinic, specialty, slot }) {
 
     // (Optional) Nếu bạn thực chất muốn link tới chi tiết lịch khám theo id cuộc hẹn:
     // const bookingDetailUrl = `${appUrl}#/appointments/${booking?._id}`;
-    // Ở đây giữ nguyên ý định của bạn với route /patient/:id
     const patientUrl = `${appUrl}#/patient/${patientId}`;
 
     return `

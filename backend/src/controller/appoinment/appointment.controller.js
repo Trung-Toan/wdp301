@@ -69,7 +69,6 @@ exports.getByPatient = async (req, res) => {
 
 /**
  * Controller để lấy slots available của bác sĩ trong ngày
- * GET /api/appointments/doctors/:doctorId/slots/available
  */
 exports.getAvailableSlots = async (req, res) => {
     try {
@@ -97,7 +96,6 @@ exports.getAvailableSlots = async (req, res) => {
 
 /**
  * Controller để kiểm tra slot availability
- * GET /api/appointments/slots/:slotId/check-availability
  */
 exports.checkSlotAvailability = async (req, res) => {
     try {
@@ -115,7 +113,6 @@ exports.checkSlotAvailability = async (req, res) => {
 
         const result = await svc.checkSlotAvailability(slotId, new Date(scheduledDate));
 
-        // Kiểm tra bệnh nhân đã có lịch trong slot này chưa
         if (patientId && mongoose.Types.ObjectId.isValid(patientId)) {
             const existingAppointment = await Appointment.findOne({
                 slot_id: new mongoose.Types.ObjectId(slotId),

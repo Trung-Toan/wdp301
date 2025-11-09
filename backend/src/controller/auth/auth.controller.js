@@ -13,7 +13,6 @@ const Account = require('../../model/auth/Account');
 exports.googleLogin = async (req, res) => {
     try {
         const { id_token } = req.body;
-        // Log để debug
         console.log('Google Login Debug:', {
             hasIdToken: !!id_token,
             idTokenLength: id_token?.length,
@@ -34,7 +33,6 @@ exports.googleLogin = async (req, res) => {
             ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
         });
 
-        // account ở đây có _id theo contract ở function trên
         res.json({
             ok: true,
             account: { id: account._id, email: account.email, role: account.role, email_verified: account.email_verified },
@@ -92,12 +90,10 @@ exports.registerPatients = async (req, res) => {
             ward_code,
         } = req.body;
 
-        // Kiểm tra xác nhận mật khẩu
         if (password !== confirmPassword) {
             return res.status(400).json({ ok: false, message: "Mật khẩu xác nhận không khớp" });
         }
 
-        // Validate role
         const userRole = role || "PATIENT";
         if (!["PATIENT", "ADMIN_CLINIC"].includes(userRole)) {
             return res.status(400).json({ ok: false, message: "Loại tài khoản không hợp lệ" });
@@ -106,7 +102,6 @@ exports.registerPatients = async (req, res) => {
         let account, user, additionalData;
 
         if (userRole === "PATIENT") {
-            // Đăng ký bệnh nhân
             account = await svc.registerPatients({
                 username,
                 email,
@@ -115,7 +110,6 @@ exports.registerPatients = async (req, res) => {
                 role: userRole,
             });
 
-            // Tạo bản ghi user liên kết với account_id
             user = await User.create({
                 full_name: fullName,
                 dob,
@@ -124,7 +118,6 @@ exports.registerPatients = async (req, res) => {
                 account_id: account._id,
             });
 
-            // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
             const patient = new Patient({
                 user_id: user._id,
                 province_code: province_code || null,
@@ -136,12 +129,10 @@ exports.registerPatients = async (req, res) => {
                 surgery_history: [],
             });
 
-            // Middleware pre("save") sẽ tự sinh patient_code
             await patient.save();
             additionalData = { patient };
 
         } else if (userRole === "ADMIN_CLINIC") {
-            // Đăng ký chủ phòng khám
             account = await svc.registerClinicOwner({
                 username,
                 email,
@@ -166,7 +157,6 @@ exports.registerPatients = async (req, res) => {
             additionalData = { adminClinic };
         }
 
-        // Trả kết quả về cho FE
         res.json({
             ok: true,
             message: userRole === "PATIENT"

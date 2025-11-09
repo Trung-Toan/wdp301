@@ -71,7 +71,6 @@ exports.getTopSpecialties = async (req, res) => {
 
 /**
  * Controller để lấy chi tiết thống kê của một specialty
- * GET /api/clinics/:clinicId/statistics/specialties/:specialtyId
  */
 exports.getSpecialtyDetails = async (req, res) => {
     try {
@@ -93,7 +92,6 @@ exports.getSpecialtyDetails = async (req, res) => {
 
 /**
  * Controller để lấy thống kê hiệu suất bác sĩ
- * GET /api/clinics/:clinicId/statistics/doctors/performance
  */
 exports.getDoctorPerformance = async (req, res) => {
     try {
@@ -117,7 +115,6 @@ exports.getDoctorPerformance = async (req, res) => {
 
 /**
  * Controller để lấy thống kê chi tiết hiệu suất của một bác sĩ
- * GET /api/clinics/:clinicId/statistics/doctors/:doctorId
  */
 exports.getDoctorDetailedPerformance = async (req, res) => {
     try {

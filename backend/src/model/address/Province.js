@@ -7,16 +7,16 @@ const provinceSchema = new Schema({
         required: true,
         unique: true,
         index: true
-    }, // "01"
+    },
     fullName: {
         type: String,
         required: true,
         index: true
-    }, // "Thành phố Hà Nội"
+    },
     shortName: {
         type: String,
         index: true
-    }, // "Hà Nội"
+    },
     type: {
         type: String,
         enum: ["Thành phố", "Tỉnh"],
@@ -27,7 +27,6 @@ const provinceSchema = new Schema({
     collection: "provinces"
 });
 
-// Index cho tìm kiếm
 provinceSchema.index({ code: 1 });
 provinceSchema.index({ fullName: 1 });
 provinceSchema.index({ shortName: 1 });

@@ -41,14 +41,12 @@ const clinicSchema = new Schema(
       required: true,
     },
 
-    // Tham chiếu chi tiết địa chỉ (nếu bạn có collection AddressDetail)
     address_detail: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AddressDetail",
       required: false,
     },
 
-    // Địa chỉ đơn giản hóa
     address: {
       province: {
         code: { type: String, required: true },
@@ -72,14 +70,12 @@ const clinicSchema = new Schema(
   }, { timestamps: true }
 );
 
-// ==== Indexes ====
 clinicSchema.index({ "address.province.code": 1, "address.ward.code": 1 });
 clinicSchema.index({ name: 1 });
 clinicSchema.index({ status: 1 });
 clinicSchema.index({ specialties: 1 });
 clinicSchema.index({ created_by: 1 });
 
-// ==== Middleware tự động sinh fullAddress ====
 clinicSchema.pre("save", function (next) {
   if (this.specialties?.length) {
     const set = new Set(this.specialties.map(id => id.toString()));

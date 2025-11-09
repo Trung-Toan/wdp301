@@ -9,7 +9,6 @@ const userSchema = new Schema(
     address: { type: String },
     avatar_url: { type: String },
     account_id: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
-    // Settings
     notify_upcoming: { type: Boolean, },
     notify_results: { type: Boolean, },
     notify_marketing: { type: Boolean, default: false },
@@ -20,10 +19,10 @@ const userSchema = new Schema(
 );
 
 userSchema.virtual("patients", {
-  ref: "Patient",         // tên model Patient
-  localField: "_id",      // _id của User
-  foreignField: "user_id", // user_id trong Patient
-  justOne: true,          // mỗi user chỉ có 1 patient
+  ref: "Patient",
+  localField: "_id",
+  foreignField: "user_id",
+  justOne: true,
 });
 
 userSchema.set("toObject", { virtuals: true });

@@ -6,21 +6,21 @@ const wardSchema = new Schema({
         type: String,
         required: true,
         index: true
-    }, // "00004"
+    },
     fullName: {
         type: String,
         required: true,
         index: true
-    }, // "Phường Ba Đình"
+    },
     shortName: {
         type: String,
         index: true
-    }, // "Ba Đình"
+    },
     type: {
         type: String,
         enum: ["Phường", "Xã", "Thị trấn"],
         required: true
-    }, // "Phường"
+    },
     provinceCode: {
         type: String,
         required: true,
@@ -32,7 +32,6 @@ const wardSchema = new Schema({
     collection: "wards"
 });
 
-// Index cho tìm kiếm
 wardSchema.index({ code: 1 });
 wardSchema.index({ fullName: 1 });
 wardSchema.index({ provinceCode: 1 });

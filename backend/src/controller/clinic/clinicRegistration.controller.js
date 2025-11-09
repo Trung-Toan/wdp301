@@ -72,9 +72,17 @@ exports.approveClinic = async (req, res) => {
   try {
     const { clinic_id } = req.params;
     const { review_notes } = req.body;
+<<<<<<< HEAD
     // admin_system_id có thể không có nếu AdminSystem record chưa được tạo trong DB
     // Sử dụng req.user.sub (Account ID) làm fallback nếu admin_system_id không có
     const admin_system_id = req.user.admin_system_id || req.user.sub;
+=======
+    const admin_system_id = req.user.admin_system_id;
+
+    if (!admin_system_id) {
+      return badRequestResponse(res, "Không có quyền duyệt phòng khám", 403);
+    }
+>>>>>>> dinh
 
     const clinic = await clinicRegistrationService.approveClinic({
       clinic_id,

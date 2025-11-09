@@ -35,7 +35,7 @@ async function getTopDoctorsNearMeController(req, res) {
         const data = await getTopDoctors({
             limit,
             provinceCode: patient.province_code,
-            wardCode: null, // Không dùng ward_code nữa
+            wardCode: null,
         });
 
         return res.json({ success: true, total: data.length, data });

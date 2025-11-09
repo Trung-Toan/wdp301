@@ -7,16 +7,13 @@ const Clinic = require("../../model/clinic/Clinic");
 async function getAllClinic({ status, q } = {}) {
     const filter = {};
 
-    // Lọc theo trạng thái
     if (status) filter.status = status;
 
-    // Tìm kiếm theo tên hoặc mô tả
     if (q) {
         const rx = new RegExp(q.trim(), "i");
         filter.$or = [{ name: rx }, { description: rx }];
     }
 
-    // Truy vấn clinic cùng với các bảng liên quan
     const clinics = await Clinic.find(filter)
         .populate({
             path: "specialties",
@@ -33,7 +30,6 @@ async function getAllClinic({ status, q } = {}) {
         .sort({ name: 1 })
         .lean();
 
-    // Trả về dữ liệu được xử lý gọn gàng
     return clinics.map((clinic) => ({
         id: clinic._id,
         name: clinic.name,

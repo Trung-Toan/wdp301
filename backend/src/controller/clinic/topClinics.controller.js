@@ -7,8 +7,7 @@ async function getTopClinicsController(req, res) {
     try {
         const { limit = 10, statuses } = req.query;
 
-        // Parse statuses nếu có (ví dụ: "SCHEDULED,APPROVE,COMPLETED")
-        let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED']; // Default
+        let parsedStatuses = ['SCHEDULED', 'APPROVE', 'COMPLETED'];
 
         if (statuses) {
             parsedStatuses = typeof statuses === 'string'
