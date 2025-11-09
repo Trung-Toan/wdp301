@@ -58,7 +58,7 @@ exports.approveClinic = async (req, res) => {
   try {
     const { clinic_id } = req.params;
     const { review_notes } = req.body;
-    const admin_system_id = req.user.admin_system_id; // Từ middleware auth
+    const admin_system_id = req.user.admin_system_id;
 
     if (!admin_system_id) {
       return badRequestResponse(res, "Không có quyền duyệt phòng khám", 403);
