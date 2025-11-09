@@ -15,9 +15,13 @@ import {
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
+// Giả định các API này đã được import chính xác
 import { APPOINTMENT_API } from "../../api/assistant/assistant.api";
 import { useDataByUrl } from "../../utility/data.utils";
+// Giả định MEDICAL_RECORD_API được export từ file này
+import { MEDICAL_RECORD_API } from "./../../api/assistant/assistant.api";
 
+// Helper lấy ngày hiện tại
 const getLocalDate = () => {
   const today = new Date();
   const year = today.getFullYear();
@@ -26,7 +30,7 @@ const getLocalDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Cấu trúc form bệnh án
+// Cấu trúc form bệnh án ban đầu
 const initialRecordFormData = {
   diagnosis: "",
   symptoms: "",
@@ -35,7 +39,6 @@ const initialRecordFormData = {
   prescription: {
     instruction: "",
     medicines: [],
-    // có thể có status từ API, để trống ở init
   },
   status: "PRIVATE",
 };
@@ -74,7 +77,6 @@ const AppointmentComponent = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const { MEDICAL_RECORD_API } = require("./../../api/assistant/assistant.api");
 
   // Modal Hồ sơ
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -160,6 +162,8 @@ const AppointmentComponent = () => {
     if (mode === "VIEW" || mode === "EDIT") {
       const appointmentId = item?.appointment?.appointment_id;
       if (appointmentId) setApp_id_get_data(appointmentId);
+    } else {
+      setApp_id_get_data(null); // Đảm bảo reset khi CREATE
     }
 
     setIsRecordModalOpen(true);
@@ -219,14 +223,50 @@ const AppointmentComponent = () => {
     });
   };
 
-  // Lưu hồ sơ
-  const handleSaveRecord = async () => {
+  // Helper chuẩn bị body request
+  const prepareRequestBody = () => {
+    const safeSymptoms = (recordFormData.symptoms || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+    const safeAttachments = (recordFormData.attachments || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+
+    const appointment_id = selectedAptForRecord.appointment.appointment_id;
+    const patient_id = selectedAptForRecord.patient.patient_id;
+    const doctor_id = selectedAptForRecord.appointment.doctor_id;
+
+    return {
+      diagnosis: recordFormData.diagnosis,
+      symptoms: safeSymptoms,
+      notes: recordFormData.notes,
+      attachments: safeAttachments,
+      prescription: {
+        instruction: recordFormData.prescription?.instruction || "",
+        medicines: (recordFormData.prescription?.medicines || [])
+          .filter((m) => m.name && m.name.trim() !== "")
+          .map((med) => ({
+            name: med.name,
+            dosage: med.dosage,
+            frequency: med.frequency,
+            duration: med.duration,
+            note: med.note || "",
+          })),
+      },
+      status: recordFormData.status || "PRIVATE",
+      patient_id,
+      doctor_id,
+    };
+  }
+
+  // ==============
+  // TẠO HỒ SƠ MỚI
+  // ==============
+  const handleCreateRecord = async () => {
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
-      return;
-    }
-    if (modalMode === "VIEW") {
-      closeRecordModal();
       return;
     }
 
@@ -234,50 +274,18 @@ const AppointmentComponent = () => {
     setRecordModalError("");
 
     try {
-      const safeSymptoms = (recordFormData.symptoms || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s);
-      const safeAttachments = (recordFormData.attachments || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s);
-
+      const requestBody = prepareRequestBody();
       const appointment_id = selectedAptForRecord.appointment.appointment_id;
-      const patient_id = selectedAptForRecord.patient.patient_id;
-      const doctor_id = selectedAptForRecord.appointment.doctor_id;
-
-      const requestBody = {
-        diagnosis: recordFormData.diagnosis,
-        symptoms: safeSymptoms,
-        notes: recordFormData.notes,
-        attachments: safeAttachments,
-        prescription: {
-          instruction: recordFormData.prescription?.instruction || "",
-          medicines: (recordFormData.prescription?.medicines || [])
-            .filter((m) => m.name && m.name.trim() !== "")
-            .map((med) => ({
-              name: med.name,
-              dosage: med.dosage,
-              frequency: med.frequency,
-              duration: med.duration,
-              note: med.note || "",
-            })),
-        },
-        status: recordFormData.status || "PRIVATE",
-        patient_id,
-        doctor_id,
-      };
 
       const response = await MEDICAL_RECORD_API.createMedicalRecord(
         appointment_id,
         requestBody
       );
 
-      if (response?.data?.success) {
+      if (response?.data?.ok) {
         alert("Tạo hồ sơ bệnh án thành công!");
         closeRecordModal();
-        refetch();
+        refetch(); // Refetch danh sách để cập nhật trạng thái
       } else {
         setRecordModalError(
           response?.data?.message || response?.message || "Tạo hồ sơ thất bại."
@@ -293,13 +301,30 @@ const AppointmentComponent = () => {
     }
   };
 
-   const handleEditRecord = async () => {
+  // ==============
+  // SỬA HỒ SƠ ĐÃ CÓ
+  // ==============
+  const handleEditRecord = async () => {
+    // 1. Validation cơ bản
     if (!recordFormData.diagnosis) {
       setRecordModalError("Vui lòng nhập chẩn đoán.");
       return;
     }
-    if (modalMode === "VIEW") {
-      closeRecordModal();
+
+    // Đảm bảo chúng ta đang ở mode EDIT
+    if (modalMode !== "EDIT") {
+      console.warn("handleEditRecord được gọi khi không ở mode 'EDIT'");
+      return;
+    }
+
+    // 2. Lấy recordId từ dữ liệu đã fetch (biến 'mrc' từ useDataByUrl)
+    // Dữ liệu mrc có cấu trúc: { ok, message, data: [record] }
+    const apiRecord = Array.isArray(mrc?.data) ? mrc.data[0] : null;
+    const recordId = apiRecord?._id; // Đây là ID của MedicalRecord
+
+    if (!recordId) {
+      setRecordModalError("Không tìm thấy ID hồ sơ bệnh án. Vui lòng thử tải lại.");
+      setIsSubmitting(false); // Dừng lại nếu không có ID
       return;
     }
 
@@ -307,19 +332,20 @@ const AppointmentComponent = () => {
     setRecordModalError("");
 
     try {
+      // 3. Chuẩn bị requestBody (chỉ chứa các trường cần cập nhật)
       const safeSymptoms = (recordFormData.symptoms || "")
         .split(",")
         .map((s) => s.trim())
-        .filter((s) => s);
+        .filter(Boolean); // .filter(Boolean) loại bỏ các chuỗi rỗng
+
       const safeAttachments = (recordFormData.attachments || "")
         .split(",")
         .map((s) => s.trim())
-        .filter((s) => s);
+        .filter(Boolean);
 
-      const appointment_id = selectedAptForRecord.appointment.appointment_id;
-      const patient_id = selectedAptForRecord.patient.patient_id;
-      const doctor_id = selectedAptForRecord.appointment.doctor_id;
-
+      // Body chỉ chứa dữ liệu thay đổi.
+      // Không cần gửi lại patient_id hay doctor_id vì backend
+      // chỉ làm $set cho dữ liệu bạn gửi lên.
       const requestBody = {
         diagnosis: recordFormData.diagnosis,
         symptoms: safeSymptoms,
@@ -329,46 +355,53 @@ const AppointmentComponent = () => {
           instruction: recordFormData.prescription?.instruction || "",
           medicines: (recordFormData.prescription?.medicines || [])
             .filter((m) => m.name && m.name.trim() !== "")
-            .map((med) => ({
-              name: med.name,
-              dosage: med.dosage,
-              frequency: med.frequency,
-              duration: med.duration,
-              note: med.note || "",
+            .map((m) => ({
+              name: m.name,
+              dosage: m.dosage,
+              frequency: m.frequency,
+              duration: m.duration,
+              note: m.note || "",
             })),
+          // Lưu ý: Nếu trạng thái đơn thuốc (VERIFIED, PENDING)
+          // được quản lý ở một endpoint khác, bạn có thể không cần gửi nó ở đây.
         },
         status: recordFormData.status || "PRIVATE",
-        patient_id,
-        doctor_id,
       };
 
+      // 4. Gọi API với đúng ID hồ sơ bệnh án
+      // Backend mong đợi: /medical-records/:recordId
       const response = await MEDICAL_RECORD_API.updateMedicalRecord(
-        appointment_id,
+        recordId, // Truyền ID của hồ sơ bệnh án
         requestBody
       );
 
-      if (response?.data?.success) {
-        alert("Tạo hồ sơ bệnh án thành công!");
+      if (response?.data?.ok) {
+        alert("Cập nhật hồ sơ bệnh án thành công!");
         closeRecordModal();
-        refetch();
+        refetch(); // Tải lại danh sách appointments
       } else {
-        setRecordModalError(
-          response?.data?.message || response?.message || "Tạo hồ sơ thất bại."
-        );
+        // Lỗi từ backend (ví dụ: "không tìm thấy" hoặc "đã duyệt")
+        setRecordModalError(response?.data?.message || response?.message || "Cập nhật hồ sơ thất bại.");
       }
     } catch (error) {
-      console.error("❌ Lỗi tạo hồ sơ:", error);
-      setRecordModalError(
-        error.response?.data?.message || error.message || "Lỗi hệ thống"
-      );
+      console.error("❌ Lỗi cập nhật hồ sơ:", error);
+      setRecordModalError(error.response?.data?.message || error.message || "Lỗi hệ thống");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  // Handler chung cho nút "Lưu"
+  const handleSaveOrEdit = () => {
+    if (modalMode === "CREATE") {
+      handleCreateRecord();
+    } else if (modalMode === "EDIT") {
+      handleEditRecord();
     }
   };
 
 
   // ======================
-  // Fetch hồ sơ theo app_id_get_data (VIEW/EDIT) — API trả về { ok, message, data: [record] }
+  // Fetch hồ sơ theo app_id_get_data (VIEW/EDIT)
   // ======================
   const recordUrl = app_id_get_data
     ? MEDICAL_RECORD_API.GET_MEDICAL_RECORD_BY_APPOINTMENT_ID(app_id_get_data)
@@ -383,7 +416,7 @@ const AppointmentComponent = () => {
     key: "get-medical-record-by-appointment-id",
   });
 
-  // Khi dữ liệu mrc về ở chế độ VIEW/EDIT, đổ vào form (luôn dùng DB làm nguồn chuẩn)
+  // Khi dữ liệu mrc về ở chế độ VIEW/EDIT, đổ vào form
   useEffect(() => {
     if (!["VIEW", "EDIT"].includes(modalMode)) return;
     if (!mrc || isMrcLoading || mrcError) return;
@@ -541,7 +574,7 @@ const AppointmentComponent = () => {
               </span>
             )}
             <ViewRecordBtn />
-            {recordPrescriptionStatus !== "VERIFIED" && <EditRecordBtn />}
+            <EditRecordBtn />
           </>
         );
       }
@@ -582,11 +615,7 @@ const AppointmentComponent = () => {
                 Đơn thuốc chờ duyệt
               </span>
             )}
-            {!recordPrescriptionStatus && (
-              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-                Đã hoàn tất
-              </span>
-            )}
+            <ViewRecordBtn />
           </>
         );
       }
@@ -629,7 +658,7 @@ const AppointmentComponent = () => {
               </span>
             )}
             <ViewRecordBtn />
-            {recordPrescriptionStatus !== "VERIFIED" && <EditRecordBtn />}
+            <EditRecordBtn />
           </>
         );
       }
@@ -705,11 +734,10 @@ const AppointmentComponent = () => {
                       setSelectedSlot(slot._id);
                       setPage(1);
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                      selectedSlot === slot._id
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${selectedSlot === slot._id
                         ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+                      }`}
                   >
                     Ca: {formatTime(slot.start_time)} -{" "}
                     {formatTime(slot.end_time)}
@@ -1127,14 +1155,14 @@ const AppointmentComponent = () => {
                       <button
                         type="button"
                         className="px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:bg-gray-400"
-                        onClick={handleEditRecord}
+                        onClick={handleSaveOrEdit}
                         disabled={isSubmitting}
                       >
                         {isSubmitting
                           ? "Đang lưu..."
                           : modalMode === "EDIT"
-                          ? "Lưu thay đổi"
-                          : "Lưu bệnh án"}
+                            ? "Lưu thay đổi"
+                            : "Lưu bệnh án"}
                       </button>
                     )}
                   </div>
