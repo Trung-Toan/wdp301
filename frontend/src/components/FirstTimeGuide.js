@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import StepByStepGuide from './StepByStepGuide';
-import { useAccessibility } from '../contexts/AccessibilityContext';
 
 export default function FirstTimeGuide({ page = 'home', forceShow = false, onComplete: externalOnComplete }) {
     const [showGuide, setShowGuide] = useState(false);
-    const { settings } = useAccessibility();
-    const isElderly = settings.elderlyMode || settings.autoEnabled;
 
     useEffect(() => {
         // Kiểm tra role của user - chỉ hiển thị cho PATIENT và user thường (không có role)
@@ -427,12 +424,14 @@ export default function FirstTimeGuide({ page = 'home', forceShow = false, onCom
     if (steps.length === 0) return null;
 
     return (
-        <StepByStepGuide
-            steps={steps}
-            title={getPageTitle()}
-            onComplete={handleComplete}
-            showSkip={true}
-        />
+        <div className="animate-fadeIn">
+            <StepByStepGuide
+                steps={steps}
+                title={getPageTitle()}
+                onComplete={handleComplete}
+                showSkip={true}
+            />
+        </div>
     );
 }
 
