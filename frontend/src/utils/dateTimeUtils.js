@@ -121,20 +121,34 @@ export const formatTimeRange = (startTime, endTime) => {
 /**
  * Format ISO time string thành HH:mm (dùng cho slot time)
  * @param {string} isoString - ISO time string (ví dụ: "2024-01-15T14:30:00.000Z")
+ * @param {boolean} useUTC - Nếu true, dùng UTC timezone. Nếu false, dùng local timezone (mặc định: true)
  * @returns {string} - Thời gian format (ví dụ: "14:30")
  */
-export const formatISOTime = (isoString) => {
-    if (!isoString) return "N/A";
-    
-    try {
-        const date = new Date(isoString);
-        if (isNaN(date.getTime())) return "N/A";
-        
-        return formatTime(date);
-    } catch (error) {
-        console.error("Error formatting ISO time:", error);
-        return "N/A";
-    }
+export const formatISOTime = (isoString, useUTC = true) => {
+  if (!isoString) return "N/A";
+  
+  const dateObj = new Date(isoString);
+
+  // Kiểm tra lỗi "Invalid Date"
+  if (isNaN(dateObj.getTime())) {
+    console.error(`Invalid Date value for ISO string: ${isoString}`);
+    return "Lỗi định dạng thời gian"; 
+  }
+
+  // Sử dụng toLocaleTimeString
+  const options = {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  };
+
+  // Nếu useUTC = true, dùng UTC timezone (cho slot booking)
+  // Nếu useUTC = false, dùng local timezone (cho appointment display)
+  if (useUTC) {
+    options.timeZone = 'UTC';
+  }
+
+  return dateObj.toLocaleTimeString("vi-VN", options);
 };
 
 /**

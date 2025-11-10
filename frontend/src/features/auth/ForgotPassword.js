@@ -4,6 +4,7 @@ import { Mail, ArrowLeft, KeyRound, CheckCircle, AlertCircle } from "lucide-reac
 import { Spinner } from "react-bootstrap";
 import { findEmailAndResetPassword } from "../../api/auth/ForgotPassword/forgorPasswordApi";
 import "../../styles/ForgotPassword.css";
+import FirstTimeGuide from "../../components/FirstTimeGuide";
 
 export default function ForgotPassword() {
     const navigate = useNavigate();
@@ -188,6 +189,7 @@ export default function ForgotPassword() {
                     </div>
                 </form>
             </div>
+            <FirstTimeGuide page="forgot_password" />
         </div>
     );
 }

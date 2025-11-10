@@ -12,6 +12,7 @@ import { medicalRecordPatientApi } from "../../../../../api/patients/medicalReco
 import AccessRequests from "./RecordsTab/AccessRequests";
 import Notes from "./RecordsTab/Notes";
 import Prescriptions from "./RecordsTab/Prescriptions";
+import FirstTimeGuide from "../../../../../components/FirstTimeGuide";
 
 export default function RecordDetail({ recordId, onBack }) {
     const [record, setRecord] = useState(null);
@@ -185,6 +186,7 @@ export default function RecordDetail({ recordId, onBack }) {
                 <Prescriptions records={[record]} />
                 <AccessRequests records={[record]} />
             </div>
+            <FirstTimeGuide page="record_detail" />
         </div>
     );
 }

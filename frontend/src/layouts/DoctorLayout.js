@@ -7,7 +7,6 @@ import {
   FileText,
   ClipboardCheck,
   ChatLeftText,
-  PersonBadge,
   List,
   X,
   BoxArrowRight,
@@ -118,7 +117,7 @@ const DoctorLayout = () => {
       link: "/doctor/record-requests",
     },
     {
-      title: "Hồ sơ bệnh án",
+      title: "Phê duyệt hồ sơ bệnh án",
       icon: <ClipboardCheck size={20} />,
       link: "/doctor/medical-records",
     },
@@ -126,11 +125,6 @@ const DoctorLayout = () => {
       title: "Feedback",
       icon: <ChatLeftText size={20} />,
       link: "/doctor/feedback",
-    },
-    {
-      title: "Quản lý trợ lý",
-      icon: <PersonBadge size={20} />,
-      link: "/doctor/assistants",
     },
   ];
 

@@ -39,7 +39,7 @@ export default function LocationSelector({ onChange }) {
     };
 
     return (
-        <div className="flex flex-col gap-1">
+        <div className="hero-location-selector-inline">
             <div className="hero-select-wrapper">
                 <select
                     onChange={handleProvinceChange}

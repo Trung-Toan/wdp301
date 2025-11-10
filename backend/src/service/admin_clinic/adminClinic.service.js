@@ -12,7 +12,11 @@ const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
 
-//tạo bác sĩ
+/* ======================================
+ *               DOCTOR
+ * ====================================== */
+
+// tạo bác sĩ
 exports.createDoctor = async (payload) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -21,30 +25,38 @@ exports.createDoctor = async (payload) => {
     const {
       username,
       password,
+      email,
       phone_number,
       full_name,
       clinic_id,
       specialty_id,
     } = payload;
 
-    //Tạo tài khoản
+    // Chuẩn hoá & kiểm tra specialty_id: mảng, unique, không rỗng
+    const specRaw = Array.isArray(specialty_id) ? specialty_id : [];
+    const spec = [...new Set(specRaw.map(String))].filter(Boolean);
+    if (spec.length === 0) {
+      throw new Error("Phải chọn ít nhất 1 chuyên khoa");
+    }
+
+    // Tạo tài khoản
     const hashedPassword = await hashPassword(password);
     const acc = await Account.create(
       [
         {
-          username: username.trim(),
-          email: `doc-${username}@example.com`,
+          username: username?.trim(),
+          email: email?.trim(),
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "DOCTOR",
           status: "ACTIVE",
-          email_verified: false,
+          email_verified: true,
         },
       ],
       { session }
     );
 
-    //Tạo User (liên kết Account)
+    // Tạo User (liên kết Account)
     const user = await User.create(
       [
         {
@@ -58,7 +70,7 @@ exports.createDoctor = async (payload) => {
       { session }
     );
 
-    //Tạo Doctor (liên kết User)
+    // Tạo Doctor (liên kết User)
     const doctor = await Doctor.create(
       [
         {
@@ -67,7 +79,7 @@ exports.createDoctor = async (payload) => {
           description: "",
           experience: "",
           clinic_id,
-          specialty_id,
+          specialty_id: spec, // model đã có validator & dedupe pre-save
           user_id: user[0]._id,
         },
       ],
@@ -97,7 +109,11 @@ exports.createDoctor = async (payload) => {
   }
 };
 
-//tạo trợ lý
+/* ======================================
+ *              ASSISTANT
+ * ====================================== */
+
+// tạo trợ lý
 exports.createAssistant = async (payload) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -105,33 +121,45 @@ exports.createAssistant = async (payload) => {
   try {
     const {
       username,
-      password,
+      email,
       phone_number,
+      password,
       full_name,
       note,
-      type,
+      type,        // mong đợi: mảng ["NURSE","RECEPTIONIST"]
+      roles,       // (dự phòng) nếu FE lỡ gửi roles[]
       doctor_id,
       clinic_id,
     } = payload;
 
-    //Tạo tài khoản
+    // Chuẩn hoá & kiểm tra role: gom từ type/roles → unique + sạch + không rỗng
+    const roleRaw = [
+      ...(Array.isArray(type) ? type : []),
+      ...(Array.isArray(roles) ? roles : []),
+    ];
+    const roleArr = [...new Set(roleRaw.map(String))].filter(Boolean);
+    if (roleArr.length === 0) {
+      throw new Error("Phải chọn ít nhất 1 vai trò (type)");
+    }
+
+    // Tạo tài khoản
     const hashedPassword = await hashPassword(password);
     const acc = await Account.create(
       [
         {
-          username: username.trim(),
-          email: `assistant-${username}@example.com`,
+          username: `${username?.trim()}`,
+          email: email?.trim(),
           phone_number: phone_number?.trim(),
           password: hashedPassword,
           role: "ASSISTANT",
           status: "ACTIVE",
-          email_verified: false,
+          email_verified: true,
         },
       ],
       { session }
     );
 
-    //Tạo User (liên kết Account)
+    // Tạo User (liên kết Account)
     const user = await User.create(
       [
         {
@@ -145,12 +173,12 @@ exports.createAssistant = async (payload) => {
       { session }
     );
 
-    //Tạo Assistant (liên kết User)
+    // Tạo Assistant (liên kết User)
     const assistant = await Assistant.create(
       [
         {
           note,
-          type,
+          type: roleArr, // model Assistant: mảng enum + validator + dedupe pre-save
           doctor_id,
           clinic_id,
           user_id: user[0]._id,
@@ -164,7 +192,7 @@ exports.createAssistant = async (payload) => {
 
     return {
       ok: true,
-      message: "Tạo trợ lý thành cong",
+      message: "Tạo trợ lý thành công",
       data: {
         account: acc[0],
         user: user[0],
@@ -182,15 +210,21 @@ exports.createAssistant = async (payload) => {
   }
 };
 
-//Lấy danh sách trợ lý theo clinic
+/* ======================================
+ *         ASSISTANTS (READ/DELETE)
+ * ====================================== */
+
+// Lấy danh sách trợ lý theo clinic
 exports.getAssistantsByClinic = async (clinicId) => {
   const data = await Assistant.find({ clinic_id: clinicId })
     .populate({
       path: "user_id",
-      populate: { path: "account_id", select: "username phone_number status" },
+      select: "full_name avatar_url account_id",
+      populate: { path: "account_id", select: "username email phone_number status" },
     })
     .populate({
       path: "doctor_id",
+      select: "user_id",
       populate: { path: "user_id", select: "full_name" },
     })
     .populate({
@@ -202,7 +236,7 @@ exports.getAssistantsByClinic = async (clinicId) => {
   return { ok: true, data };
 };
 
-//Lấy danh sách trợ lý từ tất cả các phòng khám mà admin quản lý
+// Lấy danh sách trợ lý từ tất cả các phòng khám mà admin quản lý
 exports.getAssistantsByAdminClinic = async (adminAccountId) => {
   try {
     // Lấy user tương ứng với account id
@@ -249,16 +283,21 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
   }
 };
 
-//xoá trợ lý
+// Xoá trợ lý
 exports.deleteAssistant = async (assistantId) => {
   const assistant = await Assistant.findById(assistantId);
   if (!assistant) throw new Error("Assistant not found");
 
   await Assistant.findByIdAndDelete(assistantId);
+  // (tuỳ nghiệp vụ) có thể xoá kèm User/Account trong một transaction
   return true;
 };
 
-//xoá bác sĩ (bao gồm Doctor, User, Account)
+/* ======================================
+ *        DOCTOR (DELETE)
+ * ====================================== */
+
+// Xoá bác sĩ (bao gồm Doctor, User, Account)
 exports.deleteDoctor = async (doctorId, adminAccountId) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -325,7 +364,11 @@ exports.deleteDoctor = async (doctorId, adminAccountId) => {
   }
 };
 
-//Lấy clinic mà admin clinic hiện tại quản lý
+/* ======================================
+ *        CLINIC / ADMIN HELPERS
+ * ====================================== */
+
+// Lấy clinic mà admin clinic hiện tại quản lý
 exports.getClinicByAdmin = async (accountId) => {
   try {
     const user = await User.findOne({ account_id: accountId });
@@ -351,7 +394,7 @@ exports.getClinicByAdmin = async (accountId) => {
   }
 };
 
-//Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+// Lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
 exports.getAllClinicsByAdmin = async (accountId) => {
   try {
     const user = await User.findOne({ account_id: accountId });
@@ -376,32 +419,38 @@ exports.getAllClinicsByAdmin = async (accountId) => {
   }
 };
 
-//lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
+/* ======================================
+ *         DOCTORS (READ LIST)
+ * ====================================== */
+
+// Lấy danh sách bác sĩ theo clinic mà admin_clinic đang quản lý
 exports.getDoctorsByAdminClinic = async (adminAccountId) => {
   try {
-    //Lấy user tương ứng với account id
     const user = await User.findOne({ account_id: adminAccountId });
     if (!user) throw new Error("Không tìm thấy user của admin clinic");
 
-    //Tìm bản ghi AdminClinic tương ứng
     const adminClinic = await AdminClinic.findOne({ user_id: user._id });
     if (!adminClinic) throw new Error("Không tìm thấy admin clinic");
 
-    //Lấy clinic do admin clinic này tạo
     const clinics = await Clinic.find({ created_by: adminClinic._id });
     if (!clinics.length) return [];
 
     const clinicIds = clinics.map((c) => c._id);
 
-    //Lấy danh sách bác sĩ thuộc các clinic đó
     const doctors = await Doctor.find({ clinic_id: { $in: clinicIds } })
       .populate({
         path: "user_id",
-        populate: { path: "account_id", model: "Account" },
-        select: "full_name avatar_url",
+        // ✅ chỉ include, KHÔNG kèm -__v
+        select: "full_name avatar_url account_id",
+        populate: {
+          path: "account_id",
+          model: "Account",
+          select: "email phone_number status username", // chỉ include
+        },
       })
-      .populate("specialty_id")
-      .populate("clinic_id");
+      .populate({ path: "specialty_id", select: "name" })
+      .populate({ path: "clinic_id", select: "name status" })
+      .lean();
 
     return doctors;
   } catch (err) {
@@ -409,6 +458,10 @@ exports.getDoctorsByAdminClinic = async (adminAccountId) => {
     throw err;
   }
 };
+
+/* ======================================
+ *               LICENSE
+ * ====================================== */
 
 // Lấy danh sách chứng chỉ (PENDING) từ tất cả các phòng khám mà admin quản lý
 exports.getPendingDoctorLicenses = async (adminAccountId) => {
@@ -472,7 +525,7 @@ exports.getPendingDoctorLicenses = async (adminAccountId) => {
   }
 };
 
-//cập nhật trạng thái chứng chỉ
+// cập nhật trạng thái chứng chỉ
 exports.updateLicenseStatus = async (
   adminAccountId,
   licenseId,

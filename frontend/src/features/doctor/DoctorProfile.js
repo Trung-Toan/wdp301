@@ -5,9 +5,7 @@ import {
   Mail,
   Phone,
   MapPin,
-  Calendar,
   GraduationCap,
-  Briefcase,
   FileText,
   Edit2,
   Save,
@@ -16,7 +14,6 @@ import {
   Building2,
   Award,
   Clock,
-  Shield,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -520,8 +517,8 @@ const DoctorProfile = () => {
                       {doctorProfile.user?.gender === "MALE"
                         ? "Nam"
                         : doctorProfile.user?.gender === "FEMALE"
-                        ? "Nữ"
-                        : doctorProfile.user?.gender || "-"}
+                          ? "Nữ"
+                          : doctorProfile.user?.gender || "-"}
                     </p>
                   )}
                 </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { specialtyApi } from "../../../../api";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -122,6 +123,7 @@ export default function SpecialtiesList() {
                     )}
                 </div>
             </section>
+            <FirstTimeGuide page="specialty_list" />
         </div>
     );
 }

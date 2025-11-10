@@ -8,6 +8,7 @@ import {
     ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -333,6 +334,7 @@ export default function FacilityBooking() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="facility_booking" />
         </div>
     );
 }

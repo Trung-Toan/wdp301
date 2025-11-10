@@ -11,6 +11,7 @@ import {
 import NotificationDropdown from "./NotificationDropdown";
 import { logoutApi } from "../../../api/auth/logout/LogoutApt";
 import { useAuth } from "../../../hooks/useAuth";
+import { useAccessibility } from "../../../contexts/AccessibilityContext";
 import "../../../styles/Header.css";
 
 export default function Header() {
@@ -24,6 +25,8 @@ export default function Header() {
   const user = authUser || sessionUser;
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { settings } = useAccessibility();
+  const isLarge = settings.largeFont || settings.elderlyMode;
   const dropdownRef = useRef(null);
   const dropdownButtonRef = useRef(null);
   const dropdownMenuRef = useRef(null);

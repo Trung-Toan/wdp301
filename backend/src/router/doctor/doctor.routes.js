@@ -196,6 +196,13 @@ router.put(
   DoctorController.updateProfile
 );
 
+router.put(
+  "/change-password",
+  authRequired,
+  roleRequired("DOCTOR"),
+  DoctorController.changePassword
+);
+
 // POST /upload-license
 // upload license of doctor
 router.post(

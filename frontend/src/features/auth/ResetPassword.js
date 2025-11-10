@@ -5,6 +5,7 @@ import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, KeyRound } from "lucide-re
 import { Spinner } from "react-bootstrap";
 import { AUTHEN_API } from "../../api/api";
 import "../../styles/ResetPassword.css";
+import FirstTimeGuide from "../../components/FirstTimeGuide";
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams();
@@ -278,6 +279,7 @@ export default function ResetPassword() {
                     </div>
                 </form>
             </div>
+            <FirstTimeGuide page="forgot_password" />
         </div>
     );
 }
