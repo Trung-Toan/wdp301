@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
 import { adminclinicAPI } from "../api/admin-clinic/adminclinicAPI";
+import { useAuth } from "../hooks/useAuth";
+import { logoutApi } from "../api/auth/logout/LogoutApt";
 
 const ClinicAdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,6 +24,7 @@ const ClinicAdminLayout = () => {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     const fetchClinic = async () => {
@@ -111,9 +114,39 @@ const ClinicAdminLayout = () => {
     ];
   }
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // Gọi API logout với refreshToken
+      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await logoutApi.logout(refreshToken);
+      }
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+      // Vẫn tiếp tục logout local nếu API thất bại
+    } finally {
+      // Gọi logout từ useAuth để clear auth context và sessionStorage
+      logout();
+      
+      // Clear localStorage để đảm bảo logout hoàn toàn
+      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("patient");
+      localStorage.removeItem("account");
+      localStorage.removeItem("refreshToken");
+      
+      // Clear sessionStorage (useAuth đã clear một số, nhưng clear lại để chắc chắn)
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("access_token");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("patient");
+      sessionStorage.removeItem("account");
+      sessionStorage.removeItem("refreshToken");
+      
+      // Navigate về trang login
+      navigate("/login", { replace: true });
+    }
   };
 
   if (loading) {
