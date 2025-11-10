@@ -6,7 +6,8 @@ import {
     ChevronLeft,
     MapPin,
     Hospital,
-    Send
+    Send,
+    AlertCircle
 } from "lucide-react";
 import { formatDateShort } from "../../../../utils/dateTimeUtils";
 import { Link, useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ import { doctorApi } from "../../../../api";
 import { useAuth } from "../../../../hooks/useAuth";
 import { axiosInstance } from "../../../../api/axiosInstance";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
+import ComplaintForm from "../../../customer/components/ComplaintForm";
 import "../../../../styles/DoctorDetailContent.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -43,6 +45,7 @@ export function DoctorDetailContent({ doctorId }) {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [showComplaintForm, setShowComplaintForm] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -187,6 +190,19 @@ export function DoctorDetailContent({ doctorId }) {
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* Complaint Button */}
+                                    {user && (
+                                        <div className="mt-4">
+                                            <button
+                                                onClick={() => setShowComplaintForm(true)}
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all duration-200 font-semibold text-sm"
+                                            >
+                                                <AlertCircle className="h-4 w-4" />
+                                                Khiếu nại về bác sĩ
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -485,6 +501,18 @@ export function DoctorDetailContent({ doctorId }) {
                 </div>
             </div>
             <FirstTimeGuide page="doctor_detail" />
+
+            {/* Complaint Form Modal */}
+            {showComplaintForm && (
+                <ComplaintForm
+                    complaintType="DOCTOR"
+                    doctorId={doctorId}
+                    onClose={() => setShowComplaintForm(false)}
+                    onSuccess={() => {
+                        setShowComplaintForm(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

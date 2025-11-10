@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Star, Phone, Building2, Calendar, ChevronLeft, Loader2, Send, MapPin, Clock, Mail, Globe, Stethoscope, Users } from "lucide-react";
+import { Star, Phone, Building2, Calendar, ChevronLeft, Loader2, Send, MapPin, Clock, Mail, Globe, Stethoscope, Users, AlertCircle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { clinicApi } from "../../../api/clinic/clinicApi";
 import { useAuth } from "../../../hooks/useAuth";
 import ClinicBookingForm from "../components/ClinicBookingForm";
 import { formatDate } from "../../../utils/dateTimeUtils";
 import FirstTimeGuide from "../../../components/FirstTimeGuide";
+import ComplaintForm from "../../customer/components/ComplaintForm";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -54,6 +55,9 @@ export default function FacilityDetail() {
 
     // Booking form state
     const [showBookingForm, setShowBookingForm] = useState(false);
+    
+    // Complaint form state
+    const [showComplaintForm, setShowComplaintForm] = useState(false);
 
     // Fetch clinic detail
     useEffect(() => {
@@ -351,6 +355,19 @@ export default function FacilityDetail() {
                                                 </span>
                                             </div>
                                         </div>
+
+                                        {/* Complaint Button */}
+                                        {user && (
+                                            <div className="mt-4">
+                                                <button
+                                                    onClick={() => setShowComplaintForm(true)}
+                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all duration-200 font-semibold text-sm"
+                                                >
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    Khiếu nại về phòng khám
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1081,6 +1098,19 @@ export default function FacilityDetail() {
                     }}
                 />
             )}
+
+            {/* Complaint Form Modal */}
+            {showComplaintForm && (
+                <ComplaintForm
+                    complaintType="CLINIC"
+                    clinicId={clinicId}
+                    onClose={() => setShowComplaintForm(false)}
+                    onSuccess={() => {
+                        setShowComplaintForm(false);
+                    }}
+                />
+            )}
+
             <FirstTimeGuide page="facility_detail" />
         </div>
     );
