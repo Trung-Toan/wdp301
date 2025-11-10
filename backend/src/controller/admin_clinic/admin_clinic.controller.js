@@ -25,6 +25,46 @@ exports.dashboard = async (req, res, next) => {
   }
 };
 
+exports.feedback = async (req, res, next) => {
+  try {
+    const adminClinic = await adminClinicService.findAdminClinicByAccountId(
+      req.user?.sub
+    );
+
+    // Các filter từ query
+    const {
+      q,                    // từ khóa tìm kiếm: comment / tên bệnh nhân / tên bác sĩ / tên cơ sở
+      bucket,               // "positive" | "neutral" | "negative"
+      rating,               // "1", "4,5", ...
+      doctor_id,            // 1 ID hoặc nhiều ID (comma)
+      clinic_id,            // 1 ID (chỉ các clinic thuộc admin)
+      start_date,           // YYYY-MM-DD
+      end_date,             // YYYY-MM-DD (inclusive)
+      page = "1",           // trang
+      limit = "15",         // kích thước trang
+      sort = "newest",      // newest | oldest | rating_desc | rating_asc
+    } = req.query;
+
+    const filters = {
+      q,
+      bucket,
+      rating,
+      doctor_id,
+      clinic_id,
+      start_date,
+      end_date,
+      page: Number(page),
+      limit: Math.min(Number(limit) || 15, 100),
+      sort,
+    };
+
+    const data = await adminClinicService.getFeedback(adminClinic._id, filters);
+    return resUtils.successResponse(res, data, "Lấy dữ liệu feedback thành công");
+  } catch (err) {
+    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+  }
+};
+
 // Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
 exports.createAccountDoctor = async (req, res, next) => {
   try {
@@ -33,7 +73,7 @@ exports.createAccountDoctor = async (req, res, next) => {
     // Nếu có clinic_id trong request body, kiểm tra xem phòng khám có thuộc về admin không
     // Nếu không, lấy phòng khám đầu tiên của admin
     let clinicId = req.body.clinic_id;
-    
+
     if (clinicId) {
       // Validate: kiểm tra clinic_id có thuộc về admin này không
       const allClinicsResult = await getAllClinicsByAdmin(accountId);
@@ -150,13 +190,13 @@ exports.createAccountAssistant = async (req, res, next) => {
 exports.getAssistants = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
-    
+
     // Nếu có query param clinic_id, lấy từ clinic cụ thể
     // Nếu không, lấy từ tất cả clinics của admin
     if (req.query.clinic_id) {
       const clinicResult = await getClinicByAdminSvc(accountId);
       if (!clinicResult.ok) return res.status(400).json(clinicResult);
-      
+
       const clinic = clinicResult.data;
       // Validate clinic_id có thuộc về admin không
       const allClinicsResult = await getAllClinicsByAdmin(accountId);
@@ -172,7 +212,7 @@ exports.getAssistants = async (req, res, next) => {
           });
         }
       }
-      
+
       const result = await getAssistantsByClinic(req.query.clinic_id);
       return res.status(result.ok ? 200 : 400).json(result);
     } else {
@@ -217,7 +257,7 @@ exports.deleteDoctor = async (req, res, next) => {
     }
 
     const result = await deleteDoctorSvc(doctorId, adminAccountId);
-    
+
     if (result.ok) {
       res.status(200).json(result);
     } else {

@@ -2,6 +2,7 @@ import { axiosInstance } from "../axiosInstance";
 
 export const adminclinicAPI = {
   GET_DASHBOARD: "/admin_clinic/dashboard",
+  GET_FEEDBACK: "/admin_clinic/feedback",
   //lấy danh sách chuyên khoa
   getAllSpecialties: () => {
     return axiosInstance.get("/clinic-registration/specialties");

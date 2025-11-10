@@ -10,6 +10,13 @@ router.get(
   adminclinicController.dashboard
 );
 
+router.get(
+  "/feedback",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.feedback
+);
+
 //tạo tài khoản bác sĩ
 router.post(
   "/account",
