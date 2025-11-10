@@ -59,5 +59,26 @@ export const adminSystemAPI = {
   getAdminClinicDetail: (accountId) => {
     return axiosInstance.get(`/admin-system/accounts/${accountId}`);
   },
+
+  // ========== Complaint Management ==========
+  // Lấy danh sách tất cả khiếu nại
+  getAllComplaints: (params = {}) => {
+    return axiosInstance.get("/admin-system/complaints", { params });
+  },
+
+  // Lấy chi tiết khiếu nại
+  getComplaintById: (complaintId) => {
+    return axiosInstance.get(`/admin-system/complaints/${complaintId}`);
+  },
+
+  // Cập nhật trạng thái khiếu nại
+  updateComplaintStatus: (complaintId, data) => {
+    return axiosInstance.put(`/admin-system/complaints/${complaintId}/status`, data);
+  },
+
+  // Lấy thống kê khiếu nại
+  getComplaintStats: () => {
+    return axiosInstance.get("/admin-system/complaints/stats");
+  },
 };
 

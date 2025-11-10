@@ -286,16 +286,6 @@ export function DoctorDetailContent({ doctorId }) {
                                                             <div className="doctor-license-field">
                                                                 <strong>Trạng thái:</strong> {l.status}
                                                             </div>
-                                                            {l.document_url?.length > 0 && (
-                                                                <a
-                                                                    href={getImageUrl(l.document_url[0])}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="doctor-license-link"
-                                                                >
-                                                                    Xem tài liệu
-                                                                </a>
-                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
