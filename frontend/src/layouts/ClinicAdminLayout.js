@@ -11,7 +11,6 @@ import {
   Bell,
   Plus,
   ShieldCheck,
-  Edit2,
   Building2,
 } from "lucide-react";
 import { PersonCircle, BoxArrowRight, People } from "react-bootstrap-icons";
