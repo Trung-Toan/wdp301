@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const accountManagementController = require("../../controller/admin_system/accountManagement.controller");
+const dashboardController = require("../../controller/admin_system/dashboard.controller");
 const authMiddleware = require("../../middleware/auth");
 
 // Middleware xác thực cho admin system
@@ -231,6 +232,39 @@ router.put("/accounts/:accountId/unban", adminSystemAuth, accountManagementContr
  *         description: Forbidden
  */
 router.get("/accounts/:accountId", adminSystemAuth, accountManagementController.getAdminClinicDetail);
+
+/**
+ * @swagger
+ * /api/admin-system/dashboard/stats:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy thống kê dashboard
+ *     description: ADMIN_SYSTEM xem thống kê tổng quan (người dùng, phòng khám, lịch khám, khiếu nại)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     stats:
+ *                       type: object
+ *                     charts:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get("/dashboard/stats", adminSystemAuth, dashboardController.getDashboardStats);
 
 module.exports = router;
 

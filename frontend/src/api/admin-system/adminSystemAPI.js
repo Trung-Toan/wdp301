@@ -80,5 +80,11 @@ export const adminSystemAPI = {
   getComplaintStats: () => {
     return axiosInstance.get("/admin-system/complaints/stats");
   },
+
+  // ========== Dashboard ==========
+  // Lấy thống kê dashboard
+  getDashboardStats: () => {
+    return axiosInstance.get("/admin-system/dashboard/stats");
+  },
 };
 
