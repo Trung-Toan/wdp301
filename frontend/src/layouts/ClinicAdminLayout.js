@@ -46,13 +46,7 @@ const ClinicAdminLayout = () => {
     fetchClinic();
   }, []);
 
-  let menuItems = [
-    {
-      title: "Trang chủ",
-      icon: <House size={20} />,
-      link: "/admin-clinic/dashboard",
-    },
-  ];
+  let menuItems = [];
 
   // Nếu chưa có phòng khám
   if (!clinic) {
@@ -76,6 +70,11 @@ const ClinicAdminLayout = () => {
   else {
     menuItems = [
       ...menuItems,
+      {
+        title: "Trang chủ",
+        icon: <House size={20} />,
+        link: "/admin-clinic/dashboard",
+      },
       {
         title: "Danh sách phòng khám",
         icon: <Building2 size={20} />,
@@ -117,7 +116,9 @@ const ClinicAdminLayout = () => {
   const handleLogout = async () => {
     try {
       // Gọi API logout với refreshToken
-      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      const refreshToken =
+        sessionStorage.getItem("refreshToken") ||
+        localStorage.getItem("refreshToken");
       if (refreshToken) {
         await logoutApi.logout(refreshToken);
       }
@@ -127,7 +128,7 @@ const ClinicAdminLayout = () => {
     } finally {
       // Gọi logout từ useAuth để clear auth context và sessionStorage
       logout();
-      
+
       // Clear localStorage để đảm bảo logout hoàn toàn
       localStorage.removeItem("token");
       localStorage.removeItem("access_token");
@@ -135,7 +136,7 @@ const ClinicAdminLayout = () => {
       localStorage.removeItem("patient");
       localStorage.removeItem("account");
       localStorage.removeItem("refreshToken");
-      
+
       // Clear sessionStorage (useAuth đã clear một số, nhưng clear lại để chắc chắn)
       sessionStorage.removeItem("token");
       sessionStorage.removeItem("access_token");
@@ -143,7 +144,7 @@ const ClinicAdminLayout = () => {
       sessionStorage.removeItem("patient");
       sessionStorage.removeItem("account");
       sessionStorage.removeItem("refreshToken");
-      
+
       // Navigate về trang login
       navigate("/login", { replace: true });
     }
