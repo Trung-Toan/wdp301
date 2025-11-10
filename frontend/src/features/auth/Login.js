@@ -121,15 +121,46 @@ const Login = () => {
     validationSchema: Yup.object({
       username: Yup.string()
         .required("Vui lòng nhập email hoặc tên đăng nhập")
+        .trim()
         .min(3, "Tối thiểu 3 ký tự")
-        .max(255, "Tối đa 255 ký tự"),
+        .max(255, "Tối đa 255 ký tự")
+        .test(
+          "no-whitespace",
+          "Tên đăng nhập không được chứa khoảng trắng",
+          (value) => !value || !/\s/.test(value)
+        ),
       password: Yup.string()
         .required("Vui lòng nhập mật khẩu")
-        .min(6, "Tối thiểu 6 ký tự")
-        .max(100, "Tối đa 100 ký tự"),
+        .min(6, "Mật khẩu phải có tối thiểu 6 ký tự")
+        .max(100, "Mật khẩu không được vượt quá 100 ký tự")
+        .test(
+          "no-empty",
+          "Mật khẩu không được để trống",
+          (value) => value && value.trim().length > 0
+        ),
     }),
-    onSubmit: (values) => {
-      mutation.mutate(values);
+    onSubmit: (values, { setSubmitting }) => {
+      // Trim values before submission
+      const trimmedValues = {
+        username: values.username.trim(),
+        password: values.password.trim(),
+      };
+      
+      // Validate again before submitting
+      if (!trimmedValues.username || !trimmedValues.password) {
+        Swal.fire({
+          icon: "warning",
+          title: "Thông tin không hợp lệ",
+          text: "Vui lòng điền đầy đủ thông tin đăng nhập",
+          timer: 2000,
+          showConfirmButton: true,
+        });
+        setSubmitting(false);
+        return;
+      }
+
+      mutation.mutate(trimmedValues);
+      setSubmitting(false);
     },
   });
 
@@ -273,7 +304,7 @@ const Login = () => {
             <button
               type="submit"
               className="btn-login"
-              disabled={mutation.isLoading}
+              disabled={mutation.isLoading || !formik.isValid || !formik.values.username.trim() || !formik.values.password.trim()}
             >
               {mutation.isLoading ? (
                 <>
