@@ -86,5 +86,21 @@ export const adminSystemAPI = {
   getDashboardStats: () => {
     return axiosInstance.get("/admin-system/dashboard/stats");
   },
+
+  // ========== License Management ==========
+  // Lấy danh sách chứng chỉ hành nghề
+  getAllLicenses: (params = {}) => {
+    return axiosInstance.get("/admin-system/licenses", { params });
+  },
+
+  // Lấy chi tiết chứng chỉ hành nghề
+  getLicenseById: (licenseId) => {
+    return axiosInstance.get(`/admin-system/licenses/${licenseId}`);
+  },
+
+  // Cập nhật trạng thái chứng chỉ (Approve/Reject)
+  updateLicenseStatus: (licenseId, data) => {
+    return axiosInstance.put(`/admin-system/licenses/${licenseId}/status`, data);
+  },
 };
 

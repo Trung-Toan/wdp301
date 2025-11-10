@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const accountManagementController = require("../../controller/admin_system/accountManagement.controller");
 const dashboardController = require("../../controller/admin_system/dashboard.controller");
+const licenseManagementController = require("../../controller/admin_system/licenseManagement.controller");
 const authMiddleware = require("../../middleware/auth");
 
 // Middleware xác thực cho admin system
@@ -265,6 +266,116 @@ router.get("/accounts/:accountId", adminSystemAuth, accountManagementController.
  *         description: Forbidden - Không phải ADMIN_SYSTEM
  */
 router.get("/dashboard/stats", adminSystemAuth, dashboardController.getDashboardStats);
+
+/**
+ * @swagger
+ * /api/admin-system/licenses:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy danh sách chứng chỉ hành nghề
+ *     description: ADMIN_SYSTEM xem danh sách tất cả chứng chỉ hành nghề của bác sĩ
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng mỗi trang
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, valid, expiring, expired, pending, rejected]
+ *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên bác sĩ hoặc số chứng chỉ
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get("/licenses", adminSystemAuth, licenseManagementController.getAllLicenses);
+
+/**
+ * @swagger
+ * /api/admin-system/licenses/{licenseId}:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy chi tiết chứng chỉ hành nghề
+ *     description: ADMIN_SYSTEM xem chi tiết chứng chỉ hành nghề
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licenseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của chứng chỉ
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get("/licenses/:licenseId", adminSystemAuth, licenseManagementController.getLicenseById);
+
+/**
+ * @swagger
+ * /api/admin-system/licenses/{licenseId}/status:
+ *   put:
+ *     tags: [Admin System - Account Management]
+ *     summary: Cập nhật trạng thái chứng chỉ hành nghề
+ *     description: ADMIN_SYSTEM phê duyệt hoặc từ chối chứng chỉ hành nghề
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licenseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của chứng chỉ
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, REJECTED]
+ *               rejectionReason:
+ *                 type: string
+ *                 description: Lý do từ chối (nếu status = REJECTED)
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.put("/licenses/:licenseId/status", adminSystemAuth, licenseManagementController.updateLicenseStatus);
 
 module.exports = router;
 
