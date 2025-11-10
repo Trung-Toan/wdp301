@@ -8,6 +8,20 @@ import {
     ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
+
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function FacilityBooking() {
     const navigate = useNavigate(); // Dùng để quay lại
@@ -293,9 +307,12 @@ export default function FacilityBooking() {
                 <div className="bg-white rounded-2xl shadow-lg p-6 h-fit">
                     <h3 className="text-lg font-semibold mb-4">Thông tin lịch khám</h3>
                     <img
-                        src={bookingInfo.image}
+                        src={bookingInfo.image ? getImageUrl(bookingInfo.image) : "/placeholder.svg"}
                         alt="facility"
                         className="rounded-lg w-full h-40 object-cover mb-4"
+                        onError={(e) => {
+                            e.target.src = "/placeholder.svg";
+                        }}
                     />
                     <p className="font-semibold">{bookingInfo.facilityName}</p>
                     <p className="text-sm text-gray-500 mb-2">
@@ -317,6 +334,7 @@ export default function FacilityBooking() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="facility_booking" />
         </div>
     );
 }

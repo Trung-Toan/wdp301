@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle, AlertCircle, X, Stethoscope, Sparkles, CheckCircle2, LogIn } from "lucide-react";
+import { Calendar, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle, AlertCircle, X, Stethoscope, Sparkles, CheckCircle2, LogIn, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../hooks/useAuth";
 import { useBooking } from "../../../hooks/useBooking";
@@ -13,6 +13,12 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
     const [doctors, setDoctors] = useState([]);
     const [availableSlots, setAvailableSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
+    const [requestLoading, setRequestLoading] = useState(false);
+    const [requestError, setRequestError] = useState(null);
+    const [requestSuccess, setRequestSuccess] = useState(false);
+    const [locationWarning, setLocationWarning] = useState(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingSubmit, setPendingSubmit] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState({
@@ -20,17 +26,175 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
         specialty_id: "",
         scheduled_date: "",
         slot_id: "",
-        full_name: user?.full_name || "",
-        phone: user?.phone || "",
+        full_name: user?.full_name || user?.name || "",
+        phone: user?.phone_number || "",
         email: user?.email || "",
         reason: "",
     });
 
     const [autoAssignDoctor, setAutoAssignDoctor] = useState(true);
 
+    // Hàm lấy tỉnh/thành phố của bệnh nhân
+    const getPatientProvince = () => {
+        if (!user) {
+            console.log("🔍 getPatientProvince: No user");
+            return null;
+        }
+        
+        console.log("🔍 getPatientProvince: Checking user data:", {
+            hasPatient: !!user.patient,
+            patientAddress: user.patient?.address,
+            userAddress: user.address,
+            fullUser: user
+        });
+        
+        // Kiểm tra trong user.patient.address
+        if (user.patient?.address?.province?.name) {
+            console.log("✅ Found in user.patient.address.province.name:", user.patient.address.province.name);
+            return user.patient.address.province.name;
+        }
+        
+        // Kiểm tra trong user.address.province
+        if (user.address?.province?.name) {
+            console.log("✅ Found in user.address.province.name:", user.address.province.name);
+            return user.address.province.name;
+        }
+        
+        // Kiểm tra trong user.address (nếu là string)
+        if (typeof user.address === 'string') {
+            console.log("🔍 Checking user.address string:", user.address);
+            // Cố gắng parse từ string
+            const lowerAddress = user.address.toLowerCase();
+            if (lowerAddress.includes('hồ chí minh') || lowerAddress.includes('hcm') || lowerAddress.includes('tp. hồ chí minh')) {
+                console.log("✅ Parsed from string as HCM");
+                return 'Thành phố Hồ Chí Minh';
+            }
+            if (lowerAddress.includes('hà nội') || lowerAddress.includes('hanoi')) {
+                console.log("✅ Parsed from string as Hanoi");
+                return 'Thành phố Hà Nội';
+            }
+        }
+        
+        // Kiểm tra trong sessionStorage - account, user, patient
+        try {
+            const storedAccount = sessionStorage.getItem("account");
+            const storedUser = sessionStorage.getItem("user");
+            const storedPatient = sessionStorage.getItem("patient");
+            
+            console.log("🔍 Checking sessionStorage:", {
+                hasAccount: !!storedAccount,
+                hasUser: !!storedUser,
+                hasPatient: !!storedPatient
+            });
+            
+            if (storedPatient) {
+                const patient = JSON.parse(storedPatient);
+                console.log("🔍 Parsed patient from storage:", patient);
+                if (patient.address?.province?.name) {
+                    console.log("✅ Found in sessionStorage patient.address.province.name:", patient.address.province.name);
+                    return patient.address.province.name;
+                }
+            }
+            
+            if (storedUser) {
+                const userData = JSON.parse(storedUser);
+                console.log("🔍 Parsed user from storage:", userData);
+                if (userData.address?.province?.name) {
+                    console.log("✅ Found in sessionStorage user.address.province.name:", userData.address.province.name);
+                    return userData.address.province.name;
+                }
+                // Kiểm tra address string trong user
+                if (typeof userData.address === 'string') {
+                    const lowerAddress = userData.address.toLowerCase();
+                    if (lowerAddress.includes('hồ chí minh') || lowerAddress.includes('hcm') || lowerAddress.includes('tp. hồ chí minh')) {
+                        console.log("✅ Parsed from sessionStorage user string as HCM");
+                        return 'Thành phố Hồ Chí Minh';
+                    }
+                    if (lowerAddress.includes('hà nội') || lowerAddress.includes('hanoi')) {
+                        console.log("✅ Parsed from sessionStorage user string as Hanoi");
+                        return 'Thành phố Hà Nội';
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("❌ Error parsing from sessionStorage:", e);
+        }
+        
+        console.log("❌ getPatientProvince: No province found");
+        return null;
+    };
+
+    // Kiểm tra cảnh báo địa điểm khi clinic thay đổi
+    useEffect(() => {
+        if (!clinic || !user) {
+            setLocationWarning(null);
+            return;
+        }
+
+        const clinicProvince = clinic.address?.province?.name || 
+                               (typeof clinic.address?.province === 'string' ? clinic.address.province : null);
+        const patientProvince = getPatientProvince();
+
+        console.log("🔍 Location check:", {
+            clinicProvince,
+            patientProvince,
+            clinicAddress: clinic.address
+        });
+
+        if (!clinicProvince || !patientProvince) {
+            console.log("⚠️ Missing province data, hiding warning");
+            setLocationWarning(null);
+            return;
+        }
+
+        // Chuẩn hóa tên tỉnh/thành phố để so sánh
+        const normalizeProvince = (province) => {
+            const lower = province.toLowerCase().trim();
+            // HCM
+            if (lower.includes('hồ chí minh') || lower.includes('hcm') || lower.includes('tp. hồ chí minh') || 
+                lower.includes('tp hồ chí minh') || lower === 'thành phố hồ chí minh' ||
+                lower.includes('thành phố hồ chí minh')) {
+                return 'HCM';
+            }
+            // Hà Nội
+            if (lower.includes('hà nội') || lower.includes('hanoi') || lower === 'thành phố hà nội' ||
+                lower.includes('thành phố hà nội')) {
+                return 'Hanoi';
+            }
+            return lower;
+        };
+
+        const normalizedClinic = normalizeProvince(clinicProvince);
+        const normalizedPatient = normalizeProvince(patientProvince);
+
+        console.log("🔍 Normalized:", {
+            clinic: normalizedClinic,
+            patient: normalizedPatient,
+            isDifferent: normalizedClinic !== normalizedPatient
+        });
+
+        // Nếu khác nhau, hiển thị cảnh báo
+        if (normalizedClinic !== normalizedPatient) {
+            const isCrossCity = (normalizedClinic === 'HCM' && normalizedPatient === 'Hanoi') || 
+                               (normalizedClinic === 'Hanoi' && normalizedPatient === 'HCM');
+            console.log("⚠️ Location warning detected:", {
+                clinic: clinicProvince,
+                patient: patientProvince,
+                isCrossCity
+            });
+            setLocationWarning({
+                clinic: clinicProvince,
+                patient: patientProvince,
+                isCrossCity
+            });
+        } else {
+            setLocationWarning(null);
+        }
+    }, [clinic, user]);
+
     const loadDoctors = async () => {
         try {
-            const response = await clinicApi.getClinicDoctors(clinic._id, {
+            const response = await clinicApi.getClinicDoctors(clinic?.id || clinic?._id, {
                 specialtyId: formData.specialty_id,
                 limit: 100,
             });
@@ -56,7 +220,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
             // Backend should handle this better
             if (autoAssignDoctor) {
                 // Get any doctor from clinic
-                const response = await clinicApi.getClinicDoctors(clinic._id, {
+                const response = await clinicApi.getClinicDoctors(clinic?.id || clinic?._id, {
                     specialtyId: formData.specialty_id,
                     limit: 1,
                 });
@@ -98,19 +262,72 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const bookingData = {
-            ...formData,
-            clinic_id: clinic._id,
-            patient_id: user?.patient?._id || user?._id,
-            // If auto-assign, don't send doctor_id and slot_id (backend will auto-assign)
-            doctor_id: autoAssignDoctor ? undefined : formData.doctor_id,
-            slot_id: autoAssignDoctor ? undefined : formData.slot_id,
-        };
+        // Kiểm tra cảnh báo chéo thành phố và yêu cầu xác nhận
+        if (locationWarning?.isCrossCity && !pendingSubmit) {
+            setShowConfirmModal(true);
+            return;
+        }
 
-        const result = await createBooking(bookingData);
-        
-        if (result) {
-            if (onSuccess) onSuccess(result);
+        // Tiếp tục submit nếu đã xác nhận hoặc không có cảnh báo
+        await performSubmit();
+    };
+
+    const performSubmit = async () => {
+        try {
+            setRequestLoading(true);
+            setRequestError(null);
+            setRequestSuccess(false);
+            setShowConfirmModal(false);
+
+            const bookingData = {
+                clinic_id: clinic?.id || clinic?._id,
+                specialty_id: formData.specialty_id,
+                scheduled_date: formData.scheduled_date,
+                patient_id: user?.patient?._id || user?._id,
+                auto_assign: autoAssignDoctor,
+                full_name: formData.full_name,
+                phone: formData.phone,
+                email: formData.email,
+                reason: formData.reason,
+            };
+
+            // If not auto-assign, add doctor_id and slot_id
+            if (!autoAssignDoctor) {
+                bookingData.doctor_id = formData.doctor_id;
+                bookingData.slot_id = formData.slot_id;
+            }
+
+            console.log("📤 Booking data being sent:", bookingData);
+            console.log("📋 Form validation check:");
+            console.log("  - specialty_id:", formData.specialty_id || "❌ MISSING");
+            console.log("  - scheduled_date:", formData.scheduled_date || "❌ MISSING");
+            console.log("  - patient_id:", bookingData.patient_id || "❌ MISSING");
+            console.log("  - auto_assign:", autoAssignDoctor);
+            console.log("  - clinic_id:", bookingData.clinic_id || "❌ MISSING");
+
+            let result;
+            
+            // Use clinic booking API when auto-assign is true, or use regular appointment API
+            if (autoAssignDoctor) {
+                const response = await clinicApi.createClinicBooking(bookingData);
+                result = response.data.data;
+            } else {
+                // For manual booking, add clinic_id to appointment data
+                bookingData.clinic_id = clinic?.id || clinic?._id;
+                result = await createBooking(bookingData);
+            }
+            
+            if (result) {
+                setRequestSuccess(true);
+                if (onSuccess) onSuccess(result);
+            }
+        } catch (err) {
+            console.error("Booking error:", err);
+            const errorMessage = err.response?.data?.error || "Đặt lịch thất bại. Vui lòng thử lại.";
+            setRequestError(errorMessage);
+            setPendingSubmit(false); // Reset để có thể thử lại
+        } finally {
+            setRequestLoading(false);
         }
     };
 
@@ -211,8 +428,80 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                     </div>
                 </div>
 
+                {/* Confirmation Modal for Cross-City Booking */}
+                {showConfirmModal && locationWarning?.isCrossCity && (
+                    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-amber-300 animate-fadeIn">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-orange-400/20"></div>
+                                <div className="relative flex items-center gap-4">
+                                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                                        <AlertCircle className="h-8 w-8" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold mb-1 drop-shadow-lg">Xác nhận đặt lịch</h3>
+                                        <p className="text-white/90 text-sm">Khoảng cách xa giữa hai thành phố</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6 space-y-4">
+                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-amber-900">
+                                            <MapPin className="h-5 w-5" />
+                                            <span className="font-semibold">Địa chỉ của bạn:</span>
+                                            <span className="font-bold">{locationWarning.patient}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-amber-900">
+                                            <MapPin className="h-5 w-5" />
+                                            <span className="font-semibold">Địa chỉ phòng khám:</span>
+                                            <span className="font-bold">{locationWarning.clinic}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                                    <p className="text-blue-900 text-sm leading-relaxed">
+                                        <strong className="font-bold">Lưu ý quan trọng:</strong> Khoảng cách giữa <strong>{locationWarning.patient}</strong> và <strong>{locationWarning.clinic}</strong> rất xa (hơn 1,700km). 
+                                        Bạn có chắc chắn muốn tiếp tục đặt lịch không? Hãy đảm bảo bạn có thể sắp xếp thời gian và phương tiện di chuyển.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowConfirmModal(false);
+                                        setPendingSubmit(false);
+                                    }}
+                                    className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 hover:border-gray-400 transition-all font-semibold transform hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setPendingSubmit(true);
+                                        setShowConfirmModal(false);
+                                        await performSubmit();
+                                    }}
+                                    className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                    <CheckCircle className="h-5 w-5" />
+                                    Xác nhận đặt lịch
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Success State */}
-                {success && (
+                {(success || requestSuccess) && (
                     <div className="flex-1 overflow-y-auto p-6 sm:p-8">
                         <div className="text-center py-12">
                             <div className="relative inline-block mb-6">
@@ -238,7 +527,7 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                 )}
 
                 {/* Form */}
-                {!success && (
+                {!(success || requestSuccess) && (
                     <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
                         {/* Doctor Selection Mode */}
                         <div className="bg-gradient-to-br from-sky-50 via-blue-50 to-purple-50 border-2 border-sky-200 rounded-2xl p-5 hover:border-sky-300 transition-all shadow-sm">
@@ -270,19 +559,58 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                             </label>
                         </div>
 
+                        {/* Location Warning */}
+                        {locationWarning && (
+                            <div className={`flex items-start gap-3 p-5 rounded-2xl shadow-sm border-2 ${
+                                locationWarning.isCrossCity 
+                                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300' 
+                                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300'
+                            }`}>
+                                <div className={`flex-shrink-0 p-2 rounded-xl ${
+                                    locationWarning.isCrossCity ? 'bg-amber-100' : 'bg-blue-100'
+                                }`}>
+                                    <AlertCircle className={`h-6 w-6 ${
+                                        locationWarning.isCrossCity ? 'text-amber-600' : 'text-blue-600'
+                                    }`} />
+                                </div>
+                                <div className="flex-1">
+                                    <p className={`font-bold mb-2 text-lg ${
+                                        locationWarning.isCrossCity ? 'text-amber-900' : 'text-blue-900'
+                                    }`}>
+                                        {locationWarning.isCrossCity ? '⚠️ Cảnh báo khoảng cách' : 'ℹ️ Thông tin địa điểm'}
+                                    </p>
+                                    <p className={`text-sm leading-relaxed ${
+                                        locationWarning.isCrossCity ? 'text-amber-800' : 'text-blue-800'
+                                    }`}>
+                                        {locationWarning.isCrossCity ? (
+                                            <>
+                                                Bạn đang ở <strong>{locationWarning.patient}</strong> nhưng đặt lịch khám tại phòng khám ở <strong>{locationWarning.clinic}</strong>. 
+                                                Khoảng cách giữa hai thành phố rất xa, bạn có chắc chắn muốn tiếp tục đặt lịch không?
+                                            </>
+                                        ) : (
+                                            <>
+                                                Bạn đang ở <strong>{locationWarning.patient}</strong> và đặt lịch tại phòng khám ở <strong>{locationWarning.clinic}</strong>. 
+                                                Vui lòng đảm bảo bạn có thể đến đúng giờ hẹn.
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Specialty Selection */}
                         {clinic.specialties && clinic.specialties.length > 0 && (
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                                     <Stethoscope className="h-4 w-4 text-sky-600" />
-                                    Chuyên khoa {!autoAssignDoctor && <span className="text-red-500">*</span>}
+                                    Chuyên khoa <span className="text-red-500">*</span>
                                 </label>
                                 <div className="relative">
                                     <select
                                         value={formData.specialty_id}
                                         onChange={(e) => handleChange("specialty_id", e.target.value)}
                                         className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-white font-medium appearance-none cursor-pointer hover:border-sky-300 transition-colors"
-                                        required={!autoAssignDoctor}
+                                        required
                                     >
                                         <option value="">-- Chọn chuyên khoa --</option>
                                         {clinic.specialties.map((sp) => (
@@ -502,14 +830,14 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                         </div>
 
                         {/* Error */}
-                        {error && (
+                        {(error || requestError) && (
                             <div className="flex items-start gap-3 p-5 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 text-red-700 rounded-2xl shadow-sm">
                                 <div className="flex-shrink-0 p-1.5 bg-red-100 rounded-lg">
                                     <AlertCircle className="h-5 w-5" />
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold mb-1">Có lỗi xảy ra</p>
-                                    <span className="text-sm">{error}</span>
+                                    <span className="text-sm">{error || requestError}</span>
                                 </div>
                             </div>
                         )}
@@ -525,10 +853,10 @@ export default function ClinicBookingForm({ clinic, onClose, onSuccess }) {
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || requestLoading}
                                 className="flex-1 px-6 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
                             >
-                                {loading ? (
+                                {(loading || requestLoading) ? (
                                     <>
                                         <Loader2 className="h-5 w-5 animate-spin" />
                                         Đang xử lý...

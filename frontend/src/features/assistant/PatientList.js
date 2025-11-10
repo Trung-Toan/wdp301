@@ -1,7 +1,4 @@
-"use client";
-
-import { memo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { memo, useState } from "react";
 import {
   Search,
   FileText,
@@ -9,7 +6,6 @@ import {
   X,
   Paperclip,
 } from "react-bootstrap-icons";
-import { getPatients } from "../../services/assistantService";
 import { useDataByUrl } from "../../utility/data.utils";
 import { PATIENT_API } from "../../api/assistant/assistant.api";
 
@@ -45,17 +41,25 @@ const MedicalRecord = ({ record, onClose }) => {
     >
       {/* Nội dung Modal */}
       <div
-        className="bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-full overflow-hidden flex flex-col my-auto transform transition-all duration-300 scale-100 ease-out" // Bo tròn góc và đổ bóng mạnh hơn
+        className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-full overflow-hidden flex flex-col my-auto transform transition-all duration-300 scale-100 ease-out border border-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Modal */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-blue-50">
-          <h2 className="text-2xl font-extrabold text-blue-800">
-            Chi tiết Bệnh án
-          </h2>
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+              <FileText className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                Chi tiết Bệnh án
+              </h2>
+              <p className="text-sm text-gray-600 mt-0.5">Thông tin chi tiết hồ sơ bệnh án</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-gray-500 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200"
+            className="p-2 rounded-full text-gray-500 hover:bg-red-100 hover:text-red-700 transition-colors duration-200"
             title="Đóng"
           >
             <X size={26} />
@@ -190,10 +194,10 @@ const MedicalRecord = ({ record, onClose }) => {
         </div>
 
         {/* Footer Modal */}
-        <div className="p-5 bg-gray-50 border-t border-gray-100 text-right">
+        <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 text-right">
           <button
             onClick={onClose}
-            className="px-8 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-200"
+            className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
           >
             Đóng
           </button>
@@ -203,16 +207,7 @@ const MedicalRecord = ({ record, onClose }) => {
   );
 };
 
-// ================================================
-// === KẾT THÚC: COMPONENT MEDICAL RECORD (POP-UP) ===
-// ================================================
-
-// ================================================
-// ===      COMPONENT CHÍNH: PATIENT LIST       ===
-// ================================================
-
 const PatientList = () => {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState(null);
 
@@ -223,13 +218,6 @@ const PatientList = () => {
   });
 
   const patients = data?.data || [];
-  const pagination = data?.pagination || [];
-
-  const filteredPatients = patients?.filter(
-    (patient) =>
-      patient?.full_name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
-      patient?.phone_number?.includes(searchTerm)
-  );
 
   console.log(patients);
 
@@ -265,33 +253,33 @@ const PatientList = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6 flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
-            <PeopleFill className="text-white" size={32} />
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 flex items-center gap-4 border border-gray-100">
+          <div className="p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-xl">
+            <PeopleFill className="text-white" size={36} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
               Danh sách bệnh nhân
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-600 mt-1 font-medium">
               Tra cứu và xem lịch sử khám của bệnh nhân
             </p>
           </div>
         </div>
 
         {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-md p-6 mb-6 border border-gray-100">
           <div className="relative max-w-md">
             <input
               type="text"
               placeholder="Tìm kiếm theo tên hoặc số điện thoại..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-sm hover:shadow-md"
             />
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500"
+              size={20}
             />
           </div>
         </div>
@@ -314,18 +302,18 @@ const PatientList = () => {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                <thead className="text-xs text-gray-700 uppercase bg-gradient-to-r from-emerald-50 to-teal-50">
                   <tr>
-                    <th className="px-6 py-3 font-semibold">Mã BN</th>
-                    <th className="px-6 py-3 font-semibold">Họ và tên</th>
-                    <th className="px-6 py-3 font-semibold">Email</th>
-                    <th className="px-6 py-3 font-semibold">Số điện thoại</th>
-                    <th className="px-6 py-3 font-semibold">Ngày sinh</th>
-                    <th className="px-6 py-3 font-semibold">Giới tính</th>
-                    <th className="px-6 py-3 font-semibold">Thao tác</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Mã BN</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Họ và tên</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Email</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Số điện thoại</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Ngày sinh</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Giới tính</th>
+                    <th className="px-6 py-4 font-bold text-gray-800">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -353,13 +341,13 @@ const PatientList = () => {
                           <td className="px-6 py-4">{patient?.gender}</td>
                           <td className="px-6 py-4">
                             <button
-                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                              className="p-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-md hover:shadow-lg transform hover:scale-110 active:scale-95"
                               onClick={() =>
                                 handleShowMedicalRecord(patient?.appointment_id)
                               }
                               title="Xem bệnh án"
                             >
-                              <FileText size={16} />
+                              <FileText size={18} />
                             </button>
                           </td>
                         </tr>

@@ -167,12 +167,80 @@ async function deleteNotification(notificationId, accountId) {
     return { message: "Notification deleted successfully" };
 }
 
+/**
+ * Tạo notification cho bệnh nhân khi status lịch khám thay đổi (Duyệt/Hủy)
+ */
+async function createAppointmentStatusUpdateNotification(appointmentData, newStatus) {
+    try {
+        const patient = await Patient.findById(appointmentData.patient_id)
+            .populate({
+                path: "user_id",
+                select: "account_id full_name"
+            })
+            .lean();
+
+        if (!patient || !patient.user_id || !patient.user_id.account_id) {
+            console.error("Patient, user_id, or account_id not found for status update notification");
+            return null;
+        }
+
+        const accountId = patient.user_id.account_id;
+        let title, content, type;
+
+        // Tùy chỉnh thông báo dựa trên trạng thái mới
+        if (newStatus === "APPROVE") {
+            title = "Lịch khám đã được xác nhận";
+            type = "CONFIRMATION"; 
+            content = `Lịch khám của bạn (Mã: ${appointmentData.booking_code}) với ${appointmentData.doctor_id?.user_id?.full_name || "bác sĩ"} vào ngày ${new Date(appointmentData.scheduled_date).getUTCDay()} - ${new Date(appointmentData.scheduled_date).getUTCMonth()} - ${new Date(appointmentData.scheduled_date).getUTCFullYear()} đã được xác nhận.`;
+        } else if (newStatus === "CANCELLED") {
+            title = "Lịch khám đã bị hủy";
+            type = "CANCELLATION"; 
+            content = `Lịch khám của bạn (Mã: ${appointmentData.booking_code}) với ${appointmentData.doctor_id?.user_id?.full_name || "bác sĩ"} vào ngày ${new Date(appointmentData.scheduled_date).getUTCDay()} - ${new Date(appointmentData.scheduled_date).getUTCMonth()} - ${new Date(appointmentData.scheduled_date).getUTCFullYear()} đã bị hủy.`;
+        } else {
+            console.log(`No notification template for status: ${newStatus}`);
+            return null;
+        }
+
+        const notification = new Notification({
+            title: title,
+            type: type,
+            content: content,
+            recipient_id: accountId,
+            recipient_type: "PATIENT",
+            related_appointment: appointmentData._id,
+            related_clinic: appointmentData.clinic_id?._id, 
+            related_doctor: appointmentData.doctor_id?._id, 
+            metadata: {
+                booking_code: appointmentData.booking_code,
+                scheduled_date: appointmentData.scheduled_date,
+                doctor_name: appointmentData.doctor_id?.user_id?.full_name,
+                clinic_name: appointmentData.clinic_id?.name,
+                specialty_name: appointmentData.specialty_id?.name,
+                status: newStatus 
+            }
+        });
+
+        console.log("notification: ", notification);
+
+        await notification.save();
+        return notification;
+
+    } catch (error) {
+        console.error(`Error creating ${newStatus} notification:`, error);
+        // Không ném lỗi để tránh làm hỏng flow chính
+        return null;
+    }
+}
+
+
+
 module.exports = {
     createAppointmentNotification,
     getNotifications,
     markAsRead,
     markAllAsRead,
     getUnreadCount,
-    deleteNotification
+    deleteNotification,
+    createAppointmentStatusUpdateNotification
 };
 

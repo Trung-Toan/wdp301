@@ -10,7 +10,21 @@ import {
 } from "lucide-react";
 import { doctorApi } from "../../../../api";
 import { specialtyApi } from "../../../../api";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import "../../../../styles/SpecialtyDetailContent.css";
+
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function SpecialtyDetail() {
     const { id } = useParams();
@@ -98,11 +112,15 @@ export default function SpecialtyDetail() {
                                     <div className="doctor-avatar-wrapper">
                                         <img
                                             src={
-                                                doctor?.user_id?.avatar_url ||
-                                                "/doctor-placeholder.jpg"
+                                                doctor?.user_id?.avatar_url
+                                                    ? getImageUrl(doctor.user_id.avatar_url)
+                                                    : "/doctor-placeholder.jpg"
                                             }
                                             alt={doctor.title || "Bác sĩ"}
                                             className="doctor-avatar"
+                                            onError={(e) => {
+                                                e.target.src = "/doctor-placeholder.jpg";
+                                            }}
                                         />
                                     </div>
 
@@ -196,6 +214,7 @@ export default function SpecialtyDetail() {
                     </div>
                 )}
             </div>
+            <FirstTimeGuide page="specialty_detail" />
         </div>
     );
 }

@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Building2, MapPin, Phone, Globe, Star, Search } from "lucide-react";
+import { Building2, MapPin, Phone, Globe, Search } from "lucide-react";
 import { clinicApi } from "../../../api";
 import Loading from "../../../components/Loading";
 import Badge from "../../../components/ui/Badge";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
+
+const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function ClinicSearchPage() {
     const [searchParams] = useSearchParams();
@@ -86,9 +100,13 @@ export default function ClinicSearchPage() {
                                     <div className="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
                                         {clinic.logo_url ? (
                                             <img
-                                                src={clinic.logo_url}
+                                                src={getImageUrl(clinic.logo_url)}
                                                 alt={clinic.name}
                                                 className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="h-24 w-24 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></div>';
+                                                }}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
@@ -198,6 +216,7 @@ export default function ClinicSearchPage() {
                     </>
                 )}
             </div>
+            <FirstTimeGuide page="clinic_search" />
         </div>
     );
 }

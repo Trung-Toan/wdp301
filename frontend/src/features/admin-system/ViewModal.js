@@ -6,6 +6,7 @@ import {
   Clock,
   CheckCircle
 } from "lucide-react"
+import { formatDateTime } from "../../utils/dateTimeUtils"
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads"
 
@@ -203,9 +204,52 @@ const ViewModal = ({ data, onClose }) => {
               <h3 className="flex items-center gap-2 text-blue-600 font-semibold mb-3">
                 <Calendar size={18} /> Thông tin đăng ký
               </h3>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Ngày gửi</span>
-                <span>{new Date(data.createdAt).toLocaleString("vi-VN")}</span>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Ngày gửi</span>
+                  <span>{formatDateTime(data.createdAt)}</span>
+                </div>
+                {data.status && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Trạng thái</span>
+                    <span className={`px-2 py-1 rounded text-sm ${
+                      data.status === "ACTIVE" 
+                        ? "bg-green-100 text-green-800" 
+                        : data.status === "PENDING"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : data.status === "REJECTED"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}>
+                      {data.status === "ACTIVE" ? "Đã duyệt" : 
+                       data.status === "PENDING" ? "Chờ duyệt" : 
+                       data.status === "REJECTED" ? "Đã từ chối" : data.status}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Thông tin duyệt (nếu có) */}
+          {data.review_info && data.status === "ACTIVE" && (
+            <div>
+              <h3 className="flex items-center gap-2 text-green-600 font-semibold mb-3">
+                <CheckCircle size={18} /> Thông tin duyệt
+              </h3>
+              <div className="space-y-2">
+                {data.review_info.reviewed_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Ngày duyệt</span>
+                    <span>{formatDateTime(data.review_info.reviewed_at)}</span>
+                  </div>
+                )}
+                {data.review_info.review_notes && (
+                  <div className="pt-2 border-t">
+                    <span className="block text-gray-500 mb-1">Ghi chú duyệt</span>
+                    <p className="text-gray-700">{data.review_info.review_notes}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

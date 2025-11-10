@@ -263,6 +263,38 @@ router.get("/pending", adminSystemAuth, clinicRegistrationController.getPendingC
 
 /**
  * @swagger
+ * /api/clinic-registration/approved:
+ *   get:
+ *     tags: [Clinic Registration]
+ *     summary: Lấy danh sách phòng khám đã được duyệt (Admin System)
+ *     description: Admin System xem danh sách các phòng khám đã được duyệt (status = ACTIVE)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách phòng khám đã duyệt thành công"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Clinic'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/approved", adminSystemAuth, clinicRegistrationController.getApprovedClinics);
+
+/**
+ * @swagger
  * /api/clinic-registration/approve/{clinic_id}:
  *   put:
  *     tags: [Clinic Registration]

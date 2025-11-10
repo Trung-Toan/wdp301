@@ -3,7 +3,19 @@ import { Search, MapPin, Star, Hospital, Award, Stethoscope } from "lucide-react
 import { Link } from "react-router-dom";
 import { doctorApi } from "../../../../api";
 import "../../../../styles/DoctorsListContent.css";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
+
+// Helper function để xử lý URL ảnh
+const getImageUrl = (url) => {
+    if (!url) return null;
+    // Nếu đã là URL đầy đủ (bắt đầu bằng http/https), trả về trực tiếp
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    // Nếu không, thêm FILE_SERVER_URL phía trước
+    return `${FILE_SERVER_URL}/${url}`;
+};
 
 export default function DoctorsListContent() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -203,9 +215,7 @@ export default function DoctorsListContent() {
                                                     <Link to={`/home/doctordetail/${doctor.id}`}>
                                                         <img
                                                             src={doctor.image
-                                                                ? doctor.image.startsWith("http")
-                                                                    ? doctor.image
-                                                                    : `${FILE_SERVER_URL}/${doctor.image}`
+                                                                ? getImageUrl(doctor.image)
                                                                 : "/placeholder.svg"}
                                                             alt={doctor.fullname}
                                                             className="doctor-card-avatar"
@@ -296,6 +306,7 @@ export default function DoctorsListContent() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="doctor_list" />
         </div>
     );
 }

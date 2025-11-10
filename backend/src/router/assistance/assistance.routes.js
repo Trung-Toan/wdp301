@@ -27,6 +27,8 @@ router.get("/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT
 // PUT /verify/appointments/:appointmentId?status=
 // verify appointment
 router.put("/verify/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.verifyAppointment);
+router.put("/update/appointments/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateAppointment);
+
 
 /* ========================= Slot ========================= */
 // GET /slots/doctor
@@ -48,7 +50,7 @@ router.put("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), Ass
 /* ========================= MEDICAL RECORDS ========================= */
 // GET /created/medical-records?page=1
 // view list medical record of patient with pagination
-router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewListMedicalRecords);
+router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.createMedicalRecord);
 
 // GET /medical-records/:recordId
 // view detail medical record by recordId
@@ -66,5 +68,11 @@ router.post("/medical-records/appointment/:appointmentId", authRequired, roleReq
 // GET /profile
 // view profile of doctor
 router.get("/profile", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewProfile);
+
+router.put("/profile", authRequired, roleRequired("ASSISTANT"), AssistanceController.updateProfile);
+
+// POST /change-password
+// change password
+router.put("/change-password", authRequired, roleRequired("ASSISTANT"), AssistanceController.changePassword);
 
 module.exports = router;

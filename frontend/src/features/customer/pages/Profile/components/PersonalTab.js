@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Edit2, Save, X, User, Calendar, Users, MapPin, Building2, Loader2 } from "lucide-react";
+import { Edit2, Save, X, User, Calendar, Users, MapPin, Building2, Loader2, Phone } from "lucide-react";
 import { toast } from "react-toastify";
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi";
 import { provinceApi } from "../../../../../api/address/provinceApi";
@@ -173,6 +173,7 @@ export default function PersonalTab() {
                 dob: editData.dob,
                 gender: editData.gender,
                 address: editData.address,
+                phone_number: editData.phone_number,
                 province_code: editData.provinceCode,
                 ward_code: editData.wardCode,
             };
@@ -270,6 +271,25 @@ export default function PersonalTab() {
                                     <option value="other">Khác</option>
                                 </select>
                                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Số điện thoại */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-sky-600" />
+                                Số điện thoại
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="tel"
+                                    name="phone_number"
+                                    value={editData.phone_number || ""}
+                                    onChange={handleChange}
+                                    className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 font-medium hover:border-sky-300 transition-colors"
+                                    placeholder="Nhập số điện thoại"
+                                />
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                             </div>
                         </div>
 
@@ -406,6 +426,14 @@ export default function PersonalTab() {
                             <p className="text-xs font-semibold text-gray-500 uppercase">Giới tính</p>
                         </div>
                         <p className="text-base font-bold text-gray-900">{formData.gender || "Chưa cập nhật"}</p>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Phone className="h-4 w-4 text-sky-600" />
+                            <p className="text-xs font-semibold text-gray-500 uppercase">Số điện thoại</p>
+                        </div>
+                        <p className="text-base font-bold text-gray-900">{formData.phone_number || "Chưa cập nhật"}</p>
                     </div>
 
                     <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200 sm:col-span-2">

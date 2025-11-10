@@ -155,14 +155,15 @@
 }
 
 .hero-search-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: row;
   gap: 0.875rem;
+  align-items: stretch;
+  flex-wrap: nowrap;
 }
 
 @media (min-width: 768px) {
   .hero-search-grid {
-    grid-template-columns: 1fr 1fr 1fr;
     gap: 1rem;
   }
 }
@@ -170,6 +171,8 @@
 /* Select Input */
 .hero-select-wrapper {
   position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .hero-select {
@@ -218,13 +221,42 @@
 /* Location Selector Wrapper */
 .hero-location-wrapper {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
   .hero-location-wrapper {
     gap: 1rem;
+  }
+}
+
+/* Location Selector Inline - for province and ward in one row */
+.hero-location-selector-inline {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.hero-location-selector-inline .hero-select-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .hero-location-selector-inline {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-location-selector-inline {
+    gap: 0.625rem;
   }
 }
 
@@ -234,7 +266,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  width: 100%;
+  width: auto;
+  min-width: 120px;
   padding: 0.875rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
@@ -247,6 +280,7 @@
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .hero-search-button::before {
@@ -320,6 +354,23 @@
     border-radius: 20px;
   }
 
+  .hero-search-grid {
+    gap: 0.625rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+
+  .hero-search-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hero-location-selector-inline {
+    min-width: 300px;
+  }
+
   .hero-select {
     padding: 0.75rem 0.875rem;
     padding-right: 2rem;
@@ -327,8 +378,15 @@
   }
 
   .hero-search-button {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9375rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    min-width: 100px;
+    gap: 0.375rem;
+  }
+
+  .hero-search-button svg {
+    width: 16px;
+    height: 16px;
   }
 }
 

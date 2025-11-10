@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react"
-import { User, Shield, FileText, Lock, Mail, UserCircle, Camera, Loader2, CheckCircle } from "lucide-react"
+import { User, Shield, FileText, Lock, Mail, UserCircle, Camera, Loader2, CheckCircle, Heart } from "lucide-react"
 import { toast } from "react-toastify"
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi"
 
@@ -9,6 +9,7 @@ export default function Sidebar({ activeTab, setActiveTab, formData, onAvatarUpd
     const fileInputRef = useRef(null)
     const tabs = [
         { name: "Thông tin cá nhân", key: "personal", icon: User },
+        { name: "Thông tin y tế", key: "medical", icon: Heart },
         { name: "Lịch sử khám", key: "history", icon: Shield },
         { name: "Hồ sơ bệnh án", key: "records", icon: FileText },
         { name: "Cài đặt", key: "settings", icon: Lock },

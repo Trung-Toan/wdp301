@@ -31,13 +31,18 @@ export const adminclinicAPI = {
     return axiosInstance.get("/admin_clinic/get_clinic");
   },
 
+  //lấy danh sách tất cả clinics mà admin clinic hiện tại quản lý
+  getAllClinics: () => {
+    return axiosInstance.get("/admin_clinic/get_clinics");
+  },
+
   //lấy chi tiết bác sĩ theo id
   getDoctorById: (doctorId) => {
     return axiosInstance.get(`/doctor/${doctorId}`);
   },
 
   //tạo tài khoản trợ lý cho bác sĩ
-  createAccountAssistant: (data) => {
+  createAccountAssistant: (data) => {    
     return axiosInstance.post("/admin_clinic/create_assistant", data);
   },
 
@@ -64,5 +69,15 @@ export const adminclinicAPI = {
       `/admin_clinic/update_license_status/${licenseId}`,
       data
     );
+  },
+
+  //cập nhật thông tin phòng khám
+  updateClinic: (data) => {
+    return axiosInstance.put("/admin_clinic/update_clinic", data);
+  },
+
+  //xóa tài khoản bác sĩ
+  deleteDoctor: (doctorId) => {
+    return axiosInstance.delete(`/admin_clinic/delete_doctor/${doctorId}`);
   },
 };

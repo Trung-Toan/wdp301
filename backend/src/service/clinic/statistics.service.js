@@ -242,9 +242,10 @@ async function getSpecialtyDetails(clinicId, specialtyId, { startDate, endDate }
         throw new Error("Invalid clinic or specialty ID");
     }
 
+    // Note: specialty_id is an array in Doctor model, so we need to use $in
     const matchFilter = {
         clinic_id: new mongoose.Types.ObjectId(clinicId),
-        specialty_id: new mongoose.Types.ObjectId(specialtyId)
+        specialty_id: { $in: [new mongoose.Types.ObjectId(specialtyId)] }
     };
 
     if (startDate || endDate) {

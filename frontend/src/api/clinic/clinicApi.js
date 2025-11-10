@@ -56,4 +56,22 @@ export const clinicApi = {
      * @returns {Promise}
      */
     submitReview: (data) => axiosInstance.post(`/feedback`, data),
+
+    /**
+     * Đặt lịch khám tại phòng khám (clinic booking với auto-assign support)
+     * @param {Object} data - Dữ liệu đặt lịch
+     * @param {string} data.clinic_id - ID của phòng khám
+     * @param {string} data.specialty_id - ID của chuyên khoa
+     * @param {string} data.scheduled_date - Ngày khám (YYYY-MM-DD)
+     * @param {string} data.patient_id - ID của bệnh nhân
+     * @param {boolean} [data.auto_assign=false] - Tự động sắp xếp bác sĩ và slot
+     * @param {string} [data.doctor_id] - ID của bác sĩ (required nếu auto_assign=false)
+     * @param {string} [data.slot_id] - ID của slot (required nếu auto_assign=false)
+     * @param {string} data.full_name - Họ tên bệnh nhân
+     * @param {string} data.phone - Số điện thoại
+     * @param {string} data.email - Email
+     * @param {string} [data.reason] - Lý do khám
+     * @returns {Promise}
+     */
+    createClinicBooking: (data) => axiosInstance.post(`/clinic/book`, data),
 };

@@ -65,20 +65,81 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
     }
 
     if (link && acc) {
-        // Use existing account
+        // Case 1: Đã có link Google với account -> Đăng nhập luôn
+        console.log('✅ Using existing account via Google link:', acc._id);
         // Nếu tài khoản có rồi, cập nhật email_verified nếu cần
         if (!acc.email_verified && email_verified) {
             await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
             acc.email_verified = true;
         }
     } else {
+        // Case 2: Chưa có link, kiểm tra email đã tồn tại chưa
         if (emailCanon) {
             acc = await Account.findOne({ email: emailCanon });
+            console.log('🔍 Account lookup by email result:', acc ? acc._id : 'null');
         }
 
-        if (!acc) {
+        if (acc) {
+            // Case 2a: Email đã tồn tại -> Link Google account với account hiện có và đăng nhập
+            console.log('✅ Email đã tồn tại, linking Google account với account hiện có:', acc._id);
+
+            // Cập nhật email_verified nếu cần
+            if (!acc.email_verified && email_verified) {
+                await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
+                acc.email_verified = true;
+            }
+
+            // Cập nhật thông tin user nếu thiếu (từ Google profile)
+            const user = await User.findOne({ account_id: acc._id });
+            if (user) {
+                // Cập nhật full_name nếu chưa có hoặc là giá trị mặc định
+                if ((!user.full_name || user.full_name === "Chưa cập nhật") && name) {
+                    await User.updateOne(
+                        { _id: user._id },
+                        { $set: { full_name: name } }
+                    );
+                    console.log('✅ Updated user full_name from Google profile');
+                }
+
+                // Kiểm tra và tạo Patient nếu thiếu (cho các tài khoản cũ)
+                if (acc.role === 'PATIENT') {
+                    const existingPatient = await Patient.findOne({ user_id: user._id });
+                    if (!existingPatient) {
+                        console.log('Creating missing Patient record for existing account:', acc._id);
+                        await Patient.create({
+                            user_id: user._id,
+                        });
+                        console.log('✅ Patient record created successfully for existing account');
+                    }
+                }
+            }
+
+            // Tạo link Google với account hiện có (nếu chưa có)
+            if (!link) {
+                try {
+                    await AuthProviders.create({
+                        provider: "google",
+                        provider_user_id,
+                        email: email || undefined,
+                        account_id: acc._id,
+                    });
+                    console.log('✅ AuthProviders link created successfully for existing account');
+                } catch (err) {
+                    console.error('Error creating AuthProviders record:', err);
+                    if (err.code === 11000) {
+                        // Duplicate key - link đã tồn tại, không sao
+                        link = await AuthProviders.findOne({ provider: "google", provider_user_id });
+                        console.log('⚠️  Duplicate AuthProviders record found (already linked):', link);
+                    } else {
+                        throw err;
+                    }
+                }
+            }
+        } else {
+            // Case 2b: Email chưa tồn tại -> Tạo account mới
             if (!emailCanon) throw new Error("Google account has no email");
 
+            console.log('🆕 Creating new account for email:', emailCanon);
             // Bọc toàn bộ quá trình tạo trong Transaction để đảm bảo đồng bộ
             const session = await mongoose.startSession();
             session.startTransaction();
@@ -99,7 +160,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     { session }
                 );
                 acc = acc[0];
-                console.log('Account created successfully:', acc._id);
+                console.log('✅ Account created successfully:', acc._id);
 
                 // Tạo user tương ứng
                 const user = await User.create(
@@ -112,7 +173,7 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     ],
                     { session }
                 );
-                console.log('User created successfully:', user[0]._id);
+                console.log('✅ User created successfully:', user[0]._id);
 
                 // Tạo patient tương ứng
                 await Patient.create(
@@ -123,58 +184,48 @@ exports.loginWithGoogle = async ({ googleProfile, ua, ip }) => {
                     ],
                     { session }
                 );
-                console.log('Patient created successfully');
+                console.log('✅ Patient created successfully');
+
+                // Tạo link Google với account mới
+                await AuthProviders.create(
+                    [
+                        {
+                            provider: "google",
+                            provider_user_id,
+                            email: email || undefined,
+                            account_id: acc._id,
+                        },
+                    ],
+                    { session }
+                );
+                console.log('✅ AuthProviders link created successfully for new account');
 
                 // Commit transaction
                 await session.commitTransaction();
                 session.endSession();
             } catch (err) {
-                console.error('Error during account creation:', err);
+                console.error('❌ Error during account creation:', err);
                 await session.abortTransaction();
                 session.endSession();
 
                 if (err.code === 11000) {
+                    // Duplicate key - có thể account đã được tạo bởi request khác
                     acc = await Account.findOne({ email: emailCanon });
                     if (!acc) throw err;
-                } else {
-                    throw err;
-                }
-            }
-        } else {
-            console.log('Using existing account:', acc._id);
-            // Nếu tài khoản có rồi, cập nhật email_verified nếu cần
-            if (!acc.email_verified && email_verified) {
-                await Account.updateOne({ _id: acc._id }, { $set: { email_verified: true } });
-                acc.email_verified = true;
-            }
 
-            // Kiểm tra và tạo Patient nếu thiếu (cho các tài khoản cũ)
-            if (acc.role === 'PATIENT') {
-                const user = await User.findOne({ account_id: acc._id });
-                if (user) {
-                    const existingPatient = await Patient.findOne({ user_id: user._id });
-                    if (!existingPatient) {
-                        console.log('Creating missing Patient record for existing account:', acc._id);
-                        await Patient.create({
-                            user_id: user._id,
+                    // Thử tạo link nếu chưa có
+                    const existingLink = await AuthProviders.findOne({
+                        provider: "google",
+                        provider_user_id
+                    });
+                    if (!existingLink) {
+                        await AuthProviders.create({
+                            provider: "google",
+                            provider_user_id,
+                            email: email || undefined,
+                            account_id: acc._id,
                         });
-                        console.log('Patient record created successfully for existing account');
                     }
-                }
-            }
-        }
-
-        if (!link) {
-            try {
-                await AuthProviders.create({
-                    provider: "google",
-                    provider_user_id,
-                    email: email || undefined,
-                    account_id: acc._id,
-                });
-            } catch (err) {
-                if (err.code === 11000) {
-                    link = await AuthProviders.findOne({ provider: "google", provider_user_id });
                 } else {
                     throw err;
                 }

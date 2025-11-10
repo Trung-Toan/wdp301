@@ -159,19 +159,26 @@ async function authenticateAdminSystem(req, res, next) {
             return res.status(403).json({ ok: false, message: 'Forbidden - Admin System access required' });
         }
 
-        // Lấy admin_system_id từ database
+        // Lấy admin_system_id từ database (optional)
         // req.user.sub là Account ID, cần tìm User qua account_id
-        const user = await User.findOne({ account_id: req.user.sub });
-        if (!user) {
-            return res.status(404).json({ ok: false, message: 'User not found' });
+        try {
+            const user = await User.findOne({ account_id: req.user.sub });
+            if (user) {
+                const adminSystem = await AdminSystem.findOne({ user_id: user._id });
+                if (adminSystem) {
+                    req.user.admin_system_id = adminSystem._id;
+                } else {
+                    console.warn(`⚠️ Admin System record not found for user_id: ${user._id}`);
+                }
+            } else {
+                console.warn(`⚠️ User record not found for account_id: ${req.user.sub}`);
+            }
+        } catch (err) {
+            console.warn('⚠️ Error fetching admin_system_id:', err.message);
+            // Continue anyway - admin_system_id is optional
         }
 
-        const adminSystem = await AdminSystem.findOne({ user_id: user._id });
-        if (!adminSystem) {
-            return res.status(404).json({ ok: false, message: 'Admin System not found' });
-        }
-
-        req.user.admin_system_id = adminSystem._id;
+        // Cho phép truy cập nếu role là ADMIN_SYSTEM, dù có admin_system_id hay không
         next();
     } catch (e) {
         console.error('Admin System auth middleware error:', e);

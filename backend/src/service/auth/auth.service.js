@@ -137,19 +137,29 @@ exports.verifyEmail = async ({ token, accountId }) => {
 };
 
 
-exports.login = async ({ email, password, ip, user_agent }) => {
-    const emailNorm = (email || "").trim().toLowerCase();
-    const acc = await Account.findOne({ email: emailNorm }).select("+password");
+exports.login = async ({ usernameOrEmail, password, ip, user_agent }) => {
+    const input = (usernameOrEmail || "").trim();
+    const isEmail = input.includes("@");
+    
+    // Tìm account bằng email hoặc username
+    let acc;
+    if (isEmail) {
+        const emailNorm = input.toLowerCase();
+        acc = await Account.findOne({ email: emailNorm }).select("+password");
+    } else {
+        acc = await Account.findOne({ username: input }).select("+password");
+    }
 
     if (!acc) {
-        await LoginAttempt.create({ ip, email: emailNorm, ok: false, reason: "not_found" });
-        throw new Error("Email hoặc mật khẩu sai");
+        // Lưu input vào email field (có thể là email hoặc username)
+        await LoginAttempt.create({ ip, email: input, ok: false, reason: "not_found" });
+        throw new Error("Email/Username hoặc mật khẩu sai");
     }
 
     if (acc.status !== "ACTIVE") {
         await LoginAttempt.create({
             ip,
-            email: emailNorm,
+            email: acc.email,
             account_id: acc._id,
             ok: false,
             reason: "status_not_active",
@@ -161,17 +171,17 @@ exports.login = async ({ email, password, ip, user_agent }) => {
     if (!passOk) {
         await LoginAttempt.create({
             ip,
-            email: emailNorm,
+            email: acc.email,
             account_id: acc._id,
             ok: false,
             reason: "wrong_password",
         });
-        throw new Error("Email hoặc mật khẩu sai");
+        throw new Error("Email/Username hoặc mật khẩu sai");
     }
 
     await LoginAttempt.create({
         ip,
-        email: emailNorm,
+        email: acc.email,
         account_id: acc._id,
         ok: true,
         reason: acc.email_verified ? "ok" : "email_not_verified_but_login_allowed",

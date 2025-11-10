@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PersonalTab from "./components/PersonalTab";
+import MedicalInfoTab from "./components/MedicalInfoTab";
 import HistoryTab from "./components/HistoryTab";
 import RecordsTab from "./components/RecordsTab";
 import SettingsTab from "./components/SettingsTab";
 import Sidebar from "./components/Sidebar";
 import { Loader2, ChevronLeft } from "lucide-react";
 import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
+import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 
 export default function ProfilePatient() {
     const [activeTab, setActiveTab] = useState("personal");
@@ -33,6 +35,8 @@ export default function ProfilePatient() {
         switch (activeTab) {
             case "personal":
                 return <PersonalTab />;
+            case "medical":
+                return <MedicalInfoTab />;
             case "history":
                 return <HistoryTab />;
             case "records":
@@ -97,6 +101,7 @@ export default function ProfilePatient() {
                     </div>
                 </div>
             </div>
+            <FirstTimeGuide page="profile" />
         </div>
     );
 }

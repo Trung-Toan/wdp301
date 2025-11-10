@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Calendar, Clock, MapPin, User, FileText, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import { appointmentApi } from "../../../api/patients/appointmentApi";
+import FirstTimeGuide from "../../../components/FirstTimeGuide";
 
 export default function AppointmentsPage() {
     const { user } = useAuth();
@@ -97,16 +98,23 @@ export default function AppointmentsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-sky-50 to-gray-50 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 py-8">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        Lịch hẹn của tôi
-                    </h1>
-                    <p className="text-gray-600">
-                        Quản lý và theo dõi các lịch hẹn khám bệnh của bạn
-                    </p>
+                    <div className="flex items-center gap-4 mb-3">
+                        <div className="p-3 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl shadow-lg">
+                            <Calendar className="text-white" size={32} />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-1">
+                                Lịch hẹn của tôi
+                            </h1>
+                            <p className="text-gray-600 font-medium">
+                                Quản lý và theo dõi các lịch hẹn khám bệnh của bạn
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -120,10 +128,11 @@ export default function AppointmentsPage() {
                         <button
                             key={item.value}
                             onClick={() => setFilter(item.value)}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all ${filter === item.value
-                                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md"
-                                    : "bg-white text-gray-700 border-2 border-gray-200 hover:border-sky-300"
-                                }`}
+                            className={`px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95 ${
+                                filter === item.value
+                                    ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg"
+                                    : "bg-white text-gray-700 border-2 border-gray-200 hover:border-sky-300 hover:shadow-md"
+                            }`}
                         >
                             {item.label}
                         </button>
@@ -171,7 +180,7 @@ export default function AppointmentsPage() {
                                 </p>
                                 <a
                                     href="/home/facility"
-                                    className="inline-block px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all"
+                                    className="inline-block px-8 py-3.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-bold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
                                 >
                                     Đặt lịch khám ngay
                                 </a>
@@ -183,7 +192,7 @@ export default function AppointmentsPage() {
                                     return (
                                         <div
                                             key={appointment.id}
-                                            className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden"
+                                            className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-sky-200 transform hover:-translate-y-1"
                                         >
                                             <div className="p-6">
                                                 <div className="flex items-start justify-between mb-4">
@@ -199,7 +208,7 @@ export default function AppointmentsPage() {
                                                         </div>
                                                     </div>
                                                     <span
-                                                        className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color}`}
+                                                        className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-md ${badge.color}`}
                                                     >
                                                         {badge.text}
                                                     </span>
@@ -279,6 +288,7 @@ export default function AppointmentsPage() {
                     </>
                 )}
             </div>
+            <FirstTimeGuide page="appointments" />
         </div>
     );
 }
