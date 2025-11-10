@@ -92,8 +92,51 @@ export default function BlacklistDetails() {
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-          {/* Scope */}
-          <div className="md:col-span-3">
+          {/* Row 1: Search | Actions */}
+          <div className="md:col-span-8 order-1">
+            <label
+              htmlFor="f-search"
+              className="block text-xs font-semibold text-gray-600 mb-1"
+            >
+              Tìm kiếm
+            </label>
+            <div className="flex items-center gap-3 px-3 py-2 bg-white border border-gray-300 rounded-lg">
+              <Search size={18} className="text-gray-400" />
+              <input
+                id="f-search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Tên, email, số điện thoại, lý do…"
+                className="flex-1 border-none outline-none text-sm text-gray-900 placeholder-gray-400 bg-transparent"
+              />
+              {q && (
+                <button
+                  onClick={() => setQ("")}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="md:col-span-4 order-2">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Thao tác
+            </label>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 w-full justify-center"
+              >
+                <RefreshCw size={16} />
+                Tải
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Scope | Clinic | Limit */}
+          <div className="md:col-span-6 order-3">
             <label className="block text-xs font-semibold text-gray-600 mb-1">
               Phạm vi dữ liệu
             </label>
@@ -123,45 +166,41 @@ export default function BlacklistDetails() {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="md:col-span-5">
-            <label htmlFor="f-search" className="block text-xs font-semibold text-gray-600 mb-1">
-              Tìm kiếm
+          <div className="md:col-span-4 order-4">
+            <label
+              htmlFor="f-clinic"
+              className="block text-xs font-semibold text-gray-600 mb-1"
+            >
+              Cơ sở (clinic_id)
             </label>
-            <div className="flex items-center gap-3 px-3 py-2 bg-white border border-gray-300 rounded-lg">
-              <Search size={18} className="text-gray-400" />
+            <div className="flex items-center gap-2">
               <input
-                id="f-search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Tên, email, số điện thoại, lý do…"
-                className="flex-1 border-none outline-none text-sm text-gray-900 placeholder-gray-400 bg-transparent"
+                id="f-clinic"
+                value={clinicId}
+                onChange={(e) => setClinicId(e.target.value)}
+                placeholder={
+                  scope === "all"
+                    ? "lọc theo toàn hệ thống"
+                    : "thuộc cơ sở của bạn"
+                }
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm"
               />
-              {q && (
-                <button onClick={() => setQ("")} className="text-gray-400 hover:text-gray-600">
-                  <X size={18} />
+              {clinicId && (
+                <button
+                  onClick={() => setClinicId("")}
+                  className="px-2 py-2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Clinic filter */}
-          <div className="md:col-span-2">
-            <label htmlFor="f-clinic" className="block text-xs font-semibold text-gray-600 mb-1">
-              Cơ sở (clinic_id)
-            </label>
-            <input
-              id="f-clinic"
-              value={clinicId}
-              onChange={(e) => setClinicId(e.target.value)}
-              placeholder={scope === "all" ? "lọc theo toàn hệ thống" : "thuộc cơ sở của bạn"}
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm"
-            />
-          </div>
-
-          {/* Limit */}
-          <div className="md:col-span-1">
-            <label htmlFor="f-limit" className="block text-xs font-semibold text-gray-600 mb-1">
+          <div className="md:col-span-2 order-5">
+            <label
+              htmlFor="f-limit"
+              className="block text-xs font-semibold text-gray-600 mb-1"
+            >
               Dòng/trang
             </label>
             <select
@@ -176,22 +215,6 @@ export default function BlacklistDetails() {
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Actions */}
-          <div className="md:col-span-1">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              &nbsp;
-            </label>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 w-full justify-center"
-              >
-                <RefreshCw size={16} />
-                Tải
-              </button>
-            </div>
           </div>
         </div>
 
@@ -221,7 +244,9 @@ export default function BlacklistDetails() {
             <AlertCircle size={20} />
             <div>
               <p className="m-0 font-semibold">Không tải được danh sách đen</p>
-              <p className="m-0 text-sm">{error?.message || "Vui lòng thử lại sau."}</p>
+              <p className="m-0 text-sm">
+                {error?.message || "Vui lòng thử lại sau."}
+              </p>
             </div>
           </div>
         </div>
@@ -231,7 +256,9 @@ export default function BlacklistDetails() {
       {!isLoading && !error && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-bold text-gray-900">Danh sách tài khoản bị cấm</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              Danh sách tài khoản bị cấm
+            </h2>
             <span className="text-sm text-gray-600">
               Tổng {total.toLocaleString("vi-VN")} mục
             </span>
@@ -263,7 +290,10 @@ export default function BlacklistDetails() {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-sm text-gray-500"
+                  >
                     Không có mục nào phù hợp bộ lọc.
                   </td>
                 </tr>
@@ -278,18 +308,30 @@ export default function BlacklistDetails() {
                     : "—";
                   const totalApt = row?.totalAppointmentsAtMyClinics ?? 0;
                   const lastApt = row?.lastAppointmentAt
-                    ? new Date(row.lastAppointmentAt).toLocaleDateString("vi-VN")
+                    ? new Date(row.lastAppointmentAt).toLocaleDateString(
+                        "vi-VN"
+                      )
                     : "—";
 
                   return (
-                    <tr key={row.id || idx} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={row.id || idx}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Ban size={16} className="text-red-500 flex-shrink-0" />
+                          <Ban
+                            size={16}
+                            className="text-red-500 flex-shrink-0"
+                          />
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-gray-900">{fullName}</span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {fullName}
+                            </span>
                             <span className="text-xs text-gray-500">
-                              {row?.patient_id ? `Patient #${row.patient_id}` : ""}
+                              {row?.patient_id
+                                ? `Patient #${row.patient_id}`
+                                : ""}
                             </span>
                           </div>
                         </div>
@@ -308,10 +350,14 @@ export default function BlacklistDetails() {
                           <span>
                             Tổng lịch: <strong>{totalApt}</strong>
                           </span>
-                          <span className="text-gray-500">Gần nhất: {lastApt}</span>
+                          <span className="text-gray-500">
+                            Gần nhất: {lastApt}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{createdAt}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {createdAt}
+                      </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => openView(row)}
@@ -338,7 +384,9 @@ export default function BlacklistDetails() {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 ${
-                  page <= 1 ? "text-gray-300 border-gray-200" : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                  page <= 1
+                    ? "text-gray-300 border-gray-200"
+                    : "text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 <ChevronLeft size={16} /> Trước
@@ -347,7 +395,9 @@ export default function BlacklistDetails() {
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 ${
-                  page >= totalPages ? "text-gray-300 border-gray-200" : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                  page >= totalPages
+                    ? "text-gray-300 border-gray-200"
+                    : "text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 Sau <ChevronRight size={16} />
@@ -369,59 +419,90 @@ export default function BlacklistDetails() {
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Chi tiết</h2>
-              <button onClick={closeView} className="p-1.5 text-gray-500 hover:text-gray-800">
+              <button
+                onClick={closeView}
+                className="p-1.5 text-gray-500 hover:text-gray-800"
+              >
                 <X size={24} />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <div className="text-xs font-semibold text-gray-600 mb-1">Người dùng</div>
+                <div className="text-xs font-semibold text-gray-600 mb-1">
+                  Người dùng
+                </div>
                 <div className="text-gray-900">
                   {selectedItem?.user?.full_name || "—"}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Email</div>
-                  <div className="text-gray-900">{selectedItem?.account?.email || "—"}</div>
+                  <div className="text-xs font-semibold text-gray-600 mb-1">
+                    Email
+                  </div>
+                  <div className="text-gray-900">
+                    {selectedItem?.account?.email || "—"}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">SĐT</div>
-                  <div className="text-gray-900">{selectedItem?.account?.phone_number || "—"}</div>
+                  <div className="text-xs font-semibold text-gray-600 mb-1">
+                    SĐT
+                  </div>
+                  <div className="text-gray-900">
+                    {selectedItem?.account?.phone_number || "—"}
+                  </div>
                 </div>
               </div>
               <div>
-                <div className="text-xs font-semibold text-gray-600 mb-1">Lý do</div>
-                <div className="text-gray-900">{selectedItem?.reason || "—"}</div>
+                <div className="text-xs font-semibold text-gray-600 mb-1">
+                  Lý do
+                </div>
+                <div className="text-gray-900">
+                  {selectedItem?.reason || "—"}
+                </div>
               </div>
               {selectedItem?.evidence && (
                 <div>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Bằng chứng</div>
-                  <div className="text-gray-900 break-words">{selectedItem.evidence}</div>
+                  <div className="text-xs font-semibold text-gray-600 mb-1">
+                    Bằng chứng
+                  </div>
+                  <div className="text-gray-900 break-words">
+                    {selectedItem.evidence}
+                  </div>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Tổng lịch (phạm vi)</div>
+                  <div className="text-xs font-semibold text-gray-600 mb-1">
+                    Tổng lịch (phạm vi)
+                  </div>
                   <div className="text-gray-900">
                     {selectedItem?.totalAppointmentsAtMyClinics ?? 0}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Lần gần nhất</div>
+                  <div className="text-xs font-semibold text-gray-600 mb-1">
+                    Lần gần nhất
+                  </div>
                   <div className="text-gray-900">
                     {selectedItem?.lastAppointmentAt
-                      ? new Date(selectedItem.lastAppointmentAt).toLocaleDateString("vi-VN")
+                      ? new Date(
+                          selectedItem.lastAppointmentAt
+                        ).toLocaleDateString("vi-VN")
                       : "—"}
                   </div>
                 </div>
               </div>
               <div>
-                <div className="text-xs font-semibold text-gray-600 mb-1">Ngày thêm</div>
+                <div className="text-xs font-semibold text-gray-600 mb-1">
+                  Ngày thêm
+                </div>
                 <div className="text-gray-900">
                   {selectedItem?.createdAt
-                    ? new Date(selectedItem.createdAt).toLocaleDateString("vi-VN")
+                    ? new Date(selectedItem.createdAt).toLocaleDateString(
+                        "vi-VN"
+                      )
                     : "—"}
                 </div>
               </div>
