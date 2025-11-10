@@ -11,6 +11,13 @@ router.get(
 );
 
 router.get(
+  "/blacklist",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getAllBlackList
+);
+
+router.get(
   "/feedback",
   authRequired,
   roleRequired("ADMIN_CLINIC"),

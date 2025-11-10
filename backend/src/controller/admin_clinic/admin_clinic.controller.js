@@ -25,6 +25,33 @@ exports.dashboard = async (req, res, next) => {
   }
 };
 
+
+exports.getAllBlackList = async (req, res, next) => {
+  try {
+    const accountId = req.user?.sub;
+
+    const {
+      q = "",
+      page = "1",
+      limit = "20",
+      clinic_id,          // optional
+      scope = "mine",     // "mine" (mặc định) | "all"
+    } = req.query;
+
+    const data = await adminClinicService.getAllBlackList(accountId, {
+      q: String(q || "").trim(),
+      page: Math.max(1, Number(page) || 1),
+      limit: Math.min(100, Math.max(1, Number(limit) || 20)),
+      clinic_id: clinic_id || null,
+      scope: scope === "all" ? "all" : "mine",
+    });
+
+    return resUtils.successResponse(res, data, "Lấy dữ liệu danh sách đen thành công");
+  } catch (err) {
+    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+  }
+};
+
 exports.feedback = async (req, res, next) => {
   try {
     const adminClinic = await adminClinicService.findAdminClinicByAccountId(

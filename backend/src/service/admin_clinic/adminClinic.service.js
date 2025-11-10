@@ -9,6 +9,7 @@ const Assistant = require("../../model/user/Assistant");
 const License = require("../../model/clinic/License");
 const Appointment = require("../../model/appointment/Appointment");
 const Feedback = require("../../model/patient/Feedback");
+const Blacklist = require("../../model/system/Blacklist");
 
 const SALT_ROUNDS = 12;
 
@@ -177,14 +178,195 @@ exports.getDashboard = async (adminAccountId) => {
     },
   };
 };
-
-// Helper
+// Helper an toàn ObjectId
 const toObjectId = (v) => {
-  try {
-    return new mongoose.Types.ObjectId(String(v));
-  } catch {
-    return null;
+  try { return new mongoose.Types.ObjectId(String(v)); } catch { return null; }
+};
+
+/**
+ * getAllBlackList(adminAccountId, { q, page, limit, clinic_id })
+ * - Trả về các account nằm trong "blacklists" (toàn hệ thống),
+ *   nhưng chỉ hiển thị những tài khoản PATIENT có liên hệ tới các phòng khám thuộc admin:
+ *   + Có Patient (map qua User.account_id)
+ *   + Và (nếu truyền clinic_id hợp lệ thuộc admin) có Lịch khám tại clinic đó
+ *   + Nếu KHÔNG truyền clinic_id: chỉ cần kiểm tra có từng đặt lịch ở BẤT KỲ clinic thuộc admin
+ *
+ * Trả về:
+ * {
+ *   items: [{
+ *     id, reason, evidence, createdAt,
+ *     account: {_id, username, email, phone_number, role, status},
+ *     user: {_id, full_name, gender, dob, avatar_url},
+ *     patient_id,
+ *     totalAppointmentsAtMyClinics,
+ *     lastAppointmentAt
+ *   }],
+ *   page, limit, total
+ * }
+ */
+exports.getAllBlackList = async (adminAccountId, { q = "", page = 1, limit = 20, clinic_id = null } = {}) => {
+  // 1) Xác định phạm vi clinic thuộc admin
+  const adminClinic = await exports.findAdminClinicByAccountId(adminAccountId);
+  const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id name").lean();
+  if (!clinics.length) {
+    return { items: [], page, limit, total: 0 };
   }
+  const clinicIds = clinics.map((c) => c._id);
+
+  // 2) Nếu có clinic_id -> validate thuộc quyền
+  let scopedClinicIds = clinicIds;
+  if (clinic_id) {
+    const cid = toObjectId(clinic_id);
+    const ok = cid && clinicIds.some((id) => id.toString() === cid.toString());
+    if (!ok) {
+      // Không thuộc quyền -> trả rỗng
+      return { items: [], page, limit, total: 0 };
+    }
+    scopedClinicIds = [cid];
+  }
+
+  // 3) Pipeline: Blacklist -> Account -> User -> Patient
+  //    + Filter q (reason, email, phone, username, full_name)
+  //    + Lookup appointments để thống kê trong phạm vi clinics của admin
+  const kw = String(q || "").trim();
+  const skip = (page - 1) * limit;
+
+  const pipeline = [
+    // Join sang Account để lấy role/status/username/email/phone
+    {
+      $lookup: {
+        from: "accounts",
+        localField: "account_id",
+        foreignField: "_id",
+        as: "acc",
+      },
+    },
+    { $unwind: { path: "$acc", preserveNullAndEmptyArrays: false } },
+
+    // Chỉ quan tâm patient
+    { $match: { "acc.role": "PATIENT" } },
+
+    // Join sang User để lấy profile
+    {
+      $lookup: {
+        from: "users",
+        localField: "acc._id",
+        foreignField: "account_id",
+        as: "user",
+      },
+    },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+    // Join sang Patient để lấy patient_id
+    {
+      $lookup: {
+        from: "patients",
+        localField: "user._id",
+        foreignField: "user_id",
+        as: "patient",
+      },
+    },
+    { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+  ];
+
+  // Tìm kiếm q
+  if (kw) {
+    pipeline.push({
+      $match: {
+        $or: [
+          { reason: { $regex: kw, $options: "i" } },
+          { "acc.username": { $regex: kw, $options: "i" } },
+          { "acc.email": { $regex: kw, $options: "i" } },
+          { "acc.phone_number": { $regex: kw, $options: "i" } },
+          { "user.full_name": { $regex: kw, $options: "i" } },
+        ],
+      },
+    });
+  }
+
+  // Thống kê appointments trong phạm vi clinic thuộc admin
+  pipeline.push(
+    {
+      $lookup: {
+        from: "appointments",
+        let: { patId: "$patient._id" },
+        pipeline: [
+          { $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$patient_id", "$$patId"] },
+                  { $in: ["$clinic_id", scopedClinicIds] },
+                ],
+              },
+            },
+          },
+          { $sort: { createdAt: -1 } },
+          { $project: { clinic_id: 1, createdAt: 1 } },
+        ],
+        as: "apts_mine",
+      },
+    },
+    // Nếu đã truyền clinic_id: chỉ giữ lại những blacklists có Lịch khám ở đúng clinic đó
+    ...(clinic_id ? [{ $match: { "apts_mine.0": { $exists: true } } }] : []),
+
+    // Gộp thống kê
+    {
+      $addFields: {
+        totalAppointmentsAtMyClinics: { $size: "$apts_mine" },
+        lastAppointmentAt: { $ifNull: [{ $first: "$apts_mine.createdAt" }, null] },
+      },
+    }
+  );
+
+  // Chỉ hiển thị những entry có Patient & có lịch khám tại clinics của mình (hợp lý cho phạm vi admin)
+  pipeline.push({ $match: { patient: { $ne: null }, totalAppointmentsAtMyClinics: { $gt: 0 } } });
+
+  // Phân trang
+  pipeline.push({
+    $facet: {
+      items: [
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            id: "$_id",
+            reason: 1,
+            evidence: 1,
+            createdAt: 1,
+
+            account: {
+              _id: "$acc._id",
+              username: "$acc.username",
+              email: "$acc.email",
+              phone_number: "$acc.phone_number",
+              role: "$acc.role",
+              status: "$acc.status",
+            },
+            user: {
+              _id: "$user._id",
+              full_name: "$user.full_name",
+              gender: "$user.gender",
+              dob: "$user.dob",
+              avatar_url: "$user.avatar_url",
+            },
+            patient_id: "$patient._id",
+
+            totalAppointmentsAtMyClinics: 1,
+            lastAppointmentAt: 1,
+          },
+        },
+      ],
+      total: [{ $count: "count" }],
+    },
+  });
+
+  const agg = await Blacklist.aggregate(pipeline);
+  const facet = agg?.[0] || {};
+  const items = facet.items || [];
+  const total = facet.total?.[0]?.count || 0;
+
+  return { items, page, limit, total };
 };
 
 const parseDateStart = (s) => {
