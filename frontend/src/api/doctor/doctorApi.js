@@ -1,6 +1,8 @@
 import { axiosInstance } from "../axiosInstance";
 
 export const doctorApi = {
+  GET_FEEDBACK: "/doctor/feedback",
+  GET_DASHBOARD: "/doctor/dashboard",
   GET_ALL_PATIENT: "/doctor/patients",
   GET_PATIENT_BY_ID: (id) => `/doctor/patients/${id}`,
   GET_LIST_APPOINTMENT: "/doctor/appointments",

@@ -4,7 +4,12 @@ const { authRequired, roleRequired } = require("./../../middleware/auth");
 
 // Import controller for doctor
 const AssistanceController = require("../../controller/assistance/assistance.controler");
-
+router.get(
+  "/dashboard",
+  authRequired,
+  roleRequired("ASSISTANT"),
+  AssistanceController.viewDashboard
+);
 /* ========================= PATIENTS ========================= */
 // GET /patients?page=1
 // view list patient of doctor with pagination
@@ -51,6 +56,10 @@ router.put("/slots/:slotId/doctor", authRequired, roleRequired("ASSISTANT"), Ass
 // GET /created/medical-records?page=1
 // view list medical record of patient with pagination
 router.get("/created/medical-records", authRequired, roleRequired("ASSISTANT"), AssistanceController.createMedicalRecord);
+
+// GET /medical-records/appointment/:appointmentId
+// view detail medical record by appointmentId
+router.get("/medical-records/appointment/:appointmentId", authRequired, roleRequired("ASSISTANT"), AssistanceController.viewMedicalRecordByAppointment);
 
 // GET /medical-records/:recordId
 // view detail medical record by recordId

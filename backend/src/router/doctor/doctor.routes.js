@@ -43,6 +43,8 @@ router.get(
   DoctorController.viewListPatients
 );
 
+router.get("/dashboard", authRequired,roleRequired("DOCTOR"), DoctorController.viewDashboard);
+
 // GET /patients/:patientId
 // view information patient by patientId
 router.get(
