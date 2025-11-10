@@ -14,6 +14,10 @@ export const adminclinicAPI = {
     return axiosInstance.post("/clinic-registration/create", data);
   },
 
+  updateDoctorClinic: (data) => {
+    return axiosInstance.put("/admin_clinic/doctor", data);
+  },
+
   //tạo tài khoản bác sĩ
   createAccountDoctor: (data) => {
     return axiosInstance.post("/admin_clinic/account", data);
