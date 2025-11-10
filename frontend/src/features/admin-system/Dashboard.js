@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import {
   LineChart,
@@ -16,10 +14,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import "../../styles/admin-system/Dashboard.css"
 import ViewModal from "./ViewModal"
 import { adminSystemAPI } from "../../api/admin-system/adminSystemAPI"
-import { Spinner } from "react-bootstrap"
 
 const Dashboard = () => {
   const [viewModal, setViewModal] = useState(null)
@@ -31,6 +27,7 @@ const Dashboard = () => {
     { label: "Lịch khám hôm nay", value: "0", change: "0% so với tháng trước" },
     { label: "Khiếu nại chưa xử lý", value: "0", change: "0% so với tháng trước" },
   ])
+
   const [userStats, setUserStats] = useState([])
   const [complaintData, setComplaintData] = useState([])
   const [bookingData, setBookingData] = useState([])
@@ -45,59 +42,51 @@ const Dashboard = () => {
     try {
       setLoading(true)
       setError(null)
+
       const res = await adminSystemAPI.getDashboardStats()
-      
+
       if (res.data?.ok && res.data?.data) {
         const data = res.data.data
-        
-        // Cập nhật stats
+
         if (data.stats) {
           setStats([
-            { 
-              label: "Tổng người dùng", 
-              value: data.stats.totalUsers?.value || "0", 
-              change: data.stats.totalUsers?.change || "0% so với tháng trước" 
+            {
+              label: "Tổng người dùng",
+              value: data.stats.totalUsers?.value || "0",
+              change: data.stats.totalUsers?.change || "0% so với tháng trước",
             },
-            { 
-              label: "Phòng khám", 
-              value: data.stats.totalClinics?.value || "0", 
-              change: data.stats.totalClinics?.change || "0% so với tháng trước" 
+            {
+              label: "Phòng khám",
+              value: data.stats.totalClinics?.value || "0",
+              change: data.stats.totalClinics?.change || "0% so với tháng trước",
             },
-            { 
-              label: "Lịch khám hôm nay", 
-              value: data.stats.todayAppointments?.value || "0", 
-              change: data.stats.todayAppointments?.change || "0% so với tháng trước" 
+            {
+              label: "Lịch khám hôm nay",
+              value: data.stats.todayAppointments?.value || "0",
+              change: data.stats.todayAppointments?.change || "0% so với tháng trước",
             },
-            { 
-              label: "Khiếu nại chưa xử lý", 
-              value: data.stats.pendingComplaints?.value || "0", 
-              change: data.stats.pendingComplaints?.change || "0% so với tháng trước" 
+            {
+              label: "Khiếu nại chưa xử lý",
+              value: data.stats.pendingComplaints?.value || "0",
+              change: data.stats.pendingComplaints?.change || "0% so với tháng trước",
             },
           ])
         }
 
-        // Cập nhật charts
         if (data.charts) {
-          if (data.charts.userStats) {
-            setUserStats(data.charts.userStats || [])
-          }
-          if (data.charts.complaintData) {
-            setComplaintData(data.charts.complaintData || [])
-          }
-          if (data.charts.bookingData) {
-            setBookingData(data.charts.bookingData || [])
-          }
+          setUserStats(data.charts.userStats || [])
+          setComplaintData(data.charts.complaintData || [])
+          setBookingData(data.charts.bookingData || [])
         }
       } else {
         setError("Không thể tải dữ liệu dashboard")
       }
     } catch (err) {
-      console.error("Error fetching dashboard stats:", err)
-      // Xử lý lỗi kết nối
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error') || err.message?.includes('CONNECTION_REFUSED')) {
-        setError("Không thể kết nối đến server. Vui lòng kiểm tra xem backend server đã chạy chưa.")
+      console.error("Dashboard error:", err)
+      if (err.code === "ERR_NETWORK") {
+        setError("Không thể kết nối đến server. Vui lòng kiểm tra backend.")
       } else {
-        setError(err.response?.data?.message || err.message || "Lỗi khi tải dữ liệu dashboard")
+        setError(err.response?.data?.message || "Lỗi khi tải dữ liệu dashboard")
       }
     } finally {
       setLoading(false)
@@ -106,10 +95,10 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="dashboard-dark" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
-        <div style={{ textAlign: "center" }}>
-          <Spinner animation="border" variant="primary" style={{ width: "3rem", height: "3rem" }} />
-          <p style={{ marginTop: "1rem", color: "#94a3b8" }}>Đang tải dữ liệu...</p>
+      <div className="min-h-[80vh] flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 mt-4">Đang tải dữ liệu...</p>
         </div>
       </div>
     )
@@ -117,19 +106,12 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="dashboard-dark" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
-        <div style={{ textAlign: "center" }}>
-          <p style={{ color: "#ef4444", marginBottom: "1rem" }}>{error}</p>
-          <button 
+      <div className="min-h-[80vh] flex items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
             onClick={fetchDashboardStats}
-            style={{
-              padding: "0.5rem 1rem",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "0.5rem",
-              cursor: "pointer"
-            }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
           >
             Thử lại
           </button>
@@ -139,48 +121,53 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="dashboard-dark">
-      <h1 className="dashboard-title">Bảng điều khiển</h1>
-      <p className="dashboard-subtitle">Chào mừng quay lại, Admin 👋</p>
+    <div className="min-h-screen p-6 bg-white">
+      <h1 className="text-3xl font-bold text-gray-900">Bảng điều khiển</h1>
+      <p className="text-gray-600 mt-1">Chào mừng quay lại, Admin 👋</p>
 
-      {/* ==== Stats Grid ==== */}
-      <div className="stats-section">
+      {/* ==== Stats ==== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         {stats.map((s, i) => (
-          <div key={i} className="stat-card-dark">
-            <h4 className="stat-label">{s.label}</h4>
-            <h2 className="stat-value">{s.value}</h2>
-            <p className={`stat-change ${s.change.includes("-") ? "negative" : "positive"}`}>
+          <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 shadow hover:shadow-lg transition">
+            <h4 className="text-gray-600">{s.label}</h4>
+            <h2 className="text-3xl font-bold mt-2 text-gray-900">{s.value}</h2>
+            <p
+              className={`mt-1 text-sm ${s.change.includes("-") ? "text-red-600" : "text-green-600"
+                }`}
+            >
               {s.change}
             </p>
           </div>
         ))}
       </div>
 
-      {/* ==== Charts Grid ==== */}
-      <div className="chart-grid">
-        {/* Biểu đồ người dùng */}
-        <div className="chart-card-dark">
-          <h2 className="chart-title">Thống kê người dùng</h2>
-          {userStats.length > 0 ? (
+      {/* ==== Charts ==== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        {/* Line Chart */}
+        <div className="bg-white border border-gray-200 p-5 rounded-xl shadow">
+          <h2 className="text-xl font-semibold mb-3 text-gray-900">Thống kê người dùng</h2>
+
+          {userStats.length ? (
             <LineChart width={500} height={250} data={userStats}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="month" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="month" stroke="#6b7280" />
+              <YAxis stroke="#6b7280" />
+              <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px" }} />
               <Line type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} />
               <Line type="monotone" dataKey="clinics" stroke="#14b8a6" strokeWidth={2} />
             </LineChart>
           ) : (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "250px", color: "#94a3b8" }}>
+            <p className="text-center text-gray-500 h-[250px] flex items-center justify-center">
               Chưa có dữ liệu
-            </div>
+            </p>
           )}
         </div>
 
-        {/* Biểu đồ khiếu nại */}
-        <div className="chart-card-dark">
-          <h2 className="chart-title">Trạng thái khiếu nại</h2>
-          {complaintData.length > 0 ? (
+        {/* Pie Chart */}
+        <div className="bg-white border border-gray-200 p-5 rounded-xl shadow">
+          <h2 className="text-xl font-semibold mb-3 text-gray-900">Trạng thái khiếu nại</h2>
+
+          {complaintData.length ? (
             <PieChart width={400} height={250}>
               <Pie
                 data={complaintData}
@@ -188,41 +175,41 @@ const Dashboard = () => {
                 cy={120}
                 innerRadius={60}
                 outerRadius={100}
-                fill="#8884d8"
                 paddingAngle={5}
                 dataKey="value"
               >
-                {complaintData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {complaintData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px" }} />
             </PieChart>
           ) : (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "250px", color: "#94a3b8" }}>
+            <p className="text-center text-gray-500 h-[250px] flex items-center justify-center">
               Chưa có dữ liệu
-            </div>
+            </p>
           )}
         </div>
 
-        {/* Biểu đồ lịch khám */}
-        <div className="chart-card-dark" style={{ gridColumn: "span 2" }}>
-          <h2 className="chart-title">Thống kê lịch khám</h2>
-          {bookingData.length > 0 ? (
+        {/* Bar Chart */}
+        <div className="bg-white border border-gray-200 p-5 rounded-xl shadow col-span-1 lg:col-span-2">
+          <h2 className="text-xl font-semibold mb-3 text-gray-900">Thống kê lịch khám</h2>
+
+          {bookingData.length ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={bookingData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "none" }} />
+              <BarChart data={bookingData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
+                <Tooltip contentStyle={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px" }} />
                 <Legend />
                 <Bar dataKey="bookings" fill="#3b82f6" barSize={50} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "300px", color: "#94a3b8" }}>
+            <p className="text-center text-gray-500 h-[300px] flex items-center justify-center">
               Chưa có dữ liệu
-            </div>
+            </p>
           )}
         </div>
       </div>
