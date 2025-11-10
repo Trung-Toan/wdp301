@@ -1,4 +1,5 @@
 const adminClinicService = require("../../service/admin_clinic/adminClinic.service");
+const resUtils = require("../../utils/responseUtils");
 const {
   createDoctor,
   getClinicByAdmin: getClinicByAdminSvc,
@@ -13,6 +14,16 @@ const {
   updateClinicByAdmin,
   deleteDoctor: deleteDoctorSvc,
 } = adminClinicService;
+
+exports.dashboard = async (req, res, next) => {
+  try {
+    const accountId = req.user?.sub;
+    const data = await adminClinicService.getDashboard(accountId);
+    return resUtils.successResponse(res, data, "Lấy dữ liệu dashboard thành công");
+  } catch (err) {
+    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+  }
+};
 
 // Tạo tài khoản bác sĩ và liên kết với clinic của admin clinic hiện tại
 exports.createAccountDoctor = async (req, res, next) => {

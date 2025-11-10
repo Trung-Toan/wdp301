@@ -243,7 +243,6 @@ const AppointmentComponent = () => {
       .map((s) => s.trim())
       .filter((s) => s);
 
-    const appointment_id = selectedAptForRecord.appointment.appointment_id;
     const patient_id = selectedAptForRecord.patient.patient_id;
     const doctor_id = selectedAptForRecord.appointment.doctor_id;
 

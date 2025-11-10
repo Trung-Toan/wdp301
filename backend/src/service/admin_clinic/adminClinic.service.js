@@ -7,10 +7,158 @@ const AdminClinic = require("../../model/user/AdminClinic");
 const Clinic = require("../../model/clinic/Clinic");
 const Assistant = require("../../model/user/Assistant");
 const License = require("../../model/clinic/License");
+const Appointment = require("../../model/appointment/Appointment");
+const Feedback = require("../../model/patient/Feedback");
 
 const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
+
+const startOfUTCDay = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const addUTCDays   = (d, n) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + n));
+
+/**
+ * Tổng hợp số liệu dashboard cho Admin Clinic
+ * - Xác định tất cả clinic do admin quản lý
+ * - Lấy danh sách doctor thuộc các clinic đó
+ * - Đếm trợ lý, license đang chờ duyệt
+ * - Thống kê lịch hẹn hôm nay & 7 ngày gần nhất
+ * - Tính rating trung bình (feedback) của toàn bộ doctor trong hệ thống của admin
+ */
+exports.getDashboard = async (adminAccountId) => {
+  // 1) Xác định tất cả clinic mà admin quản lý
+  const user = await User.findOne({ account_id: adminAccountId });
+  if (!user) throw new Error("Không tìm thấy user của admin clinic");
+
+  const adminClinic = await AdminClinic.findOne({ user_id: user._id });
+  if (!adminClinic) throw new Error("Không tìm thấy admin clinic");
+
+  const clinics = await Clinic.find({ created_by: adminClinic._id })
+    .select("_id name status")
+    .lean();
+
+  const clinicIds = clinics.map((c) => c._id);
+  const totalClinics = clinicIds.length;
+
+  // 2) Danh sách doctor thuộc các clinic này
+  const doctors = await Doctor.find({ clinic_id: { $in: clinicIds } })
+    .select("_id clinic_id")
+    .lean();
+  const doctorIds = doctors.map((d) => d._id);
+  const totalDoctors = doctorIds.length;
+
+  // 3) Trợ lý trong các clinic này
+  const totalAssistants = await Assistant.countDocuments({ clinic_id: { $in: clinicIds } });
+
+  // 4) License bác sĩ đang PENDING trong phạm vi các clinic này
+  const pendingLicenses = doctorIds.length
+    ? await License.countDocuments({ doctor_id: { $in: doctorIds }, status: "PENDING" })
+    : 0;
+
+  // 5) Mốc thời gian UTC (giống logic dashboard bác sĩ)
+  const now = new Date();
+  const todayStart = startOfUTCDay(now);
+  const todayEnd   = addUTCDays(now, 1);
+  const weekStart  = addUTCDays(now, -6); // 7 ngày gần nhất (bao gồm hôm nay)
+  const weekStartUTC = startOfUTCDay(weekStart);
+
+  // 6) Lịch hẹn hôm nay theo trạng thái
+  let todayByStatus = {};
+  if (doctorIds.length) {
+    const todayAgg = await Appointment.aggregate([
+      { $match: {
+          doctor_id: { $in: doctorIds },
+          scheduled_date: { $gte: todayStart, $lt: todayEnd },
+        }
+      },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    todayByStatus = todayAgg.reduce((acc, r) => {
+      acc[r._id] = r.count;
+      return acc;
+    }, {});
+  }
+  const todayTotal = Object.values(todayByStatus).reduce((a, b) => a + b, 0);
+
+  // 7) Xu hướng đặt lịch 7 ngày gần nhất (group theo YYYY-MM-DD UTC)
+  let bookings7d = [];
+  if (doctorIds.length) {
+    const trendAgg = await Appointment.aggregate([
+      { $match: {
+          doctor_id: { $in: doctorIds },
+          scheduled_date: { $gte: weekStartUTC, $lt: todayEnd },
+        }
+      },
+      {
+        $project: {
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$scheduled_date", timezone: "UTC" }
+          },
+          status: 1
+        }
+      },
+      {
+        $group: {
+          _id: { date: "$date", status: "$status" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // chuẩn hoá về mảng mỗi ngày { date, total, completed }
+    const map = new Map();
+    for (const row of trendAgg) {
+      const date = row._id.date;
+      const prev = map.get(date) || { date, total: 0, completed: 0 };
+      prev.total += row.count;
+      if (row._id.status === "COMPLETED") prev.completed += row.count;
+      map.set(date, prev);
+    }
+    bookings7d = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // 8) Lịch hẹn sắp tới 7 ngày (SCHEDULED/APPROVED)
+  const upcomingAppointments = doctorIds.length
+    ? await Appointment.countDocuments({
+        doctor_id: { $in: doctorIds },
+        scheduled_date: { $gte: todayStart, $lt: addUTCDays(now, 7) },
+        status: { $in: ["SCHEDULED", "APPROVED"] },
+      })
+    : 0;
+
+  // 9) Điểm rating trung bình của toàn hệ thống (feedback tất cả doctors)
+  let avgRating = 0, totalFeedbacks = 0;
+  if (doctorIds.length) {
+    const fb = await Feedback.aggregate([
+      { $match: { doctor_id: { $in: doctorIds } } },
+      { $group: { _id: null, avg: { $avg: "$rating" }, total: { $sum: 1 } } }
+    ]);
+    if (fb.length) {
+      avgRating = Math.round((fb[0].avg || 0) * 10) / 10;
+      totalFeedbacks = fb[0].total || 0;
+    }
+  }
+
+  return {
+    scope: {
+      clinics,
+      totalClinics,
+      totalDoctors,
+      totalAssistants,
+      pendingLicenses,
+    },
+    today: {
+      total: todayTotal,
+      byStatus: todayByStatus,
+    },
+    bookings7d,
+    upcomingAppointments,
+    feedback: {
+      avgRating,
+      totalFeedbacks,
+    },
+  };
+};
 
 /* ======================================
  *               DOCTOR
