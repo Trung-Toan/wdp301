@@ -102,5 +102,21 @@ export const adminSystemAPI = {
   updateLicenseStatus: (licenseId, data) => {
     return axiosInstance.put(`/admin-system/licenses/${licenseId}/status`, data);
   },
+
+  // ========== Blacklist Management ==========
+  // Lấy danh sách blacklist
+  getBlacklists: (params = {}) => {
+    return axiosInstance.get("/admin-system/blacklists", { params });
+  },
+
+  // Thêm tài khoản vào blacklist
+  addToBlacklist: (data) => {
+    return axiosInstance.post("/admin-system/blacklists", data);
+  },
+
+  // Xóa tài khoản khỏi blacklist
+  removeFromBlacklist: (blacklistId) => {
+    return axiosInstance.delete(`/admin-system/blacklists/${blacklistId}`);
+  },
 };
 

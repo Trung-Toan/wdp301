@@ -7,14 +7,14 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Clock,
   Image as ImageIcon,
+  Ban,
 } from "lucide-react"
 import { formatDateTime } from "../../utils/dateTimeUtils"
 
 const FILE_SERVER_URL = "http://localhost:5000/uploads"
 
-const ComplaintViewModal = ({ complaint, onClose, onStatusUpdate }) => {
+const ComplaintViewModal = ({ complaint, onClose, onStatusUpdate, onAddToBlacklist }) => {
   const [imageErrors, setImageErrors] = useState({})
 
   // Reset image errors khi complaint thay đổi
@@ -81,6 +81,7 @@ const ComplaintViewModal = ({ complaint, onClose, onStatusUpdate }) => {
         type: "Phòng khám",
         name: complaint.clinic_id.name || "N/A",
         address: complaint.clinic_id.address || "",
+        owner: complaint.clinic_id.created_by?.user_id?.full_name || null,
       }
     }
     return { type: "N/A", name: "N/A" }
@@ -99,6 +100,7 @@ const ComplaintViewModal = ({ complaint, onClose, onStatusUpdate }) => {
 
   const target = getComplaintTarget()
   const complainant = getComplainantInfo()
+  const targetAccount = complaint.target_account
 
   return (
     <div
@@ -128,12 +130,22 @@ const ComplaintViewModal = ({ complaint, onClose, onStatusUpdate }) => {
         <div className="p-6 space-y-6 max-h-[calc(90vh-140px)] overflow-y-auto">
           {/* Status Badge */}
           <div className="flex items-center justify-between">
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(complaint.status)}`}>
-              {getStatusLabel(complaint.status)}
-            </span>
-            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800">
-              {getComplaintTypeLabel(complaint.complaint_type)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(complaint.status)}`}>
+                {getStatusLabel(complaint.status)}
+              </span>
+              <span className="px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800">
+                {getComplaintTypeLabel(complaint.complaint_type)}
+              </span>
+            </div>
+            {targetAccount?.id && (
+              <button
+                onClick={() => onAddToBlacklist?.(complaint)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+              >
+                <Ban size={16} /> Thêm vào blacklist
+              </button>
+            )}
           </div>
 
           {/* Title */}
@@ -268,6 +280,33 @@ const ComplaintViewModal = ({ complaint, onClose, onStatusUpdate }) => {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Địa chỉ</span>
                   <span className="text-gray-700">{target.address}</span>
+                </div>
+              )}
+              {target.owner && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Quản lý</span>
+                  <span className="text-gray-700">{target.owner}</span>
+                </div>
+              )}
+              {targetAccount?.id && (
+                <div className="pt-2 border-t">
+                  <span className="block text-gray-500 mb-1">Tài khoản liên kết</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Username</span>
+                    <span className="text-gray-800">{targetAccount.username || "--"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Email</span>
+                    <span className="text-gray-800">{targetAccount.email || "--"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">SĐT</span>
+                    <span className="text-gray-800">{targetAccount.phone_number || "--"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Vai trò</span>
+                    <span className="text-gray-800">{targetAccount.role || "--"}</span>
+                  </div>
                 </div>
               )}
             </div>

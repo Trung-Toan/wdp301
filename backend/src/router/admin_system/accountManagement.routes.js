@@ -3,6 +3,7 @@ const router = express.Router();
 const accountManagementController = require("../../controller/admin_system/accountManagement.controller");
 const dashboardController = require("../../controller/admin_system/dashboard.controller");
 const licenseManagementController = require("../../controller/admin_system/licenseManagement.controller");
+const blacklistManagementController = require("../../controller/admin_system/blacklistManagement.controller");
 const authMiddleware = require("../../middleware/auth");
 
 // Middleware xác thực cho admin system
@@ -376,6 +377,125 @@ router.get("/licenses/:licenseId", adminSystemAuth, licenseManagementController.
  *         description: Forbidden - Không phải ADMIN_SYSTEM
  */
 router.put("/licenses/:licenseId/status", adminSystemAuth, licenseManagementController.updateLicenseStatus);
+
+/**
+ * @swagger
+ * /api/admin-system/blacklists:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy danh sách tài khoản trong danh sách đen
+ *     description: ADMIN_SYSTEM xem danh sách đen toàn hệ thống
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng mỗi trang
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [all, ADMIN_SYSTEM, ADMIN_CLINIC, DOCTOR, ASSISTANT, PATIENT]
+ *         description: Lọc theo vai trò tài khoản
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo username, email hoặc số điện thoại
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get(
+  "/blacklists",
+  adminSystemAuth,
+  blacklistManagementController.getAllBlacklists
+);
+
+/**
+ * @swagger
+ * /api/admin-system/blacklists:
+ *   post:
+ *     tags: [Admin System - Account Management]
+ *     summary: Thêm tài khoản vào danh sách đen
+ *     description: ADMIN_SYSTEM thêm tài khoản bất kỳ vào blacklist
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: ID tài khoản (tùy chọn nếu đã biết)
+ *               accountIdentifier:
+ *                 type: string
+ *                 description: Username, email hoặc số điện thoại của tài khoản
+ *               reason:
+ *                 type: string
+ *               evidence:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Thêm thành công
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.post(
+  "/blacklists",
+  adminSystemAuth,
+  blacklistManagementController.addToBlacklist
+);
+
+/**
+ * @swagger
+ * /api/admin-system/blacklists/{blacklistId}:
+ *   delete:
+ *     tags: [Admin System - Account Management]
+ *     summary: Xóa tài khoản khỏi danh sách đen
+ *     description: ADMIN_SYSTEM xóa tài khoản khỏi blacklist
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: blacklistId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của bản ghi blacklist
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.delete(
+  "/blacklists/:blacklistId",
+  adminSystemAuth,
+  blacklistManagementController.removeFromBlacklist
+);
 
 module.exports = router;
 

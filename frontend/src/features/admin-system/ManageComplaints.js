@@ -39,6 +39,55 @@ const ManageComplaints = () => {
     },
   })
 
+  const triggerBlacklistFlow = async (complaint) => {
+    if (!complaint) return
+    const targetAccount = complaint.target_account
+    if (!targetAccount?.id) {
+      return
+    }
+
+    const targetLabel =
+      targetAccount.username ||
+      targetAccount.email ||
+      targetAccount.phone_number ||
+      `${targetAccount.role || "tài khoản"}`
+
+    const { isConfirmed } = await Swal.fire({
+      title: "Thêm vào danh sách đen?",
+      text: `Bạn có muốn thêm "${targetLabel}" vào danh sách đen sau khi giải quyết khiếu nại này?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Thêm",
+      cancelButtonText: "Bỏ qua",
+    })
+
+    if (!isConfirmed) return
+
+    try {
+      await adminSystemAPI.addToBlacklist({
+        accountId: targetAccount.id,
+        reason: `Giải quyết khiếu nại: ${complaint.title || "Không tiêu đề"}`,
+        evidence: complaint._id,
+      })
+
+      Swal.fire({
+        icon: "success",
+        title: "Đã thêm vào danh sách đen",
+        timer: 2000,
+        showConfirmButton: false,
+      })
+
+      // Nếu có màn hình blacklist sử dụng react-query, có thể invalidate ở đây
+      queryClient.invalidateQueries(["admin-blacklists"])
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Không thể thêm",
+        text: err.response?.data?.message || "Thêm vào danh sách đen thất bại",
+      })
+    }
+  }
+
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ complaintId, status, resolutionNote, dismissedReason }) => {
@@ -48,8 +97,10 @@ const ManageComplaints = () => {
         dismissedReason,
       })
     },
-    onSuccess: () => {
+    onSuccess: async (response, variables) => {
       queryClient.invalidateQueries(["admin-complaints"])
+      const updatedComplaint = response?.data?.data
+
       Swal.fire({
         icon: "success",
         title: "Thành công",
@@ -58,6 +109,10 @@ const ManageComplaints = () => {
         showConfirmButton: false,
       })
       setConfirmModal(null)
+
+      if (variables.status === "RESOLVED") {
+        await triggerBlacklistFlow(updatedComplaint || confirmModal?.data)
+      }
     },
     onError: (error) => {
       Swal.fire({
@@ -264,6 +319,14 @@ const ManageComplaints = () => {
                               )}
                             </>
                           )}
+                          {complaint.target_account?.id && (
+                            <button
+                              className="btn-action btn-danger"
+                              onClick={() => triggerBlacklistFlow(complaint)}
+                            >
+                              Thêm blacklist
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -306,6 +369,7 @@ const ManageComplaints = () => {
             handleStatusChange(viewModal, newStatus)
             setViewModal(null)
           }}
+          onAddToBlacklist={() => triggerBlacklistFlow(viewModal)}
         />
       )}
 
