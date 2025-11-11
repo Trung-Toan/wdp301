@@ -81,7 +81,7 @@ const SlotSchedule = () => {
 
   // === State cho Modal Hàng Loạt ===
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [batchSlots, setBatchSlots] = useState([]); // Các khung giờ mẫu
+  const [batchSlots, setBatchSlots] = useState([]);
   const [batchWeekdays, setBatchWeekdays] = useState({
     1: true, 2: true, 3: true, 4: true, 5: true, 6: false, 0: false,
   });
@@ -91,8 +91,8 @@ const SlotSchedule = () => {
   );
   const [batchLoading, setBatchLoading] = useState(false);
 
-  const [batchError, setBatchError] = useState(""); // Lỗi cho form CHÍNH
-  const [templateError, setTemplateError] = useState(""); // Lỗi cho form MẪU
+  const [batchError, setBatchError] = useState("");
+  const [templateError, setTemplateError] = useState("");
 
   const [tempStartHour, setTempStartHour] = useState("08");
   const [tempStartMinute, setTempStartMinute] = useState("00");
@@ -203,7 +203,7 @@ const SlotSchedule = () => {
   ]);
   // ===================================
 
-  // === Validation real-time cho form MẪU (Verify Giờ) ===
+  // === ⭐️ CẬP NHẬT: Validation real-time cho form MẪU (Verify Giờ) ===
   useEffect(() => {
     if (!isBatchModalOpen) {
       setTemplateError(""); // Reset lỗi khi đóng modal
@@ -227,6 +227,24 @@ const SlotSchedule = () => {
       setTemplateError("Khung giờ mẫu bị trùng lặp với danh sách.");
       return;
     }
+
+    // 3. ⭐️ CHECK QUÁ KHỨ CỦA HÔM NAY (Theo yêu cầu) ⭐️
+    // Chỉ check nếu ngày bắt đầu là hôm nay
+    if (batchStartDate === todayString) {
+      const now = new Date();
+      // Lấy giờ:phút hiện tại (định dạng 24h)
+      const currentHour = now.getHours().toString().padStart(2, "0");
+      const currentMinute = now.getMinutes().toString().padStart(2, "0");
+      const currentTime = `${currentHour}:${currentMinute}`;
+
+      // So sánh
+      if (finalTempStart < currentTime) {
+        setTemplateError("Không thể thêm ca trong quá khứ của ngày hôm nay.");
+        return;
+      }
+    }
+
+    // Nếu không có lỗi
     setTemplateError("");
   }, [
     tempStartHour,
@@ -235,16 +253,18 @@ const SlotSchedule = () => {
     tempEndMinute,
     batchSlots,
     isBatchModalOpen,
+    batchStartDate, // <-- Thêm vào
+    todayString,    // <-- Thêm vào
   ]);
+  // ==========================================================
 
-  // === ⭐️ THÊM MỚI: Validation real-time cho form CHÍNH (Verify Ngày) ===
+  // === Validation real-time cho form CHÍNH (Verify Ngày) ===
   useEffect(() => {
     if (!isBatchModalOpen) {
       setBatchError("");
       return;
     }
 
-    // Phải thêm T00:00:00 để so sánh múi giờ địa phương
     const startDate = new Date(batchStartDate + 'T00:00:00');
     const endDate = new Date(batchEndDate + 'T00:00:00');
     const todayDate = new Date();
@@ -253,13 +273,13 @@ const SlotSchedule = () => {
     // Rule 1: Ngày bắt đầu không thể trong quá khứ
     if (startDate < todayDate) {
       setBatchError("Ngày bắt đầu không thể là một ngày trong quá khứ.");
-      return; // Stop checking
+      return;
     }
 
     // Rule 2: Ngày kết thúc phải >= ngày bắt đầu
     if (endDate < startDate) {
       setBatchError("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
-      return; // Stop checking
+      return;
     }
 
     // All good
@@ -407,7 +427,7 @@ const SlotSchedule = () => {
     setBatchWeekdays((prev) => ({ ...prev, [dayId]: !prev[dayId] }));
   };
 
-  // === ⭐️ CẬP NHẬT: handleBatchCreate (Thêm kiểm tra "quá khứ") ===
+  // === CẬP NHẬT: handleBatchCreate (Thêm kiểm tra "quá khứ") ===
   const handleBatchCreate = async () => {
     // Lỗi ngày (batchError) đã được useEffect xử lý và vô hiệu hóa nút
     setBatchError(""); // Xóa lỗi cũ (nếu có)
@@ -437,7 +457,6 @@ const SlotSchedule = () => {
           const [startH, startM] = slot.startTime.split(":");
           const [endH, endM] = slot.endTime.split(":");
 
-          // Lấy Date object để so sánh
           const startDateTime = new Date(
             Date.UTC(
               currentDate.getFullYear(),
@@ -449,12 +468,11 @@ const SlotSchedule = () => {
             )
           );
 
-          // ⭐️ CHECK QUÁ KHỨ: Nếu giờ bắt đầu < thời gian hiện tại -> BỎ QUA
+          // CHECK QUÁ KHỨ: Nếu giờ bắt đầu < thời gian hiện tại -> BỎ QUA
           if (startDateTime < now) {
             continue;
           }
 
-          // Chỉ tạo payload cho các ca HỢP LỆ (trong tương lai)
           const endDateTime = new Date(
             Date.UTC(
               currentDate.getFullYear(),
@@ -468,7 +486,7 @@ const SlotSchedule = () => {
 
           payloads.push({
             clinic_id,
-            start_time: startDateTime.toISOString(), // Chuyển sang ISO sau khi check
+            start_time: startDateTime.toISOString(),
             end_time: endDateTime.toISOString(),
             status: "AVAILABLE",
             fee_amount: feeAmount,
