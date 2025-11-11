@@ -493,10 +493,12 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
         time: a.slot_id?.start_time ? new Date(a.slot_id.start_time).toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "UTC",
         }) : "",
         end_time: a.slot_id?.end_time ? new Date(a.slot_id.end_time).toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: "UTC",
         }) : "",
         price: a.fee_amount?.toLocaleString("vi-VN") + "đ",
         image: a.doctor_id?.user_id?.avatar_url || "/doctor-default.jpg",

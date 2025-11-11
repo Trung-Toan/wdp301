@@ -2,6 +2,24 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  padding: 24px;
+}
+
+.manage-header {
+  margin-bottom: 12px;
+}
+
+.manage-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #1e293b;
+}
+
+.manage-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
 }
 
 .page-header {
@@ -141,6 +159,145 @@
 .status-badge.resolved {
   background-color: rgba(16, 185, 129, 0.1);
   color: #10b981;
+}
+
+.status-badge.dismissed {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filters input,
+.filters select {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.filters input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filters select {
+  min-width: 150px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-action.btn-view {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-action.btn-view:hover {
+  background-color: #2563eb;
+}
+
+.btn-action.btn-update {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.btn-action.btn-update:hover {
+  background-color: #7c3aed;
+}
+
+.btn-action.btn-resolve {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn-action.btn-resolve:hover {
+  background-color: #059669;
+}
+
+.btn-action.btn-dismiss {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-action.btn-dismiss:hover {
+  background-color: #dc2626;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #64748b;
 }
 
 .actions-cell {

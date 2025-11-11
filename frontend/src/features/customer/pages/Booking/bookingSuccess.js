@@ -10,7 +10,7 @@ export default function BookingSuccess({ bookingInfo }) {
     // Gán dữ liệu gọn gàng từ object bookingInfo.data
     const data = bookingInfo.data;
 
-    // CẬP NHẬT Ở ĐÂY 👇
+    // CẬP NHẬT Ở ĐÂY 
     const doctorTitle = data.doctor_id?.title;
     const doctorFullName = data.doctor_id?.user_id?.full_name;
     const formattedDoctorName = [doctorTitle, doctorFullName].filter(Boolean).join(" ");
@@ -135,7 +135,7 @@ export default function BookingSuccess({ bookingInfo }) {
                         {/* Buttons */}
                         <div className="p-8 bg-gray-50 border-t border-gray-200">
                             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <Link to="/patient/appointment" className="flex-1 sm:flex-none">
+                                <Link to="/patient/appointments" className="flex-1 sm:flex-none">
                                     <button className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
                                         Xem lịch hẹn của tôi
                                     </button>

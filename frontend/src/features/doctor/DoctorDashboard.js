@@ -176,7 +176,11 @@ const DoctorDashboard = () => {
     if (!t) return "--:--";
     const d = new Date(t);
     if (Number.isNaN(d.getTime())) return String(t);
-    return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("vi-VN", { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
   };
 
   if (isLoading) {

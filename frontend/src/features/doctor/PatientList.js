@@ -1,11 +1,23 @@
 import { memo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { memo, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Eye,
   FileText,
   X,
+  Search,
+  Eye,
+  FileText,
+  X,
   Calendar,
+  Phone,
+  AlertCircle,
+  Briefcase,
+  ChevronLeft,
+  ChevronRight,
+  Lock,
   Phone,
   AlertCircle,
   Briefcase,
@@ -165,7 +177,7 @@ const PatientList = () => {
 
   const handleViewDetails = (patient) => {
     // Sử dụng appointment_id theo code gốc của bạn
-    fetchPatientDetails(patient?.appointment_id); 
+    fetchPatientDetails(patient?.appointment_id);
   };
 
   const handleCloseModal = () => {
@@ -429,7 +441,7 @@ const PatientList = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
       <div className="max-w-7xl mx-auto">
-        
+
         {/* Header dính + ô tìm kiếm */}
         <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm border-b border-gray-200 pt-4 pb-4 shadow-sm">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
@@ -440,7 +452,7 @@ const PatientList = () => {
               Quản lý thông tin và lịch sử khám bệnh.
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Input tìm kiếm */}
             <div className="relative flex-1">

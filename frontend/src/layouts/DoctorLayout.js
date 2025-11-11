@@ -139,14 +139,27 @@ const DoctorLayout = () => {
       console.error("Đăng xuất thất bại:", error);
       // Vẫn tiếp tục logout local nếu API thất bại
     } finally {
-      // Gọi logout từ useAuth để clear auth context
+      // Gọi logout từ useAuth để clear auth context và sessionStorage
       logout();
-      // Clear localStorage nếu có
+      
+      // Clear localStorage để đảm bảo logout hoàn toàn
       localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
       localStorage.removeItem("user");
+      localStorage.removeItem("patient");
+      localStorage.removeItem("account");
       localStorage.removeItem("refreshToken");
+      
+      // Clear sessionStorage (useAuth đã clear một số, nhưng clear lại để chắc chắn)
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("access_token");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("patient");
+      sessionStorage.removeItem("account");
+      sessionStorage.removeItem("refreshToken");
+      
       // Navigate về trang login
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   };
 

@@ -8,6 +8,7 @@ const {
     getDoctorRating,
     deleteFeedback
 } = require("../../controller/patient/feedback.controller");
+const complaintController = require("../../controller/patient/complaint.controller");
 
 /**
  * @openapi
@@ -168,6 +169,131 @@ router.get("/feedback/doctor/:doctorId/rating", getDoctorRating);
  *         description: Không tìm thấy feedback hoặc không có quyền xóa
  */
 router.delete("/feedback/:feedbackId", authRequired, deleteFeedback);
+
+/**
+ * @openapi
+ * /api/patient/complaints:
+ *   post:
+ *     tags:
+ *       - Patient
+ *     summary: Tạo khiếu nại về bác sĩ hoặc phòng khám
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, content, complaint_type]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Khiếu nại về thái độ phục vụ"
+ *                 description: Tiêu đề khiếu nại
+ *               content:
+ *                 type: string
+ *                 example: "Bác sĩ có thái độ không tốt với bệnh nhân"
+ *                 description: Nội dung khiếu nại
+ *               complaint_type:
+ *                 type: string
+ *                 enum: [DOCTOR, CLINIC]
+ *                 example: "DOCTOR"
+ *                 description: Loại khiếu nại
+ *               doctor_id:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439011"
+ *                 description: ID bác sĩ (bắt buộc nếu complaint_type = DOCTOR)
+ *               clinic_id:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439011"
+ *                 description: ID phòng khám (bắt buộc nếu complaint_type = CLINIC)
+ *               appointment_id:
+ *                 type: string
+ *                 example: "507f1f77bcf86cd799439011"
+ *                 description: ID lịch hẹn (tùy chọn)
+ *               evidence:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Mảng URL bằng chứng (tùy chọn)
+ *     responses:
+ *       201:
+ *         description: Tạo khiếu nại thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ */
+router.post("/complaints", authRequired, complaintController.createComplaint);
+
+/**
+ * @openapi
+ * /api/patient/complaints:
+ *   get:
+ *     tags:
+ *       - Patient
+ *     summary: Lấy danh sách khiếu nại của bệnh nhân
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Số lượng khiếu nại mỗi trang
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, IN_REVIEW, RESOLVED, DISMISSED]
+ *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: complaint_type
+ *         schema:
+ *           type: string
+ *           enum: [DOCTOR, CLINIC]
+ *         description: Lọc theo loại khiếu nại
+ *     responses:
+ *       200:
+ *         description: Danh sách khiếu nại
+ *       401:
+ *         description: Chưa đăng nhập
+ */
+router.get("/complaints", authRequired, complaintController.getPatientComplaints);
+
+/**
+ * @openapi
+ * /api/patient/complaints/{complaintId}:
+ *   get:
+ *     tags:
+ *       - Patient
+ *     summary: Lấy chi tiết khiếu nại
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: complaintId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID khiếu nại
+ *     responses:
+ *       200:
+ *         description: Chi tiết khiếu nại
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy khiếu nại
+ */
+router.get("/complaints/:complaintId", authRequired, complaintController.getComplaintById);
 
 module.exports = router;
 

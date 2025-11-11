@@ -19,6 +19,9 @@ export const doctorApi = {
 
   // Lấy bác sĩ top gần đây (nếu không truyền limit -> lấy tất cả)
   getDoctorTopNearMe: (limit) => axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
+
+  // Lấy tất cả bác sĩ có bằng cấp đã được duyệt (license status = APPROVED)
+  getApprovedDoctors: (params = {}) => axiosInstance.get("/doctor/approved", { params }),
  
   // Lấy bác sĩ theo chuyên khoa
   getDoctorBySpecialty: (specialtyId, params = {}) => axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params }, }),
