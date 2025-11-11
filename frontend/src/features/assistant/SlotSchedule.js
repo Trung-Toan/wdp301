@@ -3,9 +3,9 @@ import {
   Calendar,
   Plus,
   Pencil,
-  // Trash, // <-- ĐÃ XÓA
   Clock,
   People,
+  Trash, // Đã thêm lại Trash
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import { SLOT_API } from "../../api/assistant/assistant.api";
@@ -24,6 +24,25 @@ const minutes = Array.from({ length: 60 }, (_, i) =>
 const inputRingClasses =
   "block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6";
 const inputDisabledClasses = "disabled:bg-gray-100 disabled:cursor-not-allowed";
+
+// === THAY ĐỔI: Helper cho Modal Hàng Loạt ===
+const getNextWeekDate = (dateString) => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + 6);
+  return date.toISOString().split("T")[0];
+};
+
+// === THAY ĐỔI: Sắp xếp lại thứ tự ngày theo yêu cầu (T2 -> CN) ===
+const weekdays = [
+  { id: 1, label: "T2" },
+  { id: 2, label: "T3" },
+  { id: 3, label: "T4" },
+  { id: 4, label: "T5" },
+  { id: 5, label: "T6" },
+  { id: 6, label: "T7" },
+  { id: 0, label: "CN" }, // CN (id: 0) đã được chuyển xuống cuối
+];
+// ===========================================
 
 const getLocalDate = () => {
   const today = new Date();
@@ -47,7 +66,7 @@ const SlotSchedule = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Modal state
+  // Modal state (cho Add/Edit đơn lẻ)
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState(null);
   const [startHour, setStartHour] = useState("08");
@@ -59,6 +78,34 @@ const SlotSchedule = () => {
 
   const [slotStatus, setSlotStatus] = useState("AVAILABLE");
   const [isTimeLocked, setIsTimeLocked] = useState(false);
+
+  // === THÊM MỚI: State cho Modal Hàng Loạt ===
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchSlots, setBatchSlots] = useState([]); // Các khung giờ mẫu
+  const [batchWeekdays, setBatchWeekdays] = useState({
+    1: true, // T2
+    2: true, // T3
+    3: true, // T4
+    4: true, // T5
+    5: true, // T6
+    6: false, // T7
+    0: false, // CN
+  });
+  const [batchStartDate, setBatchStartDate] = useState(getLocalDate());
+  const [batchEndDate, setBatchEndDate] = useState(
+    getNextWeekDate(getLocalDate())
+  );
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchError, setBatchError] = useState("");
+
+  // === ⚠️ SỬA LỖI: Cập nhật state cho modal hàng loạt ===
+  // (Bạn đã dùng tempStartHour... trong JSX nhưng chưa khai báo ở đây)
+  const [tempStartHour, setTempStartHour] = useState("08");
+  const [tempStartMinute, setTempStartMinute] = useState("00");
+  const [tempEndHour, setTempEndHour] = useState("09");
+  const [tempEndMinute, setTempEndMinute] = useState("00");
+  const [tempMax, setTempMax] = useState(1);
+  // ==========================================
 
   const isPastDate = useMemo(() => {
     const selDate = new Date(selectedDate);
@@ -190,7 +237,6 @@ const SlotSchedule = () => {
     const dateStart = new Date(Slot.start_time);
     const dateEnd = new Date(Slot.end_time);
 
-    // DÙNG .padStart(2, "0") để đảm bảo luôn là CHUỖI 2 KÝ TỰ (ví dụ: "08" thay vì 8)
     setStartHour(dateStart.getUTCHours().toString().padStart(2, "0"));
     setStartMinute(dateStart.getUTCMinutes().toString().padStart(2, "0"));
     setEndHour(dateEnd.getUTCHours().toString().padStart(2, "0"));
@@ -202,7 +248,7 @@ const SlotSchedule = () => {
   };
   // =======================================
 
-  // === CẬP NHẬT: Logic lưu slot (Đã thêm Log) ===
+  // === (Logic lưu slot ĐƠN LẺ giữ nguyên) ===
   const handleSaveSlot = async () => {
     if (modalError) {
       toast.error("Vui lòng sửa lỗi trước khi lưu.");
@@ -215,35 +261,35 @@ const SlotSchedule = () => {
       isTimeLocked && editingSlot
         ? editingSlot.start_time
         : new Date(
-            Date.UTC(
-              dateObj.getFullYear(),
-              dateObj.getMonth(),
-              dateObj.getDate(),
-              startHour,
-              startMinute,
-              0
-            )
+          Date.UTC(
+            dateObj.getFullYear(),
+            dateObj.getMonth(),
+            dateObj.getDate(),
+            startHour,
+            startMinute,
+            0
+          )
         ).toISOString();
 
     const endDateTime =
       isTimeLocked && editingSlot
         ? editingSlot.end_time
         : new Date(
-            Date.UTC(
-              dateObj.getFullYear(),
-              dateObj.getMonth(),
-              dateObj.getDate(),
-              endHour,
-              endMinute,
-              0
-            )
+          Date.UTC(
+            dateObj.getFullYear(),
+            dateObj.getMonth(),
+            dateObj.getDate(),
+            endHour,
+            endMinute,
+            0
+          )
         ).toISOString();
 
     const payload = {
       clinic_id: assistantInfo.clinic_id,
       start_time: startDateTime,
       end_time: endDateTime,
-      status: slotStatus, // <-- Đảm bảo luôn có trường này
+      status: slotStatus,
       fee_amount: feeAmount,
       max_patients: maxPatients,
       booked_count: editingSlot ? editingSlot.booked_count : 0,
@@ -251,49 +297,194 @@ const SlotSchedule = () => {
       created_by: assistantInfo.id,
     };
 
-    // === 2. LOG PAYLOAD GỬI ĐI ===
-    console.log("--- handleSaveSlot: Dữ liệu gửi đi (Payload) ---");
-    console.log(JSON.stringify(payload, null, 2)); // Dùng JSON.stringify để xem rõ
-    // ============================
-
     try {
       if (editingSlot) {
-        // --- SỬA ---
-        console.log(`Đang gửi UPDATE cho ID: ${editingSlot._id}`);
         const response = await SLOT_API.updateSlotById(
           editingSlot._id,
           payload
         );
         toast.success("Cập nhật ca thành công!", response?.data);
       } else {
-        // --- THÊM MỚI ---
-        console.log("Đang gửi CREATE...");
         const response = await SLOT_API.createSlotByDoctor(payload);
         toast.success("Thêm ca mới thành công! ", response?.data);
       }
-
-      // 2. Đóng modal
       setModalOpen(false);
-
-      // === 3. LOG TRẠNG THÁI ===
-      console.log(
-        "--- handleSaveSlot: Gửi lệnh thành công. Đang fetch lại... ---"
-      );
-      // =========================
-
-      // 3. Tải lại toàn bộ danh sách từ server (Đây là nguồn chân lý)
       await fetchSlots();
     } catch (error) {
       console.error("--- LỖI KHI LƯU ---", error);
       toast.error("Đã xảy ra lỗi khi lưu. Vui lòng thử lại.");
-
-      console.log(
-        "--- handleSaveSlot: Gửi lệnh thất bại. Đang fetch lại... ---"
-      );
       await fetchSlots();
     }
   };
   // =================================================
+
+  // === ⚠️ SỬA LỖI: Cập nhật hàm logic cho modal hàng loạt ===
+  const handleAddTemplateSlot = () => {
+    // Kết hợp lại thành chuỗi 24h
+    const finalTempStart = `${tempStartHour}:${tempStartMinute}`;
+    const finalTempEnd = `${tempEndHour}:${tempEndMinute}`;
+
+    // Validation
+    if (finalTempStart >= finalTempEnd) {
+      setBatchError("Giờ kết thúc phải sau giờ bắt đầu.");
+      return;
+    }
+    const isOverlapping = batchSlots.some(
+      (slot) => finalTempStart < slot.endTime && finalTempEnd > slot.startTime
+    );
+    if (isOverlapping) {
+      setBatchError("Khung giờ mẫu bị trùng lặp.");
+      return;
+    }
+
+    setBatchError("");
+    setBatchSlots([
+      ...batchSlots,
+      {
+        id: Date.now(),
+        startTime: finalTempStart, // Lưu chuỗi đã kết hợp
+        endTime: finalTempEnd, // Lưu chuỗi đã kết hợp
+        maxPatients: tempMax,
+      },
+    ]);
+
+    // Tự động gợi ý ca tiếp theo
+    setTempStartHour(tempEndHour);
+    setTempStartMinute(tempEndMinute);
+
+    const nextHour = (parseInt(tempEndHour, 10) + 1).toString().padStart(2, "0");
+    setTempEndHour(nextHour === "24" ? "00" : nextHour); // Xử lý 23h -> 00h
+    setTempEndMinute(tempEndMinute); // Giữ nguyên phút
+  };
+
+  const handleRemoveTemplateSlot = (id) => {
+    setBatchSlots(batchSlots.filter((slot) => slot.id !== id));
+  };
+
+  const handleToggleWeekday = (dayId) => {
+    setBatchWeekdays((prev) => ({ ...prev, [dayId]: !prev[dayId] }));
+  };
+
+  const handleBatchCreate = async () => {
+    setBatchError("");
+    setBatchLoading(true);
+
+    const payloads = [];
+    const { clinic_id, id: created_by } = assistantInfo;
+
+    // 1. Validation
+    if (batchSlots.length === 0) {
+      setBatchError("Bạn phải thêm ít nhất 1 khung giờ mẫu.");
+      setBatchLoading(false);
+      return;
+    }
+    if (new Date(batchEndDate) < new Date(batchStartDate)) {
+      setBatchError("Ngày kết thúc phải sau ngày bắt đầu.");
+      setBatchLoading(false);
+      return;
+    }
+
+    // 2. Lặp qua các ngày
+    let currentDate = new Date(batchStartDate + "T00:00:00");
+    const finalDate = new Date(batchEndDate + "T00:00:00");
+
+    while (currentDate <= finalDate) {
+      const dayOfWeek = currentDate.getDay(); // 0 = CN, 1 = T2, ...
+
+      // 3. Kiểm tra ngày có được chọn không
+      if (batchWeekdays[dayOfWeek]) {
+        // 4. Tạo payload cho mỗi khung giờ mẫu
+        for (const slot of batchSlots) {
+          const [startH, startM] = slot.startTime.split(":");
+          const [endH, endM] = slot.endTime.split(":");
+
+          const startDateTime = new Date(
+            Date.UTC(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              currentDate.getDate(),
+              parseInt(startH),
+              parseInt(startM),
+              0
+            )
+          ).toISOString();
+
+          const endDateTime = new Date(
+            Date.UTC(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              currentDate.getDate(),
+              parseInt(endH),
+              parseInt(endM),
+              0
+            )
+          ).toISOString();
+
+          payloads.push({
+            clinic_id,
+            start_time: startDateTime,
+            end_time: endDateTime,
+            status: "AVAILABLE",
+            fee_amount: feeAmount,
+            max_patients: slot.maxPatients,
+            booked_count: 0,
+            note: note,
+            created_by: created_by,
+          });
+        }
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    if (payloads.length === 0) {
+      setBatchError(
+        "Không có ca nào được tạo. Vui lòng chọn ít nhất 1 ngày trong tuần."
+      );
+      setBatchLoading(false);
+      return;
+    }
+
+    toast.loading("Đang tạo lịch hàng loạt, vui lòng chờ...");
+
+    try {
+      const promises = payloads.map((payload) =>
+        SLOT_API.createSlotByDoctor(payload)
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      const successCount = results.filter(
+        (r) => r.status === "fulfilled"
+      ).length;
+      const failedCount = results.filter(
+        (r) => r.status === "rejected"
+      ).length;
+
+      toast.dismiss();
+      if (successCount > 0) {
+        toast.success(`Tạo thành công ${successCount} ca.`);
+      }
+      if (failedCount > 0) {
+        toast.error(`Tạo thất bại ${failedCount} ca (có thể do trùng lịch).`);
+        console.error(
+          "Lỗi tạo hàng loạt:",
+          results.filter((r) => r.status === "rejected")
+        );
+      }
+
+      setBatchLoading(false);
+      setIsBatchModalOpen(false);
+      setBatchSlots([]);
+      fetchSlots();
+    } catch (error) {
+      toast.dismiss();
+      console.error("Lỗi khi tạo lịch hàng loạt:", error);
+      toast.error("Đã xảy ra lỗi chung. Vui lòng thử lại.");
+      setBatchLoading(false);
+    }
+  };
+
+  // ===========================================
 
   // === (Phần còn lại của logic giữ nguyên) ===
   const getSlotAvailability = (Slot) => {
@@ -311,9 +502,7 @@ const SlotSchedule = () => {
     });
   }, [Slots, statusFilter]);
 
-  
-
-  // === (Phần JSX return giữ nguyên) ===
+  // === (Phần JSX return đã được CẬP NHẬT) ===
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <Toaster position="top-right" reverseOrder={false} />
@@ -377,20 +566,30 @@ const SlotSchedule = () => {
               </div>
             </div>
 
-            {/* Add Button */}
-            <button
-              onClick={openAddModal}
-              disabled={isPastDate}
-              className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
-                ${
-                  isPastDate
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-                }`}
-            >
-              <Plus size={20} /> Thêm ca
-            </button>
+            {/* === CẬP NHẬT: Nhóm Button === */}
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setIsBatchModalOpen(true)}
+                className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
+                  bg-green-600 hover:bg-green-700`}
+              >
+                <Calendar size={20} /> Tạo lịch hàng loạt
+              </button>
+
+              <button
+                onClick={openAddModal}
+                disabled={isPastDate}
+                className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg transition-colors shadow-sm font-medium
+                ${isPastDate
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+              >
+                <Plus size={20} /> Thêm ca
+              </button>
+            </div>
           </div>
+          {/* ============================== */}
 
           {isPastDate && (
             <p className="text-sm text-amber-700 font-medium mt-4 pt-4 border-t border-gray-200">
@@ -454,7 +653,6 @@ const SlotSchedule = () => {
                   key={Slot._id}
                   className={`bg-white rounded-lg shadow-sm p-5 border-l-4 ${statusBorderColor} transition-all hover:shadow-md flex flex-col`}
                 >
-                  {/* Hàng 1: Tên ca & Trạng thái */}
                   <div className="flex justify-between items-center mb-3">
                     <p className="text-xl font-bold text-gray-800">
                       Ca #{index + 1}
@@ -462,7 +660,6 @@ const SlotSchedule = () => {
                     {statusComponent}
                   </div>
 
-                  {/* Hàng 2: Giờ */}
                   <div className="flex items-center gap-2.5 text-gray-700 mb-4">
                     <Clock size={20} className="text-blue-600" />
                     <span className="font-semibold text-2xl text-gray-900 tracking-tight">
@@ -470,21 +667,20 @@ const SlotSchedule = () => {
                         .getUTCHours()
                         .toString()
                         .padStart(2, "0")}:${new Date(Slot.start_time)
-                        .getUTCMinutes()
-                        .toString()
-                        .padStart(2, "0")}`}{" "}
+                          .getUTCMinutes()
+                          .toString()
+                          .padStart(2, "0")}`}{" "}
                       -{" "}
                       {`${new Date(Slot.end_time)
                         .getUTCHours()
                         .toString()
                         .padStart(2, "0")}:${new Date(Slot.end_time)
-                        .getUTCMinutes()
-                        .toString()
-                        .padStart(2, "0")}`}
+                          .getUTCMinutes()
+                          .toString()
+                          .padStart(2, "0")}`}
                     </span>
                   </div>
 
-                  {/* Hàng 3: Số lượng & Nút Sửa */}
                   <div className="flex justify-between items-center mt-auto">
                     <div className="flex items-center gap-2.5 text-gray-600">
                       <People size={20} className="text-blue-600" />
@@ -501,8 +697,7 @@ const SlotSchedule = () => {
                         onClick={() => openEditModal(Slot)}
                         disabled={isPastDate}
                         className={`flex items-center gap-1.5 px-4 py-2 text-white rounded-lg transition-colors text-sm font-semibold shadow
-                          ${
-                            isPastDate
+                          ${isPastDate
                             ? "bg-gray-400 cursor-not-allowed"
                             : "bg-amber-500 hover:bg-amber-600"
                           }`}
@@ -517,13 +712,14 @@ const SlotSchedule = () => {
           </div>
         )}
 
-        {/* Modal Add/Edit */}
+        {/* Modal Add/Edit ĐƠN LẺ */}
         <Transition appear show={modalOpen} as={Fragment}>
           <Dialog
             as="div"
             className="relative z-10"
             onClose={() => setModalOpen(false)}
           >
+            {/* ... (Code modal đơn lẻ giữ nguyên, không thay đổi) ... */}
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
@@ -554,9 +750,7 @@ const SlotSchedule = () => {
                     {isTimeLocked && (
                       <div className="rounded-md bg-amber-50 p-4 mb-5">
                         <p className="text-sm font-medium text-amber-800">
-                          Ca này đã bắt đầu. Bạn không thể sửa đổi thời gian,
-                          nhưng có thể cập nhật Trạng thái và Số lượng bệnh
-                          nhân.
+                          Ca này đã bắt đầu. Bạn không thể sửa đổi thời gian.
                         </p>
                       </div>
                     )}
@@ -700,6 +894,296 @@ const SlotSchedule = () => {
             </div>
           </Dialog>
         </Transition>
+
+        {/* === ⚠️ ĐÃ THAY THẾ BẰNG MODAL MỚI VÀ SỬA LỖI 24H === */}
+        <Transition appear show={isBatchModalOpen} as={Fragment}>
+          <Dialog
+            as="div"
+            className="relative z-10"
+            onClose={() => setIsBatchModalOpen(false)}
+          >
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              {/* Đây là code bg-gray-500/40... từ modal của bạn */}
+              <div className="fixed inset-0 bg-gray-500/40 backdrop-blur-sm" />
+            </Transition.Child>
+
+            <div className="fixed inset-0 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-6 text-center">
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  {/* Đây là code max-w-5xl, p-10... từ modal của bạn */}
+                  <Dialog.Panel className="w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white p-10 text-left align-middle shadow-2xl transition-all">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 mb-8 border-b pb-4">
+                      <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow">
+                        <Calendar className="text-white" size={28} />
+                      </div>
+                      <div>
+                        <Dialog.Title className="text-2xl font-bold text-gray-900">
+                          Tạo lịch làm việc hàng loạt
+                        </Dialog.Title>
+                        <p className="text-gray-500 text-sm mt-1">
+                          Thiết lập nhanh các ca làm việc cho nhiều ngày trong
+                          tuần
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* --- Cột trái: Khung giờ mẫu --- */}
+                      <div className="p-6 bg-gray-50 rounded-2xl ring-1 ring-gray-200 flex flex-col">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                          1️⃣ Tạo khung giờ mẫu
+                        </h3>
+
+                        {/* Form thêm mẫu */}
+                        <div className="flex flex-col gap-4">
+
+                          {/* === SỬA LỖI 24H: Đã thay thế input[type=time] === */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Bắt đầu */}
+                            <div>
+                              <label className="text-sm font-medium text-gray-700">
+                                Bắt đầu
+                              </label>
+                              <div className="flex items-center gap-2 mt-1">
+                                <select
+                                  value={tempStartHour}
+                                  onChange={(e) =>
+                                    setTempStartHour(e.target.value)
+                                  }
+                                  className={inputRingClasses}
+                                >
+                                  {hours.map((h) => (
+                                    <option key={`start-h-${h}`} value={h}>
+                                      {h}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="font-semibold text-gray-500">
+                                  :
+                                </span>
+                                <select
+                                  value={tempStartMinute}
+                                  onChange={(e) =>
+                                    setTempStartMinute(e.target.value)
+                                  }
+                                  className={inputRingClasses}
+                                >
+                                  {minutes.map((m) => (
+                                    <option key={`start-m-${m}`} value={m}>
+                                      {m}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            {/* Kết thúc */}
+                            <div>
+                              <label className="text-sm font-medium text-gray-700">
+                                Kết thúc
+                              </label>
+                              <div className="flex items-center gap-2 mt-1">
+                                <select
+                                  value={tempEndHour}
+                                  onChange={(e) =>
+                                    setTempEndHour(e.target.value)
+                                  }
+                                  className={inputRingClasses}
+                                >
+                                  {hours.map((h) => (
+                                    <option key={`end-h-${h}`} value={h}>
+                                      {h}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="font-semibold text-gray-500">
+                                  :
+                                </span>
+                                <select
+                                  value={tempEndMinute}
+                                  onChange={(e) =>
+                                    setTempEndMinute(e.target.value)
+                                  }
+                                  className={inputRingClasses}
+                                >
+                                  {minutes.map((m) => (
+                                    <option key={`end-m-${m}`} value={m}>
+                                      {m}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          {/* === KẾT THÚC SỬA LỖI 24H === */}
+
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">
+                              Bệnh nhân tối đa
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={tempMax}
+                              onChange={(e) =>
+                                setTempMax(Math.max(1, Number(e.target.value)))
+                              }
+                              className={inputRingClasses}
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleAddTemplateSlot}
+                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow transition-all"
+                          >
+                            + Thêm khung giờ
+                          </button>
+                        </div>
+
+                        {/* Danh sách khung giờ */}
+                        <div className="mt-5 space-y-2 overflow-y-auto max-h-48 pr-2">
+                          {batchSlots.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center">
+                              Chưa có khung giờ nào
+                            </p>
+                          ) : (
+                            batchSlots.map((slot) => (
+                              <div
+                                key={slot.id}
+                                className="flex justify-between items-center bg-white rounded-md shadow-sm p-3 ring-1 ring-gray-200 hover:shadow-md transition"
+                              >
+                                <div>
+                                  <span className="font-semibold text-gray-800">
+                                    {slot.startTime} - {slot.endTime}
+                                  </span>
+                                  <span className="text-gray-500 text-sm ml-2">
+                                    ({slot.maxPatients} BN)
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    handleRemoveTemplateSlot(slot.id)
+                                  }
+                                  className="text-red-500 hover:text-red-700 p-1"
+                                >
+                                  <Trash size={16} />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* --- Cột phải: Áp dụng --- */}
+                      <div className="p-6 bg-gray-50 rounded-2xl ring-1 ring-gray-200 flex flex-col justify-between">
+                        <div className="space-y-6">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            2️⃣ Áp dụng khung giờ
+                          </h3>
+
+                          {/* Ngày trong tuần */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Chọn các ngày trong tuần
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {weekdays.map((day) => (
+                                <button
+                                  key={day.id}
+                                  onClick={() => handleToggleWeekday(day.id)}
+                                  // === SỬA LỖI: className bị thiếu ` ` ===
+                                  className={`px-4 py-2 text-sm rounded-md border font-medium transition-all ${batchWeekdays[day.id]
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                    }`}
+                                >
+                                  {day.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Khoảng ngày */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Khoảng thời gian áp dụng
+                            </label>
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
+                              <input
+                                type="date"
+                                value={batchStartDate}
+                                onChange={(e) =>
+                                  setBatchStartDate(e.target.value)
+                                }
+                                className={inputRingClasses}
+                              />
+                              <span className="text-gray-500 font-semibold">
+                                →
+                              </span>
+                              <input
+                                type="date"
+                                value={batchEndDate}
+                                onChange={(e) =>
+                                  setBatchEndDate(e.target.value)
+                                }
+                                className={inputRingClasses}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {batchError && (
+                          <div className="mt-6 rounded-md bg-red-50 p-3">
+                            <p className="text-sm text-red-800">{batchError}</p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-3 mt-8 border-t pt-6">
+                          <button
+                            type="button"
+                            className="px-5 py-2.5 bg-white text-gray-900 rounded-md hover:bg-gray-50 transition-colors font-medium ring-1 ring-gray-300 shadow-sm"
+                            onClick={() => setIsBatchModalOpen(false)}
+                            disabled={batchLoading}
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBatchCreate}
+                            disabled={batchLoading}
+                            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold shadow disabled:bg-gray-400"
+                          >
+                            {batchLoading
+                              ? "Đang xử lý..."
+                              : "Tạo lịch hàng loạt"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
+        {/* =========================================== */}
       </div>
     </div>
   );
