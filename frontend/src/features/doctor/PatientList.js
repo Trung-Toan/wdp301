@@ -1,23 +1,11 @@
 import { memo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { memo, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Search,
   Eye,
   FileText,
   X,
-  Search,
-  Eye,
-  FileText,
-  X,
   Calendar,
-  Phone,
-  AlertCircle,
-  Briefcase,
-  ChevronLeft,
-  ChevronRight,
-  Lock,
   Phone,
   AlertCircle,
   Briefcase,
