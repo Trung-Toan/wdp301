@@ -968,7 +968,7 @@ exports.getAssistantsByClinic = async (clinicId) => {
       select: "full_name avatar_url account_id",
       populate: {
         path: "account_id",
-        select: "username email phone_number status",
+        select: "-password -email_verified -createdAt -updatedAt -__v",
       },
     })
     .populate({
@@ -1016,7 +1016,7 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
         path: "user_id",
         populate: {
           path: "account_id",
-          select: "username phone_number status",
+          select: "-email_verified -__v -role"
         },
       })
       .populate({

@@ -258,7 +258,6 @@ exports.getAssistants = async (req, res, next) => {
           });
         }
       }
-
       const result = await getAssistantsByClinic(req.query.clinic_id);
       return res.status(result.ok ? 200 : 400).json(result);
     } else {
