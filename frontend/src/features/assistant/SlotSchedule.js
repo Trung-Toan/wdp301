@@ -1173,8 +1173,8 @@ const SlotSchedule = () => {
                                   key={day.id}
                                   onClick={() => handleToggleWeekday(day.id)}
                                   className={`px-4 py-2 text-sm rounded-md border font-medium transition-all ${batchWeekdays[day.id]
-                                      ? "bg-blue-600 text-white border-blue-600"
-                                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                     }`}
                                 >
                                   {day.label}
