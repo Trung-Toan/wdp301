@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -27,6 +27,7 @@ import { ElegantModal, FormField } from "./ElegantModal";
  * - Chọn phòng khám bằng list + search
  * - Sau khi chọn clinic -> tự động gọi API để lấy chuyên khoa của clinic đó
  * - Áp dụng cho cả modal Tạo bác sĩ và modal Xem chi tiết
+ * - BỎ window.location.reload(); thay bằng refetch dữ liệu & cập nhật state cục bộ
  */
 const DoctorManagement = () => {
   // ======= Lists & UI =======
@@ -77,7 +78,7 @@ const DoctorManagement = () => {
   const [detailSelectedSpecIds, setDetailSelectedSpecIds] = useState([]); // ["id1","id2"]
   const [detailSearchSpec, setDetailSearchSpec] = useState("");
 
-  // ======= Utils =======
+  // ======= Helpers =======
   const sameSet = (a = [], b = []) => {
     if (a.length !== b.length) return false;
     const s = new Set(a.map(String));
@@ -88,6 +89,29 @@ const DoctorManagement = () => {
     id: String(s?._id ?? s?.id ?? s?.value ?? s),
     name: s?.name ?? s?.label ?? String(s),
   });
+
+  const transformDoctor = (doc) => {
+    const specialties = Array.isArray(doc.specialty_id)
+      ? doc.specialty_id.map((s) => s?.name || s).join(", ")
+      : "N/A";
+
+    const clinic = doc.clinic_id;
+    const clinicName = clinic?.name || "Không xác định";
+    const clinicId = clinic?._id?.toString() || null;
+
+    return {
+      id: doc._id,
+      name: doc.user_id?.full_name || "Không rõ",
+      avatar: doc.user_id?.avatar_url || null,
+      specialty: specialties,
+      email: doc.user_id?.account_id?.email || "N/A",
+      phone: doc.user_id?.account_id?.phone_number || "N/A",
+      status: doc.user_id?.account_id?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+      clinicId,
+      clinicName,
+      doctorData: doc,
+    };
+  };
 
   // Ưu tiên gọi API chuyên biệt, fallback khi không có
   const getSpecialtiesOfClinic = async (clinicId) => {
@@ -115,14 +139,39 @@ const DoctorManagement = () => {
     }
   };
 
+  // ======= Refetch functions (không reload trang) =======
+  const fetchClinics = useCallback(async () => {
+    try {
+      const res = await adminclinicAPI.getAllClinics();
+      const clinicsData = res?.data?.data || [];
+      setClinics(clinicsData);
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách phòng khám:", err);
+    }
+  }, []);
+
+  const fetchDoctors = useCallback(async () => {
+    try {
+      const res = await adminclinicAPI.getDoctorsOfAdminClinic();
+      const doctorsData = res?.data?.data || [];
+      setDoctors(doctorsData.map(transformDoctor));
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách bác sĩ:", err);
+      toast.error("Không thể lấy danh sách bác sĩ: " + (err?.message || "Lỗi không xác định"));
+    }
+  }, []);
+
   // ======= Mutations =======
   const { mutate: createDoctor, isLoading: creatingDoctor } = useMutation({
     mutationFn: (payload) => adminclinicAPI.createAccountDoctor(payload),
-    onSuccess: () => {
-      toast.success("Tạo bác sĩ thành công!");
-      setShowModal(false);
+    onSuccess: async (res) => {
+      toast.success(res?.data?.message || "Tạo bác sĩ thành công!");
+      await fetchDoctors();
       formik.resetForm();
-      window.location.reload(); // tuỳ bạn giữ hay bỏ
+      setCreateSpecs([]);
+      setSearchSpecCreate("");
+      setShowPassword(false);
+      setShowModal(false);
     },
     onError: (error) => {
       console.error("Lỗi khi tạo bác sĩ:", error);
@@ -130,7 +179,7 @@ const DoctorManagement = () => {
     },
   });
 
-  // Cập nhật clinic cho bác sĩ (giữ lại, UI là chính)
+  // Cập nhật clinic cho bác sĩ (detail modal)
   const { mutate: updateDoctorClinic, isLoading: updatingClinic } = useMutation({
     mutationFn: async ({ doctorId, clinicId }) => {
       if (typeof adminclinicAPI.updateDoctorClinic === "function") {
@@ -144,18 +193,25 @@ const DoctorManagement = () => {
       }
       throw new Error("Chưa có API cập nhật clinic cho bác sĩ.");
     },
-    onSuccess: (res, { doctorId, clinicId }) => {
+    onSuccess: async (res, { doctorId, clinicId }) => {
       const clinicName = clinics.find((c) => String(c._id) === String(clinicId))?.name || "Không xác định";
       setDoctors((prev) => prev.map((d) => (d.id === doctorId ? { ...d, clinicId, clinicName } : d)));
       setSelectedDoctor((prev) => (prev ? { ...prev, clinicId, clinicName } : prev));
       toast.success(res?.data?.message || "Đã cập nhật phòng khám.");
+
+      await fetchDoctors();
+      if (detailClinicId) {
+        const specs = await getSpecialtiesOfClinic(detailClinicId);
+        setDetailSpecialties(specs);
+        setDetailSelectedSpecIds([]);
+      }
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || error.message || "Không thể cập nhật phòng khám.");
     },
   });
 
-  // Cập nhật chuyên khoa cho bác sĩ (giữ lại, UI là chính)
+  // Cập nhật chuyên khoa cho bác sĩ (detail modal)
   const { mutate: updateDoctorSpecialties, isLoading: updatingSpecs } = useMutation({
     mutationFn: async ({ doctorId, specialtyIds }) => {
       if (typeof adminclinicAPI.updateDoctorSpecialties === "function") {
@@ -169,28 +225,31 @@ const DoctorManagement = () => {
       }
       throw new Error("Chưa có API cập nhật chuyên khoa cho bác sĩ.");
     },
-    onSuccess: (res, { doctorId, specialtyIds }) => {
+    onSuccess: async (res, { doctorId, specialtyIds }) => {
       const names = detailSpecialties
         .filter((sp) => specialtyIds.includes(String(sp.id)))
         .map((sp) => sp.name)
         .join(", ");
 
+      // Optimistic UI
       setDoctors((prev) => prev.map((d) => (d.id === doctorId ? { ...d, specialty: names } : d)));
 
       setSelectedDoctor((prev) =>
         prev
           ? {
-            ...prev,
-            specialty: names,
-            doctorData: {
-              ...prev.doctorData,
-              specialty_id: specialtyIds,
-            },
-          }
+              ...prev,
+              specialty: names,
+              doctorData: {
+                ...prev.doctorData,
+                specialty_id: specialtyIds,
+              },
+            }
           : prev
       );
 
       toast.success(res?.data?.message || "Đã cập nhật chuyên khoa.");
+      // Refetch để đồng bộ dữ liệu (nếu backend trả khác)
+      await fetchDoctors();
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || error.message || "Không thể cập nhật chuyên khoa.");
@@ -259,52 +318,18 @@ const DoctorManagement = () => {
 
   // ======= Load dữ liệu ban đầu =======
   useEffect(() => {
-    const fetchClinics = async () => {
-      try {
-        const res = await adminclinicAPI.getAllClinics();
-        const clinicsData = res?.data?.data || [];
-        setClinics(clinicsData);
-      } catch (err) {
-        console.error("Lỗi khi lấy danh sách phòng khám:", err);
-      }
+    let mounted = true;
+
+    const init = async () => {
+      await Promise.all([fetchClinics(), fetchDoctors()]);
+      if (!mounted) return;
     };
 
-    const fetchDoctors = async () => {
-      try {
-        const res = await adminclinicAPI.getDoctorsOfAdminClinic();
-        const doctorsData = res?.data?.data || [];
-        const transformed = doctorsData.map((doc) => {
-          const specialties = Array.isArray(doc.specialty_id)
-            ? doc.specialty_id.map((s) => s?.name || s).join(", ")
-            : "N/A";
-
-          const clinic = doc.clinic_id;
-          const clinicName = clinic?.name || "Không xác định";
-          const clinicId = clinic?._id?.toString() || null;
-
-          return {
-            id: doc._id,
-            name: doc.user_id?.full_name || "Không rõ",
-            avatar: doc.user_id?.avatar_url || null,
-            specialty: specialties,
-            email: doc.user_id?.account_id?.email || "N/A",
-            phone: doc.user_id?.account_id?.phone_number || "N/A",
-            status: doc.user_id?.account_id?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
-            clinicId,
-            clinicName,
-            doctorData: doc,
-          };
-        });
-        setDoctors(transformed);
-      } catch (err) {
-        console.error("Lỗi khi lấy danh sách bác sĩ:", err);
-        toast.error("Không thể lấy danh sách bác sĩ: " + err.message);
-      }
+    init();
+    return () => {
+      mounted = false;
     };
-
-    fetchClinics();
-    fetchDoctors();
-  }, []);
+  }, [fetchClinics, fetchDoctors]);
 
   // ======= Handlers =======
   const handleAddDoctor = () => {
@@ -334,7 +359,11 @@ const DoctorManagement = () => {
     try {
       const res = await adminclinicAPI.deleteDoctor(id);
       if (res?.data?.ok) {
+        // Xoá ngay trong state mà không reload
         setDoctors((prev) => prev.filter((doc) => doc.id !== id));
+        // Nếu đang mở modal chi tiết của người vừa xoá -> đóng modal
+        setShowDetailModal((open) => (open && selectedDoctor?.id === id ? false : open));
+        if (selectedDoctor?.id === id) setSelectedDoctor(null);
         toast.success(res?.data?.message || "Xóa tài khoản bác sĩ thành công");
       } else {
         toast.error(res?.data?.message || "Không thể xóa bác sĩ");
@@ -373,10 +402,10 @@ const DoctorManagement = () => {
   // Lọc danh sách bác sĩ
   const filteredDoctors = doctors.filter((doc) => {
     const matchesSearch =
-      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doc.clinicName && doc.clinicName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (doc.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (doc.specialty || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (doc.email || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      ((doc.clinicName || "").toLowerCase().includes((searchTerm || "").toLowerCase()));
 
     const matchesClinic = filterClinic === "ALL" || doc.clinicId === filterClinic;
     return matchesSearch && matchesClinic;
@@ -469,8 +498,9 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                      }`}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                      doctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                    }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -776,10 +806,11 @@ const DoctorManagement = () => {
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-gray-900">{selectedDoctor.name}</h2>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedDoctor.status === "ACTIVE"
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                        selectedDoctor.status === "ACTIVE"
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-600"
-                        }`}
+                      }`}
                     >
                       {selectedDoctor.status === "ACTIVE" ? (
                         <>

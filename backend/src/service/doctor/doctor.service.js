@@ -150,6 +150,16 @@ exports.findDoctorByUserId = async (userId) => {
   }
 };
 
+exports.findDoctorById = async (doctorId) => {
+  try {
+    const doctor = await Doctor.findById(doctorId);
+    return doctor;
+  } catch (error) {
+    console.error("Lỗi khi tìm bác sĩ bằng doctorId:", error);
+    return null;
+  }
+};
+
 /**
  * (Helper) Phân trang một mảng id (nếu cần dùng)
  */
