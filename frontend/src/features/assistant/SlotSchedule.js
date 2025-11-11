@@ -5,7 +5,7 @@ import {
   Pencil,
   Clock,
   People,
-  Trash, // Đã thêm lại Trash
+  Trash,
 } from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import { SLOT_API } from "../../api/assistant/assistant.api";
@@ -25,14 +25,14 @@ const inputRingClasses =
   "block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6";
 const inputDisabledClasses = "disabled:bg-gray-100 disabled:cursor-not-allowed";
 
-// === THAY ĐỔI: Helper cho Modal Hàng Loạt ===
+// === Helper cho Modal Hàng Loạt ===
 const getNextWeekDate = (dateString) => {
   const date = new Date(dateString);
   date.setDate(date.getDate() + 6);
   return date.toISOString().split("T")[0];
 };
 
-// === THAY ĐỔI: Sắp xếp lại thứ tự ngày theo yêu cầu (T2 -> CN) ===
+// === Sắp xếp lại thứ tự ngày theo yêu cầu (T2 -> CN) ===
 const weekdays = [
   { id: 1, label: "T2" },
   { id: 2, label: "T3" },
@@ -40,7 +40,7 @@ const weekdays = [
   { id: 4, label: "T5" },
   { id: 5, label: "T6" },
   { id: 6, label: "T7" },
-  { id: 0, label: "CN" }, // CN (id: 0) đã được chuyển xuống cuối
+  { id: 0, label: "CN" },
 ];
 // ===========================================
 
@@ -79,17 +79,11 @@ const SlotSchedule = () => {
   const [slotStatus, setSlotStatus] = useState("AVAILABLE");
   const [isTimeLocked, setIsTimeLocked] = useState(false);
 
-  // === THÊM MỚI: State cho Modal Hàng Loạt ===
+  // === State cho Modal Hàng Loạt ===
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [batchSlots, setBatchSlots] = useState([]); // Các khung giờ mẫu
   const [batchWeekdays, setBatchWeekdays] = useState({
-    1: true, // T2
-    2: true, // T3
-    3: true, // T4
-    4: true, // T5
-    5: true, // T6
-    6: false, // T7
-    0: false, // CN
+    1: true, 2: true, 3: true, 4: true, 5: true, 6: false, 0: false,
   });
   const [batchStartDate, setBatchStartDate] = useState(getLocalDate());
   const [batchEndDate, setBatchEndDate] = useState(
@@ -97,18 +91,14 @@ const SlotSchedule = () => {
   );
   const [batchLoading, setBatchLoading] = useState(false);
 
-  // === THAY ĐỔI: Tách state lỗi ===
   const [batchError, setBatchError] = useState(""); // Lỗi cho form CHÍNH
   const [templateError, setTemplateError] = useState(""); // Lỗi cho form MẪU
-  // ================================
 
-  // === Cập nhật state cho modal hàng loạt ===
   const [tempStartHour, setTempStartHour] = useState("08");
   const [tempStartMinute, setTempStartMinute] = useState("00");
   const [tempEndHour, setTempEndHour] = useState("09");
   const [tempEndMinute, setTempEndMinute] = useState("00");
   const [tempMax, setTempMax] = useState(1);
-  // ==========================================
 
   const isPastDate = useMemo(() => {
     const selDate = new Date(selectedDate);
@@ -123,7 +113,6 @@ const SlotSchedule = () => {
     setLoading(true);
     try {
       const res = await SLOT_API.getSlotsByDoctor(selectedDate);
-
       const sortedSlots = (res.data?.data || []).sort(
         (a, b) => new Date(a.start_time) - new Date(b.start_time)
       );
@@ -189,13 +178,10 @@ const SlotSchedule = () => {
       return;
     }
     const [year, month, day] = selectedDate.split("-").map(Number);
-
     const startDateTime = new Date(
       Date.UTC(year, month - 1, day, startHour, startMinute, 0)
     );
-
     const startDateTimeISO = startDateTime.toISOString();
-
     const isDuplicate = otherSlots.some(
       (slot) => slot.start_time === startDateTimeISO
     );
@@ -217,7 +203,7 @@ const SlotSchedule = () => {
   ]);
   // ===================================
 
-  // === ⭐️ THÊM MỚI: Validation real-time cho form MẪU (Verify Giờ) ===
+  // === Validation real-time cho form MẪU (Verify Giờ) ===
   useEffect(() => {
     if (!isBatchModalOpen) {
       setTemplateError(""); // Reset lỗi khi đóng modal
@@ -241,8 +227,6 @@ const SlotSchedule = () => {
       setTemplateError("Khung giờ mẫu bị trùng lặp với danh sách.");
       return;
     }
-
-    // Nếu không có lỗi
     setTemplateError("");
   }, [
     tempStartHour,
@@ -252,8 +236,36 @@ const SlotSchedule = () => {
     batchSlots,
     isBatchModalOpen,
   ]);
-  // ==========================================================
 
+  // === ⭐️ THÊM MỚI: Validation real-time cho form CHÍNH (Verify Ngày) ===
+  useEffect(() => {
+    if (!isBatchModalOpen) {
+      setBatchError("");
+      return;
+    }
+
+    // Phải thêm T00:00:00 để so sánh múi giờ địa phương
+    const startDate = new Date(batchStartDate + 'T00:00:00');
+    const endDate = new Date(batchEndDate + 'T00:00:00');
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0); // Lấy 0h00 của ngày hôm nay
+
+    // Rule 1: Ngày bắt đầu không thể trong quá khứ
+    if (startDate < todayDate) {
+      setBatchError("Ngày bắt đầu không thể là một ngày trong quá khứ.");
+      return; // Stop checking
+    }
+
+    // Rule 2: Ngày kết thúc phải >= ngày bắt đầu
+    if (endDate < startDate) {
+      setBatchError("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.");
+      return; // Stop checking
+    }
+
+    // All good
+    setBatchError("");
+  }, [batchStartDate, batchEndDate, isBatchModalOpen]);
+  // =================================================================
 
   // === (Hàm openAddModal và openEditModal giữ nguyên) ===
   const openAddModal = () => {
@@ -361,9 +373,8 @@ const SlotSchedule = () => {
 
   // === Cập nhật hàm logic cho modal hàng loạt ===
   const handleAddTemplateSlot = () => {
-    // === THAY ĐỔI: Check lỗi templateError (từ useEffect) ===
     if (templateError) {
-      toast.error(templateError);
+      // Lỗi đã được set bởi useEffect
       return;
     }
 
@@ -374,8 +385,8 @@ const SlotSchedule = () => {
       ...batchSlots,
       {
         id: Date.now(),
-        startTime: finalTempStart, // Lưu chuỗi đã kết hợp
-        endTime: finalTempEnd, // Lưu chuỗi đã kết hợp
+        startTime: finalTempStart,
+        endTime: finalTempEnd,
         maxPatients: tempMax,
       },
     ]);
@@ -383,10 +394,9 @@ const SlotSchedule = () => {
     // Tự động gợi ý ca tiếp theo
     setTempStartHour(tempEndHour);
     setTempStartMinute(tempEndMinute);
-
     const nextHour = (parseInt(tempEndHour, 10) + 1).toString().padStart(2, "0");
-    setTempEndHour(nextHour === "24" ? "00" : nextHour); // Xử lý 23h -> 00h
-    setTempEndMinute(tempEndMinute); // Giữ nguyên phút
+    setTempEndHour(nextHour === "24" ? "00" : nextHour);
+    setTempEndMinute(tempEndMinute);
   };
 
   const handleRemoveTemplateSlot = (id) => {
@@ -397,22 +407,20 @@ const SlotSchedule = () => {
     setBatchWeekdays((prev) => ({ ...prev, [dayId]: !prev[dayId] }));
   };
 
+  // === ⭐️ CẬP NHẬT: handleBatchCreate (Thêm kiểm tra "quá khứ") ===
   const handleBatchCreate = async () => {
-    setTemplateError(""); // Xóa lỗi của form mẫu (nếu có)
-    setBatchError(""); // Reset lỗi của form chính
+    // Lỗi ngày (batchError) đã được useEffect xử lý và vô hiệu hóa nút
+    setBatchError(""); // Xóa lỗi cũ (nếu có)
+    setTemplateError("");
     setBatchLoading(true);
 
     const payloads = [];
     const { clinic_id, id: created_by } = assistantInfo;
+    const now = new Date(); // Lấy thời gian HIỆN TẠI
 
-    // 1. Validation
+    // 1. Validation (chỉ cần check list mẫu)
     if (batchSlots.length === 0) {
-      setBatchError("Bạn phải thêm ít nhất 1 khung giờ mẫu."); // Dùng batchError
-      setBatchLoading(false);
-      return;
-    }
-    if (new Date(batchEndDate) < new Date(batchStartDate)) {
-      setBatchError("Ngày kết thúc phải sau ngày bắt đầu."); // Dùng batchError
+      setBatchError("Bạn phải thêm ít nhất 1 khung giờ mẫu.");
       setBatchLoading(false);
       return;
     }
@@ -422,15 +430,14 @@ const SlotSchedule = () => {
     const finalDate = new Date(batchEndDate + "T00:00:00");
 
     while (currentDate <= finalDate) {
-      const dayOfWeek = currentDate.getDay(); // 0 = CN, 1 = T2, ...
+      const dayOfWeek = currentDate.getDay();
 
-      // 3. Kiểm tra ngày có được chọn không
       if (batchWeekdays[dayOfWeek]) {
-        // 4. Tạo payload cho mỗi khung giờ mẫu
         for (const slot of batchSlots) {
           const [startH, startM] = slot.startTime.split(":");
           const [endH, endM] = slot.endTime.split(":");
 
+          // Lấy Date object để so sánh
           const startDateTime = new Date(
             Date.UTC(
               currentDate.getFullYear(),
@@ -440,8 +447,14 @@ const SlotSchedule = () => {
               parseInt(startM),
               0
             )
-          ).toISOString();
+          );
 
+          // ⭐️ CHECK QUÁ KHỨ: Nếu giờ bắt đầu < thời gian hiện tại -> BỎ QUA
+          if (startDateTime < now) {
+            continue;
+          }
+
+          // Chỉ tạo payload cho các ca HỢP LỆ (trong tương lai)
           const endDateTime = new Date(
             Date.UTC(
               currentDate.getFullYear(),
@@ -451,12 +464,12 @@ const SlotSchedule = () => {
               parseInt(endM),
               0
             )
-          ).toISOString();
+          );
 
           payloads.push({
             clinic_id,
-            start_time: startDateTime,
-            end_time: endDateTime,
+            start_time: startDateTime.toISOString(), // Chuyển sang ISO sau khi check
+            end_time: endDateTime.toISOString(),
             status: "AVAILABLE",
             fee_amount: feeAmount,
             max_patients: slot.maxPatients,
@@ -471,7 +484,7 @@ const SlotSchedule = () => {
 
     if (payloads.length === 0) {
       setBatchError(
-        "Không có ca nào được tạo. Vui lòng chọn ít nhất 1 ngày trong tuần."
+        "Không có ca hợp lệ nào được tạo (kiểm tra lại ngày hoặc các ca đã chọn có thể đã ở trong quá khứ)."
       );
       setBatchLoading(false);
       return;
@@ -483,9 +496,7 @@ const SlotSchedule = () => {
       const promises = payloads.map((payload) =>
         SLOT_API.createSlotByDoctor(payload)
       );
-
       const results = await Promise.allSettled(promises);
-
       const successCount = results.filter(
         (r) => r.status === "fulfilled"
       ).length;
@@ -928,7 +939,7 @@ const SlotSchedule = () => {
           </Dialog>
         </Transition>
 
-        {/* === ⭐️ MODAL HÀNG LOẠT (Đã cập nhật Verify Giờ) === */}
+        {/* === ⭐️ MODAL HÀNG LOẠT (Đã cập nhật Verify Giờ + Ngày) === */}
         <Transition appear show={isBatchModalOpen} as={Fragment}>
           <Dialog
             as="div"
@@ -1079,14 +1090,12 @@ const SlotSchedule = () => {
                           <button
                             type="button"
                             onClick={handleAddTemplateSlot}
-                            // === THAY ĐỔI: Thêm disabled và css ===
                             className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            disabled={!!templateError}
+                            disabled={!!templateError} // Vô hiệu hóa nếu có lỗi giờ
                           >
                             + Thêm khung giờ
                           </button>
 
-                          {/* === THÊM MỚI: Hiển thị lỗi real-time === */}
                           {templateError && (
                             <p className="text-sm text-red-600 font-medium text-center -mt-2">
                               {templateError}
@@ -1180,13 +1189,12 @@ const SlotSchedule = () => {
                                   setBatchEndDate(e.target.value)
                                 }
                                 className={inputRingClasses}
-                                Verticalscrolling="true"
                               />
                             </div>
                           </div>
                         </div>
 
-                        {/* === THAY ĐỔI: Chỉ hiển thị lỗi batchError (lỗi form chính) === */}
+                        {/* ⭐️ HIỂN THỊ LỖI NGÀY (NẾU CÓ) */}
                         {batchError && (
                           <div className="mt-6 rounded-md bg-red-50 p-3">
                             <p className="text-sm text-red-800">{batchError}</p>
@@ -1205,8 +1213,9 @@ const SlotSchedule = () => {
                           <button
                             type="button"
                             onClick={handleBatchCreate}
-                            disabled={batchLoading}
-                            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold shadow disabled:bg-gray-400"
+                            // ⭐️ VÔ HIỆU HÓA NÚT NẾU CÓ LỖI NGÀY
+                            disabled={batchLoading || !!batchError}
+                            className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
                           >
                             {batchLoading
                               ? "Đang xử lý..."
