@@ -15,8 +15,10 @@ const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
 
-const startOfUTCDay = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-const addUTCDays = (d, n) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + n));
+const startOfUTCDay = (d) =>
+  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const addUTCDays = (d, n) =>
+  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + n));
 
 exports.findAdminClinicByAccountId = async (accId) => {
   try {
@@ -65,11 +67,16 @@ exports.getDashboard = async (adminAccountId) => {
   const totalDoctors = doctorIds.length;
 
   // 3) Trợ lý trong các clinic này
-  const totalAssistants = await Assistant.countDocuments({ clinic_id: { $in: clinicIds } });
+  const totalAssistants = await Assistant.countDocuments({
+    clinic_id: { $in: clinicIds },
+  });
 
   // 4) License bác sĩ đang PENDING trong phạm vi các clinic này
   const pendingLicenses = doctorIds.length
-    ? await License.countDocuments({ doctor_id: { $in: doctorIds }, status: "PENDING" })
+    ? await License.countDocuments({
+        doctor_id: { $in: doctorIds },
+        status: "PENDING",
+      })
     : 0;
 
   // 5) Mốc thời gian UTC (giống logic dashboard bác sĩ)
@@ -87,9 +94,9 @@ exports.getDashboard = async (adminAccountId) => {
         $match: {
           doctor_id: { $in: doctorIds },
           scheduled_date: { $gte: todayStart, $lt: todayEnd },
-        }
+        },
       },
-      { $group: { _id: "$status", count: { $sum: 1 } } }
+      { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
     todayByStatus = todayAgg.reduce((acc, r) => {
       acc[r._id] = r.count;
@@ -106,22 +113,26 @@ exports.getDashboard = async (adminAccountId) => {
         $match: {
           doctor_id: { $in: doctorIds },
           scheduled_date: { $gte: weekStartUTC, $lt: todayEnd },
-        }
+        },
       },
       {
         $project: {
           date: {
-            $dateToString: { format: "%Y-%m-%d", date: "$scheduled_date", timezone: "UTC" }
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$scheduled_date",
+              timezone: "UTC",
+            },
           },
-          status: 1
-        }
+          status: 1,
+        },
       },
       {
         $group: {
           _id: { date: "$date", status: "$status" },
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     // chuẩn hoá về mảng mỗi ngày { date, total, completed }
@@ -133,24 +144,27 @@ exports.getDashboard = async (adminAccountId) => {
       if (row._id.status === "COMPLETED") prev.completed += row.count;
       map.set(date, prev);
     }
-    bookings7d = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+    bookings7d = Array.from(map.values()).sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
   }
 
   // 8) Lịch hẹn sắp tới 7 ngày (SCHEDULED/APPROVED)
   const upcomingAppointments = doctorIds.length
     ? await Appointment.countDocuments({
-      doctor_id: { $in: doctorIds },
-      scheduled_date: { $gte: todayStart, $lt: addUTCDays(now, 7) },
-      status: { $in: ["SCHEDULED", "APPROVED"] },
-    })
+        doctor_id: { $in: doctorIds },
+        scheduled_date: { $gte: todayStart, $lt: addUTCDays(now, 7) },
+        status: { $in: ["SCHEDULED", "APPROVED"] },
+      })
     : 0;
 
   // 9) Điểm rating trung bình của toàn hệ thống (feedback tất cả doctors)
-  let avgRating = 0, totalFeedbacks = 0;
+  let avgRating = 0,
+    totalFeedbacks = 0;
   if (doctorIds.length) {
     const fb = await Feedback.aggregate([
       { $match: { doctor_id: { $in: doctorIds } } },
-      { $group: { _id: null, avg: { $avg: "$rating" }, total: { $sum: 1 } } }
+      { $group: { _id: null, avg: { $avg: "$rating" }, total: { $sum: 1 } } },
     ]);
     if (fb.length) {
       avgRating = Math.round((fb[0].avg || 0) * 10) / 10;
@@ -180,194 +194,236 @@ exports.getDashboard = async (adminAccountId) => {
 };
 // Helper an toàn ObjectId
 const toObjectId = (v) => {
-  try { return new mongoose.Types.ObjectId(String(v)); } catch { return null; }
+  try {
+    return new mongoose.Types.ObjectId(String(v));
+  } catch {
+    return null;
+  }
 };
 
-/**
- * getAllBlackList(adminAccountId, { q, page, limit, clinic_id })
- * - Trả về các account nằm trong "blacklists" (toàn hệ thống),
- *   nhưng chỉ hiển thị những tài khoản PATIENT có liên hệ tới các phòng khám thuộc admin:
- *   + Có Patient (map qua User.account_id)
- *   + Và (nếu truyền clinic_id hợp lệ thuộc admin) có Lịch khám tại clinic đó
- *   + Nếu KHÔNG truyền clinic_id: chỉ cần kiểm tra có từng đặt lịch ở BẤT KỲ clinic thuộc admin
- *
- * Trả về:
- * {
- *   items: [{
- *     id, reason, evidence, createdAt,
- *     account: {_id, username, email, phone_number, role, status},
- *     user: {_id, full_name, gender, dob, avatar_url},
- *     patient_id,
- *     totalAppointmentsAtMyClinics,
- *     lastAppointmentAt
- *   }],
- *   page, limit, total
- * }
- */
-exports.getAllBlackList = async (adminAccountId, { q = "", page = 1, limit = 20, clinic_id = null } = {}) => {
-  // 1) Xác định phạm vi clinic thuộc admin
-  const adminClinic = await exports.findAdminClinicByAccountId(adminAccountId);
-  const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id name").lean();
-  if (!clinics.length) {
-    return { items: [], page, limit, total: 0 };
+(exports.updateDoctorClinic = async (doctor, clinic_id) => {
+  try {
+    doctor.clinic_id = toObjectId(clinic_id);
+    const saved = await doctor.save();
+    return saved;
+  } catch (error) {
+    console.log("Error updateDoctorClinic:", error);
+    throw error;
   }
-  const clinicIds = clinics.map((c) => c._id);
-
-  // 2) Nếu có clinic_id -> validate thuộc quyền
-  let scopedClinicIds = clinicIds;
-  if (clinic_id) {
-    const cid = toObjectId(clinic_id);
-    const ok = cid && clinicIds.some((id) => id.toString() === cid.toString());
-    if (!ok) {
-      // Không thuộc quyền -> trả rỗng
+}),
+  (exports.updateDoctorSpecialties = async (doctor, specialty_ids) => {
+    try {
+      doctor.specialty_id = specialty_ids
+        .map((id) => toObjectId(id))
+        .filter(Boolean);
+      const saved = await doctor.save();
+      return saved;
+    } catch (error) {
+      console.log("Error updateDoctorSpecialties:", error);
+      throw error;
+    }
+  }),
+  /**
+   * getAllBlackList(adminAccountId, { q, page, limit, clinic_id })
+   * - Trả về các account nằm trong "blacklists" (toàn hệ thống),
+   *   nhưng chỉ hiển thị những tài khoản PATIENT có liên hệ tới các phòng khám thuộc admin:
+   *   + Có Patient (map qua User.account_id)
+   *   + Và (nếu truyền clinic_id hợp lệ thuộc admin) có Lịch khám tại clinic đó
+   *   + Nếu KHÔNG truyền clinic_id: chỉ cần kiểm tra có từng đặt lịch ở BẤT KỲ clinic thuộc admin
+   *
+   * Trả về:
+   * {
+   *   items: [{
+   *     id, reason, evidence, createdAt,
+   *     account: {_id, username, email, phone_number, role, status},
+   *     user: {_id, full_name, gender, dob, avatar_url},
+   *     patient_id,
+   *     totalAppointmentsAtMyClinics,
+   *     lastAppointmentAt
+   *   }],
+   *   page, limit, total
+   * }
+   */
+  (exports.getAllBlackList = async (
+    adminAccountId,
+    { q = "", page = 1, limit = 20, clinic_id = null } = {}
+  ) => {
+    // 1) Xác định phạm vi clinic thuộc admin
+    const adminClinic = await exports.findAdminClinicByAccountId(
+      adminAccountId
+    );
+    const clinics = await Clinic.find({ created_by: adminClinic._id })
+      .select("_id name")
+      .lean();
+    if (!clinics.length) {
       return { items: [], page, limit, total: 0 };
     }
-    scopedClinicIds = [cid];
-  }
+    const clinicIds = clinics.map((c) => c._id);
 
-  // 3) Pipeline: Blacklist -> Account -> User -> Patient
-  //    + Filter q (reason, email, phone, username, full_name)
-  //    + Lookup appointments để thống kê trong phạm vi clinics của admin
-  const kw = String(q || "").trim();
-  const skip = (page - 1) * limit;
+    // 2) Nếu có clinic_id -> validate thuộc quyền
+    let scopedClinicIds = clinicIds;
+    if (clinic_id) {
+      const cid = toObjectId(clinic_id);
+      const ok =
+        cid && clinicIds.some((id) => id.toString() === cid.toString());
+      if (!ok) {
+        // Không thuộc quyền -> trả rỗng
+        return { items: [], page, limit, total: 0 };
+      }
+      scopedClinicIds = [cid];
+    }
 
-  const pipeline = [
-    // Join sang Account để lấy role/status/username/email/phone
-    {
-      $lookup: {
-        from: "accounts",
-        localField: "account_id",
-        foreignField: "_id",
-        as: "acc",
+    // 3) Pipeline: Blacklist -> Account -> User -> Patient
+    //    + Filter q (reason, email, phone, username, full_name)
+    //    + Lookup appointments để thống kê trong phạm vi clinics của admin
+    const kw = String(q || "").trim();
+    const skip = (page - 1) * limit;
+
+    const pipeline = [
+      // Join sang Account để lấy role/status/username/email/phone
+      {
+        $lookup: {
+          from: "accounts",
+          localField: "account_id",
+          foreignField: "_id",
+          as: "acc",
+        },
       },
-    },
-    { $unwind: { path: "$acc", preserveNullAndEmptyArrays: false } },
+      { $unwind: { path: "$acc", preserveNullAndEmptyArrays: false } },
 
-    // Chỉ quan tâm patient
-    { $match: { "acc.role": "PATIENT" } },
+      // Chỉ quan tâm patient
+      { $match: { "acc.role": "PATIENT" } },
 
-    // Join sang User để lấy profile
-    {
-      $lookup: {
-        from: "users",
-        localField: "acc._id",
-        foreignField: "account_id",
-        as: "user",
+      // Join sang User để lấy profile
+      {
+        $lookup: {
+          from: "users",
+          localField: "acc._id",
+          foreignField: "account_id",
+          as: "user",
+        },
       },
-    },
-    { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
 
-    // Join sang Patient để lấy patient_id
-    {
-      $lookup: {
-        from: "patients",
-        localField: "user._id",
-        foreignField: "user_id",
-        as: "patient",
+      // Join sang Patient để lấy patient_id
+      {
+        $lookup: {
+          from: "patients",
+          localField: "user._id",
+          foreignField: "user_id",
+          as: "patient",
+        },
       },
-    },
-    { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
-  ];
+      { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+    ];
 
-  // Tìm kiếm q
-  if (kw) {
-    pipeline.push({
-      $match: {
-        $or: [
-          { reason: { $regex: kw, $options: "i" } },
-          { "acc.username": { $regex: kw, $options: "i" } },
-          { "acc.email": { $regex: kw, $options: "i" } },
-          { "acc.phone_number": { $regex: kw, $options: "i" } },
-          { "user.full_name": { $regex: kw, $options: "i" } },
-        ],
-      },
-    });
-  }
+    // Tìm kiếm q
+    if (kw) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { reason: { $regex: kw, $options: "i" } },
+            { "acc.username": { $regex: kw, $options: "i" } },
+            { "acc.email": { $regex: kw, $options: "i" } },
+            { "acc.phone_number": { $regex: kw, $options: "i" } },
+            { "user.full_name": { $regex: kw, $options: "i" } },
+          ],
+        },
+      });
+    }
 
-  // Thống kê appointments trong phạm vi clinic thuộc admin
-  pipeline.push(
-    {
-      $lookup: {
-        from: "appointments",
-        let: { patId: "$patient._id" },
-        pipeline: [
-          { $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$patient_id", "$$patId"] },
-                  { $in: ["$clinic_id", scopedClinicIds] },
-                ],
+    // Thống kê appointments trong phạm vi clinic thuộc admin
+    pipeline.push(
+      {
+        $lookup: {
+          from: "appointments",
+          let: { patId: "$patient._id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$patient_id", "$$patId"] },
+                    { $in: ["$clinic_id", scopedClinicIds] },
+                  ],
+                },
               },
             },
-          },
-          { $sort: { createdAt: -1 } },
-          { $project: { clinic_id: 1, createdAt: 1 } },
-        ],
-        as: "apts_mine",
+            { $sort: { createdAt: -1 } },
+            { $project: { clinic_id: 1, createdAt: 1 } },
+          ],
+          as: "apts_mine",
+        },
       },
-    },
-    // Nếu đã truyền clinic_id: chỉ giữ lại những blacklists có Lịch khám ở đúng clinic đó
-    ...(clinic_id ? [{ $match: { "apts_mine.0": { $exists: true } } }] : []),
+      // Nếu đã truyền clinic_id: chỉ giữ lại những blacklists có Lịch khám ở đúng clinic đó
+      ...(clinic_id ? [{ $match: { "apts_mine.0": { $exists: true } } }] : []),
 
-    // Gộp thống kê
-    {
-      $addFields: {
-        totalAppointmentsAtMyClinics: { $size: "$apts_mine" },
-        lastAppointmentAt: { $ifNull: [{ $first: "$apts_mine.createdAt" }, null] },
-      },
-    }
-  );
-
-  // Chỉ hiển thị những entry có Patient & có lịch khám tại clinics của mình (hợp lý cho phạm vi admin)
-  pipeline.push({ $match: { patient: { $ne: null }, totalAppointmentsAtMyClinics: { $gt: 0 } } });
-
-  // Phân trang
-  pipeline.push({
-    $facet: {
-      items: [
-        { $sort: { createdAt: -1 } },
-        { $skip: skip },
-        { $limit: limit },
-        {
-          $project: {
-            id: "$_id",
-            reason: 1,
-            evidence: 1,
-            createdAt: 1,
-
-            account: {
-              _id: "$acc._id",
-              username: "$acc.username",
-              email: "$acc.email",
-              phone_number: "$acc.phone_number",
-              role: "$acc.role",
-              status: "$acc.status",
-            },
-            user: {
-              _id: "$user._id",
-              full_name: "$user.full_name",
-              gender: "$user.gender",
-              dob: "$user.dob",
-              avatar_url: "$user.avatar_url",
-            },
-            patient_id: "$patient._id",
-
-            totalAppointmentsAtMyClinics: 1,
-            lastAppointmentAt: 1,
+      // Gộp thống kê
+      {
+        $addFields: {
+          totalAppointmentsAtMyClinics: { $size: "$apts_mine" },
+          lastAppointmentAt: {
+            $ifNull: [{ $first: "$apts_mine.createdAt" }, null],
           },
         },
-      ],
-      total: [{ $count: "count" }],
-    },
+      }
+    );
+
+    // Chỉ hiển thị những entry có Patient & có lịch khám tại clinics của mình (hợp lý cho phạm vi admin)
+    pipeline.push({
+      $match: {
+        patient: { $ne: null },
+        totalAppointmentsAtMyClinics: { $gt: 0 },
+      },
+    });
+
+    // Phân trang
+    pipeline.push({
+      $facet: {
+        items: [
+          { $sort: { createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              id: "$_id",
+              reason: 1,
+              evidence: 1,
+              createdAt: 1,
+
+              account: {
+                _id: "$acc._id",
+                username: "$acc.username",
+                email: "$acc.email",
+                phone_number: "$acc.phone_number",
+                role: "$acc.role",
+                status: "$acc.status",
+              },
+              user: {
+                _id: "$user._id",
+                full_name: "$user.full_name",
+                gender: "$user.gender",
+                dob: "$user.dob",
+                avatar_url: "$user.avatar_url",
+              },
+              patient_id: "$patient._id",
+
+              totalAppointmentsAtMyClinics: 1,
+              lastAppointmentAt: 1,
+            },
+          },
+        ],
+        total: [{ $count: "count" }],
+      },
+    });
+
+    const agg = await Blacklist.aggregate(pipeline);
+    const facet = agg?.[0] || {};
+    const items = facet.items || [];
+    const total = facet.total?.[0]?.count || 0;
+
+    return { items, page, limit, total };
   });
-
-  const agg = await Blacklist.aggregate(pipeline);
-  const facet = agg?.[0] || {};
-  const items = facet.items || [];
-  const total = facet.total?.[0]?.count || 0;
-
-  return { items, page, limit, total };
-};
 
 const parseDateStart = (s) => {
   if (!s) return null;
@@ -615,9 +671,7 @@ exports.getFeedback = async (admin_clinic_id, filters = {}) => {
       summary: [
         { $group: { _id: null, avg: { $avg: "$rating" }, total: { $sum: 1 } } },
       ],
-      distribution: [
-        { $group: { _id: "$rating", count: { $sum: 1 } } },
-      ],
+      distribution: [{ $group: { _id: "$rating", count: { $sum: 1 } } }],
       byDoctor: [
         {
           $group: {
@@ -685,7 +739,7 @@ exports.getFeedback = async (admin_clinic_id, filters = {}) => {
     rating: f.rating || 0,
     comment: f.comment || "",
     is_annonymous: !!f.is_annonymous,
-    patient_name: f.is_annonymous ? "Ẩn danh" : (f.patient_name || "Bệnh nhân"),
+    patient_name: f.is_annonymous ? "Ẩn danh" : f.patient_name || "Bệnh nhân",
     doctor_id: f.doctor_id || null,
     doctor_name: f.doctor_name || "Bác sĩ",
     clinic_name: f.clinic_name || "-",
@@ -732,6 +786,7 @@ exports.createDoctor = async (payload) => {
 
     // Tạo tài khoản
     const hashedPassword = await hashPassword(password);
+
     const acc = await Account.create(
       [
         {
@@ -817,8 +872,8 @@ exports.createAssistant = async (payload) => {
       password,
       full_name,
       note,
-      type,        // mong đợi: mảng ["NURSE","RECEPTIONIST"]
-      roles,       // (dự phòng) nếu FE lỡ gửi roles[]
+      type, // mong đợi: mảng ["NURSE","RECEPTIONIST"]
+      roles, // (dự phòng) nếu FE lỡ gửi roles[]
       doctor_id,
       clinic_id,
     } = payload;
@@ -911,7 +966,10 @@ exports.getAssistantsByClinic = async (clinicId) => {
     .populate({
       path: "user_id",
       select: "full_name avatar_url account_id",
-      populate: { path: "account_id", select: "username email phone_number status" },
+      populate: {
+        path: "account_id",
+        select: "username email phone_number status",
+      },
     })
     .populate({
       path: "doctor_id",
@@ -943,7 +1001,9 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
     }
 
     // Lấy TẤT CẢ các clinics mà admin clinic này quản lý
-    const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id");
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).select(
+      "_id"
+    );
     if (!clinics.length) {
       return { ok: true, data: [] };
     }
@@ -954,7 +1014,10 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
     const data = await Assistant.find({ clinic_id: { $in: clinicIds } })
       .populate({
         path: "user_id",
-        populate: { path: "account_id", select: "username phone_number status" },
+        populate: {
+          path: "account_id",
+          select: "username phone_number status",
+        },
       })
       .populate({
         path: "doctor_id",
@@ -1001,18 +1064,24 @@ exports.deleteDoctor = async (doctorId, adminAccountId) => {
     }
 
     // Kiểm tra bác sĩ có thuộc về admin clinic này không
-    const user = await User.findOne({ account_id: adminAccountId }).session(session);
+    const user = await User.findOne({ account_id: adminAccountId }).session(
+      session
+    );
     if (!user) {
       throw new Error("Không tìm thấy user của admin clinic");
     }
 
-    const adminClinic = await AdminClinic.findOne({ user_id: user._id }).session(session);
+    const adminClinic = await AdminClinic.findOne({
+      user_id: user._id,
+    }).session(session);
     if (!adminClinic) {
       throw new Error("Không tìm thấy admin clinic");
     }
 
     // Lấy danh sách clinics của admin
-    const clinics = await Clinic.find({ created_by: adminClinic._id }).session(session);
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).session(
+      session
+    );
     const clinicIds = clinics.map((c) => c._id.toString());
 
     // Kiểm tra bác sĩ có thuộc clinic của admin không
@@ -1170,7 +1239,9 @@ exports.getPendingDoctorLicenses = async (adminAccountId) => {
     }
 
     // Lấy TẤT CẢ các clinics mà admin clinic này quản lý
-    const clinics = await Clinic.find({ created_by: adminClinic._id }).select("_id");
+    const clinics = await Clinic.find({ created_by: adminClinic._id }).select(
+      "_id"
+    );
     if (!clinics.length) {
       return { ok: true, data: [] };
     }
@@ -1178,9 +1249,9 @@ exports.getPendingDoctorLicenses = async (adminAccountId) => {
     const clinicIds = clinics.map((c) => c._id);
 
     // Lấy tất cả các doctors từ tất cả các clinics
-    const doctorsInClinics = await Doctor.find({ clinic_id: { $in: clinicIds } }).select(
-      "_id"
-    );
+    const doctorsInClinics = await Doctor.find({
+      clinic_id: { $in: clinicIds },
+    }).select("_id");
     const doctorIds = doctorsInClinics.map((doc) => doc._id);
 
     if (doctorIds.length === 0) {
@@ -1282,7 +1353,9 @@ exports.updateClinicByAdmin = async (adminAccountId, updateData) => {
         created_by: adminClinic._id,
       });
       if (!clinic) {
-        throw new Error("Không tìm thấy phòng khám hoặc bạn không có quyền cập nhật phòng khám này.");
+        throw new Error(
+          "Không tìm thấy phòng khám hoặc bạn không có quyền cập nhật phòng khám này."
+        );
       }
       clinicId = updateData.clinic_id;
     } else {
@@ -1299,16 +1372,26 @@ exports.updateClinicByAdmin = async (adminAccountId, updateData) => {
     const updateFields = {};
 
     // Các trường cơ bản
-    if (updateFieldsData.name !== undefined) updateFields.name = updateFieldsData.name;
-    if (updateFieldsData.phone !== undefined) updateFields.phone = updateFieldsData.phone;
-    if (updateFieldsData.email !== undefined) updateFields.email = updateFieldsData.email;
-    if (updateFieldsData.website !== undefined) updateFields.website = updateFieldsData.website;
-    if (updateFieldsData.description !== undefined) updateFields.description = updateFieldsData.description;
-    if (updateFieldsData.logo_url !== undefined) updateFields.logo_url = updateFieldsData.logo_url;
-    if (updateFieldsData.banner_url !== undefined) updateFields.banner_url = updateFieldsData.banner_url;
-    if (updateFieldsData.registration_number !== undefined) updateFields.registration_number = updateFieldsData.registration_number;
-    if (updateFieldsData.opening_hours !== undefined) updateFields.opening_hours = updateFieldsData.opening_hours;
-    if (updateFieldsData.closing_hours !== undefined) updateFields.closing_hours = updateFieldsData.closing_hours;
+    if (updateFieldsData.name !== undefined)
+      updateFields.name = updateFieldsData.name;
+    if (updateFieldsData.phone !== undefined)
+      updateFields.phone = updateFieldsData.phone;
+    if (updateFieldsData.email !== undefined)
+      updateFields.email = updateFieldsData.email;
+    if (updateFieldsData.website !== undefined)
+      updateFields.website = updateFieldsData.website;
+    if (updateFieldsData.description !== undefined)
+      updateFields.description = updateFieldsData.description;
+    if (updateFieldsData.logo_url !== undefined)
+      updateFields.logo_url = updateFieldsData.logo_url;
+    if (updateFieldsData.banner_url !== undefined)
+      updateFields.banner_url = updateFieldsData.banner_url;
+    if (updateFieldsData.registration_number !== undefined)
+      updateFields.registration_number = updateFieldsData.registration_number;
+    if (updateFieldsData.opening_hours !== undefined)
+      updateFields.opening_hours = updateFieldsData.opening_hours;
+    if (updateFieldsData.closing_hours !== undefined)
+      updateFields.closing_hours = updateFieldsData.closing_hours;
 
     // Cập nhật địa chỉ
     if (updateFieldsData.address) {
@@ -1343,7 +1426,11 @@ exports.updateClinicByAdmin = async (adminAccountId, updateData) => {
       throw new Error("Không thể cập nhật phòng khám");
     }
 
-    return { ok: true, message: "Cập nhật phòng khám thành công", data: updatedClinic };
+    return {
+      ok: true,
+      message: "Cập nhật phòng khám thành công",
+      data: updatedClinic,
+    };
   } catch (error) {
     console.error("Lỗi khi cập nhật phòng khám:", error);
     return { ok: false, message: error.message };

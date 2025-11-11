@@ -9,6 +9,18 @@ router.get(
   roleRequired("ADMIN_CLINIC"),
   adminclinicController.dashboard
 );
+router.put(
+  "/doctor/clinic",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateDoctorClinic
+);
+router.put(
+  "/doctor/specialties",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateDoctorSpecialties
+);
 
 router.get(
   "/blacklist",

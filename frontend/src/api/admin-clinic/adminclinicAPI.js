@@ -15,7 +15,12 @@ export const adminclinicAPI = {
   },
 
   updateDoctorClinic: (data) => {
-    return axiosInstance.put("/admin_clinic/doctor", data);
+    console.log("payload: ", data);
+    return axiosInstance.put("/admin_clinic/doctor/clinic", data);
+  },
+  updateDoctorSpecialties: (data) => {
+    console.log("payload: ", data);
+    return axiosInstance.put("/admin_clinic/doctor/specialties", data);
   },
 
   //tạo tài khoản bác sĩ
@@ -50,6 +55,7 @@ export const adminclinicAPI = {
 
   //tạo tài khoản trợ lý cho bác sĩ
   createAccountAssistant: (data) => {    
+    console.log("payload: ", data);
     return axiosInstance.post("/admin_clinic/create_assistant", data);
   },
 
