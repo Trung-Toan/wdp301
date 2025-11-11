@@ -10,10 +10,14 @@ const License = require("../../model/clinic/License");
 const Appointment = require("../../model/appointment/Appointment");
 const Feedback = require("../../model/patient/Feedback");
 const Blacklist = require("../../model/system/Blacklist");
+const accountAssistantService = require("../account/account.assistant.service");
+const accountDoctorService = require("../account/account.doctor.service");
 
 const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
+const DISALLOWED = ["_id", "user_id", "account_id", "createdAt", "updatedAt", "__v"];
+
 
 const startOfUTCDay = (d) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -198,6 +202,82 @@ const toObjectId = (v) => {
     return new mongoose.Types.ObjectId(String(v));
   } catch {
     return null;
+  }
+};
+
+/**
+ * chỉ giữ các key có trong schema & không bị cấm, và value !== undefined
+ * @param {mongoose.Model} Model Model need to update
+ * @param {Object} payload data need to update
+ * @param {Object} disallowed attribute disallowed update
+ * @returns
+ */
+
+const buildSafeUpdate = (Model, payload, disallowed = []) => {
+  const schemaPaths = Model.schema?.paths
+    ? Object.keys(Model.schema.paths)
+    : [];
+  const set = {};
+
+  for (const [key, val] of Object.entries(payload || {})) {
+    if (val === undefined) continue;
+    if (disallowed.includes(key)) continue;
+    if (!schemaPaths.includes(key)) continue;
+    set[key] = val;
+  }
+  return set;
+};
+
+/**
+ * update assistant info (partial update)
+ *
+ * - Chỉ update các field có trong payload & hợp lệ theo schema
+ * - Cho phép "xóa" field nếu giá trị client gửi là null (dùng $unset)
+ *
+ * @param {object} assistant - document trợ lý đã truy vấn trước đó (hoặc chứa _id)
+ * @param {object} payload   - dữ liệu cập nhật (partial)
+ * @returns {object} { ok, data? , message? }
+ */
+exports.updateAssistant = async (assistant, payload) => {
+  try {
+    // Làm sạch mảng type nếu có (loại trùng, bỏ falsy)
+    if (Array.isArray(payload?.type)) {
+      payload.type = [...new Set(payload.type)].filter(Boolean);
+    }
+    // Xây $set: chỉ gồm field hợp lệ, bỏ undefined/field cấm
+    const $setRaw = buildSafeUpdate(Assistant, payload, DISALLOWED);
+    // Tách các giá trị null thành $unset (để xóa key đó)
+    const $set = {};
+    const $unset = {};
+    for (const [k, v] of Object.entries($setRaw)) {
+      if (v === null) $unset[k] = "";
+      else $set[k] = v;
+    }
+    // Không có gì để cập nhật -> trả về bản hiện tại
+    if (Object.keys($set).length === 0 && Object.keys($unset).length === 0) {
+      // có thể populate trước khi trả nếu cần
+      const doc = await Assistant.findById(assistant._id).populate(
+        "doctor_id clinic_id user_id"
+      );
+      return { ok: true, data: doc };
+    }
+    // Thực hiện update
+    const updated = await Assistant.findByIdAndUpdate(
+      assistant._id,
+      {
+        ...(Object.keys($set).length ? { $set } : {}),
+        ...(Object.keys($unset).length ? { $unset } : {}),
+      },
+      { new: true, runValidators: true }
+    ).populate("doctor_id clinic_id user_id");
+
+    if (!updated) {
+      return { ok: false, message: "Không tìm thấy trợ lý" };
+    }
+    return updated;
+  } catch (err) {
+    console.log("Error at updateAssistant: ", err);
+    throw err;
   }
 };
 
@@ -1016,7 +1096,7 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
         path: "user_id",
         populate: {
           path: "account_id",
-          select: "-email_verified -__v -role"
+          select: "-email_verified -__v -role",
         },
       })
       .populate({
@@ -1039,12 +1119,18 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
 
 // Xoá trợ lý
 exports.deleteAssistant = async (assistantId) => {
-  const assistant = await Assistant.findById(assistantId);
-  if (!assistant) throw new Error("Assistant not found");
-
-  await Assistant.findByIdAndDelete(assistantId);
-  // (tuỳ nghiệp vụ) có thể xoá kèm User/Account trong một transaction
-  return true;
+  try {
+    const assistant = await accountAssistantService.deleteAssistantById(
+      assistantId
+    );
+    if (!assistant) {
+      throw new Error("Không tìm thấy trợ lý");
+    }
+    return assistant;
+  } catch (error) {
+    console.error("Lỗi khi xóa trợ lý:", error);
+    throw error;
+  }
 };
 
 /* ======================================
@@ -1052,75 +1138,16 @@ exports.deleteAssistant = async (assistantId) => {
  * ====================================== */
 
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
-exports.deleteDoctor = async (doctorId, adminAccountId) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
+exports.deleteDoctor = async (doctorId) => {
   try {
-    // Kiểm tra bác sĩ có tồn tại không
-    const doctor = await Doctor.findById(doctorId).session(session);
-    if (!doctor) {
-      throw new Error("Bác sĩ không tồn tại");
+    const deleted = await accountDoctorService.deleteDoctorById(doctorId);
+    if (!deleted) {
+      throw new Error("Không tìm thấy bác sĩ");
     }
-
-    // Kiểm tra bác sĩ có thuộc về admin clinic này không
-    const user = await User.findOne({ account_id: adminAccountId }).session(
-      session
-    );
-    if (!user) {
-      throw new Error("Không tìm thấy user của admin clinic");
-    }
-
-    const adminClinic = await AdminClinic.findOne({
-      user_id: user._id,
-    }).session(session);
-    if (!adminClinic) {
-      throw new Error("Không tìm thấy admin clinic");
-    }
-
-    // Lấy danh sách clinics của admin
-    const clinics = await Clinic.find({ created_by: adminClinic._id }).session(
-      session
-    );
-    const clinicIds = clinics.map((c) => c._id.toString());
-
-    // Kiểm tra bác sĩ có thuộc clinic của admin không
-    if (!clinicIds.includes(doctor.clinic_id.toString())) {
-      throw new Error("Bác sĩ không thuộc quyền quản lý của bạn");
-    }
-
-    // Lấy user_id và account_id từ doctor
-    const doctorUser = await User.findById(doctor.user_id).session(session);
-    if (!doctorUser) {
-      throw new Error("Không tìm thấy user của bác sĩ");
-    }
-
-    const accountId = doctorUser.account_id;
-
-    // Xóa Doctor
-    await Doctor.findByIdAndDelete(doctorId).session(session);
-
-    // Xóa User
-    await User.findByIdAndDelete(doctor.user_id).session(session);
-
-    // Xóa Account
-    await Account.findByIdAndDelete(accountId).session(session);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return {
-      ok: true,
-      message: "Xóa bác sĩ thành công",
-    };
+    return deleted;
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error("Lỗi khi xóa bác sĩ:", error);
-    return {
-      ok: false,
-      message: error.message || "Không thể xóa bác sĩ",
-    };
+    throw error;
   }
 };
 

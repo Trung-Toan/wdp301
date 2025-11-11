@@ -15,6 +15,7 @@ const {
   deleteDoctor: deleteDoctorSvc,
 } = adminClinicService;
 const doctorService = require("../../service/doctor/doctor.service");
+const assistantService = require("../../service/assistant/assistant.service");
 
 exports.dashboard = async (req, res, next) => {
   try {
@@ -48,6 +49,26 @@ exports.updateDoctorSpecialties = async (req, res, next) => {
       return resUtils.serverErrorResponse(res, error, "Bác sĩ không tồn tại");
     }
     const data = await adminClinicService.updateDoctorSpecialties(doctor, specialty_id);
+    return resUtils.successResponse(res, data, "Cập nhật chuyên khoa cho bác sĩ thành công");
+  } catch (err) {
+    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+  }
+};
+exports.updateAssistant = async (req, res) => {
+  try {
+    const ass_id = req.params.id;
+    const payload =  req.body;
+
+    // Nếu payload rỗng thì báo lỗi sớm (tránh update rỗng)
+    if (!payload || Object.keys(payload).length === 0) {
+      return resUtils.badRequestResponse?.(res, "Không có dữ liệu để cập nhật") 
+        || res.status(400).json({ ok: false, message: "Không có dữ liệu để cập nhật" });
+    }
+
+    const assistant = await assistantService.findAssistantById(ass_id);
+    if (!assistant) return resUtils.notFoundResponse(res, "Không tìm thấy trợ lý");
+
+    const data = await adminClinicService.updateAssistant(assistant, payload);
     return resUtils.successResponse(res, data, "Cập nhật chuyên khoa cho bác sĩ thành công");
   } catch (err) {
     return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
@@ -271,47 +292,24 @@ exports.getAssistants = async (req, res, next) => {
 };
 
 // Xoá trợ lý theo clinic mà admin_clinic đang quản lý
-exports.deleteAssistant = async (req, res, next) => {
+exports.deleteAssistant = async (req, res) => {
   try {
-    await deleteAssistantSvc(req.params.id);
-    return res
-      .status(200)
-      .json({ ok: true, message: "Xoá trợ lý thành công." });
+    const deleted = await deleteAssistantSvc(req.params.id);
+    return resUtils.successResponse(res, deleted, "Xoá trợ lý thành công");
   } catch (err) {
-    next(err);
+    return resUtils.serverErrorResponse(res, err, "Xoá trợ lý thất bại");
   }
 };
 
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
 exports.deleteDoctor = async (req, res, next) => {
   try {
-    const adminAccountId = req.user?.sub;
-    if (!adminAccountId) {
-      return res.status(400).json({
-        ok: false,
-        message: "Thiếu thông tin admin account",
-      });
-    }
-
-    const doctorId = req.params.id;
-    if (!doctorId) {
-      return res.status(400).json({
-        ok: false,
-        message: "Thiếu doctor ID",
-      });
-    }
-
-    const result = await deleteDoctorSvc(doctorId, adminAccountId);
-
-    if (result.ok) {
-      res.status(200).json(result);
-    } else {
-      res.status(400).json(result);
-    }
+    const deleted = await deleteDoctorSvc(req.params.id);
+    return resUtils.successResponse(res, deleted, "Xoá bác sĩ thành công");
   } catch (err) {
-    next(err);
+    return resUtils.serverErrorResponse(res, err, "Xoá bác sĩ thất bại");
   }
-};
+}
 
 // Lấy danh sách giấy phép bác sĩ đang chờ duyệt (PENDING)
 exports.getPendingLicenses = async (req, res, next) => {
