@@ -96,10 +96,13 @@ const SlotSchedule = () => {
     getNextWeekDate(getLocalDate())
   );
   const [batchLoading, setBatchLoading] = useState(false);
-  const [batchError, setBatchError] = useState("");
 
-  // === ⚠️ SỬA LỖI: Cập nhật state cho modal hàng loạt ===
-  // (Bạn đã dùng tempStartHour... trong JSX nhưng chưa khai báo ở đây)
+  // === THAY ĐỔI: Tách state lỗi ===
+  const [batchError, setBatchError] = useState(""); // Lỗi cho form CHÍNH
+  const [templateError, setTemplateError] = useState(""); // Lỗi cho form MẪU
+  // ================================
+
+  // === Cập nhật state cho modal hàng loạt ===
   const [tempStartHour, setTempStartHour] = useState("08");
   const [tempStartMinute, setTempStartMinute] = useState("00");
   const [tempEndHour, setTempEndHour] = useState("09");
@@ -139,7 +142,7 @@ const SlotSchedule = () => {
     // eslint-disable-next-line
   }, [selectedDate]);
 
-  // === (Validation useEffect giữ nguyên) ===
+  // === (Validation useEffect cho modal ĐƠN LẺ - giữ nguyên) ===
   useEffect(() => {
     if (!modalOpen) {
       setModalError("");
@@ -213,6 +216,44 @@ const SlotSchedule = () => {
     isTimeLocked,
   ]);
   // ===================================
+
+  // === ⭐️ THÊM MỚI: Validation real-time cho form MẪU (Verify Giờ) ===
+  useEffect(() => {
+    if (!isBatchModalOpen) {
+      setTemplateError(""); // Reset lỗi khi đóng modal
+      return;
+    }
+
+    const finalTempStart = `${tempStartHour}:${tempStartMinute}`;
+    const finalTempEnd = `${tempEndHour}:${tempEndMinute}`;
+
+    // 1. Check giờ kết thúc vs bắt đầu
+    if (finalTempStart >= finalTempEnd) {
+      setTemplateError("Giờ kết thúc phải sau giờ bắt đầu.");
+      return;
+    }
+
+    // 2. Check trùng lặp với các ca đã thêm
+    const isOverlapping = batchSlots.some(
+      (slot) => finalTempStart < slot.endTime && finalTempEnd > slot.startTime
+    );
+    if (isOverlapping) {
+      setTemplateError("Khung giờ mẫu bị trùng lặp với danh sách.");
+      return;
+    }
+
+    // Nếu không có lỗi
+    setTemplateError("");
+  }, [
+    tempStartHour,
+    tempStartMinute,
+    tempEndHour,
+    tempEndMinute,
+    batchSlots,
+    isBatchModalOpen,
+  ]);
+  // ==========================================================
+
 
   // === (Hàm openAddModal và openEditModal giữ nguyên) ===
   const openAddModal = () => {
@@ -318,26 +359,17 @@ const SlotSchedule = () => {
   };
   // =================================================
 
-  // === ⚠️ SỬA LỖI: Cập nhật hàm logic cho modal hàng loạt ===
+  // === Cập nhật hàm logic cho modal hàng loạt ===
   const handleAddTemplateSlot = () => {
-    // Kết hợp lại thành chuỗi 24h
+    // === THAY ĐỔI: Check lỗi templateError (từ useEffect) ===
+    if (templateError) {
+      toast.error(templateError);
+      return;
+    }
+
     const finalTempStart = `${tempStartHour}:${tempStartMinute}`;
     const finalTempEnd = `${tempEndHour}:${tempEndMinute}`;
 
-    // Validation
-    if (finalTempStart >= finalTempEnd) {
-      setBatchError("Giờ kết thúc phải sau giờ bắt đầu.");
-      return;
-    }
-    const isOverlapping = batchSlots.some(
-      (slot) => finalTempStart < slot.endTime && finalTempEnd > slot.startTime
-    );
-    if (isOverlapping) {
-      setBatchError("Khung giờ mẫu bị trùng lặp.");
-      return;
-    }
-
-    setBatchError("");
     setBatchSlots([
       ...batchSlots,
       {
@@ -366,7 +398,8 @@ const SlotSchedule = () => {
   };
 
   const handleBatchCreate = async () => {
-    setBatchError("");
+    setTemplateError(""); // Xóa lỗi của form mẫu (nếu có)
+    setBatchError(""); // Reset lỗi của form chính
     setBatchLoading(true);
 
     const payloads = [];
@@ -374,12 +407,12 @@ const SlotSchedule = () => {
 
     // 1. Validation
     if (batchSlots.length === 0) {
-      setBatchError("Bạn phải thêm ít nhất 1 khung giờ mẫu.");
+      setBatchError("Bạn phải thêm ít nhất 1 khung giờ mẫu."); // Dùng batchError
       setBatchLoading(false);
       return;
     }
     if (new Date(batchEndDate) < new Date(batchStartDate)) {
-      setBatchError("Ngày kết thúc phải sau ngày bắt đầu.");
+      setBatchError("Ngày kết thúc phải sau ngày bắt đầu."); // Dùng batchError
       setBatchLoading(false);
       return;
     }
@@ -895,7 +928,7 @@ const SlotSchedule = () => {
           </Dialog>
         </Transition>
 
-        {/* === ⚠️ ĐÃ THAY THẾ BẰNG MODAL MỚI VÀ SỬA LỖI 24H === */}
+        {/* === ⭐️ MODAL HÀNG LOẠT (Đã cập nhật Verify Giờ) === */}
         <Transition appear show={isBatchModalOpen} as={Fragment}>
           <Dialog
             as="div"
@@ -911,7 +944,6 @@ const SlotSchedule = () => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              {/* Đây là code bg-gray-500/40... từ modal của bạn */}
               <div className="fixed inset-0 bg-gray-500/40 backdrop-blur-sm" />
             </Transition.Child>
 
@@ -926,7 +958,6 @@ const SlotSchedule = () => {
                   leaveFrom="opacity-100 scale-100"
                   leaveTo="opacity-0 scale-95"
                 >
-                  {/* Đây là code max-w-5xl, p-10... từ modal của bạn */}
                   <Dialog.Panel className="w-full max-w-5xl transform overflow-hidden rounded-2xl bg-white p-10 text-left align-middle shadow-2xl transition-all">
                     {/* Header */}
                     <div className="flex items-center gap-4 mb-8 border-b pb-4">
@@ -953,8 +984,6 @@ const SlotSchedule = () => {
 
                         {/* Form thêm mẫu */}
                         <div className="flex flex-col gap-4">
-
-                          {/* === SỬA LỖI 24H: Đã thay thế input[type=time] === */}
                           <div className="grid grid-cols-2 gap-4">
                             {/* Bắt đầu */}
                             <div>
@@ -1031,7 +1060,6 @@ const SlotSchedule = () => {
                               </div>
                             </div>
                           </div>
-                          {/* === KẾT THÚC SỬA LỖI 24H === */}
 
                           <div>
                             <label className="text-sm font-medium text-gray-700">
@@ -1051,10 +1079,19 @@ const SlotSchedule = () => {
                           <button
                             type="button"
                             onClick={handleAddTemplateSlot}
-                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow transition-all"
+                            // === THAY ĐỔI: Thêm disabled và css ===
+                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled={!!templateError}
                           >
                             + Thêm khung giờ
                           </button>
+
+                          {/* === THÊM MỚI: Hiển thị lỗi real-time === */}
+                          {templateError && (
+                            <p className="text-sm text-red-600 font-medium text-center -mt-2">
+                              {templateError}
+                            </p>
+                          )}
                         </div>
 
                         {/* Danh sách khung giờ */}
@@ -1108,10 +1145,9 @@ const SlotSchedule = () => {
                                 <button
                                   key={day.id}
                                   onClick={() => handleToggleWeekday(day.id)}
-                                  // === SỬA LỖI: className bị thiếu ` ` ===
                                   className={`px-4 py-2 text-sm rounded-md border font-medium transition-all ${batchWeekdays[day.id]
-                                    ? "bg-blue-600 text-white border-blue-600"
-                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                      ? "bg-blue-600 text-white border-blue-600"
+                                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                     }`}
                                 >
                                   {day.label}
@@ -1144,11 +1180,13 @@ const SlotSchedule = () => {
                                   setBatchEndDate(e.target.value)
                                 }
                                 className={inputRingClasses}
+                                Verticalscrolling="true"
                               />
                             </div>
                           </div>
                         </div>
 
+                        {/* === THAY ĐỔI: Chỉ hiển thị lỗi batchError (lỗi form chính) === */}
                         {batchError && (
                           <div className="mt-6 rounded-md bg-red-50 p-3">
                             <p className="text-sm text-red-800">{batchError}</p>
