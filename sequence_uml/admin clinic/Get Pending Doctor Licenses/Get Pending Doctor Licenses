@@ -1,0 +1,43 @@
+@startuml
+title Get Pending Doctor Licenses
+
+actor Client
+participant "Express Router" as Router
+participant authRequired as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(getPendingLicenses)" as Ctrl
+participant "AdminClinicService\n(getPendingDoctorLicenses)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /pending_licenses
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: getPendingLicenses(req, res)
+
+Ctrl -> Ctrl: adminAccountId = req.user.sub (or query)
+Ctrl -> Svc: getPendingDoctorLicenses(adminAccountId)
+
+' Resolve admin scope
+Svc -> DB: User.findOne({ account_id: adminAccountId })
+DB --> Svc: user
+Svc -> DB: AdminClinic.findOne({ user_id: user._id })
+DB --> Svc: adminClinic
+Svc -> DB: Clinic.find({ created_by: adminClinic._id }).select("_id")
+DB --> Svc: clinics[]
+Svc -> Svc: clinicIds = clinics.map(_id)
+
+' Doctors under these clinics
+Svc -> DB: Doctor.find({ clinic_id: { $in: clinicIds } }).select("_id")
+DB --> Svc: doctors[]
+Svc -> Svc: doctorIds = doctors.map(_id)
+
+' Pending licenses for those doctors
+Svc -> DB: License.find({ doctor_id: { $in: doctorIds }, status: "PENDING" })\n.populate( doctor_id -> user_id(full_name, avatar_url), clinic_id(name) )\n.sort({ createdAt: -1 }).lean()
+DB --> Svc: licenses[]
+
+Svc --> Ctrl: { ok: true, data: licenses[] }
+Ctrl --> Client: 200 JSON { ok: true, data }
+
+@enduml

@@ -1,0 +1,35 @@
+@startuml
+title Delete Assistant
+
+actor Client
+participant "Express Router" as Router
+participant authRequired as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(deleteAssistant)" as Ctrl
+participant "AdminClinicService\n(deleteAssistant)" as Svc
+participant "AccountAssistantService\n(deleteAssistantById)" as AccAsstSvc
+database "MongoDB" as DB
+
+Client -> Router: PUT /delete_assistant/:id
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: deleteAssistant(req, res)
+
+Ctrl -> Svc: deleteAssistant(req.params.id)
+Svc -> AccAsstSvc: deleteAssistantById(assistantId)
+
+AccAsstSvc -> DB: start transaction
+AccAsstSvc -> DB: findAccountByAssistantId(assistantId)
+DB --> AccAsstSvc: account
+AccAsstSvc -> AccAsstSvc: account.status = INACTIVE
+AccAsstSvc -> DB: account.save()  ' within session
+DB --> AccAsstSvc: saved
+AccAsstSvc -> DB: commit & end session
+AccAsstSvc --> Svc: saved account
+Svc --> Ctrl: saved account
+
+Ctrl --> Client: 200 JSON { ok: true, message: "Delete assistant success", data: saved }
+
+@enduml

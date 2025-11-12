@@ -1,0 +1,26 @@
+@startuml
+title Logout
+
+actor Client
+participant "Express Router" as Router
+participant "AuthController\n(ctrl.logout)" as Ctrl
+participant "AuthService\n(svc.logout)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: POST /logout { refreshToken }
+Router -> Ctrl: ctrl.logout(req, res)
+Ctrl -> Svc: logout({ refreshToken })
+
+Svc -> Svc: fingerprint = fpRefresh(refreshToken)
+Svc -> DB: Session.findOne({ refresh_fingerprint: fingerprint,\n revoked_at: {$exists:false} })
+DB --> Svc: session
+
+Svc -> Svc: so khớp refreshToken với session.refresh_token_hash\n(match = true)
+
+Svc -> DB: session.revoked_at = now\nsession.revoked_reason = "logout"\nsession.save()
+DB --> Svc: saved
+
+Svc --> Ctrl: { ok: true }
+Ctrl --> Client: 200 JSON { ok: true }
+
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+title verify email
+
+actor Client
+participant "Express Router" as Router
+participant "AuthController\n(ctrl.verifyEmail)" as Ctrl
+participant "AuthService\n(svc.verifyEmail)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /verify-email?token=...&account=...
+Router -> Ctrl: ctrl.verifyEmail(req, res)
+Ctrl -> Ctrl: token = body.token || query.token\naccountId = body.account_id || query.account
+Ctrl -> Svc: verifyEmail({ token, accountId })
+
+Svc -> DB: EmailVerification.find(accountId,\n used:false, expires_at > now)\n.sort(_id:-1).limit(10)
+DB --> Svc: recs (list)
+
+Svc -> Svc: tìm bản ghi matched bằng so khớp token_hash
+
+Svc -> DB: Account.findByIdAndUpdate(matched.account_id,\n set email_verified = true)
+
+Svc -> DB: matched.used = true; matched.used_at = now; matched.save()
+
+Svc --> Ctrl: { ok: true }
+Ctrl --> Client: 200 JSON { ok: true }
+
+@enduml

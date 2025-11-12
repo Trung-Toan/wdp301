@@ -1,0 +1,48 @@
+@startuml
+title Create Appointment
+
+actor Client
+participant "Express Router" as Router
+participant validateAppointmentBooking as Validate
+participant "AppointmentController" as Ctrl
+participant "AppointmentService" as Svc
+database "MongoDB" as DB
+participant "EmailService" as Mail
+participant "NotificationService" as Noti
+
+Client -> Router: POST /api/appointments
+Router -> Validate: validate payload
+Validate --> Router: OK
+Router -> Ctrl: ctrl.create(req)
+
+Ctrl -> Svc: createAsync(body)
+
+' Check slot and doctor
+Svc -> DB: checkSlotAvailability(slot_id, date)
+DB --> Svc: available
+Svc -> DB: Slot.findById(slot_id)
+DB --> Svc: slot (AVAILABLE)
+Svc -> DB: Doctor.findById(doctor_id) + account.status
+DB --> Svc: doctor (ACTIVE)
+Svc -> Svc: assert slot.doctor_id == doctor_id
+Svc -> DB: Appointment.findOne({ slot_id, patient_id, same day })
+DB --> Svc: none
+
+' Create appointment
+Svc -> DB: Patient.findById(patient_id)
+DB --> Svc: patient
+Svc -> DB: Appointment.create({...})
+DB --> Svc: appointmentId
+
+' Enrich + side effects (best effort)
+Svc -> DB: Appointment.findById(appointmentId) + populate
+DB --> Svc: booking
+Svc -> Mail: sendBookingEmail(booking)
+Mail --> Svc: done
+Svc -> Noti: createAppointmentNotification(booking)
+Noti --> Svc: done
+
+Svc --> Ctrl: booking + meta
+Ctrl --> Client: 201 Created (JSON)
+
+@enduml

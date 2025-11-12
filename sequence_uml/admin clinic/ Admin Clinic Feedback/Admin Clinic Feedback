@@ -1,0 +1,47 @@
+@startuml
+title Admin Clinic Feedback
+
+actor Client
+participant "Express Router" as Router
+participant "authRequired" as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(feedback)" as Ctrl
+participant "AdminClinicService\n(getFeedback)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /feedback (q, bucket, rating, doctor_id, clinic_id, start_date, end_date, page, limit, sort)
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role == ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: feedback(req, res)
+
+Ctrl -> Svc: findAdminClinicByAccountId(req.user.sub)
+Svc -> DB: Lookup admin clinic by account
+DB --> Svc: adminClinic
+
+Ctrl -> Svc: getFeedback(adminClinic._id, filters)
+
+' 1) Clinics in scope
+Svc -> DB: Clinic.find(created_by = adminClinic._id)
+DB --> Svc: clinics[]
+Svc -> Svc: clinicIds; scopedClinicIds (optional by clinic_id)
+
+' 2) Doctors in scoped clinics
+Svc -> DB: Doctor.find(clinic_id in scopedClinicIds)
+DB --> Svc: doctors[]
+Svc -> Svc: scopedDoctorIds (optional by doctor_id)
+
+' 3) Build match & sort
+Svc -> Svc: match = { doctor_id in scopedDoctorIds, date range, rating/bucket }\nsortStage = newest/oldest/rating
+
+' 4) Aggregate with $facet (summary, distribution, byDoctor, recent, totalMatched)
+Svc -> DB: Feedback.aggregate(pipeline using match + lookups)
+DB --> Svc: facet results
+
+' 5) Shape response
+Svc -> Svc: compute summary, distribution, byDoctor, recent, total
+Svc --> Ctrl: { summary, distribution, byDoctor, recent, page, limit, total }
+Ctrl --> Client: 200 JSON { success: true, data }
+
+@enduml

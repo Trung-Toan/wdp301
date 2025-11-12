@@ -1,0 +1,35 @@
+@startuml
+title Update Assistant
+
+actor Client
+participant "Express Router" as Router
+participant "authRequired" as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(updateAssistant)" as Ctrl
+participant "AssistantService\n(findAssistantById)" as AsstSvc
+participant "AdminClinicService\n(updateAssistant)" as AdminSvc
+database "MongoDB" as DB
+
+Client -> Router: PUT /assistant/:id\n{ payload }
+Router -> Auth: verify auth (req.user)
+Auth --> Router: OK
+Router -> Role: ensure role == ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: updateAssistant(req, res)
+
+Ctrl -> AsstSvc: findAssistantById(req.params.id)
+AsstSvc -> DB: Assistant.findById(id)
+DB --> AsstSvc: assistant
+AsstSvc --> Ctrl: assistant
+
+Ctrl -> AdminSvc: updateAssistant(assistant, payload)
+AdminSvc -> AdminSvc: normalize payload.type (unique, drop falsy)
+AdminSvc -> AdminSvc: $setRaw = buildSafeUpdate(Assistant, payload, DISALLOWED)
+AdminSvc -> AdminSvc: split $set / $unset (null -> $unset)
+
+AdminSvc -> DB: Assistant.findByIdAndUpdate(\n  assistant._id,\n  { $set, $unset },\n  { new: true, runValidators: true }\n).populate("doctor_id clinic_id user_id")
+DB --> AdminSvc: updated
+AdminSvc --> Ctrl: updated
+
+Ctrl --> Client: 200 JSON { success: true, data: updated }
+@enduml

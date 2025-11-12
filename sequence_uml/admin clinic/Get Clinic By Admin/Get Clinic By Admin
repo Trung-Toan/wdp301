@@ -1,0 +1,26 @@
+@startuml
+title Get Clinic By Admin
+
+actor Client
+participant "Express Router" as Router
+participant "AdminClinicController\n(getClinicByAdmin)" as Ctrl
+participant "AdminClinicService\n(getClinicByAdmin)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /admin/clinic
+Router -> Ctrl: getClinicByAdmin(req, res)
+Ctrl -> Ctrl: accountId = req.user.sub
+Ctrl -> Svc: getClinicByAdmin(accountId)
+
+Svc -> DB: User.findOne by account_id
+DB --> Svc: user
+Svc -> DB: AdminClinic.findOne by user_id
+DB --> Svc: adminClinic
+Svc -> DB: Clinic.findOne by created_by\n+ populate specialties
+DB --> Svc: clinic (ACTIVE)
+
+Svc --> Ctrl: { ok: true, data: clinic }
+Ctrl --> Client: 200 JSON { ok: true, data }
+
+@enduml
+

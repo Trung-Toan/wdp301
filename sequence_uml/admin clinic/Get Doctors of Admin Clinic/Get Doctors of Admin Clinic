@@ -1,0 +1,43 @@
+@startuml
+title Get Doctors of Admin Clinic
+
+actor Client
+participant "Express Router" as Router
+participant authRequired as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(getDoctorsOfAdminClinic)" as Ctrl
+participant "AdminClinicService\n(getDoctorsByAdminClinic)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /get_doctors
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: getDoctorsOfAdminClinic(req, res)
+
+Ctrl -> Ctrl: adminAccountId = req.user.sub or req.query.adminAccountId
+Ctrl -> Svc: getDoctorsByAdminClinic(adminAccountId)
+
+Svc -> DB: User.findOne({ account_id: adminAccountId })
+DB --> Svc: user
+Svc -> DB: AdminClinic.findOne({ user_id: user._id })
+DB --> Svc: adminClinic
+Svc -> DB: Clinic.find({ created_by: adminClinic._id })
+DB --> Svc: clinics[]
+Svc -> Svc: clinicIds = clinics.map(_id)
+
+Svc -> DB: Doctor.find({ clinic_id: { $in: clinicIds } })
+note right of Svc
+Populate:
+- user_id (full_name, avatar_url, account_id)
+- account_id of user_id (email, phone_number, status, username)
+- specialty_id (name)
+- clinic_id (name, status)
+end note
+DB --> Svc: doctors[]
+
+Svc --> Ctrl: doctors[]
+Ctrl --> Client: 200 JSON { success: true, total: doctors.length, data: doctors }
+
+@enduml

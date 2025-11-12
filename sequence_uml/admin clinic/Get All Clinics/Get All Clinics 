@@ -1,0 +1,32 @@
+@startuml
+title Get All Clinics 
+
+actor Client
+participant "Express Router" as Router
+participant "authRequired" as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(getAllClinics)" as Ctrl
+participant "AdminClinicService\n(getAllClinicsByAdmin)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /get_clinics
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: getAllClinics(req, res)
+
+Ctrl -> Ctrl: accountId = req.user.sub
+Ctrl -> Svc: getAllClinicsByAdmin(accountId)
+
+Svc -> DB: User.findOne by account_id
+DB --> Svc: user
+Svc -> DB: AdminClinic.findOne by user_id
+DB --> Svc: adminClinic
+Svc -> DB: Clinic.find where created_by = adminClinic._id\n+ populate specialties, sort desc, lean
+DB --> Svc: clinics[]
+
+Svc --> Ctrl: { ok: true, data: clinics }
+Ctrl --> Client: 200 JSON { ok: true, data }
+
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+title Create Assistant Account
+
+actor Client
+participant "Express Router" as Router
+participant authRequired as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(createAccountAssistant)" as Ctrl
+participant "AdminClinicService\n(getClinicByAdmin)" as AdminSvc
+participant "AssistantService\n(createAssistant)" as AsstSvc
+database "MongoDB" as DB
+
+Client -> Router: POST /create_assistant { body }
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: createAccountAssistant(req, res)
+
+' Resolve clinic of this admin
+Ctrl -> Ctrl: accountId = req.user.sub
+Ctrl -> AdminSvc: getClinicByAdmin(accountId)
+AdminSvc -> DB: User.findOne(account_id)\n-> AdminClinic.findOne(user_id)\n-> Clinic.findOne(created_by)\n(populate specialties)
+DB --> AdminSvc: clinic
+AdminSvc --> Ctrl: { ok: true, data: clinic }
+
+' Normalize input
+Ctrl -> Ctrl: type = unique(roles ∪ type)\npayload = {...req.body, clinic_id: clinic._id, type}
+
+' Create assistant (transaction)
+Ctrl -> AsstSvc: createAssistant(payload)
+note right of AsstSvc
+  Start transaction
+  - hash password
+  - Account.create({ role: ASSISTANT, ACTIVE, email_verified: true })
+  - User.create({ account_id })
+  - Assistant.create({ user_id, clinic_id, doctor_id, type })
+  Commit
+end note
+AsstSvc -> DB: Account.create / User.create / Assistant.create
+DB --> AsstSvc: created docs
+AsstSvc --> Ctrl: { ok: true, data:{ account, user, assistant } }
+
+Ctrl --> Client: 200 JSON { ok: true, message: "Created", data }
+
+@enduml

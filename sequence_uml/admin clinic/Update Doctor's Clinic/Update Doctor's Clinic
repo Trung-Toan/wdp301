@@ -1,0 +1,36 @@
+@startuml
+title Update Doctor's Clinic
+
+actor Client
+participant "Express Router" as Router
+participant "authRequired" as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(updateDoctorClinic)" as Ctrl
+participant "DoctorService\n(findDoctorById)" as DocSvc
+participant "AdminClinicService\n(updateDoctorClinic)" as AdminSvc
+database "MongoDB" as DB
+
+Client -> Router: PUT /doctor/clinic\n{ doctor_id, clinic_id }
+Router -> Auth: verify auth (req.user)
+Auth --> Router: OK
+Router -> Role: ensure role == ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: updateDoctorClinic(req, res)
+
+' Fetch doctor
+Ctrl -> DocSvc: findDoctorById(doctor_id)
+DocSvc -> DB: Doctor.findById(doctor_id)
+DB --> DocSvc: doctor
+DocSvc --> Ctrl: doctor
+
+' Update clinic and save
+Ctrl -> AdminSvc: updateDoctorClinic(doctor, clinic_id)
+AdminSvc -> AdminSvc: doctor.clinic_id = toObjectId(clinic_id)
+AdminSvc -> DB: doctor.save()
+DB --> AdminSvc: saved
+AdminSvc --> Ctrl: saved
+
+' Respond success
+Ctrl --> Client: 200 JSON { success:true, data: saved }
+
+@enduml

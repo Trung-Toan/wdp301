@@ -1,0 +1,58 @@
+@startuml
+title Update Clinic
+
+actor Client
+participant "Express Router" as Router
+participant authRequired as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(updateClinic)" as Ctrl
+participant "AdminClinicService\n(updateClinicByAdmin)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: PUT /update_clinic { body }
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: updateClinic(req, res)
+
+Ctrl -> Ctrl: accountId = req.user.sub
+Ctrl -> Svc: updateClinicByAdmin(accountId, updateData=req.body)
+
+' Verify ownership
+Svc -> DB: User.findOne({ account_id: accountId })
+DB --> Svc: user
+Svc -> DB: AdminClinic.findOne({ user_id: user._id })
+DB --> Svc: adminClinic
+
+alt updateData has clinic_id
+  Svc -> DB: Clinic.findOne({ _id: updateData.clinic_id,\n  created_by: adminClinic._id })
+  DB --> Svc: clinic (must exist)
+  Svc -> Svc: clinicId = updateData.clinic_id
+else no clinic_id provided
+  Svc -> Svc: getClinicByAdmin(accountId)
+  Svc -> DB: Clinic.findOne({ created_by: adminClinic._id })\n.populate("specialties")
+  DB --> Svc: clinic
+  Svc -> Svc: clinicId = clinic._id
+end
+
+' Build $set update
+note right of Svc
+Prepare updateFields from updateData:
+- Basic fields: name, phone, email, website,
+  description, logo_url, banner_url,
+  registration_number, opening_hours, closing_hours
+- Address: merge currentClinic.address with updateData.address
+- specialties (if provided)
+(Do not include clinic_id in $set)
+end note
+
+Svc -> DB: Clinic.findById(clinicId).lean()  ' for address merge
+DB --> Svc: currentClinic
+Svc -> DB: Clinic.findByIdAndUpdate(clinicId,\n  { $set: updateFields },\n  { new: true, runValidators: true })\n  .populate("specialties")
+DB --> Svc: updatedClinic
+
+Svc --> Ctrl: { ok: true, message: "Updated", data: updatedClinic }
+Ctrl --> Client: 200 JSON { ok: true, data }
+
+@enduml

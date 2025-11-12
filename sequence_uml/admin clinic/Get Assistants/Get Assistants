@@ -1,0 +1,52 @@
+@startuml
+title Get Assistants
+
+actor Client
+participant "Express Router" as Router
+participant authRequired as Auth
+participant "roleRequired(ADMIN_CLINIC)" as Role
+participant "AdminClinicController\n(getAssistants)" as Ctrl
+participant "AdminClinicService\n(getClinicByAdmin,\ngetAllClinicsByAdmin,\ngetAssistantsByClinic,\ngetAssistantsByAdminClinic)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /get_assistants (optional clinic_id)
+Router -> Auth: verify auth
+Auth --> Router: OK
+Router -> Role: ensure role ADMIN_CLINIC
+Role --> Router: OK
+Router -> Ctrl: getAssistants(req, res)
+Ctrl -> Ctrl: accountId = req.user.sub
+
+alt clinic_id is provided
+  ' Validate clinic belongs to admin
+  Ctrl -> Svc: getClinicByAdmin(accountId)
+  Svc -> DB: User.findOne({ account_id: accountId }) -> AdminClinic.findOne({ user_id }) -> Clinic.findOne({ created_by: adminClinic._id })
+  DB --> Svc: clinic
+  Svc --> Ctrl: { ok: true, data: clinic }
+
+  Ctrl -> Svc: getAllClinicsByAdmin(accountId)
+  Svc -> DB: User.findOne -> AdminClinic.findOne -> Clinic.find({ created_by: adminClinic._id })
+  DB --> Svc: clinics[]
+  Svc --> Ctrl: { ok: true, data: clinics[] }
+
+  Ctrl -> Ctrl: ensure req.query.clinic_id ∈ clinics
+  Ctrl -> Svc: getAssistantsByClinic(req.query.clinic_id)
+  Svc -> DB: Assistant.find({ clinic_id }) + populate
+  note right of Svc
+    populate:
+    - user_id (full_name, avatar_url, account_id)
+      -> account_id (exclude sensitive fields)
+    - doctor_id.user_id (full_name)
+    - clinic_id (name)
+  end note
+  DB --> Svc: assistants[]
+  Svc --> Ctrl: { ok: true, data: assistants[] }
+  Ctrl --> Client: 200 JSON { ok: true, data }
+else no clinic_id
+  Ctrl -> Svc: getAssistantsByAdminClinic(accountId)
+  Svc -> DB: resolve admin clinics, then Assistant.find({ clinic_id in clinicIds }) + populate
+  DB --> Svc: assistants[]
+  Svc --> Ctrl: { ok: true, data: assistants[] }
+  Ctrl --> Client: 200 JSON { ok: true, data }
+end
+@enduml

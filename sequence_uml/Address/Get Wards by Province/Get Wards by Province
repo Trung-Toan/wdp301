@@ -1,0 +1,39 @@
+@startuml
+title Get Wards by Province
+
+actor Client
+participant "Express Router" as Router
+participant "AddressController\n(ctrl.getWardsByProvince)" as Ctrl
+participant "AddressService\n(getProvinceByCode,\n getWardOptionsByProvinceCode)" as Svc
+database "MongoDB" as DB
+
+Client -> Router: GET /provinces/:provinceCode/wards\n?q=&limit=
+Router -> Ctrl: ctrl.getWardsByProvince(req, res)
+Ctrl -> Ctrl: provinceCode = req.params.provinceCode\nq = req.query.q\nlimit = req.query.limit
+
+' 1) Fetch province by code
+Ctrl -> Svc: getProvinceByCode(provinceCode)
+Svc -> DB: Province.findOne({ code: provinceCode }).lean()
+DB --> Svc: province | null
+Svc --> Ctrl: province
+
+alt Province not found
+  Ctrl --> Client: 404 JSON { success:false, message:"Province not found" }
+  return
+else Province found
+  ' 2) Query wards within province
+  Ctrl -> Svc: getWardOptionsByProvinceCode(province.code, { q, limit })
+  Svc -> Svc: filter = { provinceCode }\nif (q) add $or on fullName|shortName|code (regex i)
+  Svc -> DB: Ward.find(filter)\n.sort("fullName").limit(Number(limit || 500))\n.select("code shortName fullName type provinceCode districtCode -_id").lean()
+  DB --> Svc: docs[]
+
+  ' 3) Map to options
+  Svc -> Svc: options = docs.map(w => ({ value, label, meta }))
+  Svc --> Ctrl: options
+
+  ' 4) Respond
+  Ctrl -> Ctrl: setCache(res)
+  Ctrl --> Client: 200 JSON { success:true,\n options,\n province:{ code: province.code,\n          name: province.shortName || province.fullName } }
+end
+
+@enduml
