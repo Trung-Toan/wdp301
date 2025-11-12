@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const accountManagementController = require("../../controller/admin_system/accountManagement.controller");
+const dashboardController = require("../../controller/admin_system/dashboard.controller");
+const licenseManagementController = require("../../controller/admin_system/licenseManagement.controller");
+const blacklistManagementController = require("../../controller/admin_system/blacklistManagement.controller");
 const authMiddleware = require("../../middleware/auth");
 
 // Middleware xác thực cho admin system
@@ -231,6 +234,268 @@ router.put("/accounts/:accountId/unban", adminSystemAuth, accountManagementContr
  *         description: Forbidden
  */
 router.get("/accounts/:accountId", adminSystemAuth, accountManagementController.getAdminClinicDetail);
+
+/**
+ * @swagger
+ * /api/admin-system/dashboard/stats:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy thống kê dashboard
+ *     description: ADMIN_SYSTEM xem thống kê tổng quan (người dùng, phòng khám, lịch khám, khiếu nại)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     stats:
+ *                       type: object
+ *                     charts:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get("/dashboard/stats", adminSystemAuth, dashboardController.getDashboardStats);
+
+/**
+ * @swagger
+ * /api/admin-system/licenses:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy danh sách chứng chỉ hành nghề
+ *     description: ADMIN_SYSTEM xem danh sách tất cả chứng chỉ hành nghề của bác sĩ
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng mỗi trang
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, valid, expiring, expired, pending, rejected]
+ *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên bác sĩ hoặc số chứng chỉ
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get("/licenses", adminSystemAuth, licenseManagementController.getAllLicenses);
+
+/**
+ * @swagger
+ * /api/admin-system/licenses/{licenseId}:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy chi tiết chứng chỉ hành nghề
+ *     description: ADMIN_SYSTEM xem chi tiết chứng chỉ hành nghề
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licenseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của chứng chỉ
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get("/licenses/:licenseId", adminSystemAuth, licenseManagementController.getLicenseById);
+
+/**
+ * @swagger
+ * /api/admin-system/licenses/{licenseId}/status:
+ *   put:
+ *     tags: [Admin System - Account Management]
+ *     summary: Cập nhật trạng thái chứng chỉ hành nghề
+ *     description: ADMIN_SYSTEM phê duyệt hoặc từ chối chứng chỉ hành nghề
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licenseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của chứng chỉ
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, REJECTED]
+ *               rejectionReason:
+ *                 type: string
+ *                 description: Lý do từ chối (nếu status = REJECTED)
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.put("/licenses/:licenseId/status", adminSystemAuth, licenseManagementController.updateLicenseStatus);
+
+/**
+ * @swagger
+ * /api/admin-system/blacklists:
+ *   get:
+ *     tags: [Admin System - Account Management]
+ *     summary: Lấy danh sách tài khoản trong danh sách đen
+ *     description: ADMIN_SYSTEM xem danh sách đen toàn hệ thống
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng mỗi trang
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [all, ADMIN_SYSTEM, ADMIN_CLINIC, DOCTOR, ASSISTANT, PATIENT]
+ *         description: Lọc theo vai trò tài khoản
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo username, email hoặc số điện thoại
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.get(
+  "/blacklists",
+  adminSystemAuth,
+  blacklistManagementController.getAllBlacklists
+);
+
+/**
+ * @swagger
+ * /api/admin-system/blacklists:
+ *   post:
+ *     tags: [Admin System - Account Management]
+ *     summary: Thêm tài khoản vào danh sách đen
+ *     description: ADMIN_SYSTEM thêm tài khoản bất kỳ vào blacklist
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accountId:
+ *                 type: string
+ *                 description: ID tài khoản (tùy chọn nếu đã biết)
+ *               accountIdentifier:
+ *                 type: string
+ *                 description: Username, email hoặc số điện thoại của tài khoản
+ *               reason:
+ *                 type: string
+ *               evidence:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Thêm thành công
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.post(
+  "/blacklists",
+  adminSystemAuth,
+  blacklistManagementController.addToBlacklist
+);
+
+/**
+ * @swagger
+ * /api/admin-system/blacklists/{blacklistId}:
+ *   delete:
+ *     tags: [Admin System - Account Management]
+ *     summary: Xóa tài khoản khỏi danh sách đen
+ *     description: ADMIN_SYSTEM xóa tài khoản khỏi blacklist
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: blacklistId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của bản ghi blacklist
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       400:
+ *         description: Bad Request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Không phải ADMIN_SYSTEM
+ */
+router.delete(
+  "/blacklists/:blacklistId",
+  adminSystemAuth,
+  blacklistManagementController.removeFromBlacklist
+);
 
 module.exports = router;
 

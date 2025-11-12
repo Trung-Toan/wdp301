@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect } from "react"; // <-- Thêm useEffect
+import { useState, useMemo, useEffect } from "react";
 import {
   MessageSquare,
   Eye,

@@ -30,8 +30,6 @@ const ClinicAdminLayout = () => {
     const fetchClinic = async () => {
       try {
         const res = await adminclinicAPI.getClinicByAdmin();
-        console.log("Clinic data fetched:", res?.data?.data);
-
         if (res.data?.ok) {
           setClinic(res?.data?.data);
         } else {

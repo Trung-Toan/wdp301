@@ -59,5 +59,64 @@ export const adminSystemAPI = {
   getAdminClinicDetail: (accountId) => {
     return axiosInstance.get(`/admin-system/accounts/${accountId}`);
   },
+
+  // ========== Complaint Management ==========
+  // Lấy danh sách tất cả khiếu nại
+  getAllComplaints: (params = {}) => {
+    return axiosInstance.get("/admin-system/complaints", { params });
+  },
+
+  // Lấy chi tiết khiếu nại
+  getComplaintById: (complaintId) => {
+    return axiosInstance.get(`/admin-system/complaints/${complaintId}`);
+  },
+
+  // Cập nhật trạng thái khiếu nại
+  updateComplaintStatus: (complaintId, data) => {
+    return axiosInstance.put(`/admin-system/complaints/${complaintId}/status`, data);
+  },
+
+  // Lấy thống kê khiếu nại
+  getComplaintStats: () => {
+    return axiosInstance.get("/admin-system/complaints/stats");
+  },
+
+  // ========== Dashboard ==========
+  // Lấy thống kê dashboard
+  getDashboardStats: () => {
+    return axiosInstance.get("/admin-system/dashboard/stats");
+  },
+
+  // ========== License Management ==========
+  // Lấy danh sách chứng chỉ hành nghề
+  getAllLicenses: (params = {}) => {
+    return axiosInstance.get("/admin-system/licenses", { params });
+  },
+
+  // Lấy chi tiết chứng chỉ hành nghề
+  getLicenseById: (licenseId) => {
+    return axiosInstance.get(`/admin-system/licenses/${licenseId}`);
+  },
+
+  // Cập nhật trạng thái chứng chỉ (Approve/Reject)
+  updateLicenseStatus: (licenseId, data) => {
+    return axiosInstance.put(`/admin-system/licenses/${licenseId}/status`, data);
+  },
+
+  // ========== Blacklist Management ==========
+  // Lấy danh sách blacklist
+  getBlacklists: (params = {}) => {
+    return axiosInstance.get("/admin-system/blacklists", { params });
+  },
+
+  // Thêm tài khoản vào blacklist
+  addToBlacklist: (data) => {
+    return axiosInstance.post("/admin-system/blacklists", data);
+  },
+
+  // Xóa tài khoản khỏi blacklist
+  removeFromBlacklist: (blacklistId) => {
+    return axiosInstance.delete(`/admin-system/blacklists/${blacklistId}`);
+  },
 };
 
