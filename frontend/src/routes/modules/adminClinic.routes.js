@@ -9,7 +9,6 @@ import ClinicEdit from "../../features/admin-clinic/ClinicEdit";
 import ApproveDoctorLicenses from "../../features/admin-clinic/ApproveDoctorLicenses";
 import AnonymousFeedback from "../../features/admin-clinic/AnonymousFeedback";
 import BlacklistDetails from "../../features/admin-clinic/BlacklistDetails";
-import OverloadAlerts from "../../features/admin-clinic/OverloadAlerts";
 
 export default function adminClinicRoutes() {
   return (
@@ -26,7 +25,6 @@ export default function adminClinicRoutes() {
         <Route path="approve-licenses" element={<ApproveDoctorLicenses />} />
         <Route path="feedback" element={<AnonymousFeedback />} />
         <Route path="blacklist" element={<BlacklistDetails />} />
-        <Route path="overload-alerts" element={<OverloadAlerts />} />
       </Route>
     </Routes>
   );
