@@ -50,9 +50,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin_clinic", adminClinic);
 app.use("/api/locations", locationRoutes);
 app.use("/api/appointments", appointmentRoutes);
-
-
 app.use("/api/doctor", require("./router/doctor/doctor.routes"));
+
+
 app.use("/api/assistant", require("./router/assistance/assistance.routes"));
 app.use("/api/clinic-registration", clinicRegistrationRoutes);
 app.use("/api/clinic", clinicRoutes);
