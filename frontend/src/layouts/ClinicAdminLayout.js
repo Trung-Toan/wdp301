@@ -103,11 +103,6 @@ const ClinicAdminLayout = () => {
         icon: <Ban size={20} />,
         link: "/admin-clinic/blacklist",
       },
-      {
-        title: "Cảnh báo quá tải",
-        icon: <ClipboardCheck size={20} />,
-        link: "/admin-clinic/overload-alerts",
-      },
     ];
   }
 
