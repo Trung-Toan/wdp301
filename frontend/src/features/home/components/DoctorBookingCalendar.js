@@ -44,9 +44,6 @@ export function DoctorBookingCalendar({ doctor }) {
     // Thử extract trực tiếp từ string trước (ví dụ: "2025-11-09T17:00:00.000Z" -> "2025-11-9")
     const getLocalDateStringFromISO = (isoString) => {
         if (!isoString) return null;
-        
-        // Thử extract date trực tiếp từ ISO string (YYYY-MM-DD)
-        // Nếu format là "2025-11-09T17:00:00.000Z", lấy phần "2025-11-09"
         const dateMatch = isoString.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (dateMatch) {
             const year = parseInt(dateMatch[1], 10);
@@ -54,8 +51,6 @@ export function DoctorBookingCalendar({ doctor }) {
             const day = parseInt(dateMatch[3], 10);
             return `${year}-${month}-${day}`;
         }
-        
-        // Fallback: parse thành Date và dùng local methods
         const date = new Date(isoString);
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -72,14 +67,17 @@ export function DoctorBookingCalendar({ doctor }) {
         return `${year}-${month}-${day}`;
     };
 
+    const now = new Date();
+
     const availableSlots = selectedDate
         ? slots
             .filter((slot) => {
                 // So sánh date string: cả hai đều dùng local time
-                // Convert UTC date từ backend sang local time để so với selectedDate (local)
                 const slotDateStr = getLocalDateStringFromISO(slot.start_time);
                 const selectedDateStr = getDateStringFromDate(selectedDate);
-                return slotDateStr === selectedDateStr;
+                if (slotDateStr !== selectedDateStr) return false;
+                // Loại bỏ các slot đã quá thời điểm hiện tại
+                return new Date(slot.start_time) >= now;
             })
             .map((slot) => ({
                 id: slot._id,
@@ -102,17 +100,15 @@ export function DoctorBookingCalendar({ doctor }) {
     // Hàm kiểm tra đăng nhập
     const handleBooking = () => {
         const user = JSON.parse(sessionStorage.getItem("user"));
-        // key lưu login
         if (!user) {
             toast.error("Vui lòng đăng nhập để đặt lịch!");
             setTimeout(() => {
                 navigate("/login", {
-                    state: { from: window.location.pathname + window.location.search }, // lưu đường dẫn hiện tại
+                    state: { from: window.location.pathname + window.location.search },
                 });
             }, 500);
             return;
         }
-        // Nếu đã đăng nhập, chuyển sang booking page
         navigate(`/home/doctordetail/${id}/booking`, {
             state: {
                 selectedDate: selectedDate ? format(selectedDate, "dd/MM/yyyy") : null,
@@ -189,24 +185,13 @@ export function DoctorBookingCalendar({ doctor }) {
                             </div>
                         ) : (
                             <p className="text-muted-foreground text-sm">
-                                Bác sĩ không có lịch khám ngày này.
+                                Không còn khung giờ khả dụng trong ngày này.
                             </p>
                         )}
                     </div>
                 )}
 
                 <div className="pt-4 border-t">
-                    {/* <div className="flex justify-between mb-4">
-                        <span className="text-muted-foreground">Giá khám:</span>
-                        <span className="text-xl font-bold text-primary">
-                            {selectedSlot?.fee
-                                ? formatCurrency(selectedSlot.fee, doctor.pricing?.currency)
-                                : doctor.pricing?.minFee
-                                    ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
-                                    : "Chưa có giá"}
-                        </span>
-                    </div> */}
-
                     <Button
                         className="w-full"
                         size="lg"

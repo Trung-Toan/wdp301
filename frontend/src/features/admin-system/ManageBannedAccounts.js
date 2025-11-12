@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import "../../styles/admin-system/ManageBannedAccounts.css";
 import ViewModal from "./ViewModal";
@@ -52,14 +50,14 @@ const ManageBannedAccounts = () => {
     setConfirmModal(null);
   };
 
-  const handleApproveAppeal = (id) => {
-    setBannedAccounts(
-      bannedAccounts.map((acc) =>
-        acc.id === id ? { ...acc, appealStatus: "approved" } : acc
-      )
-    );
-    setConfirmModal(null);
-  };
+  // const handleApproveAppeal = (id) => {
+  //   setBannedAccounts(
+  //     bannedAccounts.map((acc) =>
+  //       acc.id === id ? { ...acc, appealStatus: "approved" } : acc
+  //     )
+  //   );
+  //   setConfirmModal(null);
+  // };
 
   return (
     <div className="manage-banned-accounts-container">
