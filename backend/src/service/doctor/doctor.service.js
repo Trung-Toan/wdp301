@@ -2,7 +2,6 @@
 const mongoose = require("mongoose");
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
-const appointmentService = require("../appointment/appointment.service"); // (đang không dùng ở file này, giữ lại nếu dùng nơi khác)
 const patientService = require("../patient/patient.service");
 const License = require("../../model/clinic/License");
 const User = require("../../model/user/User");
