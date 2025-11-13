@@ -99,7 +99,7 @@ export function DoctorBookingCalendar({ doctor }) {
         return getLocalDateStringFromISO(slot.start_time);
     }))];
 
-    // Hàm kiểm tra đăng nhập
+    // Hàm kiểm tra đăng nhập + cảnh báo đặt lịch sát giờ
     const handleBooking = () => {
         const user = JSON.parse(sessionStorage.getItem("user"));
         if (!user) {
@@ -111,6 +111,33 @@ export function DoctorBookingCalendar({ doctor }) {
             }, 500);
             return;
         }
+
+        // Nếu chưa chọn slot thì không làm gì
+        if (!selectedSlot) {
+            toast.warning("Vui lòng chọn khung giờ trước khi đặt lịch!");
+            return;
+        }
+
+        // Tính thời gian hiện tại theo UTC (dự án bạn dùng UTC toàn phần)
+        const nowUTC = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+        const slotStart = new Date(selectedSlot.start_time);
+
+        // Tính khoảng cách phút giữa slot và thời điểm hiện tại
+        const diffMinutes = (slotStart - nowUTC) / (1000 * 60);
+
+        // Nếu slot sắp tới trong vòng 30 phút → cảnh báo
+        if (diffMinutes > 0 && diffMinutes < 30) {
+            toast.warning("Khung giờ này quá sát, vui lòng chọn thời gian cách hiện tại ít nhất 30 phút!");
+            return;
+        }
+
+        // Nếu đã qua giờ → không cho đặt
+        if (diffMinutes <= 0) {
+            toast.error("Khung giờ này đã qua, vui lòng chọn thời gian khác!");
+            return;
+        }
+
+        // Chuyển hướng sang trang booking
         navigate(`/home/doctordetail/${id}/booking`, {
             state: {
                 selectedDate: selectedDate ? format(selectedDate, "dd/MM/yyyy") : null,
@@ -131,6 +158,7 @@ export function DoctorBookingCalendar({ doctor }) {
             },
         });
     };
+
 
 
     return (
