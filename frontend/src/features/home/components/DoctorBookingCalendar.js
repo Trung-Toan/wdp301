@@ -67,17 +67,17 @@ export function DoctorBookingCalendar({ doctor }) {
         return `${year}-${month}-${day}`;
     };
 
-    const now = new Date();
+    // Lấy thời gian hiện tại theo UTC
+    const nowUTC = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
 
     const availableSlots = selectedDate
         ? slots
             .filter((slot) => {
-                // So sánh date string: cả hai đều dùng local time
                 const slotDateStr = getLocalDateStringFromISO(slot.start_time);
                 const selectedDateStr = getDateStringFromDate(selectedDate);
                 if (slotDateStr !== selectedDateStr) return false;
-                // Loại bỏ các slot đã quá thời điểm hiện tại
-                return new Date(slot.start_time) >= now;
+                // So sánh theo UTC
+                return new Date(slot.start_time) >= nowUTC;
             })
             .map((slot) => ({
                 id: slot._id,
@@ -92,6 +92,8 @@ export function DoctorBookingCalendar({ doctor }) {
             }))
         : [];
 
+    console.log("thời gian bây giờ: ", nowUTC);
+    console.log("Available Slots:", availableSlots);
     // Tạo workingDates từ local date (convert từ UTC) để đánh dấu đúng ngày trong calendar
     const workingDates = [...new Set(slots.map((slot) => {
         return getLocalDateStringFromISO(slot.start_time);
