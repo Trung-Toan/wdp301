@@ -879,8 +879,6 @@ exports.createDoctor = async (payload) => {
       { session }
     );
 
-    console.log("Created account:", acc[0]);
-
     // Tạo User (liên kết Account)
     const user = await User.create(
       [
