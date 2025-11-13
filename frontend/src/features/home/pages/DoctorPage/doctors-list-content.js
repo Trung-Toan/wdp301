@@ -24,8 +24,7 @@ export default function DoctorsListContent() {
     const [doctors, setDoctors] = useState([]);
     const [specialties, setSpecialties] = useState([]);
     const [provinces, setProvinces] = useState([]);
-    const [suggestions, setSuggestions] = useState([]);
-    const [showSuggestions, setShowSuggestions] = useState(false);
+
 
     // Hàm bỏ dấu tiếng Việt để so sánh
     const normalizeText = (text) => {
@@ -127,8 +126,7 @@ export default function DoctorsListContent() {
 
         const matchesSearch =
             normalizeText(doctor.fullname).includes(search) ||
-            normalizeText(doctor.specialty).includes(search) ||
-            normalizeText(doctor.hospital).includes(search);
+            normalizeText(doctor.specialty).includes(search);
 
         const matchesSpecialty =
             selectedSpecialty === "Tất cả" ||
@@ -154,32 +152,13 @@ export default function DoctorsListContent() {
                         <Search className="doctors-list-search-icon" />
                         <input
                             type="text"
-                            placeholder="Tìm theo tên bác sĩ, chuyên khoa, bệnh viện..."
+                            placeholder="Tìm theo tên bác sĩ, chuyên khoa,...."
                             className="doctors-list-search-input"
                             value={searchQuery}
                             onChange={(e) => {
                                 const value = e.target.value;
                                 setSearchQuery(value);
-
-                                if (!value.trim()) {
-                                    setSuggestions([]);
-                                    setShowSuggestions(false);
-                                    return;
-                                }
-
-                                // Tìm các bác sĩ khớp với từ khóa
-                                const matched = doctors.filter((doctor) =>
-                                    doctor.fullname.toLowerCase().includes(value.toLowerCase()) ||
-                                    doctor.specialty.toLowerCase().includes(value.toLowerCase()) ||
-                                    doctor.hospital.toLowerCase().includes(value.toLowerCase())
-                                );
-
-                                // Giới hạn hiển thị 5 kết quả
-                                setSuggestions(matched.slice(0, 5));
-                                setShowSuggestions(true);
                             }}
-                            onFocus={() => setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} // để click vào không tắt ngay
                         />
                     </div>
                 </div>
