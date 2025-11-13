@@ -6,7 +6,8 @@ import {
     ChevronLeft,
     MapPin,
     Hospital,
-    Send
+    Send,
+    AlertCircle
 } from "lucide-react";
 import { formatDateShort } from "../../../../utils/dateTimeUtils";
 import { Link, useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ import { doctorApi } from "../../../../api";
 import { useAuth } from "../../../../hooks/useAuth";
 import { axiosInstance } from "../../../../api/axiosInstance";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
+import ComplaintForm from "../../../customer/components/ComplaintForm";
 import "../../../../styles/DoctorDetailContent.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -43,6 +45,7 @@ export function DoctorDetailContent({ doctorId }) {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [showComplaintForm, setShowComplaintForm] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -50,7 +53,13 @@ export function DoctorDetailContent({ doctorId }) {
         const fetchDoctor = async () => {
             setLoading(true);
             try {
-                const res = await doctorApi.getDoctorById(doctorId);
+                const to = new Date();
+                to.setMonth(to.getMonth() + 1); // +1 tháng
+
+                const res = await doctorApi.getDoctorById(doctorId, {
+                    to: to.toISOString(),
+                    limitSlot: 500, // đủ lớn để không bị cắt bớt
+                });
                 console.log("Doctor in Doctor Details:", res.data);
                 setDoctor(res.data || {});
             } catch (err) {
@@ -187,6 +196,19 @@ export function DoctorDetailContent({ doctorId }) {
                                             </span>
                                         </div>
                                     </div>
+
+                                    {/* Complaint Button */}
+                                    {user && (
+                                        <div className="mt-4">
+                                            <button
+                                                onClick={() => setShowComplaintForm(true)}
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all duration-200 font-semibold text-sm"
+                                            >
+                                                <AlertCircle className="h-4 w-4" />
+                                                Khiếu nại về bác sĩ
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -270,16 +292,6 @@ export function DoctorDetailContent({ doctorId }) {
                                                             <div className="doctor-license-field">
                                                                 <strong>Trạng thái:</strong> {l.status}
                                                             </div>
-                                                            {l.document_url?.length > 0 && (
-                                                                <a
-                                                                    href={getImageUrl(l.document_url[0])}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="doctor-license-link"
-                                                                >
-                                                                    Xem tài liệu
-                                                                </a>
-                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -414,9 +426,9 @@ export function DoctorDetailContent({ doctorId }) {
                                                                                 }}
                                                                             />
                                                                         ) : null}
-                                                                        <div 
+                                                                        <div
                                                                             className="doctor-review-avatar"
-                                                                            style={{ 
+                                                                            style={{
                                                                                 display: fb.patient?.avatar_url ? 'none' : 'flex',
                                                                                 backgroundColor: '#e0f2fe',
                                                                                 color: '#0369a1',
@@ -467,9 +479,9 @@ export function DoctorDetailContent({ doctorId }) {
                                 clinicId: slot.clinic?._id,
                                 specialtyId: slot.specialty?._id,
                             };
-                            navigate("/booking", { 
-                                state: { 
-                                    selectedSlot: slotToSend, 
+                            navigate("/booking", {
+                                state: {
+                                    selectedSlot: slotToSend,
                                     doctorId: d.id,
                                     doctorName: d.name,
                                     specialty: d.specialties?.[0]?.name || "Chưa có chuyên khoa",
@@ -478,13 +490,25 @@ export function DoctorDetailContent({ doctorId }) {
                                     doctorAvatar: d.avatar_url || null,
                                     clinicId: slotToSend.clinicId || d.clinic?._id || d.clinic_id || null, // Thêm clinicId vào state
                                     doctor: d, // Thêm toàn bộ doctor object để có thể lấy clinic_id sau
-                                } 
+                                }
                             });
                         }}
                     />
                 </div>
             </div>
             <FirstTimeGuide page="doctor_detail" />
+
+            {/* Complaint Form Modal */}
+            {showComplaintForm && (
+                <ComplaintForm
+                    complaintType="DOCTOR"
+                    doctorId={doctorId}
+                    onClose={() => setShowComplaintForm(false)}
+                    onSuccess={() => {
+                        setShowComplaintForm(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

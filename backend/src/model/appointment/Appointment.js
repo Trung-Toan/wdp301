@@ -21,12 +21,11 @@ const appointmentSchema = new Schema({
   address_text: { type: String },
   reason: { type: String },
 
-<<<<<<< HEAD
   // Thông tin người thân (cho người già)
   relative_name: { type: String },
   relative_phone: { type: String },
-  relative_relationship: { 
-    type: String, 
+  relative_relationship: {
+    type: String,
     enum: ["con", "chau", "vo_chong", "anh_chi_em", "ban", "khac"],
     default: null
   },
@@ -34,12 +33,6 @@ const appointmentSchema = new Schema({
   patient_age: { type: Number },
 
   // Trạng thái & ngày tháng
-  status: { type: String, enum: statusEnum, default: "SCHEDULED" },
-  booked_at: { type: Date, default: Date.now }, // ngày giờ đặt
-  scheduled_date: { type: Date, required: true },     // ngày khám (từ slot)
-=======
->>>>>>> dinh
-
   status: { type: String, enum: statusEnum, default: "SCHEDULED" },
   booked_at: { type: Date, default: Date.now },
   scheduled_date: { type: Date, required: true },

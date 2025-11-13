@@ -1,4 +1,3 @@
-const assistantService = require("../../service/assistant/assistant.service");
 const formatDataUtils = require("../../utils/formatData");
 const resUtils = require("../../utils/responseUtils");
 const appointmentService = require("../../service/appointment/appointment.service");
@@ -6,10 +5,28 @@ const slotService = require("../../service/slot/slot.service");
 const dateUtils = require("../../utils/date.utils");
 const medical_recordService = require("../../service/medical_record/medicalRecord.service");
 const moment = require("moment-timezone");
-const MedicalRecord = require("../../model/patient/MedicalRecord");
 const notificationService = require("../../service/notification/notification.service");
 const Appointment = require("../../model/appointment/Appointment");
-const mongoose = require("mongoose"); // Thêm dòng này vì bạn dùng mongoose.Types.ObjectId.isValid trong updateAppointment
+const mongoose = require("mongoose"); 
+const MedicalRecord = require("../../model/patient/MedicalRecord");
+const assistantService = require("../../service/assistant/assistant.service");
+const doctorService = require("../../service/doctor/doctor.service");
+
+const startOfDay = d => new Date(new Date(d).setHours(0,0,0,0));
+const endOfDay   = d => new Date(new Date(d).setHours(23,59,59,999));
+
+exports.viewDashboard = async (req, res) => {
+  try {
+    const assistance = await assistantService.getAssistantByAccountId(req.user.sub);
+
+    const data = await assistantService.getDashboard(assistance._id);
+
+    return resUtils.successResponse(res, data, "Lấy danh sách dashboard thành công");
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
 
 /* ========================= PATIENTS ========================= */
 // GET /patients
@@ -135,9 +152,6 @@ exports.verifyAppointment = async (req, res) => {
         .populate("specialty_id", "name") // Lấy tên chuyên khoa
         .lean();
 
-        console.log("BAT DAU TAO NOTIFY");
-        
-
       if (populatedApp) {
         // Gọi service thông báo với dữ liệu đầy đủ và trạng thái mới
         await notificationService.createAppointmentStatusUpdateNotification(
@@ -165,11 +179,8 @@ exports.verifyAppointment = async (req, res) => {
 // PUT /update/appointments/:appointmentId
 // Đã được refactor dựa trên updateMedicalRecord
 exports.updateAppointment = async (req, res) => {
-  console.log("CALL API");
-  
   const { appointmentId } = req.params;
   const updateData = req.body;
-  console.log("Received update data for appointment:", appointmentId);
   if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
     return resUtils.badRequestResponse(res, "ID lịch khám không hợp lệ.");
   }
@@ -260,8 +271,8 @@ exports.createAppointmentSlot = async (req, res) => {
       return resUtils.badRequestResponse(res, "Sai định dạng ngày giờ");
 
     // Lấy giờ và phút (local time) để so sánh
-    const startMinutes = start_time.getHours() * 60 + start_time.getMinutes();
-    const endMinutes = end_time.getHours() * 60 + end_time.getMinutes();
+    const startMinutes = start_time.getUTCHours() * 60 + start_time.getUTCMinutes();
+    const endMinutes = end_time.getUTCHours() * 60 + end_time.getUTCMinutes();
 
     if (startMinutes >= endMinutes)
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
@@ -320,8 +331,8 @@ exports.updateAppointmentSlot = async (req, res) => {
     }
 
     // So sánh giờ và phút (local time)
-    const startMinutes = updated_start_time.getHours() * 60 + updated_start_time.getMinutes();
-    const endMinutes = updated_end_time.getHours() * 60 + updated_end_time.getMinutes();
+    const startMinutes = updated_start_time.getUTCHours() * 60 + updated_start_time.getUTCMinutes();
+    const endMinutes = updated_end_time.getUTCHours() * 60 + updated_end_time.getUTCMinutes();
 
     if (startMinutes >= endMinutes)
       return resUtils.badRequestResponse(res, "Giờ bắt đầu phải bé hơn giờ kết thúc");
@@ -413,6 +424,18 @@ exports.viewMedicalRecordDetail = async (req, res) => {
   try {
     const { recordId } = req.params;
     const record = await medical_recordService.getMedicalRecordById(recordId);
+    return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
+  } catch (error) {
+    console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);
+    return resUtils.serverErrorResponse(res, error, "Lỗi hệ thống không thể lấy giữ liệu");
+  }
+};
+
+// GET /medical-records/appointment/:appointmentId
+exports.viewMedicalRecordByAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const record = await medical_recordService.getMedicalRecordByAppointmentId(appointmentId);
     return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
   } catch (error) {
     console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);

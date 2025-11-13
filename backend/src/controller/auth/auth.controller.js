@@ -46,11 +46,11 @@ exports.googleLogin = async (req, res) => {
             stack: e.stack,
             name: e.name
         });
-        
+
         // Provide more specific error messages
         let errorMessage = 'Google login thất bại';
         let statusCode = 400;
-        
+
         if (e.message.includes('Missing id_token')) {
             errorMessage = 'Thiếu thông tin xác thực từ Google';
         } else if (e.message.includes('Invalid Google token') || e.message.includes('Invalid issuer')) {
@@ -64,7 +64,7 @@ exports.googleLogin = async (req, res) => {
             errorMessage = 'Không thể tạo tài khoản. Vui lòng thử lại.';
             statusCode = 500;
         }
-        
+
         res.status(statusCode).json({
             ok: false,
             message: errorMessage,
@@ -192,11 +192,11 @@ exports.login = async (req, res) => {
         const { email, username, password } = req.body;
         // Hỗ trợ cả email và username, ưu tiên email nếu có
         const usernameOrEmail = email || username;
-        
+
         if (!usernameOrEmail) {
             return res.status(400).json({ ok: false, message: "Email hoặc username là bắt buộc" });
         }
-        
+
         const ip =
             req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
             req.ip ||

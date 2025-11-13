@@ -3,6 +3,45 @@ const router = express.Router();
 const { authRequired, roleRequired } = require("./../../middleware/auth");
 const adminclinicController = require("./../../controller/admin_clinic/admin_clinic.controller");
 
+router.get(
+  "/dashboard",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.dashboard
+);
+router.put(
+  "/doctor/clinic",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateDoctorClinic
+);
+router.put(
+  "/doctor/specialties",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateDoctorSpecialties
+);
+router.put(
+  "/assistant/:id",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateAssistant
+);
+
+router.get(
+  "/blacklist",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getAllBlackList
+);
+
+router.get(
+  "/feedback",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.feedback
+);
+
 //tạo tài khoản bác sĩ
 router.post(
   "/account",
@@ -52,7 +91,7 @@ router.post(
 );
 
 //xoá trợ lý theo clinic mà admin_clinic đang quản lý
-router.delete(
+router.put(
   "/delete_assistant/:id",
   authRequired,
   roleRequired("ADMIN_CLINIC"),
@@ -60,7 +99,7 @@ router.delete(
 );
 
 //xoá bác sĩ (bao gồm Doctor, User, Account)
-router.delete(
+router.put(
   "/delete_doctor/:id",
   authRequired,
   roleRequired("ADMIN_CLINIC"),

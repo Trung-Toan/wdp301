@@ -2,6 +2,7 @@ const Clinic = require("../../model/clinic/Clinic");
 const Doctor = require("../../model/doctor/Doctor");
 const Feedback = require("../../model/patient/Feedback");
 const Appointment = require("../../model/appointment/Appointment");
+const License = require("../../model/clinic/License");
 const mongoose = require("mongoose");
 
 /**
@@ -84,14 +85,44 @@ async function getClinicDetail(clinicId) {
 }
 
 /**
- * Lấy danh sách bác sĩ của clinic
+ * Lấy danh sách bác sĩ của clinic (chỉ lấy bác sĩ có license đã được duyệt và chưa hết hạn)
  */
 async function getClinicDoctors(clinicId, { specialtyId, limit = 20, page = 1 } = {}) {
     if (!mongoose.Types.ObjectId.isValid(clinicId)) {
         throw new Error("Invalid clinic ID");
     }
 
-    const match = { clinic_id: new mongoose.Types.ObjectId(clinicId) };
+    // Bước 1: Lấy danh sách doctor_id có license APPROVED và chưa hết hạn
+    const now = new Date();
+    const approvedLicenses = await License.find({
+        status: "APPROVED",
+        expiry_date: { $gte: now }, // Chỉ lấy license chưa hết hạn
+    })
+        .select("doctor_id")
+        .lean();
+
+    // Lấy danh sách doctor_id từ approved licenses (loại bỏ duplicate)
+    const approvedDoctorIds = [...new Set(
+        approvedLicenses.map((license) => license.doctor_id.toString())
+    )].map((id) => new mongoose.Types.ObjectId(id));
+
+    if (approvedDoctorIds.length === 0) {
+        return {
+            data: [],
+            meta: {
+                total: 0,
+                page,
+                limit,
+                totalPages: 0,
+            },
+        };
+    }
+
+    // Bước 2: Lọc doctors theo clinic và approved doctor IDs
+    const match = { 
+        clinic_id: new mongoose.Types.ObjectId(clinicId),
+        _id: { $in: approvedDoctorIds }, // Chỉ lấy bác sĩ có license APPROVED
+    };
     // Note: specialty_id is an array in Doctor model, so we need to use $in
     if (specialtyId && mongoose.Types.ObjectId.isValid(specialtyId)) {
         match.specialty_id = { $in: [new mongoose.Types.ObjectId(specialtyId)] };
@@ -189,9 +220,10 @@ async function getClinicDoctors(clinicId, { specialtyId, limit = 20, page = 1 } 
         { $limit: limit },
     ];
 
+    // Lấy danh sách bác sĩ với pagination và đếm tổng số
     const [doctors, total] = await Promise.all([
         Doctor.aggregate(pipeline),
-        Doctor.countDocuments(match),
+        Doctor.countDocuments(match), // Count với match condition (đã có filter approvedDoctorIds)
     ]);
 
     return {

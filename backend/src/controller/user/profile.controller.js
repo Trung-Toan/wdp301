@@ -12,15 +12,9 @@ exports.getMyProfile = async (req, res) => {
         if (!accountId) return fail(res, new Error("Unauthorized"), 401);
 
         const user = await User.findOne({ account_id: accountId })
-<<<<<<< HEAD
             .populate("account_id", "username email phone_number status role")
             .populate("patients", "province_code ward_code blood_type allergies chronic_diseases medications surgery_history") // virtual
             .lean({ virtuals: true }); // cần virtuals:true để có patients
-=======
-            .populate("account_id", "username email status role")
-            .populate("patients", "province_code ward_code")
-            .lean({ virtuals: true });
->>>>>>> dinh
 
         if (!user) return fail(res, new Error("User not found"), 404);
 

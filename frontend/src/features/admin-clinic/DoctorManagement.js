@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -22,38 +22,241 @@ import * as Yup from "yup";
 import { useMutation } from "@tanstack/react-query";
 import { ElegantModal, FormField } from "./ElegantModal";
 
+/**
+ * DoctorManagement
+ * - Chọn phòng khám bằng list + search
+ * - Sau khi chọn clinic -> tự động gọi API để lấy chuyên khoa của clinic đó
+ * - Áp dụng cho cả modal Tạo bác sĩ và modal Xem chi tiết
+ * - BỎ window.location.reload(); thay bằng refetch dữ liệu & cập nhật state cục bộ
+ */
 const DoctorManagement = () => {
+  // ======= Lists & UI =======
   const [doctors, setDoctors] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [editingId, setEditingId] = useState(null);
+
+  // Tìm kiếm & lọc
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClinic, setFilterClinic] = useState("ALL");
-  const [specialties, setSpecialties] = useState([]);
-  const [loadingSpecialties, setLoadingSpecialties] = useState(true);
-  const [searchSpecialty, setSearchSpecialty] = useState("");
+
+  // Password toggle (create)
   const [showPassword, setShowPassword] = useState(false);
 
-  // 🧩 Mutation - Tạo bác sĩ
-  const { mutate, isLoading: creatingDoctor } = useMutation({
+  // ======= CREATE modal: chọn clinic -> load specialties theo clinic =======
+  const [searchClinic, setSearchClinic] = useState("");
+  const filteredClinicCreate = useMemo(
+    () =>
+      clinics.filter((c) =>
+        (c.name || "")
+          .toLowerCase()
+          .includes((searchClinic || "").toLowerCase())
+      ),
+    [clinics, searchClinic]
+  );
+
+  const [createSpecs, setCreateSpecs] = useState([]); // [{id,name}]
+  const [loadingCreateSpecs, setLoadingCreateSpecs] = useState(false);
+  const [searchSpecCreate, setSearchSpecCreate] = useState("");
+
+  // ======= DETAIL modal: đổi clinic -> tự load specialties theo clinic =======
+  const [detailClinicId, setDetailClinicId] = useState("");
+  const [detailSearchClinic, setDetailSearchClinic] = useState("");
+  const filteredClinicDetail = useMemo(
+    () =>
+      clinics.filter((c) =>
+        (c.name || "")
+          .toLowerCase()
+          .includes((detailSearchClinic || "").toLowerCase())
+      ),
+    [clinics, detailSearchClinic]
+  );
+
+  const [detailSpecialties, setDetailSpecialties] = useState([]); // [{id,name}]
+  const [detailLoadingSpecs, setDetailLoadingSpecs] = useState(false);
+  const [detailSelectedSpecIds, setDetailSelectedSpecIds] = useState([]); // ["id1","id2"]
+  const [detailSearchSpec, setDetailSearchSpec] = useState("");
+
+  // ======= Helpers =======
+  const sameSet = (a = [], b = []) => {
+    if (a.length !== b.length) return false;
+    const s = new Set(a.map(String));
+    return b.every((x) => s.has(String(x)));
+  };
+
+  const mapSpec = (s) => ({
+    id: String(s?._id ?? s?.id ?? s?.value ?? s),
+    name: s?.name ?? s?.label ?? String(s),
+  });
+
+  const transformDoctor = (doc) => {
+    const specialties = Array.isArray(doc.specialty_id)
+      ? doc.specialty_id.map((s) => s?.name || s).join(", ")
+      : "N/A";
+
+    const clinic = doc.clinic_id;
+    const clinicName = clinic?.name || "Không xác định";
+    const clinicId = clinic?._id?.toString() || null;
+
+    return {
+      id: doc._id,
+      name: doc.user_id?.full_name || "Không rõ",
+      avatar: doc.user_id?.avatar_url || null,
+      specialty: specialties,
+      email: doc.user_id?.account_id?.email || "N/A",
+      phone: doc.user_id?.account_id?.phone_number || "N/A",
+      status: doc.user_id?.account_id?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+      clinicId,
+      clinicName,
+      doctorData: doc,
+    };
+  };
+
+  // Ưu tiên gọi API chuyên biệt, fallback khi không có
+  const getSpecialtiesOfClinic = async (clinicId) => {
+    try {
+      if (!clinicId) return [];
+      // 1) API chuyên biệt
+      if (typeof adminclinicAPI.getSpecialtiesByClinic === "function") {
+        const res = await adminclinicAPI.getSpecialtiesByClinic(clinicId);
+        const arr = res?.data?.data || res?.data?.specialties || [];
+        return (arr || []).map(mapSpec);
+      }
+      // 2) API lấy detail clinic
+      if (typeof adminclinicAPI.getClinicDetail === "function") {
+        const res = await adminclinicAPI.getClinicDetail(clinicId);
+        const arr = res?.data?.data?.specialties || [];
+        return (arr || []).map(mapSpec);
+      }
+      // 3) Fallback từ danh sách clinics sẵn có
+      const clinic = clinics.find((c) => String(c._id) === String(clinicId));
+      const arr = clinic?.specialties || [];
+      return (arr || []).map(mapSpec);
+    } catch (e) {
+      console.error("Lỗi lấy chuyên khoa theo clinic:", e);
+      return [];
+    }
+  };
+
+  // ======= Refetch functions (không reload trang) =======
+  const fetchClinics = useCallback(async () => {
+    try {
+      const res = await adminclinicAPI.getAllClinics();
+      const clinicsData = res?.data?.data || [];
+      setClinics(clinicsData);
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách phòng khám:", err);
+    }
+  }, []);
+
+  const fetchDoctors = useCallback(async () => {
+    try {
+      const res = await adminclinicAPI.getDoctorsOfAdminClinic();
+      const doctorsData = res?.data?.data || [];
+      setDoctors(doctorsData.map(transformDoctor));
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách bác sĩ:", err);
+      toast.error("Không thể lấy danh sách bác sĩ: " + (err?.message || "Lỗi không xác định"));
+    }
+  }, []);
+
+  // ======= Mutations =======
+  const { mutate: createDoctor, isLoading: creatingDoctor } = useMutation({
     mutationFn: (payload) => adminclinicAPI.createAccountDoctor(payload),
-    onSuccess: () => {
-      toast.success("Tạo bác sĩ thành công!");
-      setShowModal(false);
+    onSuccess: async (res) => {
+      toast.success(res?.data?.message || "Tạo bác sĩ thành công!");
+      await fetchDoctors();
       formik.resetForm();
-      window.location.reload();
+      setCreateSpecs([]);
+      setSearchSpecCreate("");
+      setShowPassword(false);
+      setShowModal(false);
     },
     onError: (error) => {
       console.error("Lỗi khi tạo bác sĩ:", error);
-      toast.error(
-        error?.response?.data?.message || "Không thể tạo bác sĩ, thử lại!"
-      );
+      toast.error(error?.response?.data?.message || "Không thể tạo bác sĩ, thử lại!");
     },
   });
 
-  // 🧠 Formik + Yup
+  // Cập nhật clinic cho bác sĩ (detail modal)
+  const { mutate: updateDoctorClinic, isLoading: updatingClinic } = useMutation({
+    mutationFn: async ({ doctorId, clinicId }) => {
+      if (typeof adminclinicAPI.updateDoctorClinic === "function") {
+        return adminclinicAPI.updateDoctorClinic({ doctor_id: doctorId, clinic_id: clinicId });
+      }
+      if (typeof adminclinicAPI.updateDoctor === "function") {
+        return adminclinicAPI.updateDoctor({ doctor_id: doctorId, clinic_id: clinicId });
+      }
+      if (typeof adminclinicAPI.assignClinicToDoctor === "function") {
+        return adminclinicAPI.assignClinicToDoctor(doctorId, clinicId);
+      }
+      throw new Error("Chưa có API cập nhật clinic cho bác sĩ.");
+    },
+    onSuccess: async (res, { doctorId, clinicId }) => {
+      const clinicName = clinics.find((c) => String(c._id) === String(clinicId))?.name || "Không xác định";
+      setDoctors((prev) => prev.map((d) => (d.id === doctorId ? { ...d, clinicId, clinicName } : d)));
+      setSelectedDoctor((prev) => (prev ? { ...prev, clinicId, clinicName } : prev));
+      toast.success(res?.data?.message || "Đã cập nhật phòng khám.");
+
+      await fetchDoctors();
+      if (detailClinicId) {
+        const specs = await getSpecialtiesOfClinic(detailClinicId);
+        setDetailSpecialties(specs);
+        setDetailSelectedSpecIds([]);
+      }
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || error.message || "Không thể cập nhật phòng khám.");
+    },
+  });
+
+  // Cập nhật chuyên khoa cho bác sĩ (detail modal)
+  const { mutate: updateDoctorSpecialties, isLoading: updatingSpecs } = useMutation({
+    mutationFn: async ({ doctorId, specialtyIds }) => {
+      if (typeof adminclinicAPI.updateDoctorSpecialties === "function") {
+        return adminclinicAPI.updateDoctorSpecialties({ doctor_id: doctorId, specialty_id: specialtyIds });
+      }
+      if (typeof adminclinicAPI.updateDoctor === "function") {
+        return adminclinicAPI.updateDoctor({ doctor_id: doctorId, specialty_id: specialtyIds });
+      }
+      if (typeof adminclinicAPI.assignSpecialtiesToDoctor === "function") {
+        return adminclinicAPI.assignSpecialtiesToDoctor(doctorId, specialtyIds);
+      }
+      throw new Error("Chưa có API cập nhật chuyên khoa cho bác sĩ.");
+    },
+    onSuccess: async (res, { doctorId, specialtyIds }) => {
+      const names = detailSpecialties
+        .filter((sp) => specialtyIds.includes(String(sp.id)))
+        .map((sp) => sp.name)
+        .join(", ");
+
+      // Optimistic UI
+      setDoctors((prev) => prev.map((d) => (d.id === doctorId ? { ...d, specialty: names } : d)));
+
+      setSelectedDoctor((prev) =>
+        prev
+          ? {
+              ...prev,
+              specialty: names,
+              doctorData: {
+                ...prev.doctorData,
+                specialty_id: specialtyIds,
+              },
+            }
+          : prev
+      );
+
+      toast.success(res?.data?.message || "Đã cập nhật chuyên khoa.");
+      // Refetch để đồng bộ dữ liệu (nếu backend trả khác)
+      await fetchDoctors();
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || error.message || "Không thể cập nhật chuyên khoa.");
+    },
+  });
+
+  // ======= Formik (CREATE) =======
   const formik = useFormik({
     initialValues: {
       username: "",
@@ -61,120 +264,91 @@ const DoctorManagement = () => {
       email: "",
       phone_number: "",
       full_name: "",
-      specialty_id: [], // ✅ hỗ trợ nhiều chuyên khoa
+      specialty_id: [], // IDs theo clinic đã chọn
+      clinic_id: "",
     },
     validationSchema: Yup.object({
       full_name: Yup.string().trim().required("Tên bác sĩ là bắt buộc"),
       username: Yup.string().trim().required("Tên đăng nhập là bắt buộc"),
       password: Yup.string().trim().required("Mật khẩu là bắt buộc"),
-      email: Yup.string()
-        .trim()
-        .email("Email không hợp lệ")
-        .required("Email là bắt buộc"),
-      phone_number: Yup.string()
-        .trim()
-        .matches(/^[0-9]{8,15}$/, "Số điện thoại không hợp lệ")
-        .required("Số điện thoại là bắt buộc"),
-      specialty_id: Yup.array()
-        .of(Yup.string())
-        .min(1, "Phải chọn ít nhất 1 chuyên khoa")
-        .required("Chuyên khoa là bắt buộc"),
+      email: Yup.string().trim().email("Email không hợp lệ").required("Email là bắt buộc"),
+      phone_number: Yup.string().trim().matches(/^[0-9]{8,15}$/, "Số điện thoại không hợp lệ").required("Số điện thoại là bắt buộc"),
+      specialty_id: Yup.array().of(Yup.string()).min(1, "Phải chọn ít nhất 1 chuyên khoa").required("Chuyên khoa là bắt buộc"),
+      clinic_id: Yup.string().required("Phải chọn phòng khám"),
     }),
     onSubmit: (values) => {
       const payload = {
         ...values,
-        specialty_id: values.specialty_id.map(String), // ✅ đảm bảo mảng string
+        specialty_id: values.specialty_id.map(String),
+        clinic_id: String(values.clinic_id),
       };
-      mutate(payload);
+      createDoctor(payload);
     },
   });
 
-  // 🏥 Lấy danh sách chuyên khoa của phòng khám
+  // Khi chọn clinic ở CREATE -> tự load specialties của clinic đó
   useEffect(() => {
-    const fetchClinicSpecialties = async () => {
-      setLoadingSpecialties(true);
-      try {
-        const res = await adminclinicAPI.getClinicByAdmin();
-        const clinicData = res.data?.data;
+    const cid = formik.values.clinic_id;
+    let mounted = true;
 
-        if (clinicData && Array.isArray(clinicData.specialties)) {
-          setSpecialties(clinicData.specialties);
-        } else {
-          setSpecialties([]);
-          toast.warn("Phòng khám chưa đăng ký chuyên khoa hoặc API lỗi.");
-        }
-      } catch (err) {
-        console.error("Lỗi khi lấy chuyên khoa:", err);
-        toast.error("Không thể lấy chuyên khoa: " + err.message);
-      } finally {
-        setLoadingSpecialties(false);
+    const run = async () => {
+      if (!cid) {
+        setCreateSpecs([]);
+        formik.setFieldValue("specialty_id", []);
+        return;
       }
-    };
-    fetchClinicSpecialties();
-  }, []);
+      setLoadingCreateSpecs(true);
+      const specs = await getSpecialtiesOfClinic(cid);
+      if (!mounted) return;
+      setCreateSpecs(specs);
 
-  // 👨‍⚕️ Lấy danh sách bác sĩ
+      // Giữ lại giao cắt với danh sách hợp lệ của clinic
+      const allowed = new Set(specs.map((s) => String(s.id)));
+      const next = (formik.values.specialty_id || []).filter((id) => allowed.has(String(id)));
+      formik.setFieldValue("specialty_id", next);
+      setLoadingCreateSpecs(false);
+    };
+
+    run();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formik.values.clinic_id]);
+
+  // ======= Load dữ liệu ban đầu =======
   useEffect(() => {
-    const fetchClinics = async () => {
-      try {
-        const res = await adminclinicAPI.getAllClinics();
-        const clinicsData = res.data?.data || [];
-        setClinics(clinicsData);
-      } catch (err) {
-        console.error("Lỗi khi lấy danh sách phòng khám:", err);
-      }
+    let mounted = true;
+
+    const init = async () => {
+      await Promise.all([fetchClinics(), fetchDoctors()]);
+      if (!mounted) return;
     };
-    fetchClinics();
-  }, []);
 
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const res = await adminclinicAPI.getDoctorsOfAdminClinic();
-        const doctorsData = res.data?.data || [];
-        const transformed = doctorsData.map((doc) => {
-          const specialties = Array.isArray(doc.specialty_id)
-            ? doc.specialty_id.map((s) => s.name).join(", ")
-            : "N/A";
-
-          const clinic = doc.clinic_id;
-          const clinicName = clinic?.name || "Không xác định";
-          const clinicId = clinic?._id?.toString() || null;
-
-          return {
-            id: doc._id,
-            name: doc.user_id?.full_name || "Không rõ",
-            avatar: doc.user_id?.avatar_url || null,
-            specialty: specialties,
-            email: doc.user_id?.account_id?.email || "N/A",
-            phone: doc.user_id?.account_id?.phone_number || "N/A",
-            status:
-              doc.user_id?.account_id?.status === "ACTIVE"
-                ? "ACTIVE"
-                : "INACTIVE",
-            clinicId: clinicId,
-            clinicName: clinicName,
-            doctorData: doc,
-          };
-        });
-        setDoctors(transformed);
-      } catch (err) {
-        console.error("Lỗi khi lấy danh sách bác sĩ:", err);
-        toast.error("Không thể lấy danh sách bác sĩ: " + err.message);
-      }
+    init();
+    return () => {
+      mounted = false;
     };
-    fetchDoctors();
-  }, []);
+  }, [fetchClinics, fetchDoctors]);
 
+  // ======= Handlers =======
   const handleAddDoctor = () => {
-    setEditingId(null);
     formik.resetForm();
+    setSearchClinic("");
+    setSearchSpecCreate("");
+    setCreateSpecs([]);
+    setShowPassword(false);
     setShowModal(true);
   };
 
-
   const handleViewDetail = (doctor) => {
     setSelectedDoctor(doctor);
+    setDetailClinicId(doctor.clinicId || "");
+    setDetailSearchClinic("");
+    // preset các chuyên khoa hiện tại
+    const currentSpecIds = (doctor?.doctorData?.specialty_id || []).map((s) => String(s?._id ?? s));
+    setDetailSelectedSpecIds(currentSpecIds);
+    setDetailSearchSpec("");
     setShowDetailModal(true);
   };
 
@@ -182,29 +356,56 @@ const DoctorManagement = () => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản bác sĩ này? Hành động này không thể hoàn tác.")) {
       return;
     }
-    
     try {
       const res = await adminclinicAPI.deleteDoctor(id);
-      
-      if (res.data?.ok) {
-        setDoctors(doctors.filter((doc) => doc.id !== id));
-        toast.success(res.data.message || "Xóa tài khoản bác sĩ thành công");
+      if (res?.data?.ok) {
+        // Xoá ngay trong state mà không reload
+        setDoctors((prev) => prev.filter((doc) => doc.id !== id));
+        // Nếu đang mở modal chi tiết của người vừa xoá -> đóng modal
+        setShowDetailModal((open) => (open && selectedDoctor?.id === id ? false : open));
+        if (selectedDoctor?.id === id) setSelectedDoctor(null);
+        toast.success(res?.data?.message || "Xóa tài khoản bác sĩ thành công");
       } else {
-        toast.error(res.data?.message || "Không thể xóa bác sĩ");
+        toast.error(res?.data?.message || "Không thể xóa bác sĩ");
       }
     } catch (err) {
       console.error("Lỗi khi xóa bác sĩ:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Không thể xóa bác sĩ";
-      toast.error(errorMessage);
+      toast.error(err?.response?.data?.message || err.message || "Không thể xóa bác sĩ");
     }
   };
 
+  // Khi đổi clinic ở DETAIL -> tự load specialties của clinic đó
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      if (!detailClinicId) {
+        setDetailSpecialties([]);
+        setDetailSelectedSpecIds([]);
+        return;
+      }
+      setDetailLoadingSpecs(true);
+      const specs = await getSpecialtiesOfClinic(detailClinicId);
+      if (!mounted) return;
+      setDetailSpecialties(specs);
+      // Giữ lại giao cắt lựa chọn cũ
+      const allowed = new Set(specs.map((s) => String(s.id)));
+      setDetailSelectedSpecIds((prev) => prev.filter((id) => allowed.has(String(id))));
+      setDetailLoadingSpecs(false);
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailClinicId, clinics]);
+
+  // Lọc danh sách bác sĩ
   const filteredDoctors = doctors.filter((doc) => {
     const matchesSearch =
-      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doc.clinicName && doc.clinicName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (doc.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (doc.specialty || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (doc.email || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      ((doc.clinicName || "").toLowerCase().includes((searchTerm || "").toLowerCase()));
 
     const matchesClinic = filterClinic === "ALL" || doc.clinicId === filterClinic;
     return matchesSearch && matchesClinic;
@@ -212,9 +413,9 @@ const DoctorManagement = () => {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
         <h1 className="text-2xl font-bold text-gray-900">Quản lý bác sĩ</h1>
-
         <button
           onClick={handleAddDoctor}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
@@ -248,7 +449,6 @@ const DoctorManagement = () => {
             </option>
           ))}
         </select>
-
       </div>
 
       {/* Bảng danh sách bác sĩ */}
@@ -281,19 +481,12 @@ const DoctorManagement = () => {
           </thead>
           <tbody>
             {filteredDoctors.map((doctor) => (
-              <tr
-                key={doctor.id}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                  {doctor.name}
-                </td>
+              <tr key={doctor.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 text-sm font-semibold text-gray-900">{doctor.name}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Building2 size={16} className="text-gray-400" />
-                    <span className="text-sm text-gray-700 font-medium">
-                      {doctor.clinicName}
-                    </span>
+                    <span className="text-sm text-gray-700 font-medium">{doctor.clinicName}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -301,18 +494,12 @@ const DoctorManagement = () => {
                     {doctor.specialty}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {doctor.email}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {doctor.phone}
-                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{doctor.email}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
-                      doctor.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                      doctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {doctor.status === "ACTIVE" ? (
@@ -346,11 +533,18 @@ const DoctorManagement = () => {
                 </td>
               </tr>
             ))}
+            {filteredDoctors.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
+                  Không có bác sĩ phù hợp.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Modal Formik */}
+      {/* Modal Tạo bác sĩ */}
       {showModal && (
         <ElegantModal onClose={() => setShowModal(false)}>
           {/* Header */}
@@ -360,12 +554,8 @@ const DoctorManagement = () => {
                 <Plus size={20} className="text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {editingId ? "Chỉnh sửa bác sĩ" : "Thêm bác sĩ mới"}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Điền thông tin tài khoản & chọn chuyên khoa
-                </p>
+                <h2 className="text-xl font-bold text-gray-900">Thêm bác sĩ mới</h2>
+                <p className="text-sm text-gray-500">Điền thông tin tài khoản, chọn phòng khám & chuyên khoa</p>
               </div>
             </div>
 
@@ -381,26 +571,14 @@ const DoctorManagement = () => {
           {/* Divider */}
           <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
 
-          {/* Content (scrollable) */}
+          {/* Content */}
           <div className="overflow-y-auto pr-1 -mr-1 space-y-4">
             {/* Họ tên */}
-            <FormField
-              label="Tên bác sĩ"
-              name="full_name"
-              required
-              placeholder="vd: Trần Minh Khôi"
-              formik={formik}
-            />
+            <FormField label="Tên bác sĩ" name="full_name" required placeholder="vd: Trần Minh Khôi" formik={formik} />
 
             {/* Username + Password */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                label="Tên đăng nhập"
-                name="username"
-                required
-                placeholder="vd: minh.khoi"
-                formik={formik}
-              />
+              <FormField label="Tên đăng nhập" name="username" required placeholder="vd: minh.khoi" formik={formik} />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -432,102 +610,155 @@ const DoctorManagement = () => {
                   </button>
                 </div>
                 {formik.touched.password && formik.errors.password && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {formik.errors.password}
-                  </p>
+                  <p className="text-xs text-red-600 mt-1">{formik.errors.password}</p>
                 )}
               </div>
             </div>
 
             {/* Email + Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                label="Email"
-                name="email"
-                type="email"
-                required
-                placeholder="vd: email@domain.com"
-                formik={formik}
-              />
-              <FormField
-                label="Số điện thoại"
-                name="phone_number"
-                required
-                placeholder="vd: 0912345678"
-                formik={formik}
-              />
+              <FormField label="Email" name="email" type="email" required placeholder="vd: email@domain.com" formik={formik} />
+              <FormField label="Số điện thoại" name="phone_number" required placeholder="vd: 0912345678" formik={formik} />
             </div>
 
-            {/* Chuyên khoa (multi-select) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chuyên khoa <span className="text-red-500">*</span>
+            {/* PHÒNG KHÁM (single-select bằng list) */}
+            <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Phòng khám <span className="text-red-500">*</span>
               </label>
 
               <input
                 type="text"
-                placeholder="Tìm kiếm chuyên khoa..."
-                value={searchSpecialty}
-                onChange={(e) => setSearchSpecialty(e.target.value)}
+                placeholder="Tìm phòng khám..."
+                value={searchClinic}
+                onChange={(e) => setSearchClinic(e.target.value)}
+                onBlur={() => formik.setFieldTouched("clinic_id", true)}
                 className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm
                      focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition mb-2"
               />
 
               <div className="max-h-44 overflow-y-auto rounded-xl border border-gray-200">
-                {loadingSpecialties ? (
-                  <div className="flex justify-center items-center p-4 text-sm text-gray-500">
-                    <Spinner animation="border" size="sm" />
-                    <span className="ml-2">Đang tải...</span>
-                  </div>
+                {clinics.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500">Chưa có phòng khám.</div>
                 ) : (
-                  specialties
-                    .filter((s) =>
-                      s.name.toLowerCase().includes((searchSpecialty || "").toLowerCase())
-                    )
-                    .map((s) => {
-                      const id = String(s._id);
-                      const isSelected = formik.values.specialty_id.includes(id);
-                      return (
-                        <button
-                          type="button"
-                          key={s._id}
-                          onClick={() => {
-                            const next = new Set(formik.values.specialty_id);
-                            if (isSelected) next.delete(id);
-                            else next.add(id);
-                            formik.setFieldValue("specialty_id", Array.from(next));
-                          }}
-                          className={
-                            "w-full flex items-center justify-between px-3 py-2 text-sm transition text-left " +
-                            (isSelected
-                              ? "bg-blue-50 text-blue-700 font-medium"
-                              : "hover:bg-gray-50 text-gray-700")
-                          }
-                        >
-                          <span>{s.name}</span>
-                          {isSelected && <CheckCircle size={16} className="text-blue-600" />}
-                        </button>
-                      );
-                    })
+                  filteredClinicCreate.map((c) => {
+                    const id = String(c._id);
+                    const isSelected = formik.values.clinic_id === id;
+                    return (
+                      <button
+                        type="button"
+                        key={c._id}
+                        onClick={() => formik.setFieldValue("clinic_id", id)}
+                        className={
+                          "w-full flex items-center justify-between px-3 py-2 text-sm transition text-left " +
+                          (isSelected ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700")
+                        }
+                      >
+                        <span className="flex items-center gap-2">
+                          <Building2 size={16} className="text-gray-400" />
+                          {c.name}
+                        </span>
+                        {isSelected && <CheckCircle size={16} className="text-blue-600" />}
+                      </button>
+                    );
+                  })
                 )}
               </div>
 
-              {formik.touched.specialty_id && formik.errors.specialty_id && (
-                <p className="text-xs text-red-600 mt-1">
-                  {formik.errors.specialty_id}
-                </p>
+              {formik.touched.clinic_id && formik.errors.clinic_id && (
+                <p className="text-xs text-red-600 mt-2">{formik.errors.clinic_id}</p>
               )}
 
-              {formik.values.specialty_id.length > 0 && (
+              {formik.values.clinic_id && (
                 <p className="text-sm text-gray-600 mt-2">
                   Đã chọn:{" "}
-                  <b>
-                    {specialties
-                      .filter((s) => formik.values.specialty_id.includes(String(s._id)))
-                      .map((s) => s.name)
-                      .join(", ")}
-                  </b>
+                  <b>{clinics.find((c) => String(c._id) === String(formik.values.clinic_id))?.name || "—"}</b>
                 </p>
+              )}
+            </div>
+
+            {/* CHUYÊN KHOA (multi-select bằng list, theo clinic đã chọn) */}
+            <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Chuyên khoa <span className="text-red-500">*</span>
+              </label>
+
+              {!formik.values.clinic_id ? (
+                <div className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-500">
+                  Hãy chọn <b>Phòng khám</b> trước để hiển thị danh sách chuyên khoa.
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm chuyên khoa..."
+                    value={searchSpecCreate}
+                    onChange={(e) => setSearchSpecCreate(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm
+                         focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition mb-3"
+                  />
+
+                  <div className="max-h-56 overflow-y-auto rounded-xl border border-gray-200 p-1">
+                    {loadingCreateSpecs ? (
+                      <div className="flex justify-center items-center p-4 text-sm text-gray-500">
+                        <Spinner animation="border" size="sm" />
+                        <span className="ml-2">Đang tải...</span>
+                      </div>
+                    ) : createSpecs.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500">
+                        Phòng khám chưa có chuyên khoa hoặc không lấy được danh sách.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {createSpecs
+                          .filter((s) =>
+                            (s.name || "").toLowerCase().includes((searchSpecCreate || "").toLowerCase())
+                          )
+                          .map((s) => {
+                            const id = String(s.id);
+                            const isSelected = formik.values.specialty_id.includes(id);
+                            return (
+                              <button
+                                type="button"
+                                key={id}
+                                onClick={() => {
+                                  const next = new Set(formik.values.specialty_id);
+                                  if (isSelected) next.delete(id);
+                                  else next.add(id);
+                                  formik.setFieldValue("specialty_id", Array.from(next));
+                                }}
+                                className={
+                                  "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition text-left " +
+                                  (isSelected
+                                    ? "bg-blue-50 text-blue-700 font-medium"
+                                    : "hover:bg-gray-50 text-gray-700")
+                                }
+                              >
+                                <span>{s.name}</span>
+                                {isSelected && <CheckCircle size={16} className="text-blue-600" />}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  {formik.touched.specialty_id && formik.errors.specialty_id && (
+                    <p className="text-xs text-red-600 mt-2">{formik.errors.specialty_id}</p>
+                  )}
+
+                  {formik.values.specialty_id.length > 0 && (
+                    <p className="text-sm text-gray-600 mt-3">
+                      Đã chọn:{" "}
+                      <b>
+                        {createSpecs
+                          .filter((sp) => formik.values.specialty_id.includes(String(sp.id)))
+                          .map((sp) => sp.name)
+                          .join(", ")}
+                      </b>
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -555,176 +786,242 @@ const DoctorManagement = () => {
         </ElegantModal>
       )}
 
-      {/* Modal xem chi tiết bác sĩ */}
+      {/* Modal xem chi tiết bác sĩ (EDIT modal) */}
       {showDetailModal && selectedDoctor && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowDetailModal(false)}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg"
+            className="bg-white rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-xl border border-gray-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Chi tiết bác sĩ
-              </h2>
+            {/* Header đẹp hơn */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center font-semibold">
+                  {String(selectedDoctor.name || "BS").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-gray-900">{selectedDoctor.name}</h2>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                        selectedDoctor.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {selectedDoctor.status === "ACTIVE" ? (
+                        <>
+                          <CheckCircle size={14} /> Hoạt động
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={14} /> Không hoạt động
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-0.5">{selectedDoctor.specialty}</p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Đóng"
               >
-                <X size={24} className="text-gray-600" />
+                <X size={20} className="text-gray-600" />
               </button>
             </div>
 
-            <div className="space-y-6">
-              {/* Thông tin cơ bản */}
-              <div className="border-b border-gray-200 pb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Thông tin cơ bản
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                    <User size={20} className="text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Họ và tên</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedDoctor.name}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Building2 size={20} className="text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Phòng khám</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedDoctor.clinicName}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <GraduationCap size={20} className="text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Chuyên khoa</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedDoctor.specialty}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-5 h-5 flex items-center justify-center mt-1">
-                      <span
-                        className={`w-3 h-3 rounded-full ${
-                          selectedDoctor.status === "ACTIVE"
-                            ? "bg-green-500"
-                            : "bg-gray-400"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Trạng thái</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedDoctor.status === "ACTIVE"
-                          ? "Hoạt động"
-                          : "Không hoạt động"}
-                      </p>
-                    </div>
-                  </div>
+            {/* Grid 2 cột: Clinic + Contact */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              {/* Card: Clinic selector */}
+              <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 size={18} className="text-gray-500" />
+                  <h3 className="text-sm font-semibold text-gray-900">Phòng khám</h3>
                 </div>
-              </div>
 
-              {/* Thông tin liên hệ */}
-              <div className="border-b border-gray-200 pb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Thông tin liên hệ
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                    <Mail size={20} className="text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedDoctor.email}
-                      </p>
-                    </div>
-                  </div>
+                <p className="text-xs text-gray-500 mb-2">
+                  Hiện tại: <b>{selectedDoctor.clinicName}</b>
+                </p>
 
-                  <div className="flex items-start gap-3">
-                    <Phone size={20} className="text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Điện thoại</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedDoctor.phone}
-                      </p>
-                    </div>
-                  </div>
+                <input
+                  type="text"
+                  placeholder="Tìm phòng khám..."
+                  value={detailSearchClinic}
+                  onChange={(e) => setDetailSearchClinic(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm
+                    focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition mb-2"
+                />
+
+                <div className="max-h-44 overflow-y-auto rounded-xl border border-gray-200">
+                  {clinics.length === 0 ? (
+                    <div className="p-3 text-sm text-gray-500">Chưa có phòng khám.</div>
+                  ) : (
+                    filteredClinicDetail.map((c) => {
+                      const id = String(c._id);
+                      const isSelected = detailClinicId === id;
+                      return (
+                        <button
+                          type="button"
+                          key={c._id}
+                          onClick={() => setDetailClinicId(id)} // chọn -> tự load chuyên khoa
+                          className={
+                            "w-full flex items-center justify-between px-3 py-2 text-sm transition text-left " +
+                            (isSelected ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700")
+                          }
+                        >
+                          <span className="flex items-center gap-2">
+                            <Building2 size={16} className="text-gray-400" />
+                            {c.name}
+                          </span>
+                          {isSelected && <CheckCircle size={16} className="text-blue-600" />}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
-              </div>
 
-              {/* Thông tin chi tiết từ doctorData */}
-              {selectedDoctor.doctorData && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Thông tin bổ sung
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedDoctor.doctorData.title && (
-                      <div>
-                        <p className="text-sm text-gray-600">Chức danh</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedDoctor.doctorData.title}
-                        </p>
-                      </div>
-                    )}
-                    {selectedDoctor.doctorData.degree && (
-                      <div>
-                        <p className="text-sm text-gray-600">Học vị</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedDoctor.doctorData.degree}
-                        </p>
-                      </div>
-                    )}
-                    {selectedDoctor.doctorData.experience && (
-                      <div className="md:col-span-2">
-                        <p className="text-sm text-gray-600">Kinh nghiệm</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedDoctor.doctorData.experience}
-                        </p>
-                      </div>
-                    )}
-                    {selectedDoctor.doctorData.description && (
-                      <div className="md:col-span-2">
-                        <p className="text-sm text-gray-600">Mô tả</p>
-                        <p className="text-sm text-gray-900">
-                          {selectedDoctor.doctorData.description}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
                 <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  type="button"
+                  onClick={() => updateDoctorClinic({ doctorId: selectedDoctor.id, clinicId: detailClinicId })}
+                  disabled={updatingClinic || !detailClinicId || detailClinicId === selectedDoctor.clinicId}
+                  className="mt-3 w-full px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
                 >
-                  Đóng
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false);
-                    handleDeleteDoctor(selectedDoctor.id);
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                >
-                  Xóa tài khoản
+                  {updatingClinic ? "Đang cập nhật..." : "Cập nhật phòng khám"}
                 </button>
               </div>
+
+              {/* Card: Contact info */}
+              <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <User size={18} className="text-gray-500" />
+                  <h3 className="text-sm font-semibold text-gray-900">Liên hệ</h3>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Mail size={18} className="text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm font-semibold text-gray-900">{selectedDoctor.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Phone size={18} className="text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-gray-500">Điện thoại</p>
+                      <p className="text-sm font-semibold text-gray-900">{selectedDoctor.phone}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card lớn: Specialties theo clinic */}
+            <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <GraduationCap size={18} className="text-gray-500" />
+                <h3 className="text-sm font-semibold text-gray-900">Chuyên khoa theo phòng khám</h3>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Tìm chuyên khoa..."
+                value={detailSearchSpec}
+                onChange={(e) => setDetailSearchSpec(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm
+                  focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition mb-3"
+              />
+
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 p-1">
+                {detailLoadingSpecs ? (
+                  <div className="p-3 text-sm text-gray-500">Đang tải...</div>
+                ) : detailSpecialties.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500">
+                    Phòng khám này chưa có chuyên khoa hoặc không lấy được danh sách.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                    {detailSpecialties
+                      .filter((s) => (s.name || "").toLowerCase().includes((detailSearchSpec || "").toLowerCase()))
+                      .map((s) => {
+                        const id = String(s.id);
+                        const checked = detailSelectedSpecIds.includes(id);
+                        return (
+                          <button
+                            type="button"
+                            key={id}
+                            onClick={() => {
+                              const next = new Set(detailSelectedSpecIds);
+                              if (checked) next.delete(id);
+                              else next.add(id);
+                              setDetailSelectedSpecIds(Array.from(next));
+                            }}
+                            className={
+                              "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition text-left " +
+                              (checked ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700")
+                            }
+                          >
+                            <span>{s.name}</span>
+                            {checked && <CheckCircle size={16} className="text-blue-600" />}
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+
+              {/* Nút cập nhật chuyên khoa – nằm dưới card */}
+              {(() => {
+                const initialIds = (selectedDoctor?.doctorData?.specialty_id || []).map((x) =>
+                  String(x?._id ?? x)
+                );
+                const changed = !sameSet(initialIds, detailSelectedSpecIds);
+                return (
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateDoctorSpecialties({
+                          doctorId: selectedDoctor.id,
+                          specialtyIds: detailSelectedSpecIds,
+                        })
+                      }
+                      disabled={updatingSpecs || !changed}
+                      className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold disabled:opacity-60"
+                    >
+                      {updatingSpecs ? "Đang cập nhật..." : "Cập nhật chuyên khoa"}
+                    </button>
+                    {!changed && (
+                      <span className="text-xs text-gray-500">Chưa có thay đổi so với hiện tại.</span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Actions dưới cùng */}
+            <div className="flex gap-3 justify-end pt-5">
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  handleDeleteDoctor(selectedDoctor.id);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              >
+                Xóa tài khoản
+              </button>
             </div>
           </div>
         </div>

@@ -5,23 +5,43 @@ const appointmentService = require("../../service/appointment/appointment.servic
 const formatDataUtils = require("../../utils/formatData");
 const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
 const Account = require("../../model/auth/Account");
-
+const feedbackService = require("../../service/feedback/feedback.service");
 const assistantService = require("../../service/doctor/doctor.assistant.service");
+
+exports.viewDashboard = async (req, res) => {
+  try {
+    // Giả định req.user.sub = Account._id (JWT)
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return res.status(400).json({
+        success: false,
+        message: "Bác sĩ không tồn tại hoặc chưa được liên kết với tài khoản.",
+      });
+    }
+
+    const data = await doctorService.dashboard(doctor._id);
+
+    return res.status(200).json({
+      success: true,
+      data, // <- frontend đang đọc data?.data
+      message: "Lấy dashboard thành công.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Hệ thống lỗi không thể lấy dữ liệu được.",
+      error: process.env.NODE_ENV === "production" ? undefined : error?.message,
+    });
+  }
+};
 
 /* ========================= PATIENTS ========================= */
 // GET /patients
 exports.viewListPatients = async (req, res) => {
   try {
-    // 1. Lấy dữ liệu từ service, bao gồm cả 'patients' và 'pagination'
-    // Truyền req.query vào để service có thể lấy page và limit (ví dụ: /patients?page=1&limit=10)
-
     const { patients, pagination } = await doctorService.getListPatients(req);
-
-    // 2. Dùng .map() để tạo một mảng mới với định dạng mong muốn
     const formattedPatients =
       patients.map((patient) => formatDataUtils.formatData(patient)) || [];
-
-    // 3. Trả về response thành công với dữ liệu đã được định dạng
     return resUtils.paginatedResponse(
       res,
       formattedPatients,
@@ -29,7 +49,6 @@ exports.viewListPatients = async (req, res) => {
       "Lấy danh sách bệnh nhân thành công."
     );
   } catch (error) {
-    // Xử lý lỗi nếu có
     console.error("Error in viewListPatients:", error);
     return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
   }
@@ -284,13 +303,7 @@ exports.viewListMedicalRecordsByPatient = async (req, res) => {
 exports.viewMedicalRecordDetail = async (req, res) => {
   try {
     const { recordId } = req.params;
-    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
-    console.log("doctor: ", doctor);
-
-    const medicalRecord = await medicalRecordService.getMedicalRecordById(
-      recordId,
-      doctor._id
-    );
+    const medicalRecord = await medicalRecordService.getMedicalRecordById(recordId);
     return resUtils.successResponse(
       res,
       medicalRecord,
@@ -344,6 +357,32 @@ exports.verifyMedicalRecord = async (req, res) => {
 // GET /doctor/feedback
 exports.viewFeedbackList = async (req, res) => {
   try {
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return resUtils.badRequestResponse(res, "Không tìm thấy bác sĩ");
+    }
+
+    const options = {
+      page: req.query.page,
+      limit: req.query.limit,
+      sort: req.query.sort,
+      q: req.query.q,
+      minRating: req.query.minRating,
+      maxRating: req.query.maxRating,
+      isAnonymous: req.query.isAnonymous,
+      from: req.query.from,
+      to: req.query.to,
+    };
+
+    const data = await feedbackService.getAllFeedbackByDoctor(
+      doctor._id,
+      options
+    );
+    return resUtils.successResponse(
+      res,
+      data,
+      "Lấy danh sách feedback thành công"
+    );
   } catch (error) {
     console.error("Error in viewFeedbackList:", error);
     return resUtils.serverErrorResponse(
@@ -468,22 +507,36 @@ exports.changePassword = async (req, res, next) => {
       return resUtils.badRequestResponse(res, "Dữ liệu đầu vào không hợp lệ.");
     }
     if (!oldPassword || !newPassword) {
-      return resUtils.badRequestResponse(res, "Vui lòng nhập đủ mật khẩu cũ và mật khẩu mới.");
+      return resUtils.badRequestResponse(
+        res,
+        "Vui lòng nhập đủ mật khẩu cũ và mật khẩu mới."
+      );
     }
     if (newPassword.length < 6) {
-      return resUtils.badRequestResponse(res, "Mật khẩu mới phải có ít nhất 6 ký tự.");
+      return resUtils.badRequestResponse(
+        res,
+        "Mật khẩu mới phải có ít nhất 6 ký tự."
+      );
     }
     if (oldPassword === newPassword) {
-      return resUtils.badRequestResponse(res, "Mật khẩu mới không được giống mật khẩu cũ.");
+      return resUtils.badRequestResponse(
+        res,
+        "Mật khẩu mới không được giống mật khẩu cũ."
+      );
     }
 
     // Lấy account + kiểm tra trạng thái & đối chiếu mật khẩu cũ
-    const account = await Account.findById(req.user.sub).select("+password +status");
+    const account = await Account.findById(req.user.sub).select(
+      "+password +status"
+    );
     if (!account) {
       return resUtils.notFoundResponse(res, "Không tìm thấy tài khoản.");
     }
     if (account.status && account.status !== "ACTIVE") {
-      return resUtils.badRequestResponse(res, "Tài khoản không ở trạng thái cho phép đổi mật khẩu.");
+      return resUtils.badRequestResponse(
+        res,
+        "Tài khoản không ở trạng thái cho phép đổi mật khẩu."
+      );
     }
 
     const isMatch = await account.comparePassword(oldPassword);
@@ -494,12 +547,15 @@ exports.changePassword = async (req, res, next) => {
     // Chỉ thực hiện thay đổi
     await doctorService.changePassword(req.user.sub, newPassword);
 
-    return resUtils.successResponse(res, { message: "Đổi mật khẩu thành công." }, "Đổi mật khẩu thành công");
+    return resUtils.successResponse(
+      res,
+      { message: "Đổi mật khẩu thành công." },
+      "Đổi mật khẩu thành công"
+    );
   } catch (err) {
     next(err);
   }
 };
-
 
 // POST /doctor/license
 exports.uploadLicense = async (req, res, next) => {

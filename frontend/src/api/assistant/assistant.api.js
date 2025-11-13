@@ -25,17 +25,14 @@ export const PATIENT_API = {
 };
 
 export const MEDICAL_RECORD_API = {
+    GET_MEDICAL_RECORD_BY_APPOINTMENT_ID: (appointmentId) => `/assistant/medical-records/appointment/${appointmentId}`,
     GET_LIST_MEDICAL_RECORDS: "/assistant/created/medical-records",
     CREATE_MEDICAL_RECORD: (appointmentId) => `/assistant/medical-records/appointment/${appointmentId}`,
-    /**
-     * Lấy danh sách hồ sơ bệnh án do trợ lý tạo
-     * @param {number} [page=1] - Trang hiện tại
-     * @returns {Promise<AxiosResponse>}
-     */
+    EDIT_MEDICAL_RECORD: (id) => `/assistant/medical-records/${id}`,
+
     getListMedicalRecords: (page = 1) => axiosInstance.get(MEDICAL_RECORD_API.GET_LIST_MEDICAL_RECORDS, { params: { page } }),
-
     createMedicalRecord: (appointmentId, data) => axiosInstance.post(MEDICAL_RECORD_API.CREATE_MEDICAL_RECORD(appointmentId), data),
-
+    updateMedicalRecord: (id, data) => axiosInstance.put(MEDICAL_RECORD_API.EDIT_MEDICAL_RECORD(id), data),
 };
 
 export const APPOINTMENT_API = {
@@ -76,6 +73,7 @@ export const SLOT_API = {
 };
 
 export const ASSISTANT_API = {
+    GET_DASHBOARD: "/assistant/dashboard",
     GET_PROFILE: "/assistant/profile",
     UPDATE_PROFILE: "/assistant/profile",
     CHANGE_PASSWORD: "/assistant/change-password",

@@ -66,6 +66,11 @@ const DoctorLayout = () => {
         icon: <Calendar size={20} />,
         link: "/assistant/slot-schedule",
       },
+      {
+        title: "Tạo hồ sơ bệnh án",
+        icon: <ClipboardCheck size={20} />,
+        link: "/assistant/appointments",
+      },
     ],
   };
 

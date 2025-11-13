@@ -9,6 +9,9 @@ const {
   getTopDoctorsNearMeController,
 } = require("../../controller/doctor/topDoctor.controller");
 const {
+  getApprovedDoctorsController,
+} = require("../../controller/doctor/approvedDoctors.controller");
+const {
   getTopDoctorsBySpecialtyController,
   getTopDoctorsBySingleSpecialtyController,
 } = require("../../controller/doctor/topDoctorsBySpecialty.controller");
@@ -38,6 +41,15 @@ router.get(
   authRequired,
   roleRequired("DOCTOR"),
   DoctorController.viewListPatients
+);
+
+// GET /dashboard
+// view dashboard of doctor
+router.get(
+  "/dashboard",
+  authRequired,
+  roleRequired("DOCTOR"),
+  DoctorController.viewDashboard
 );
 
 // GET /patients/:patientId
@@ -298,6 +310,47 @@ router.get("/top/near-me", authRequired, getTopDoctorsNearMeController);
 
 /**
  * @openapi
+ * /api/doctor/approved:
+ *   get:
+ *     tags:
+ *       - Doctor
+ *     summary: Lấy tất cả bác sĩ có bằng cấp đã được duyệt
+ *     description: Trả về danh sách tất cả bác sĩ có license status = APPROVED và chưa hết hạn
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Số lượng bác sĩ muốn lấy (0 = lấy tất cả)
+ *       - in: query
+ *         name: provinceCode
+ *         schema:
+ *           type: string
+ *           example: "01"
+ *         description: Mã tỉnh/thành để lọc theo địa điểm phòng khám
+ *     responses:
+ *       200:
+ *         description: Danh sách bác sĩ có bằng cấp đã được duyệt
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 total:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
+router.get("/approved", getApprovedDoctorsController);
+
+/**
+ * @openapi
  * /api/doctor/top/by-specialty:
  *   get:
  *     tags:
@@ -356,7 +409,10 @@ router.get("/top/by-specialty", getTopDoctorsBySpecialtyController);
  *       404:
  *         description: Chuyên ngành không tồn tại
  */
-router.get("/top/by-specialty/:specialtyId", getTopDoctorsBySingleSpecialtyController);
+router.get(
+  "/top/by-specialty/:specialtyId",
+  getTopDoctorsBySingleSpecialtyController
+);
 
 /**
  * @openapi

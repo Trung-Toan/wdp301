@@ -140,7 +140,7 @@ exports.verifyEmail = async ({ token, accountId }) => {
 exports.login = async ({ usernameOrEmail, password, ip, user_agent }) => {
     const input = (usernameOrEmail || "").trim();
     const isEmail = input.includes("@");
-    
+
     // Tìm account bằng email hoặc username
     let acc;
     if (isEmail) {
