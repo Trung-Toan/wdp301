@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   UserPlus,
   Send,
@@ -30,6 +31,8 @@ const MedicalRecordRequests = () => {
   // Phân trang lịch sử
   const [page, setPage] = useState(1);
   const limit = 10;
+
+  const location = useLocation();
 
   // --- 1. Lấy dữ liệu Lịch sử yêu cầu ---
   const {
@@ -70,14 +73,14 @@ const MedicalRecordRequests = () => {
     });
   };
 
-  // Hàm xử lý tìm bệnh nhân
-  const handleFindPatient = async (e) => {
-    e.preventDefault();
-
-    if (!patientCode.trim()) {
+  // Hàm search dùng chung (cho cả form & URL)
+  const searchByCode = async (code) => {
+    if (!code || !code.trim()) {
       setMessage({ type: "error", text: "Vui lòng nhập mã bệnh nhân." });
       return;
     }
+
+    const trimmedCode = code.trim();
 
     setIsSearching(true);
     setFoundPatient(null);
@@ -86,13 +89,13 @@ const MedicalRecordRequests = () => {
     setSelectedRecordIndex(null);
 
     try {
-      const res = await doctorApi.searchMedicalRecords(patientCode.trim());
+      const res = await doctorApi.searchMedicalRecords(trimmedCode);
       const records = res.data?.data || [];
 
       if (records.length === 0) {
         setMessage({
           type: "error",
-          text: `Không tìm thấy hồ sơ bệnh án nào cho mã BN: ${patientCode}.`,
+          text: `Không tìm thấy hồ sơ bệnh án nào cho mã BN: ${trimmedCode}.`,
         });
         return;
       }
@@ -116,6 +119,23 @@ const MedicalRecordRequests = () => {
       setIsSearching(false);
     }
   };
+
+  // Hàm xử lý tìm bệnh nhân (form submit)
+  const handleFindPatient = async (e) => {
+    e.preventDefault();
+    await searchByCode(patientCode);
+  };
+
+  // Auto lấy patient-code từ URL nếu có: /doctor/record-requests?patient-code=14452410
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const codeFromUrl = params.get("patient-code");
+
+    if (codeFromUrl) {
+      setPatientCode(codeFromUrl);
+      searchByCode(codeFromUrl);
+    }
+  }, [location.search]); // eslint có thể warning, nhưng logic vẫn OK
 
   // Toggle chọn / bỏ chọn 1 hồ sơ (checkbox style nhưng chỉ 1 được chọn)
   const handleToggleRecord = (index) => {
@@ -150,7 +170,9 @@ const MedicalRecordRequests = () => {
     const recordId = selectedRecord._id || selectedRecord.id;
 
     if (!recordId) {
-      toast.error("Không tìm thấy ID hồ sơ để gửi yêu cầu. Kiểm tra lại dữ liệu API.");
+      toast.error(
+        "Không tìm thấy ID hồ sơ để gửi yêu cầu. Kiểm tra lại dữ liệu API."
+      );
       return;
     }
 

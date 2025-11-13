@@ -92,7 +92,7 @@ const DoctorLayout = () => {
       if (item.link === "/assistant/appointments") {
         return {
           ...item,
-          title: "Duyệt lịch khám và Tạo hồ sơ bệnh án",
+          title: "Duyệt hồ sơ bệnh án",
         };
       }
       return item;
