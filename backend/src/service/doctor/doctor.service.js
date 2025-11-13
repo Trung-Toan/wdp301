@@ -1,6 +1,5 @@
 // src/service/doctor/doctor.service.js
-"use strict";
-
+const mongoose = require("mongoose");
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
 const appointmentService = require("../appointment/appointment.service"); // (đang không dùng ở file này, giữ lại nếu dùng nơi khác)
@@ -8,7 +7,136 @@ const patientService = require("../patient/patient.service");
 const License = require("../../model/clinic/License");
 const User = require("../../model/user/User");
 const Account = require("../../model/auth/Account");
+const Appointment = require("../../model/appointment/Appointment");
+const MedicalRecord = require("../../model/patient/MedicalRecord");
 
+
+
+// Helpers ngày UTC (khớp kiểu lưu scheduled_date là date-only UTC)
+const startOfUTCDay = (d) =>
+  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const addUTCDays = (d, days) =>
+  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
+
+/**
+ * Dashboard stats cho Doctor
+ * Trả về object:
+ * {
+ *   todayPatients,
+ *   appointmentChange,         // % so với hôm qua
+ *   pendingPrescriptions,      // MedicalRecord.prescription.status = "PENDING"
+ *   pendingRequests,           // Access Requests đang PENDING trên các hồ sơ do bác sĩ sở hữu
+ *   totalPatients,             // distinct bệnh nhân của bác sĩ (từ Appointment, loại CANCELLED)
+ *   upcomingAppointments       // số lịch hẹn trong 7 ngày tới
+ * }
+ */
+exports.dashboard = async (doctorId) => {
+  const doctorObjectId = new mongoose.Types.ObjectId(doctorId);
+
+  // Các nhóm trạng thái theo nghiệp vụ
+  const ACTIVE_APPT = ["SCHEDULED", "APPROVED"];
+  const COUNT_TODAY_APPT = ["SCHEDULED", "APPROVED", "COMPLETED"];
+  const EXCLUDE_TOTAL_PATIENTS = ["CANCELLED", "NO_SHOW"];
+
+  // Mốc ngày UTC cho hôm nay/hôm qua và 7 ngày tới
+  const now = new Date();
+  const todayStart = startOfUTCDay(now);
+  const todayEnd = addUTCDays(now, 1);
+  const yesterdayStart = addUTCDays(now, -1);
+  const yesterdayEnd = todayStart;
+  const upcomingStart = todayStart;
+  const upcomingEnd = addUTCDays(now, 7);
+
+  // 1) Bệnh nhân hôm nay (distinct theo patient_id)
+  const todayPatientsIdsPromise = Appointment.distinct("patient_id", {
+    doctor_id: doctorObjectId,
+    scheduled_date: { $gte: todayStart, $lt: todayEnd },
+    status: { $in: COUNT_TODAY_APPT },
+  });
+
+  // 2) Lịch hẹn hôm nay & hôm qua (để tính % change "Tổng lịch hẹn")
+  const todayApptPromise = Appointment.countDocuments({
+    doctor_id: doctorObjectId,
+    scheduled_date: { $gte: todayStart, $lt: todayEnd },
+    status: { $in: COUNT_TODAY_APPT },
+  });
+
+  const yesterdayApptPromise = Appointment.countDocuments({
+    doctor_id: doctorObjectId,
+    scheduled_date: { $gte: yesterdayStart, $lt: yesterdayEnd },
+    status: { $in: COUNT_TODAY_APPT },
+  });
+
+  // 3) Đơn thuốc chờ duyệt
+  const pendingPrescriptionsPromise = MedicalRecord.countDocuments({
+    doctor_id: doctorObjectId,
+    "prescription.status": "PENDING",
+  });
+
+  // 4) Yêu cầu truy cập bệnh án đang PENDING
+  const pendingRequestsAggPromise = MedicalRecord.aggregate([
+    { $match: { doctor_id: doctorObjectId } },
+    { $unwind: "$access_requests" },
+    { $match: { "access_requests.status": "PENDING" } },
+    { $count: "cnt" },
+  ]);
+
+  // 5) Tổng bệnh nhân (distinct, loại CANCELLED/NO_SHOW)
+  const totalPatientsDistinctPromise = Appointment.distinct("patient_id", {
+    doctor_id: doctorObjectId,
+    status: { $nin: EXCLUDE_TOTAL_PATIENTS },
+  });
+
+  // 6) Lịch hẹn sắp tới (7 ngày)
+  const upcomingAppointmentsPromise = Appointment.countDocuments({
+    doctor_id: doctorObjectId,
+    scheduled_date: { $gte: upcomingStart, $lt: upcomingEnd },
+    status: { $in: ACTIVE_APPT },
+  });
+
+  const [
+    todayPatientsIds,
+    todayAppt,
+    yesterdayAppt,
+    pendingPrescriptions,
+    pendingRequestsAgg,
+    totalPatientsDistinct,
+    upcomingAppointments,
+  ] = await Promise.all([
+    todayPatientsIdsPromise,
+    todayApptPromise,
+    yesterdayApptPromise,
+    pendingPrescriptionsPromise,
+    pendingRequestsAggPromise,
+    totalPatientsDistinctPromise,
+    upcomingAppointmentsPromise,
+  ]);
+
+  const todayPatients = (todayPatientsIds || []).length;
+  const pendingRequests =
+    Array.isArray(pendingRequestsAgg) && pendingRequestsAgg[0]?.cnt
+      ? pendingRequestsAgg[0].cnt
+      : 0;
+
+  // % thay đổi so với hôm qua
+  let appointmentChange = 0;
+  if (yesterdayAppt === 0) {
+    appointmentChange = todayAppt > 0 ? 100 : 0;
+  } else {
+    appointmentChange = Math.round(
+      ((todayAppt - yesterdayAppt) / yesterdayAppt) * 100
+    );
+  }
+
+  return {
+    todayPatients,
+    appointmentChange,
+    pendingPrescriptions: pendingPrescriptions || 0,
+    pendingRequests,
+    totalPatients: (totalPatientsDistinct || []).length,
+    upcomingAppointments: upcomingAppointments || 0,
+  };
+};
 /**
  * Tìm bác sĩ theo user_id
  */
@@ -18,6 +146,16 @@ exports.findDoctorByUserId = async (userId) => {
     return doctor;
   } catch (error) {
     console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+    return null;
+  }
+};
+
+exports.findDoctorById = async (doctorId) => {
+  try {
+    const doctor = await Doctor.findById(doctorId);
+    return doctor;
+  } catch (error) {
+    console.error("Lỗi khi tìm bác sĩ bằng doctorId:", error);
     return null;
   }
 };

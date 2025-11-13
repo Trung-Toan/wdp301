@@ -3,8 +3,8 @@ const moment = require("moment-timezone");
 
 /**
  * lấy slot của bác sĩ này tại thời điểm này hoặc  
- * @param {*} doctor_id 
- * @param {*} date 
+ * @param {ObjectId} doctor_id 
+ * @param {Date} date 
  * @returns 
  */
 exports.getSlotAtDateByDocterId = async (doctor_id, date = new Date()) => {
@@ -29,18 +29,18 @@ exports.slotAvaiable = async (doctorId, dateFilter) => {
 
 /**
  * Lấy slot AVAILABLE đầu tiên (sớm nhất) trong một ngày cụ thể.
- * @param {*} doctor_id 
- * @param {*} date (Một đối tượng Date. Hàm sẽ tìm slot trong ngày của Date này)
+ * @param {ObjectId} doctor_id 
+ * @param {Date} date (Một đối tượng Date. Hàm sẽ tìm slot trong ngày của Date này)
  * @returns {object|null} - Trả về object slot hoặc null nếu không tìm thấy.
  */
 exports.getFirstAvailableSlotByDoctorId = async (doctor_id, date = new Date()) => {
 
     try {
         const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
+        startOfDay.setUTCHours(0, 0, 0, 0);
 
         const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        endOfDay.setUTCHours(23, 59, 59, 999);
 
         const slot = await Slot.findOne({
             doctor_id,
@@ -62,10 +62,10 @@ exports.getListSlotsByDoctorId = async (doctor_id, date = new Date()) => {
 
     try {
         const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
+        startOfDay.setUTCHours(0, 0, 0, 0);
 
         const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        endOfDay.setUTCHours(23, 59, 59, 999);
 
         const slots = await Slot.find({
             doctor_id,
@@ -83,10 +83,10 @@ exports.getListSlotsByDoctorId = async (doctor_id, date = new Date()) => {
 exports.getAllListSlotsByDoctorId = async (doctor_id, date, status) => {
     try {
         const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
+        startOfDay.setUTCHours(0, 0, 0, 0);
 
         const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        endOfDay.setUTCHours(23, 59, 59, 999);
 
         const query = {
             doctor_id,

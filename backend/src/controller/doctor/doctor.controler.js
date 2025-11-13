@@ -5,8 +5,35 @@ const appointmentService = require("../../service/appointment/appointment.servic
 const formatDataUtils = require("../../utils/formatData");
 const medicalRecordService = require("../../service/medical_record/medicalRecord.service");
 const Account = require("../../model/auth/Account");
-
+const feedbackService = require ("../../service/feedback/feedback.service")
 const assistantService = require("../../service/doctor/doctor.assistant.service");
+
+exports.viewDashboard = async (req, res) => {
+  try {
+    // Giả định req.user.sub = Account._id (JWT)
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return res.status(400).json({
+        success: false,
+        message: "Bác sĩ không tồn tại hoặc chưa được liên kết với tài khoản.",
+      });
+    }
+
+    const data = await doctorService.dashboard(doctor._id);
+
+    return res.status(200).json({
+      success: true,
+      data, // <- frontend đang đọc data?.data
+      message: "Lấy dashboard thành công.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Hệ thống lỗi không thể lấy dữ liệu được.",
+      error: process.env.NODE_ENV === "production" ? undefined : error?.message,
+    });
+  }
+};
 
 /* ========================= PATIENTS ========================= */
 // GET /patients
@@ -344,6 +371,25 @@ exports.verifyMedicalRecord = async (req, res) => {
 // GET /doctor/feedback
 exports.viewFeedbackList = async (req, res) => {
   try {
+    const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
+    if (!doctor) {
+      return resUtils.badRequestResponse(res, "Không tìm thấy bác sĩ");
+    }
+
+    const options = {
+      page: req.query.page,
+      limit: req.query.limit,
+      sort: req.query.sort,
+      q: req.query.q,
+      minRating: req.query.minRating,
+      maxRating: req.query.maxRating,
+      isAnonymous: req.query.isAnonymous,
+      from: req.query.from,
+      to: req.query.to,
+    };
+
+    const data = await feedbackService.getAllFeedbackByDoctor(doctor._id, options);
+    return resUtils.successResponse(res, data, "Lấy danh sách feedback thành công");
   } catch (error) {
     console.error("Error in viewFeedbackList:", error);
     return resUtils.serverErrorResponse(

@@ -1,6 +1,8 @@
 import { axiosInstance } from "../axiosInstance";
 
 export const doctorApi = {
+  GET_FEEDBACK: "/doctor/feedback",
+  GET_DASHBOARD: "/doctor/dashboard",
   GET_ALL_PATIENT: "/doctor/patients",
   GET_PATIENT_BY_ID: (id) => `/doctor/patients/${id}`,
   GET_LIST_APPOINTMENT: "/doctor/appointments",
@@ -17,6 +19,9 @@ export const doctorApi = {
 
   // Lấy bác sĩ top gần đây (nếu không truyền limit -> lấy tất cả)
   getDoctorTopNearMe: (limit) => axiosInstance.get("/doctor/top/near-me", { params: { limit } }),
+
+  // Lấy tất cả bác sĩ có bằng cấp đã được duyệt (license status = APPROVED)
+  getApprovedDoctors: (params = {}) => axiosInstance.get("/doctor/approved", { params }),
  
   // Lấy bác sĩ theo chuyên khoa
   getDoctorBySpecialty: (specialtyId, params = {}) => axiosInstance.get("/doctor/by-specialty", { params: { specialtyId, ...params }, }),
@@ -77,7 +82,7 @@ export const doctorApi = {
     axiosInstance.delete(`/doctor/assistants/${assistantId}`),
 
   // Lấy bác sĩ theo ID
-  getDoctorById: (id) => axiosInstance.get(`/doctor/${id}`),
+  getDoctorById: (id, params = {}) => axiosInstance.get(`/doctor/${id}`, { params }),
 
   //lấy profile bác sĩ
   getProfile: () => axiosInstance.get("/doctor/profile"),

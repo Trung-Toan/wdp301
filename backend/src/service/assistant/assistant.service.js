@@ -6,6 +6,97 @@ const MedicalRecord = require("../../model/patient/MedicalRecord");
 const Appointment = require("../../model/appointment/Appointment");
 const mongoose = require("mongoose");
 
+/**
+ * Dashboard cho trợ lý (ASSISTANT)
+ * - Dựa vào doctor_id mà trợ lý đang hỗ trợ
+ * - Trả về đúng shape FE đang dùng
+ */
+exports.getDashboard = async (assistantId) => {
+  // Lấy doctor_id gắn với trợ lý
+  const assistant = await Assistant.findById(assistantId).select("doctor_id").lean();
+  if (!assistant || !assistant.doctor_id) {
+    throw new Error("Trợ lý chưa được gán bác sĩ.");
+  }
+  const doctorId = new mongoose.Types.ObjectId(assistant.doctor_id);
+
+  // Mốc thời gian trong ngày hiện tại (giờ local server)
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const endOfYesterday = new Date(startOfToday);
+
+  // Quy ước trạng thái dùng cho hôm nay
+  const ACTIVE_TODAY = ["SCHEDULED", "APPROVE", "COMPLETED"];
+
+  // Chạy song song các thống kê
+  const [
+    todayCompleted,
+    todayTotal,
+    yesterdayTotal,
+    pendingApptsToday,
+    pendingRxByAssistant,
+    totalPatientsDistinct
+  ] = await Promise.all([
+    // 1) Completed hôm nay
+    Appointment.countDocuments({
+      doctor_id: doctorId,
+      scheduled_date: { $gte: startOfToday, $lt: endOfToday },
+      status: "COMPLETED",
+    }),
+
+    // 2) Tổng lịch hôm nay
+    Appointment.countDocuments({
+      doctor_id: doctorId,
+      scheduled_date: { $gte: startOfToday, $lt: endOfToday },
+      status: { $in: ACTIVE_TODAY },
+    }),
+
+    // 3) Tổng lịch hôm qua (để tính % change)
+    Appointment.countDocuments({
+      doctor_id: doctorId,
+      scheduled_date: { $gte: startOfYesterday, $lt: endOfYesterday },
+      status: { $in: ACTIVE_TODAY },
+    }),
+
+    // 4) Lịch chờ duyệt hôm nay
+    Appointment.countDocuments({
+      doctor_id: doctorId,
+      scheduled_date: { $gte: startOfToday, $lt: endOfToday },
+      status: "SCHEDULED",
+    }),
+
+    // 5) Đơn thuốc chờ bác sĩ duyệt — các bệnh án do trợ lý này tạo
+    MedicalRecord.countDocuments({
+      created_by: assistantId,
+      "prescription.status": "PENDING",
+    }),
+
+    // 6) Tổng bệnh nhân distinct (loại CANCELLED/NO_SHOW/REJECTED)
+    Appointment.distinct("patient_id", {
+      doctor_id: doctorId,
+      status: { $nin: ["CANCELLED", "NO_SHOW", "REJECTED"] },
+    }),
+  ]);
+
+  const appointmentChange =
+    yesterdayTotal === 0 ? (todayTotal > 0 ? 100 : 0)
+                         : Math.round(((todayTotal - yesterdayTotal) / yesterdayTotal) * 100);
+
+  return {
+    todayPatients: todayCompleted,
+    appointmentChange,
+    pendingPrescriptions: pendingRxByAssistant,
+    pendingRequests: pendingApptsToday,
+    totalPatients: Array.isArray(totalPatientsDistinct) ? totalPatientsDistinct.length : 0,
+    // FE label “Tổng lịch hẹn hôm nay” đang đọc từ upcomingAppointments
+    upcomingAppointments: todayTotal,
+  };
+};
 
 // ---- đã gửi trước: updateUserById (giữ nguyên) ----
 const ALLOWED_USER_FIELDS = [

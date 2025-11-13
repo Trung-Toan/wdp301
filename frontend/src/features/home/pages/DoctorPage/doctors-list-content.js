@@ -25,11 +25,11 @@ export default function DoctorsListContent() {
     const [specialties, setSpecialties] = useState([]);
     const [provinces, setProvinces] = useState([]);
 
-    // Lấy danh sách bác sĩ
+    // Lấy danh sách bác sĩ có bằng cấp đã được duyệt
     useEffect(() => {
         async function fetchDoctors() {
             try {
-                const res = await doctorApi.getDoctorTop({ limit: 0 });
+                const res = await doctorApi.getApprovedDoctors({ limit: 0 });
 
                 const apiDoctors = res.data?.data || [];
 
