@@ -22,8 +22,8 @@ const MedicalRecordRequests = () => {
   const [patientRecords, setPatientRecords] = useState([]);
   const [message, setMessage] = useState(null);
 
-  // dùng index để xác định hồ sơ đang được chọn
-  const [selectedRecordIndex, setSelectedRecordIndex] = useState(null);
+  // Dùng mảng index để xác định nhiều hồ sơ đang được chọn
+  const [selectedRecordIndexes, setSelectedRecordIndexes] = useState([]);
 
   const [reason, setReason] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -86,7 +86,7 @@ const MedicalRecordRequests = () => {
     setFoundPatient(null);
     setPatientRecords([]);
     setMessage(null);
-    setSelectedRecordIndex(null);
+    setSelectedRecordIndexes([]); // reset lựa chọn
 
     try {
       const res = await doctorApi.searchMedicalRecords(trimmedCode);
@@ -135,22 +135,26 @@ const MedicalRecordRequests = () => {
       setPatientCode(codeFromUrl);
       searchByCode(codeFromUrl);
     }
-  }, [location.search]); // eslint có thể warning, nhưng logic vẫn OK
+  }, [location.search]);
 
-  // Toggle chọn / bỏ chọn 1 hồ sơ (checkbox style nhưng chỉ 1 được chọn)
+  // Toggle chọn / bỏ chọn 1 hồ sơ (checkbox style, ĐA chọn)
   const handleToggleRecord = (index) => {
-    setSelectedRecordIndex((current) => (current === index ? null : index));
+    setSelectedRecordIndexes((current) =>
+      current.includes(index)
+        ? current.filter((i) => i !== index)
+        : [...current, index]
+    );
   };
 
-  // --- 2. Xử lý gửi yêu cầu ---
+  // --- 2. Xử lý gửi yêu cầu (multi-select) ---
   const handleSendRequest = async () => {
     if (!foundPatient) {
       toast.error("Vui lòng tìm và chọn bệnh nhân trước.");
       return;
     }
 
-    if (selectedRecordIndex === null) {
-      toast.error("Vui lòng chọn hồ sơ cần gửi yêu cầu.");
+    if (selectedRecordIndexes.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một hồ sơ cần gửi yêu cầu.");
       return;
     }
 
@@ -159,45 +163,52 @@ const MedicalRecordRequests = () => {
       return;
     }
 
-    const selectedRecord = patientRecords[selectedRecordIndex];
+    // Chuẩn bị list request
+    const tasks = selectedRecordIndexes
+      .map((idx) => {
+        const selectedRecord = patientRecords[idx];
+        if (!selectedRecord) return null;
 
-    if (!selectedRecord) {
-      toast.error("Hồ sơ đã chọn không tồn tại.");
-      return;
-    }
+        const recordId = selectedRecord._id || selectedRecord.id;
+        if (!recordId) return null;
 
-    // ưu tiên _id, fallback sang id nếu API trả về khác tên
-    const recordId = selectedRecord._id || selectedRecord.id;
+        return doctorApi.requestMedicalRecordAccess(
+          foundPatient._id,
+          recordId,
+          reason
+        );
+      })
+      .filter(Boolean);
 
-    if (!recordId) {
-      toast.error(
-        "Không tìm thấy ID hồ sơ để gửi yêu cầu. Kiểm tra lại dữ liệu API."
-      );
+    if (tasks.length === 0) {
+      toast.error("Không tìm thấy ID hồ sơ hợp lệ để gửi yêu cầu.");
       return;
     }
 
     try {
-      const res = await doctorApi.requestMedicalRecordAccess(
-        foundPatient._id,
-        recordId,
-        reason
-      );
+      const results = await Promise.allSettled(tasks);
+      const successCount = results.filter((r) => r.status === "fulfilled")
+        .length;
+      const failCount = results.length - successCount;
 
-      if (res.data?.ok) {
-        toast.success("Đã gửi yêu cầu truy cập hồ sơ thành công!");
+      if (successCount > 0) {
+        toast.success(`Đã gửi thành công ${successCount} yêu cầu truy cập.`);
+      }
+      if (failCount > 0) {
+        toast.error(`Có ${failCount} yêu cầu gửi thất bại.`);
+      }
 
-        // Reload lịch sử
-        refetchHistory();
-        if (page !== 1) setPage(1);
+      // Reload lịch sử
+      refetchHistory();
+      if (page !== 1) setPage(1);
 
-        // Reset state
-        setSelectedRecordIndex(null);
+      // Nếu tất cả đều OK thì reset form
+      if (failCount === 0) {
+        setSelectedRecordIndexes([]);
         setReason("");
         setPatientRecords([]);
         setFoundPatient(null);
         setPatientCode("");
-      } else {
-        toast.error(res.data?.message || "Gửi yêu cầu thất bại.");
       }
     } catch (error) {
       console.error(error);
@@ -300,9 +311,9 @@ const MedicalRecordRequests = () => {
 
             <h4 className="font-semibold text-gray-700 text-base mb-2 flex items-center justify-between">
               <span>Chọn hồ sơ cần yêu cầu ({patientRecords.length})</span>
-              {selectedRecordIndex !== null && (
+              {selectedRecordIndexes.length > 0 && (
                 <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full border border-green-200">
-                  Đã chọn 1 hồ sơ
+                  Đã chọn {selectedRecordIndexes.length} hồ sơ
                 </span>
               )}
             </h4>
@@ -314,7 +325,7 @@ const MedicalRecordRequests = () => {
             ) : (
               <ul className="space-y-3 max-h-64 overflow-y-auto pr-2">
                 {patientRecords.map((rec, idx) => {
-                  const isSelected = selectedRecordIndex === idx;
+                  const isSelected = selectedRecordIndexes.includes(idx);
                   const displayDate = formatDate(rec.createdAt).split(",")[0];
 
                   return (
@@ -337,7 +348,7 @@ const MedicalRecordRequests = () => {
                         </p>
                       </div>
 
-                      {/* Checkbox style */}
+                      {/* Checkbox style (multi-select) */}
                       <span
                         className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md border-2 transition-colors ${
                           isSelected
@@ -355,7 +366,7 @@ const MedicalRecordRequests = () => {
               </ul>
             )}
 
-            {selectedRecordIndex !== null && (
+            {selectedRecordIndexes.length > 0 && (
               <>
                 <div className="mt-6">
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
