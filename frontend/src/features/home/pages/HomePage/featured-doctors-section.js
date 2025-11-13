@@ -151,8 +151,13 @@ export function FeaturedDoctorsSection() {
                         </div>
                     </>
                 ) : (
-                    <div className="featured-doctors-empty">
-                        Không có bác sĩ nào
+                    <div className="featured-doctors-empty text-center py-6">
+                        <h3 className="featured-doctors-empty-message mb-5 text-lg font-semibold">
+                            Không có bác sĩ nào
+                        </h3>
+                        <Link to="/home/doctorlist" className="featured-doctors-view-all-button">
+                            Xem tất cả bác sĩ
+                        </Link>
                     </div>
                 )}
             </div>
