@@ -47,25 +47,20 @@ app.get("/api-docs.json", (_req, res) => res.json(swaggerSpec));
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 app.use("/api/auth", authRoutes);
-app.use("/api/admin_clinic", adminClinic);
-app.use("/api/locations", locationRoutes);
-app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctor", require("./router/doctor/doctor.routes"));
-
-
 app.use("/api/assistant", require("./router/assistance/assistance.routes"));
+app.use("/api/locations", locationRoutes);
 app.use("/api/clinic-registration", clinicRegistrationRoutes);
 app.use("/api/clinic", clinicRoutes);
+app.use("/api/appointments", appointmentRoutes);
+
 app.use("/api/patient", patientRoutes);
 app.use("/api/patient", medicalRecordRoutes);
 app.use("/api/user", userRoutes);
+
 app.use('/api/auth', authRoutes);
-app.use('/api/doctor', require('./router/doctor/doctor.routes'));
-app.use('/api/assistant', require('./router/assistance/assistance.routes'));
-app.use('/api/locations', locationRoutes);
-app.use('/api/clinic-registration', clinicRegistrationRoutes);
-app.use('/api/appointments', appointmentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use("/api/admin_clinic", adminClinic);
 app.use("/api/admin-system", adminSystemRoutes);
 app.use("/api/admin-system", adminSystemComplaintRoutes);
 app.use("/api/file", uploadRoutes);
