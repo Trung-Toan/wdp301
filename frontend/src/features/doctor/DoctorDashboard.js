@@ -116,6 +116,17 @@ const DoctorDashboard = () => {
     url: doctorApi.GET_DASHBOARD,
   });
 
+  const {data: profileData} = useDataByUrl({
+    key: "doctor-profile",
+    url: doctorApi.GET_PROFILE,
+  });
+
+  const profile = useMemo(() => profileData?.data || {}, [profileData]);
+  console.log("profile: ", profile);
+  
+
+
+
   useEffect(() => {
     if (error) toast.error("Không thể tải dữ liệu bảng điều khiển.");
   }, [error]);
@@ -199,7 +210,7 @@ const DoctorDashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-gray-200 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
-              Chào mừng trở lại, BS. {user.username || "Tên Bác sĩ"} 👋
+              Xin chào bác sĩ { profile?.user_id?.full_name || ""} 👋
             </h1>
             <p className="text-lg text-gray-500">
               Tổng quan hoạt động vào{" "}

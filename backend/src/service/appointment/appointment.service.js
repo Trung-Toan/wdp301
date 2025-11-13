@@ -189,6 +189,16 @@ exports.getListAppointments = async (req, doctorId) => {
   };
 };
 
+/**
+ * get patients with appointments of doctor
+ * 
+ * @param {ObjectId} doctorId doctor id
+ * @param {String enum} appointmentStatus status appointment 
+ * @param {Number} pageParam current page
+ * @param {Number} limitParam limit record on a page
+ * @param {String} search key need to search
+ * @returns Object{patients: Array, pagination: Object} 
+ */
 exports.getPatientsWithAppointments = async (
   doctorId,
   appointmentStatus = "COMPLETED",

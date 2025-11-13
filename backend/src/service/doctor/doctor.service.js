@@ -193,6 +193,7 @@ exports.getListPatients = async (req) => {
     const doctor = await exports.findDoctorByAccountId(accountId);
     if (!doctor) throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
 
+    // get patient available of doctor on appointment service
     return await patientService.getPatientAvailableOfDoctor(
       doctor._id,
       parseInt(page, 10),
