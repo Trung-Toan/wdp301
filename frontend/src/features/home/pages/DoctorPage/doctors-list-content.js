@@ -24,6 +24,19 @@ export default function DoctorsListContent() {
     const [doctors, setDoctors] = useState([]);
     const [specialties, setSpecialties] = useState([]);
     const [provinces, setProvinces] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    // Hàm bỏ dấu tiếng Việt để so sánh
+    const normalizeText = (text) => {
+        return text
+            .normalize("NFD") // Tách dấu
+            .replace(/[\u0300-\u036f]/g, "") // Xóa dấu
+            .replace(/đ/g, "d")
+            .replace(/Đ/g, "D")
+            .toLowerCase();
+    };
+
 
     // Lấy danh sách bác sĩ có bằng cấp đã được duyệt
     useEffect(() => {
@@ -110,10 +123,12 @@ export default function DoctorsListContent() {
 
     // Lọc bác sĩ
     const filteredDoctors = doctors.filter((doctor) => {
+        const search = normalizeText(searchQuery);
+
         const matchesSearch =
-            doctor.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            doctor.hospital.toLowerCase().includes(searchQuery.toLowerCase());
+            normalizeText(doctor.fullname).includes(search) ||
+            normalizeText(doctor.specialty).includes(search) ||
+            normalizeText(doctor.hospital).includes(search);
 
         const matchesSpecialty =
             selectedSpecialty === "Tất cả" ||
@@ -125,6 +140,7 @@ export default function DoctorsListContent() {
 
         return matchesSearch && matchesSpecialty && matchesProvince;
     });
+
 
     return (
         <div className="doctors-list-modern">
@@ -141,7 +157,29 @@ export default function DoctorsListContent() {
                             placeholder="Tìm theo tên bác sĩ, chuyên khoa, bệnh viện..."
                             className="doctors-list-search-input"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchQuery(value);
+
+                                if (!value.trim()) {
+                                    setSuggestions([]);
+                                    setShowSuggestions(false);
+                                    return;
+                                }
+
+                                // Tìm các bác sĩ khớp với từ khóa
+                                const matched = doctors.filter((doctor) =>
+                                    doctor.fullname.toLowerCase().includes(value.toLowerCase()) ||
+                                    doctor.specialty.toLowerCase().includes(value.toLowerCase()) ||
+                                    doctor.hospital.toLowerCase().includes(value.toLowerCase())
+                                );
+
+                                // Giới hạn hiển thị 5 kết quả
+                                setSuggestions(matched.slice(0, 5));
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} // để click vào không tắt ngay
                         />
                     </div>
                 </div>
