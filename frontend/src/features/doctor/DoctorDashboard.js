@@ -135,7 +135,7 @@ const DoctorDashboard = () => {
       upcomingAppointments: data?.data?.upcomingAppointments ?? 0,
       todayAppointments: Array.isArray(data?.data?.todayAppointmentsList)
         ? data.data.todayAppointmentsList
-        : [],
+        : [], 
     }),
     [data]
   );
@@ -162,7 +162,7 @@ const DoctorDashboard = () => {
         value: stats.pendingPrescriptions,
         icon: <Clock size={32} />,
         color: "orange",
-        link: "/doctor/prescriptions?status=pending",
+        link: "/doctor/medical-records",
       },
       {
         title: "Yêu cầu bệnh án mới",
@@ -246,7 +246,7 @@ const DoctorDashboard = () => {
                 title="Duyệt đơn thuốc"
                 description="Kiểm tra và xác nhận đơn thuốc chờ"
                 icon={<CheckCircle size={24} />}
-                link="/doctor/prescriptions"
+                link="/doctor/medical-records"
                 color="green"
               />
               <QuickActionCard
@@ -286,11 +286,8 @@ const DoctorDashboard = () => {
                     appt?.full_name ||
                     appt?.patient?.full_name ||
                     `Bệnh nhân #${idx + 1}`;
-                  const time =
-                    appt?.time ||
-                    appt?.start_time ||
-                    appt?.slot_start_time ||
-                    appt?.slot?.start_time;
+                  const timeStart = appt?.slot?.start_time;
+                  const timeEnd = appt?.slot?.end_time;
 
                   return (
                     <div
@@ -299,7 +296,7 @@ const DoctorDashboard = () => {
                     >
                       <p className="font-semibold text-gray-800">{name}</p>
                       <p className="text-sm text-gray-500 flex items-center">
-                        <Clock size={14} className="mr-1" /> {formatTime(time)}
+                        <Clock size={14} className="mr-1" /> {formatTime(timeStart)} - {formatTime(timeEnd)}
                       </p>
                     </div>
                   );
