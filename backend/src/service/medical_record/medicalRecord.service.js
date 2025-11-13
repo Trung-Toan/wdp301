@@ -627,7 +627,7 @@ exports.getListMedicalRecordsVerify = async (req) => {
   }
 };
 
-exports.getMedicalRecordById = async (recordId, doctorId) => {
+exports.getMedicalRecordById = async (recordId) => {
   try {
     const medicalRecord = await MedicalRecord.findById(recordId)
       .populate({
@@ -662,6 +662,8 @@ exports.getMedicalRecordById = async (recordId, doctorId) => {
         email: appointment_id.email,
         dob: appointment_id.dob,
         gender: appointment_id.gender,
+        patient_code: patient_id.patient_code,
+        patient_id: patient_id._id,
       },
     };
     return data;

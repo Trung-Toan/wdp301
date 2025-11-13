@@ -10,10 +10,20 @@ const License = require("../../model/clinic/License");
 const Appointment = require("../../model/appointment/Appointment");
 const Feedback = require("../../model/patient/Feedback");
 const Blacklist = require("../../model/system/Blacklist");
+const accountAssistantService = require("../account/account.assistant.service");
+const accountDoctorService = require("../account/account.doctor.service");
 
 const SALT_ROUNDS = 12;
 
 const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
+const DISALLOWED = [
+  "_id",
+  "user_id",
+  "account_id",
+  "createdAt",
+  "updatedAt",
+  "__v",
+];
 
 const startOfUTCDay = (d) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -201,7 +211,83 @@ const toObjectId = (v) => {
   }
 };
 
-(exports.updateDoctorClinic = async (doctor, clinic_id) => {
+/**
+ * chỉ giữ các key có trong schema & không bị cấm, và value !== undefined
+ * @param {mongoose.Model} Model Model need to update
+ * @param {Object} payload data need to update
+ * @param {Object} disallowed attribute disallowed update
+ * @returns
+ */
+
+const buildSafeUpdate = (Model, payload, disallowed = []) => {
+  const schemaPaths = Model.schema?.paths
+    ? Object.keys(Model.schema.paths)
+    : [];
+  const set = {};
+
+  for (const [key, val] of Object.entries(payload || {})) {
+    if (val === undefined) continue;
+    if (disallowed.includes(key)) continue;
+    if (!schemaPaths.includes(key)) continue;
+    set[key] = val;
+  }
+  return set;
+};
+
+/**
+ * update assistant info (partial update)
+ *
+ * - Chỉ update các field có trong payload & hợp lệ theo schema
+ * - Cho phép "xóa" field nếu giá trị client gửi là null (dùng $unset)
+ *
+ * @param {object} assistant - document trợ lý đã truy vấn trước đó (hoặc chứa _id)
+ * @param {object} payload   - dữ liệu cập nhật (partial)
+ * @returns {object} { ok, data? , message? }
+ */
+exports.updateAssistant = async (assistant, payload) => {
+  try {
+    // Làm sạch mảng type nếu có (loại trùng, bỏ falsy)
+    if (Array.isArray(payload?.type)) {
+      payload.type = [...new Set(payload.type)].filter(Boolean);
+    }
+    // Xây $set: chỉ gồm field hợp lệ, bỏ undefined/field cấm
+    const $setRaw = buildSafeUpdate(Assistant, payload, DISALLOWED);
+    // Tách các giá trị null thành $unset (để xóa key đó)
+    const $set = {};
+    const $unset = {};
+    for (const [k, v] of Object.entries($setRaw)) {
+      if (v === null) $unset[k] = "";
+      else $set[k] = v;
+    }
+    // Không có gì để cập nhật -> trả về bản hiện tại
+    if (Object.keys($set).length === 0 && Object.keys($unset).length === 0) {
+      // có thể populate trước khi trả nếu cần
+      const doc = await Assistant.findById(assistant._id).populate(
+        "doctor_id clinic_id user_id"
+      );
+      return { ok: true, data: doc };
+    }
+    // Thực hiện update
+    const updated = await Assistant.findByIdAndUpdate(
+      assistant._id,
+      {
+        ...(Object.keys($set).length ? { $set } : {}),
+        ...(Object.keys($unset).length ? { $unset } : {}),
+      },
+      { new: true, runValidators: true }
+    ).populate("doctor_id clinic_id user_id");
+
+    if (!updated) {
+      return { ok: false, message: "Không tìm thấy trợ lý" };
+    }
+    return updated;
+  } catch (err) {
+    console.log("Error at updateAssistant: ", err);
+    throw err;
+  }
+};
+
+exports.updateDoctorClinic = async (doctor, clinic_id) => {
   try {
     doctor.clinic_id = toObjectId(clinic_id);
     const saved = await doctor.save();
@@ -210,220 +296,217 @@ const toObjectId = (v) => {
     console.log("Error updateDoctorClinic:", error);
     throw error;
   }
-}),
-  (exports.updateDoctorSpecialties = async (doctor, specialty_ids) => {
-    try {
-      doctor.specialty_id = specialty_ids
-        .map((id) => toObjectId(id))
-        .filter(Boolean);
-      const saved = await doctor.save();
-      return saved;
-    } catch (error) {
-      console.log("Error updateDoctorSpecialties:", error);
-      throw error;
-    }
-  }),
-  /**
-   * getAllBlackList(adminAccountId, { q, page, limit, clinic_id })
-   * - Trả về các account nằm trong "blacklists" (toàn hệ thống),
-   *   nhưng chỉ hiển thị những tài khoản PATIENT có liên hệ tới các phòng khám thuộc admin:
-   *   + Có Patient (map qua User.account_id)
-   *   + Và (nếu truyền clinic_id hợp lệ thuộc admin) có Lịch khám tại clinic đó
-   *   + Nếu KHÔNG truyền clinic_id: chỉ cần kiểm tra có từng đặt lịch ở BẤT KỲ clinic thuộc admin
-   *
-   * Trả về:
-   * {
-   *   items: [{
-   *     id, reason, evidence, createdAt,
-   *     account: {_id, username, email, phone_number, role, status},
-   *     user: {_id, full_name, gender, dob, avatar_url},
-   *     patient_id,
-   *     totalAppointmentsAtMyClinics,
-   *     lastAppointmentAt
-   *   }],
-   *   page, limit, total
-   * }
-   */
-  (exports.getAllBlackList = async (
-    adminAccountId,
-    { q = "", page = 1, limit = 20, clinic_id = null } = {}
-  ) => {
-    // 1) Xác định phạm vi clinic thuộc admin
-    const adminClinic = await exports.findAdminClinicByAccountId(
-      adminAccountId
-    );
-    const clinics = await Clinic.find({ created_by: adminClinic._id })
-      .select("_id name")
-      .lean();
-    if (!clinics.length) {
+};
+exports.updateDoctorSpecialties = async (doctor, specialty_ids) => {
+  try {
+    doctor.specialty_id = specialty_ids
+      .map((id) => toObjectId(id))
+      .filter(Boolean);
+    const saved = await doctor.save();
+    return saved;
+  } catch (error) {
+    console.log("Error updateDoctorSpecialties:", error);
+    throw error;
+  }
+};
+/**
+ * getAllBlackList(adminAccountId, { q, page, limit, clinic_id })
+ * - Trả về các account nằm trong "blacklists" (toàn hệ thống),
+ *   nhưng chỉ hiển thị những tài khoản PATIENT có liên hệ tới các phòng khám thuộc admin:
+ *   + Có Patient (map qua User.account_id)
+ *   + Và (nếu truyền clinic_id hợp lệ thuộc admin) có Lịch khám tại clinic đó
+ *   + Nếu KHÔNG truyền clinic_id: chỉ cần kiểm tra có từng đặt lịch ở BẤT KỲ clinic thuộc admin
+ *
+ * Trả về:
+ * {
+ *   items: [{
+ *     id, reason, evidence, createdAt,
+ *     account: {_id, username, email, phone_number, role, status},
+ *     user: {_id, full_name, gender, dob, avatar_url},
+ *     patient_id,
+ *     totalAppointmentsAtMyClinics,
+ *     lastAppointmentAt
+ *   }],
+ *   page, limit, total
+ * }
+ */
+exports.getAllBlackList = async (
+  adminAccountId,
+  { q = "", page = 1, limit = 20, clinic_id = null } = {}
+) => {
+  // 1) Xác định phạm vi clinic thuộc admin
+  const adminClinic = await exports.findAdminClinicByAccountId(adminAccountId);
+  const clinics = await Clinic.find({ created_by: adminClinic._id })
+    .select("_id name")
+    .lean();
+  if (!clinics.length) {
+    return { items: [], page, limit, total: 0 };
+  }
+  const clinicIds = clinics.map((c) => c._id);
+
+  // 2) Nếu có clinic_id -> validate thuộc quyền
+  let scopedClinicIds = clinicIds;
+  if (clinic_id) {
+    const cid = toObjectId(clinic_id);
+    const ok = cid && clinicIds.some((id) => id.toString() === cid.toString());
+    if (!ok) {
+      // Không thuộc quyền -> trả rỗng
       return { items: [], page, limit, total: 0 };
     }
-    const clinicIds = clinics.map((c) => c._id);
+    scopedClinicIds = [cid];
+  }
 
-    // 2) Nếu có clinic_id -> validate thuộc quyền
-    let scopedClinicIds = clinicIds;
-    if (clinic_id) {
-      const cid = toObjectId(clinic_id);
-      const ok =
-        cid && clinicIds.some((id) => id.toString() === cid.toString());
-      if (!ok) {
-        // Không thuộc quyền -> trả rỗng
-        return { items: [], page, limit, total: 0 };
-      }
-      scopedClinicIds = [cid];
-    }
+  // 3) Pipeline: Blacklist -> Account -> User -> Patient
+  //    + Filter q (reason, email, phone, username, full_name)
+  //    + Lookup appointments để thống kê trong phạm vi clinics của admin
+  const kw = String(q || "").trim();
+  const skip = (page - 1) * limit;
 
-    // 3) Pipeline: Blacklist -> Account -> User -> Patient
-    //    + Filter q (reason, email, phone, username, full_name)
-    //    + Lookup appointments để thống kê trong phạm vi clinics của admin
-    const kw = String(q || "").trim();
-    const skip = (page - 1) * limit;
-
-    const pipeline = [
-      // Join sang Account để lấy role/status/username/email/phone
-      {
-        $lookup: {
-          from: "accounts",
-          localField: "account_id",
-          foreignField: "_id",
-          as: "acc",
-        },
+  const pipeline = [
+    // Join sang Account để lấy role/status/username/email/phone
+    {
+      $lookup: {
+        from: "accounts",
+        localField: "account_id",
+        foreignField: "_id",
+        as: "acc",
       },
-      { $unwind: { path: "$acc", preserveNullAndEmptyArrays: false } },
+    },
+    { $unwind: { path: "$acc", preserveNullAndEmptyArrays: false } },
 
-      // Chỉ quan tâm patient
-      { $match: { "acc.role": "PATIENT" } },
+    // Chỉ quan tâm patient
+    { $match: { "acc.role": "PATIENT" } },
 
-      // Join sang User để lấy profile
-      {
-        $lookup: {
-          from: "users",
-          localField: "acc._id",
-          foreignField: "account_id",
-          as: "user",
-        },
+    // Join sang User để lấy profile
+    {
+      $lookup: {
+        from: "users",
+        localField: "acc._id",
+        foreignField: "account_id",
+        as: "user",
       },
-      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+    },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
 
-      // Join sang Patient để lấy patient_id
-      {
-        $lookup: {
-          from: "patients",
-          localField: "user._id",
-          foreignField: "user_id",
-          as: "patient",
-        },
+    // Join sang Patient để lấy patient_id
+    {
+      $lookup: {
+        from: "patients",
+        localField: "user._id",
+        foreignField: "user_id",
+        as: "patient",
       },
-      { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
-    ];
+    },
+    { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+  ];
 
-    // Tìm kiếm q
-    if (kw) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { reason: { $regex: kw, $options: "i" } },
-            { "acc.username": { $regex: kw, $options: "i" } },
-            { "acc.email": { $regex: kw, $options: "i" } },
-            { "acc.phone_number": { $regex: kw, $options: "i" } },
-            { "user.full_name": { $regex: kw, $options: "i" } },
-          ],
-        },
-      });
-    }
-
-    // Thống kê appointments trong phạm vi clinic thuộc admin
-    pipeline.push(
-      {
-        $lookup: {
-          from: "appointments",
-          let: { patId: "$patient._id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$patient_id", "$$patId"] },
-                    { $in: ["$clinic_id", scopedClinicIds] },
-                  ],
-                },
-              },
-            },
-            { $sort: { createdAt: -1 } },
-            { $project: { clinic_id: 1, createdAt: 1 } },
-          ],
-          as: "apts_mine",
-        },
-      },
-      // Nếu đã truyền clinic_id: chỉ giữ lại những blacklists có Lịch khám ở đúng clinic đó
-      ...(clinic_id ? [{ $match: { "apts_mine.0": { $exists: true } } }] : []),
-
-      // Gộp thống kê
-      {
-        $addFields: {
-          totalAppointmentsAtMyClinics: { $size: "$apts_mine" },
-          lastAppointmentAt: {
-            $ifNull: [{ $first: "$apts_mine.createdAt" }, null],
-          },
-        },
-      }
-    );
-
-    // Chỉ hiển thị những entry có Patient & có lịch khám tại clinics của mình (hợp lý cho phạm vi admin)
+  // Tìm kiếm q
+  if (kw) {
     pipeline.push({
       $match: {
-        patient: { $ne: null },
-        totalAppointmentsAtMyClinics: { $gt: 0 },
+        $or: [
+          { reason: { $regex: kw, $options: "i" } },
+          { "acc.username": { $regex: kw, $options: "i" } },
+          { "acc.email": { $regex: kw, $options: "i" } },
+          { "acc.phone_number": { $regex: kw, $options: "i" } },
+          { "user.full_name": { $regex: kw, $options: "i" } },
+        ],
       },
     });
+  }
 
-    // Phân trang
-    pipeline.push({
-      $facet: {
-        items: [
-          { $sort: { createdAt: -1 } },
-          { $skip: skip },
-          { $limit: limit },
+  // Thống kê appointments trong phạm vi clinic thuộc admin
+  pipeline.push(
+    {
+      $lookup: {
+        from: "appointments",
+        let: { patId: "$patient._id" },
+        pipeline: [
           {
-            $project: {
-              id: "$_id",
-              reason: 1,
-              evidence: 1,
-              createdAt: 1,
-
-              account: {
-                _id: "$acc._id",
-                username: "$acc.username",
-                email: "$acc.email",
-                phone_number: "$acc.phone_number",
-                role: "$acc.role",
-                status: "$acc.status",
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$patient_id", "$$patId"] },
+                  { $in: ["$clinic_id", scopedClinicIds] },
+                ],
               },
-              user: {
-                _id: "$user._id",
-                full_name: "$user.full_name",
-                gender: "$user.gender",
-                dob: "$user.dob",
-                avatar_url: "$user.avatar_url",
-              },
-              patient_id: "$patient._id",
-
-              totalAppointmentsAtMyClinics: 1,
-              lastAppointmentAt: 1,
             },
           },
+          { $sort: { createdAt: -1 } },
+          { $project: { clinic_id: 1, createdAt: 1 } },
         ],
-        total: [{ $count: "count" }],
+        as: "apts_mine",
       },
-    });
+    },
+    // Nếu đã truyền clinic_id: chỉ giữ lại những blacklists có Lịch khám ở đúng clinic đó
+    ...(clinic_id ? [{ $match: { "apts_mine.0": { $exists: true } } }] : []),
 
-    const agg = await Blacklist.aggregate(pipeline);
-    const facet = agg?.[0] || {};
-    const items = facet.items || [];
-    const total = facet.total?.[0]?.count || 0;
+    // Gộp thống kê
+    {
+      $addFields: {
+        totalAppointmentsAtMyClinics: { $size: "$apts_mine" },
+        lastAppointmentAt: {
+          $ifNull: [{ $first: "$apts_mine.createdAt" }, null],
+        },
+      },
+    }
+  );
 
-    return { items, page, limit, total };
+  // Chỉ hiển thị những entry có Patient & có lịch khám tại clinics của mình (hợp lý cho phạm vi admin)
+  pipeline.push({
+    $match: {
+      patient: { $ne: null },
+      totalAppointmentsAtMyClinics: { $gt: 0 },
+    },
   });
+
+  // Phân trang
+  pipeline.push({
+    $facet: {
+      items: [
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            id: "$_id",
+            reason: 1,
+            evidence: 1,
+            createdAt: 1,
+
+            account: {
+              _id: "$acc._id",
+              username: "$acc.username",
+              email: "$acc.email",
+              phone_number: "$acc.phone_number",
+              role: "$acc.role",
+              status: "$acc.status",
+            },
+            user: {
+              _id: "$user._id",
+              full_name: "$user.full_name",
+              gender: "$user.gender",
+              dob: "$user.dob",
+              avatar_url: "$user.avatar_url",
+            },
+            patient_id: "$patient._id",
+
+            totalAppointmentsAtMyClinics: 1,
+            lastAppointmentAt: 1,
+          },
+        },
+      ],
+      total: [{ $count: "count" }],
+    },
+  });
+
+  const agg = await Blacklist.aggregate(pipeline);
+  const facet = agg?.[0] || {};
+  const items = facet.items || [];
+  const total = facet.total?.[0]?.count || 0;
+
+  return { items, page, limit, total };
+};
 
 const parseDateStart = (s) => {
   if (!s) return null;
@@ -968,7 +1051,7 @@ exports.getAssistantsByClinic = async (clinicId) => {
       select: "full_name avatar_url account_id",
       populate: {
         path: "account_id",
-        select: "username email phone_number status",
+        select: "-password -email_verified -createdAt -updatedAt -__v",
       },
     })
     .populate({
@@ -1016,7 +1099,7 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
         path: "user_id",
         populate: {
           path: "account_id",
-          select: "username phone_number status",
+          select: "-email_verified -__v -role",
         },
       })
       .populate({
@@ -1039,12 +1122,18 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
 
 // Xoá trợ lý
 exports.deleteAssistant = async (assistantId) => {
-  const assistant = await Assistant.findById(assistantId);
-  if (!assistant) throw new Error("Assistant not found");
-
-  await Assistant.findByIdAndDelete(assistantId);
-  // (tuỳ nghiệp vụ) có thể xoá kèm User/Account trong một transaction
-  return true;
+  try {
+    const assistant = await accountAssistantService.deleteAssistantById(
+      assistantId
+    );
+    if (!assistant) {
+      throw new Error("Không tìm thấy trợ lý");
+    }
+    return assistant;
+  } catch (error) {
+    console.error("Lỗi khi xóa trợ lý:", error);
+    throw error;
+  }
 };
 
 /* ======================================
@@ -1052,75 +1141,16 @@ exports.deleteAssistant = async (assistantId) => {
  * ====================================== */
 
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
-exports.deleteDoctor = async (doctorId, adminAccountId) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
+exports.deleteDoctor = async (doctorId) => {
   try {
-    // Kiểm tra bác sĩ có tồn tại không
-    const doctor = await Doctor.findById(doctorId).session(session);
-    if (!doctor) {
-      throw new Error("Bác sĩ không tồn tại");
+    const deleted = await accountDoctorService.deleteDoctorById(doctorId);
+    if (!deleted) {
+      throw new Error("Không tìm thấy bác sĩ");
     }
-
-    // Kiểm tra bác sĩ có thuộc về admin clinic này không
-    const user = await User.findOne({ account_id: adminAccountId }).session(
-      session
-    );
-    if (!user) {
-      throw new Error("Không tìm thấy user của admin clinic");
-    }
-
-    const adminClinic = await AdminClinic.findOne({
-      user_id: user._id,
-    }).session(session);
-    if (!adminClinic) {
-      throw new Error("Không tìm thấy admin clinic");
-    }
-
-    // Lấy danh sách clinics của admin
-    const clinics = await Clinic.find({ created_by: adminClinic._id }).session(
-      session
-    );
-    const clinicIds = clinics.map((c) => c._id.toString());
-
-    // Kiểm tra bác sĩ có thuộc clinic của admin không
-    if (!clinicIds.includes(doctor.clinic_id.toString())) {
-      throw new Error("Bác sĩ không thuộc quyền quản lý của bạn");
-    }
-
-    // Lấy user_id và account_id từ doctor
-    const doctorUser = await User.findById(doctor.user_id).session(session);
-    if (!doctorUser) {
-      throw new Error("Không tìm thấy user của bác sĩ");
-    }
-
-    const accountId = doctorUser.account_id;
-
-    // Xóa Doctor
-    await Doctor.findByIdAndDelete(doctorId).session(session);
-
-    // Xóa User
-    await User.findByIdAndDelete(doctor.user_id).session(session);
-
-    // Xóa Account
-    await Account.findByIdAndDelete(accountId).session(session);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return {
-      ok: true,
-      message: "Xóa bác sĩ thành công",
-    };
+    return deleted;
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error("Lỗi khi xóa bác sĩ:", error);
-    return {
-      ok: false,
-      message: error.message || "Không thể xóa bác sĩ",
-    };
+    throw error;
   }
 };
 

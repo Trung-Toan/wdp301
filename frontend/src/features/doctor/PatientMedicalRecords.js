@@ -1,695 +1,489 @@
-import { memo, useState, useEffect } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
+  UserPlus,
+  Send,
   FileText,
   Calendar,
-  Pill, // Đã được import từ lucide-react, phù hợp
-  Activity,
-  Lock,
-  Unlock,
-  Search,
-  Filter,
   CheckCircle,
-  Clock,
-  Eye,
   XCircle,
-  X,
-  AlertCircle,
-  User, // Icon cho trạng thái lỗi
+  Clock,
+  FolderOpen,
+  Search,
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import { doctorApi } from "../../api/doctor/doctorApi";
+import { useDataByUrl } from "../../utility/data.utils";
 import { toast } from "react-toastify";
-import { Spinner } from "react-bootstrap"; // Dùng spinner từ React Bootstrap
+import { Spinner } from "react-bootstrap";
 
-const PatientMedicalRecords = () => {
-  const [records, setRecords] = useState([]);
-  const [filteredRecords, setFilteredRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [loadingRecord, setLoadingRecord] = useState(false);
-  const location = useLocation();
+// Helper: lấy ID hồ sơ an toàn từ nhiều kiểu dữ liệu
+const getRecordId = (rec) => rec?._id ?? rec?.id ?? rec?.record_id ?? null;
+
+const MedicalRecordRequests = () => {
+  const [patientCode, setPatientCode] = useState("");
+  const [foundPatient, setFoundPatient] = useState(null);
+  const [patientRecords, setPatientRecords] = useState([]);
+  const [message, setMessage] = useState(null);
+
+  // Multi-select state
+  const [selectedRecordIds, setSelectedRecordIds] = useState([]);
+
+  const [reason, setReason] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Phân trang lịch sử
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  // --- Lấy lịch sử yêu cầu ---
+  const {
+    data: historyData,
+    isLoading: isHistoryLoading,
+    error: historyError,
+    refetch: refetchHistory,
+  } = useDataByUrl({
+    url: doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD,
+    key: ["medical-record-request-history", page],
+    params: { page, limit },
+  });
+
+  const accessRequests = historyData?.data?.history_request || [];
+  const pagination = historyData?.pagination || {
+    page: 1,
+    totalPages: 1,
+    totalItems: 0,
+  };
+  const totalPages = pagination.totalPages;
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const patient_code = params.get("patient-code");
-
-    if (patient_code) {
-      setSearchTerm(patient_code);
+    if (historyError) {
+      toast.error("Lỗi khi tải lịch sử yêu cầu truy cập.");
     }
-    fetchData();
-  }, [location.search]);
+  }, [historyError]);
 
-  useEffect(() => {
-    filterRecords();
-    // eslint-disable-next-line
-  }, [records, searchTerm, statusFilter]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await doctorApi.getAllMedicalRecords();
-
-      if (res.data?.ok && Array.isArray(res.data.data)) {
-        setRecords(res.data.data);
-      } else {
-        setRecords([]);
-        toast.error("Không thể tải danh sách hồ sơ.");
-      }
-    } catch (error) {
-      console.error("Error fetching records:", error);
-      toast.error("Lỗi kết nối khi tải hồ sơ.");
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterRecords = () => {
-    let filtered = [...records];
-
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (record) =>
-          record.patient_code?.toLowerCase().includes(lowerSearch) ||
-          record.patient_name?.toLowerCase().includes(lowerSearch) ||
-          record.diagnosis?.toLowerCase().includes(lowerSearch)
-      );
-    }
-
-    if (statusFilter !== "ALL") {
-      filtered = filtered.filter((record) => record.status === statusFilter);
-    }
-
-    // Sắp xếp ngược theo thời gian tạo (mới nhất lên đầu)
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    setFilteredRecords(filtered);
-  };
-
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("vi-VN", {
+  // Định dạng ngày
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-      timeZone: "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      PUBLIC: {
-        text: "Công khai",
-        class: "bg-green-100 text-green-800 border-green-300",
-        icon: Unlock,
-      },
-      PRIVATE: {
-        text: "Riêng tư",
-        class: "bg-red-100 text-red-800 border-red-300",
-        icon: Lock,
-      },
-    };
-    return (
-      badges[status] || {
-        text: "N/A",
-        class: "bg-gray-100 text-gray-800 border-gray-300",
-        icon: Lock,
-      }
-    );
-  };
+  // --- Tìm bệnh nhân ---
+  const handleFindPatient = async (e) => {
+    e.preventDefault();
 
-  const getPrescriptionStatus = (status) => {
-    switch (status) {
-      case "VERIFIED":
-        return {
-          class: "bg-green-100 text-green-700 border-green-300",
-          text: "Đã xác nhận",
-          icon: <CheckCircle size={14} />,
-        };
-      case "PENDING":
-        return {
-          class: "bg-yellow-100 text-yellow-700 border-yellow-300",
-          text: "Chờ xác nhận",
-          icon: <Clock size={14} />,
-        };
-      case "REJECTED":
-        return {
-          class: "bg-red-100 text-red-700 border-red-300",
-          text: "Bị từ chối",
-          icon: <XCircle size={14} />,
-        };
-      default:
-        return null;
+    if (!patientCode.trim()) {
+      setMessage({ type: "error", text: "Vui lòng nhập mã bệnh nhân." });
+      return;
+    }
+
+    setIsSearching(true);
+    setFoundPatient(null);
+    setPatientRecords([]);
+    setMessage(null);
+    setSelectedRecordIds([]); // reset lựa chọn
+
+    try {
+      const res = await doctorApi.searchMedicalRecords(patientCode.trim());
+      const records = res.data?.data || [];
+
+      if (records.length === 0) {
+        setMessage({
+          type: "error",
+          text: `Không tìm thấy hồ sơ bệnh án nào cho mã BN: ${patientCode}.`,
+        });
+        return;
+      }
+
+      const patientInfo = {
+        _id: records[0].patient_id,
+        name: records[0].patient_name,
+        code: records[0].patient_code,
+      };
+
+      setFoundPatient(patientInfo);
+      setPatientRecords(records);
+      setMessage({
+        type: "success",
+        text: `Đã tìm thấy ${records.length} hồ sơ bệnh án của bệnh nhân ${patientInfo.name}.`,
+      });
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: "error", text: "Lỗi khi tìm hồ sơ bệnh án." });
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const handleViewRecord = async (record) => {
-    try {
-      setLoadingRecord(true);
-      setSelectedRecord(null); // Reset trước khi mở modal
-      setShowModal(true);
+  // Tự động loại bỏ ID không còn tồn tại khi danh sách thay đổi
+  useEffect(() => {
+    const validIds = new Set(patientRecords.map(getRecordId).filter(Boolean));
+    setSelectedRecordIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [patientRecords]);
 
-      const res = await doctorApi.getMedicalRecordById(
-        record.medical_record_id
+  // --- Multi-select logic ---
+  const toggleRecord = (recordId) => {
+    if (!recordId) return;
+    setSelectedRecordIds((prev) =>
+      prev.includes(recordId)
+        ? prev.filter((id) => id !== recordId)
+        : [...prev, recordId]
+    );
+  };
+
+  const visibleRecordIds = useMemo(
+    () => patientRecords.map(getRecordId).filter(Boolean),
+    [patientRecords]
+  );
+
+  const isAllSelected =
+    visibleRecordIds.length > 0 &&
+    visibleRecordIds.every((id) => selectedRecordIds.includes(id));
+
+  const toggleSelectAll = () => {
+    if (visibleRecordIds.length === 0) return;
+    setSelectedRecordIds((prev) => {
+      const allCurrentlySelected = visibleRecordIds.every((id) =>
+        prev.includes(id)
+      );
+      if (allCurrentlySelected) {
+        return prev.filter((id) => !visibleRecordIds.includes(id));
+      } else {
+        return Array.from(new Set([...prev, ...visibleRecordIds]));
+      }
+    });
+  };
+
+  const clearSelection = () => setSelectedRecordIds([]);
+
+  // --- Gửi yêu cầu ---
+  const handleSendRequest = async () => {
+    if (!foundPatient || selectedRecordIds.length === 0 || !reason.trim()) {
+      toast.error("Vui lòng chọn hồ sơ và nhập lý do.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const tasks = selectedRecordIds.map((recordId) =>
+        doctorApi.requestMedicalRecordAccess(foundPatient._id, recordId, reason)
       );
 
-      if (res.data?.ok) {
-        setSelectedRecord(res?.data?.data);
-      } else {
-        toast.error(
-          res.data?.error || "Không lấy được chi tiết hồ sơ bệnh án!"
-        );
+      const results = await Promise.allSettled(tasks);
+      const successCount = results.filter((r) => r.status === "fulfilled").length;
+      const failCount = results.length - successCount;
+
+      if (successCount > 0) {
+        toast.success(`Gửi thành công ${successCount} yêu cầu truy cập.`);
+      }
+      if (failCount > 0) {
+        toast.error(`Có ${failCount} yêu cầu gửi thất bại.`);
+      }
+
+      await refetchHistory();
+      if (page !== 1) setPage(1);
+
+      if (failCount === 0) {
+        clearSelection();
+        setReason("");
+        setPatientRecords([]);
+        setFoundPatient(null);
+        setPatientCode("");
+        setMessage({ type: "success", text: "Gửi yêu cầu thành công!" });
       }
     } catch (error) {
-      console.error("Lỗi khi gọi API chi tiết hồ sơ:", error);
-      toast.error("Lỗi khi tải chi tiết hồ sơ bệnh án!");
+      console.error(error);
+      toast.error("Có lỗi xảy ra khi gửi yêu cầu.");
     } finally {
-      setLoadingRecord(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedRecord(null);
-  };
-
-  // Cập nhật: Dùng refetchList và đóng modal
-  const handleVerifyPrescription = async (recordId) => {
-    if (!recordId) return;
-
-    try {
-      const res = await doctorApi.verifyMedicalRecord(recordId, "VERIFIED");
-
-      if (res.data?.ok) {
-        toast.success("Phê duyệt đơn thuốc thành công!");
-        // Cập nhật trạng thái ngay lập tức trong Modal
-        setSelectedRecord((prev) => ({
-          ...prev,
-          medical_record: {
-            ...prev.medical_record,
-            prescription: {
-              ...prev.medical_record.prescription,
-              status: "VERIFIED",
-              verified_at: new Date().toISOString(),
-            },
-          },
-        }));
-
-        fetchData(); // Fetch lại danh sách để cập nhật bảng
-      } else {
-        toast.error("Phê duyệt đơn thuốc thất bại!");
-      }
-    } catch (error) {
-      console.error("Lỗi phê duyệt:", error);
-      toast.error("Lỗi phê duyệt đơn thuốc!");
+  // Badge trạng thái
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return (
+          <span className="flex items-center gap-1.5 text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+            <CheckCircle size={14} /> Đã duyệt
+          </span>
+        );
+      case "PENDING":
+        return (
+          <span className="flex items-center gap-1.5 text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">
+            <Clock size={14} /> Chờ duyệt
+          </span>
+        );
+      case "REJECTED":
+        return (
+          <span className="flex items-center gap-1.5 text-red-700 bg-red-100 px-3 py-1 rounded-full text-xs font-bold border border-red-200">
+            <XCircle size={14} /> Từ chối
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1.5 text-gray-600 bg-gray-100 px-3 py-1 rounded-full text-xs font-bold border border-gray-200">
+            <Clock size={14} /> Khác
+          </span>
+        );
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-4 text-lg text-gray-600">Đang tải dữ liệu...</p>
-      </div>
-    );
-  }
 
   return (
-    <div className="bg-gray-50 min-h-screen p-4 md:p-6 lg:p-10">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="pb-4 border-b border-gray-200 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <FileText className="w-8 h-8 text-blue-600" /> Hồ sơ bệnh án
-          </h1>
-          <p className="text-base text-gray-600 mt-1">
-            Xem chi tiết hồ sơ bệnh án và lịch sử khám bệnh của bệnh nhân.
-          </p>
-        </div>
+    <div className="flex flex-col md:flex-row gap-8 p-6 lg:p-10 bg-gray-50 min-h-screen">
+      {/* Cột trái: Tìm kiếm & Gửi yêu cầu */}
+      <div className="w-full md:w-1/3 bg-white rounded-xl shadow-lg p-6 space-y-6 border border-gray-100 flex-shrink-0">
+        <h2 className="text-2xl font-bold flex items-center gap-3 text-blue-700 border-b pb-3">
+          <UserPlus size={24} /> Yêu cầu Truy cập Hồ sơ
+        </h2>
 
-        {/* Bộ lọc và tìm kiếm */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-white p-5 rounded-xl shadow-md border border-gray-100">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo mã bệnh nhân, tên, chẩn đoán..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150"
-            />
+        {message && (
+          <div
+            className={`p-3 rounded-lg text-sm font-medium ${
+              message.type === "success"
+                ? "bg-green-100 text-green-700 border border-green-300"
+                : "bg-red-100 text-red-700 border border-red-300"
+            }`}
+          >
+            {message.text}
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Filter className="w-5 h-5 text-gray-500" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg shadow-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white transition duration-150"
-            >
-              <option value="ALL">Tất cả</option>
-              <option value="PUBLIC">Công khai</option>
-              <option value="PRIVATE">Riêng tư</option>
-            </select>
-          </div>
-        </div>
+        )}
 
-        {/* Bảng hồ sơ */}
-        <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-xl font-bold text-gray-800">
-              Danh sách ({filteredRecords.length})
-            </h2>
-          </div>
-
-          {filteredRecords.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 text-gray-500">
-              <FileText className="w-16 h-16 mb-4 text-gray-400" />
-              <p className="text-lg font-medium">Không tìm thấy bản ghi nào</p>
+        {/* Form tìm kiếm */}
+        <form onSubmit={handleFindPatient} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              Mã bệnh nhân
+            </label>
+            <div className="relative">
+              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={patientCode}
+                onChange={(e) => setPatientCode(e.target.value)}
+                placeholder="Nhập mã bệnh nhân..."
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition"
+                disabled={isSearching || isSubmitting}
+              />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] divide-y divide-gray-200">
-                <thead className="bg-white">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Ngày khám
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Bệnh nhân
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Chẩn đoán
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Trạng thái
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Đơn thuốc
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filteredRecords.map((record) => {
-                    const statusBadge = getStatusBadge(record.status);
-                    const prescriptionStatus = getPrescriptionStatus(
-                      record.prescription_status
-                    );
-                    const StatusIcon = statusBadge.icon;
+          </div>
 
-                    return (
-                      <tr
-                        key={record._id}
-                        className="hover:bg-blue-50 transition-colors"
+          <button
+            type="submit"
+            disabled={isSearching || isSubmitting}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md disabled:bg-gray-400"
+          >
+            {isSearching ? <Spinner animation="border" size="sm" /> : <FolderOpen size={18} />}
+            {isSearching ? "Đang tìm..." : "Tìm hồ sơ"}
+          </button>
+        </form>
+
+        {/* Kết quả tìm kiếm + multi-select */}
+        {foundPatient && (
+          <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="font-bold text-gray-800 text-lg">
+                <span className="text-blue-600">{foundPatient.name}</span> ({foundPatient.code})
+              </h3>
+              {selectedRecordIds.length > 0 && (
+                <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full border border-green-200">
+                  Đã chọn {selectedRecordIds.length}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-gray-700 text-base">
+                Chọn hồ sơ cần yêu cầu ({patientRecords.length})
+              </h4>
+              {patientRecords.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    {isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                  </button>
+                  {selectedRecordIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                    >
+                      Xóa lựa chọn
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {patientRecords.length === 0 ? (
+              <p className="text-gray-500 text-sm italic p-3 bg-gray-50 rounded-lg">
+                Không có hồ sơ nào.
+              </p>
+            ) : (
+              <ul className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                {patientRecords.map((rec, idx) => {
+                  const id = getRecordId(rec);
+                  const isSelected = !!id && selectedRecordIds.includes(id);
+                  const displayDate = formatDate(rec.createdAt).split(",")[0];
+
+                  return (
+                    <div
+                      key={id || idx}
+                      onClick={() => id && toggleRecord(id)}
+                      className={`flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 shadow-sm select-none ${
+                        isSelected
+                          ? "border-green-500 bg-green-50 ring-2 ring-green-300"
+                          : "border-gray-200 hover:bg-gray-50"
+                      } ${!id ? "opacity-60 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="flex flex-col flex-grow truncate">
+                        <p className="text-sm font-bold text-gray-800 truncate">
+                          {rec.diagnosis || "Chưa có chẩn đoán"}
+                        </p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                          <Calendar size={12} /> Ngày khám: {displayDate}
+                        </p>
+                      </div>
+
+                      <span
+                        aria-hidden="true"
+                        className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md border-2 transition-colors ${
+                          isSelected
+                            ? "border-green-600 bg-green-600"
+                            : "border-gray-400 bg-white"
+                        }`}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <Calendar className="w-4 h-4 text-blue-500" />
-                            <span>{formatDate(record.createdAt)}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900">
-                              {record.patient_name || "N/A"}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              #{record.patient_code || ""}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-800 max-w-xs truncate font-medium">
-                            {record.diagnosis}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${statusBadge.class}`}
-                          >
-                            <StatusIcon className="w-3 h-3" />
-                            {statusBadge.text}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {prescriptionStatus ? (
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${prescriptionStatus.class}`}
-                            >
-                              {prescriptionStatus.icon}
-                              {prescriptionStatus.text}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-400 italic">
-                              Không có
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <button
-                            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition duration-150 shadow-md shadow-blue-500/30"
-                            onClick={() => handleViewRecord(record)}
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Chi tiết
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        {isSelected && <span className="w-2.5 h-2.5 bg-white rounded-sm"></span>}
+                      </span>
+                    </div>
+                  );
+                })}
+              </ul>
+            )}
+
+            {/* Lý do + Gửi */}
+            {selectedRecordIds.length > 0 && (
+              <>
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Lý do xem hồ sơ <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Nhập lý do chi tiết..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm resize-none"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <button
+                  onClick={handleSendRequest}
+                  disabled={isSubmitting || !reason.trim()}
+                  className="mt-3 w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all shadow-md disabled:bg-gray-400"
+                >
+                  {isSubmitting ? <Spinner animation="border" size="sm" /> : <Send size={18} />}
+                  {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu truy cập"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Modal chi tiết */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300"
-          onClick={handleCloseModal}
-        >
-          {/* Nội dung Modal */}
-          {loadingRecord ? (
-            // Trạng thái loading
-            <div className="flex flex-col items-center justify-center h-64 bg-gray-900/90 p-8 rounded-xl shadow-2xl">
-              <Spinner animation="border" variant="white" />
-              <p className="mt-4 text-lg text-white font-medium">
-                Đang tải chi tiết hồ sơ...
-              </p>
-            </div>
-          ) : selectedRecord ? (
-            // Hiển thị chi tiết
-            <div
-              className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-transform duration-300 transform scale-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header Modal */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-lg">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">
-                      Hồ sơ bệnh án
-                    </h2>
-                    <p className="text-blue-100 text-sm mt-1">
-                      {selectedRecord?.medical_record?.diagnosis}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  className="text-white/80 hover:bg-white/20 p-2 rounded-full transition-colors duration-200"
-                  onClick={handleCloseModal}
+      {/* Cột phải: Lịch sử yêu cầu */}
+      <div className="w-full md:w-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col border border-gray-100">
+        <h2 className="text-2xl font-bold flex items-center gap-3 mb-6 text-blue-700 border-b pb-3">
+          <FileText size={24} /> Lịch sử Yêu cầu Truy cập
+        </h2>
+
+        {isHistoryLoading ? (
+          <div className="flex flex-col items-center justify-center p-10 flex-grow">
+            <Spinner animation="border" variant="primary" />
+            <p className="mt-3 text-gray-600">Đang tải lịch sử...</p>
+          </div>
+        ) : accessRequests.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-10 flex-grow text-gray-500">
+            <FileText size={48} className="mb-3 text-gray-400" />
+            <p className="font-medium text-lg">Chưa có yêu cầu nào được gửi.</p>
+            <p className="text-sm">Hãy tìm kiếm bệnh nhân và gửi yêu cầu xem hồ sơ.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col flex-grow justify-between">
+            <div className="space-y-4">
+              {accessRequests.map((req, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 border border-gray-200 rounded-xl flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition shadow-sm"
                 >
-                  <X className="w-7 h-7" />
-                </button>
-              </div>
-
-              {/* Body Modal (Cuộn được) */}
-              <div className="overflow-y-auto flex-1 p-6 md:p-8 bg-gray-50">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Cột chính (2/3): Chẩn đoán, Triệu chứng, Đơn thuốc */}
-                  <div className="lg:col-span-2 space-y-6">
-                    {/* Thẻ chẩn đoán */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-green-100 p-2.5 rounded-lg">
-                          <Activity className="w-5 h-5 text-green-600" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800">
-                          Chẩn đoán & Ghi chú
-                        </h3>
-                      </div>
-                      <p className="text-base text-gray-700 leading-relaxed bg-green-50 p-4 rounded-lg border-l-4 border-green-500 mb-4 font-semibold">
-                        {selectedRecord?.medical_record?.diagnosis}
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-800">
+                      Hồ sơ:{" "}
+                      <span className="text-blue-700">
+                        {req?.medical_record?.diagnosis || "Không có chẩn đoán"}
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Bệnh nhân:{" "}
+                      <strong>
+                        {req?.patient?.patient_name || req?.patient?.patient_code || "N/A"}
+                      </strong>
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                      <Calendar size={14} /> Ngày gửi: {formatDate(req.requested_at)}
+                    </p>
+                    {req.status === "APPROVED" && (
+                      <p className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                        <CheckCircle size={12} /> Được duyệt lúc: {formatDate(req.approved_at)}
                       </p>
-                      {selectedRecord?.medical_record?.notes && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-2">
-                            Ghi chú của bác sĩ:
-                          </p>
-                          <p className="text-base text-gray-700 leading-relaxed bg-gray-100 p-4 rounded-lg">
-                            {selectedRecord?.medical_record?.notes}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Thẻ triệu chứng */}
-                    {selectedRecord?.medical_record?.symptoms?.length > 0 && (
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="bg-orange-100 p-2.5 rounded-lg">
-                            <FileText className="w-5 h-5 text-orange-600" />
-                          </div>
-                          <h3 className="text-lg font-bold text-gray-800">
-                            Triệu chứng
-                          </h3>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedRecord?.medical_record?.symptoms.map(
-                            (symptom, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-200 shadow-sm"
-                              >
-                                {symptom}
-                              </span>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Thẻ đơn thuốc */}
-                    {selectedRecord?.medical_record?.prescription && (
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-purple-100 p-2.5 rounded-lg">
-                              <Pill className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-800">
-                              Đơn thuốc
-                            </h3>
-                          </div>
-                          {getPrescriptionStatus(
-                            selectedRecord?.medical_record?.prescription.status
-                          ) && (
-                            <span
-                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm border ${
-                                getPrescriptionStatus(
-                                  selectedRecord?.medical_record?.prescription
-                                    .status
-                                ).class
-                              }`}
-                            >
-                              {
-                                getPrescriptionStatus(
-                                  selectedRecord?.medical_record?.prescription
-                                    .status
-                                ).icon
-                              }
-                              {
-                                getPrescriptionStatus(
-                                  selectedRecord?.medical_record?.prescription
-                                    .status
-                                ).text
-                              }
-                            </span>
-                          )}
-                        </div>
-
-                        {selectedRecord?.medical_record?.prescription.medicines
-                          ?.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedRecord?.medical_record?.prescription.medicines.map(
-                              (medicine, idx) => (
-                                <div
-                                  key={idx}
-                                  className="bg-purple-50 rounded-lg p-4 border border-purple-200"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <div className="text-purple-600 font-bold text-lg flex-shrink-0">
-                                      {idx + 1}.
-                                    </div>
-                                    <div className="flex-1">
-                                      <h4 className="text-base font-bold text-gray-900 mb-2">
-                                        {medicine.name}
-                                      </h4>
-                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm text-gray-700">
-                                        <p>
-                                          <span className="font-semibold text-purple-700">
-                                            Liều:
-                                          </span>{" "}
-                                          {medicine.dosage}
-                                        </p>
-                                        <p>
-                                          <span className="font-semibold text-purple-700">
-                                            Tần suất:
-                                          </span>{" "}
-                                          {medicine.frequency}
-                                        </p>
-                                        <p>
-                                          <span className="font-semibold text-purple-700">
-                                            TG:
-                                          </span>{" "}
-                                          {medicine.duration}
-                                        </p>
-                                      </div>
-                                      {medicine.note && (
-                                        <div className="mt-2 text-xs text-blue-700 italic border-t border-purple-200 pt-2">
-                                          Lưu ý: {medicine.note}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-gray-500 italic">
-                            Không có thuốc trong đơn.
-                          </p>
-                        )}
-
-                        {selectedRecord?.medical_record?.prescription
-                          .instruction && (
-                          <div className="mt-5 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                            <p className="text-sm font-bold text-blue-900 mb-1">
-                              Hướng dẫn sử dụng chung:
-                            </p>
-                            <p className="text-sm text-blue-800">
-                              {
-                                selectedRecord?.medical_record?.prescription
-                                  .instruction
-                              }
-                            </p>
-                          </div>
-                        )}
-
-                        {selectedRecord?.medical_record?.prescription.status ===
-                          "PENDING" && (
-                          <div className="mt-6 flex justify-end gap-3 border-t pt-4">
-                            <button
-                              onClick={() =>
-                                handleVerifyPrescription(
-                                  selectedRecord?.medical_record?._id
-                                )
-                              }
-                              className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-md shadow-green-500/30"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Phê duyệt đơn thuốc
-                            </button>
-
-                            {/* Nút Yêu cầu làm lại (chưa có logic API) */}
-                            <button className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-md shadow-red-500/30">
-                              <XCircle className="w-4 h-4" />
-                              Yêu cầu làm lại
-                            </button>
-                          </div>
-                        )}
-                        
-                        {selectedRecord?.medical_record?.prescription.status ===
-                          "VERIFIED" && selectedRecord?.medical_record?.prescription.verified_at && (
-                            <p className="mt-4 text-xs text-gray-500 text-right italic">
-                                Đã phê duyệt lúc: {new Date(selectedRecord.medical_record.prescription.verified_at).toLocaleString('vi-VN')}
-                            </p>
-                        )}
-                      </div>
                     )}
                   </div>
+                  {getStatusBadge(req.status)}
+                </div>
+              ))}
+            </div>
 
-                  {/* Cột phụ (1/3): Thông tin bệnh nhân */}
-                  <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 sticky top-0">
-                      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
-                        <div className="bg-blue-100 p-2.5 rounded-lg">
-                          <User className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-800">
-                          Thông tin cá nhân
-                        </h3>
-                      </div>
-                      <div className="space-y-4">
-                        <InfoRow
-                          label="Họ và tên"
-                          value={selectedRecord?.patient?.full_name}
-                        />
-                        <InfoRow
-                          label="Mã BN"
-                          value={selectedRecord?.patient?.patient_code}
-                          color="text-blue-600"
-                        />
-                        <InfoRow
-                          label="Email"
-                          value={selectedRecord.patient?.user?.email}
-                        />
-                        <InfoRow
-                          label="SĐT"
-                          value={selectedRecord.patient?.user?.phone}
-                        />
-                        <InfoRow
-                          label="Nhóm máu"
-                          value={selectedRecord.patient?.blood_type}
-                          color="text-red-600"
-                        />
-                      </div>
-                    </div>
-                  </div>
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-8 pt-4 border-t border-gray-200">
+                <span className="text-sm text-gray-600">
+                  Tổng số {pagination.totalItems} yêu cầu
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1 || isHistoryLoading}
+                    className="p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition"
+                  >
+                    Trang trước
+                  </button>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {page} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages || isHistoryLoading}
+                    className="p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition"
+                  >
+                    Trang sau
+                  </button>
                 </div>
               </div>
-            </div>
-          ) : (
-            // Xử lý lỗi (nếu selectedRecord là null sau khi loading xong)
-            <div
-              className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 text-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Không thể tải hồ sơ
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Đã xảy ra lỗi khi tải chi tiết bệnh án. Vui lòng kiểm tra lại
-                quyền truy cập hoặc kết nối mạng.
-              </p>
-              <button
-                onClick={handleCloseModal}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Đã hiểu
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-// Helper component cho modal
-const InfoRow = ({ label, value, color = "text-gray-900" }) => (
-  <div className="flex flex-col border-b border-gray-100 pb-2">
-    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-      {label}
-    </span>
-    <span className={`text-base font-semibold ${color}`}>
-      {value || "N/A"}
-    </span>
-  </div>
-);
-
-export default memo(PatientMedicalRecords);
+export default memo(MedicalRecordRequests);
