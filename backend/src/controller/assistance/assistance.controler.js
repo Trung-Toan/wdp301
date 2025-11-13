@@ -152,9 +152,6 @@ exports.verifyAppointment = async (req, res) => {
         .populate("specialty_id", "name") // Lấy tên chuyên khoa
         .lean();
 
-        console.log("BAT DAU TAO NOTIFY");
-        
-
       if (populatedApp) {
         // Gọi service thông báo với dữ liệu đầy đủ và trạng thái mới
         await notificationService.createAppointmentStatusUpdateNotification(
@@ -182,11 +179,8 @@ exports.verifyAppointment = async (req, res) => {
 // PUT /update/appointments/:appointmentId
 // Đã được refactor dựa trên updateMedicalRecord
 exports.updateAppointment = async (req, res) => {
-  console.log("CALL API");
-  
   const { appointmentId } = req.params;
   const updateData = req.body;
-  console.log("Received update data for appointment:", appointmentId);
   if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
     return resUtils.badRequestResponse(res, "ID lịch khám không hợp lệ.");
   }

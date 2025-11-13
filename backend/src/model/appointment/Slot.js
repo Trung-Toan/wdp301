@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const slotSchema = new Schema({
-  doctor_id: { type: Schema.Types.ObjectId, ref: "Doctor", required: true, index: true },
+  doctor_id: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
   clinic_id: { type: Schema.Types.ObjectId, ref: "Clinic" },
   start_time: { type: Date, required: true },
   end_time: { type: Date, required: true },

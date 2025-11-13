@@ -219,27 +219,42 @@ const SlotSchedule = () => {
       return;
     }
 
-    // 2. Check trùng lặp với các ca đã thêm
-    const isOverlapping = batchSlots.some(
+    // 2. Check trùng lặp với các ca đã thêm (trong list mẫu)
+    const isOverlappingTemplate = batchSlots.some(
       (slot) => finalTempStart < slot.endTime && finalTempEnd > slot.startTime
     );
-    if (isOverlapping) {
+    if (isOverlappingTemplate) {
       setTemplateError("Khung giờ mẫu bị trùng lặp với danh sách.");
       return;
     }
 
-    // 3. ⭐️ CHECK QUÁ KHỨ CỦA HÔM NAY (Theo yêu cầu) ⭐️
-    // Chỉ check nếu ngày bắt đầu là hôm nay
-    if (batchStartDate === todayString) {
+    // 3. Check quá khứ của HÔM NAY
+    const isStartDateToday = batchStartDate === todayString;
+    if (isStartDateToday) {
       const now = new Date();
-      // Lấy giờ:phút hiện tại (định dạng 24h)
       const currentHour = now.getHours().toString().padStart(2, "0");
       const currentMinute = now.getMinutes().toString().padStart(2, "0");
       const currentTime = `${currentHour}:${currentMinute}`;
 
-      // So sánh
       if (finalTempStart < currentTime) {
         setTemplateError("Không thể thêm ca trong quá khứ của ngày hôm nay.");
+        return;
+      }
+    }
+
+    // 4. ⭐️ SỬA LỖI "MÙ": Check trùng lặp với các slot ĐÃ TỒN TẠI
+    // (Chỉ check nếu ngày bắt đầu = ngày đang xem)
+    const isStartDateSelectedDate = batchStartDate === selectedDate;
+    if (isStartDateSelectedDate) {
+      const isOverlappingExisting = Slots.some(existing => {
+        const existingStart = formatISOTime(existing.start_time);
+        const existingEnd = formatISOTime(existing.end_time);
+        // Check overlap
+        return finalTempStart < existingEnd && finalTempEnd > existingStart;
+      });
+
+      if (isOverlappingExisting) {
+        setTemplateError("Trùng với ca đã có trong ngày đang xem.");
         return;
       }
     }
@@ -253,8 +268,10 @@ const SlotSchedule = () => {
     tempEndMinute,
     batchSlots,
     isBatchModalOpen,
-    batchStartDate, // <-- Thêm vào
-    todayString,    // <-- Thêm vào
+    batchStartDate,
+    todayString,
+    selectedDate, // <-- Thêm vào dependency
+    Slots,        // <-- Thêm vào dependency
   ]);
   // ==========================================================
 
@@ -267,8 +284,7 @@ const SlotSchedule = () => {
 
     const startDate = new Date(batchStartDate + 'T00:00:00');
     const endDate = new Date(batchEndDate + 'T00:00:00');
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0); // Lấy 0h00 của ngày hôm nay
+    const todayDate = new Date(todayString + 'T00:00:00'); // Dùng todayString
 
     // Rule 1: Ngày bắt đầu không thể trong quá khứ
     if (startDate < todayDate) {
@@ -284,7 +300,7 @@ const SlotSchedule = () => {
 
     // All good
     setBatchError("");
-  }, [batchStartDate, batchEndDate, isBatchModalOpen]);
+  }, [batchStartDate, batchEndDate, isBatchModalOpen, todayString]); // Thêm todayString
   // =================================================================
 
   // === (Hàm openAddModal và openEditModal giữ nguyên) ===
@@ -449,10 +465,22 @@ const SlotSchedule = () => {
     let currentDate = new Date(batchStartDate + "T00:00:00");
     const finalDate = new Date(batchEndDate + "T00:00:00");
 
+    let skippedConflictCount = 0; // Đếm số ca bị trùng
+
     while (currentDate <= finalDate) {
       const dayOfWeek = currentDate.getDay();
 
+      // ⭐️ KIỂM TRA MỚI: Chỉ check API nếu ngày này được chọn
+      let existingSlotsForDay = [];
       if (batchWeekdays[dayOfWeek]) {
+        // Tải các slot đã có của ngày này để kiểm tra
+        // (Đây là giải pháp tối ưu, nhưng nếu API ko hỗ trợ,
+        // chúng ta đành chịu lỗi "failed" từ API)
+
+        // GIẢ ĐỊNH: Chúng ta chỉ có thể check với `Slots` (ngày đang xem)
+        const isCurrentDaySelected = currentDate.toISOString().split("T")[0] === selectedDate;
+        existingSlotsForDay = isCurrentDaySelected ? Slots : [];
+
         for (const slot of batchSlots) {
           const [startH, startM] = slot.startTime.split(":");
           const [endH, endM] = slot.endTime.split(":");
@@ -472,6 +500,24 @@ const SlotSchedule = () => {
           if (startDateTime < now) {
             continue;
           }
+
+          // ⭐️ CHECK TRÙNG LẶP (cho ngày đang xem)
+          const finalTempStart = `${startH}:${startM}`;
+          const finalTempEnd = `${endH}:${endM}`;
+          let conflict = false;
+          if (isCurrentDaySelected) {
+            conflict = existingSlotsForDay.some(existing => {
+              const existingStart = formatISOTime(existing.start_time);
+              const existingEnd = formatISOTime(existing.end_time);
+              return finalTempStart < existingEnd && finalTempEnd > existingStart;
+            });
+          }
+
+          if (conflict) {
+            skippedConflictCount++;
+            continue; // Bỏ qua ca này
+          }
+          // ⭐️ HẾT CHECK TRÙNG LẶP
 
           const endDateTime = new Date(
             Date.UTC(
@@ -502,7 +548,7 @@ const SlotSchedule = () => {
 
     if (payloads.length === 0) {
       setBatchError(
-        "Không có ca hợp lệ nào được tạo (kiểm tra lại ngày hoặc các ca đã chọn có thể đã ở trong quá khứ)."
+        "Không có ca hợp lệ nào được tạo (kiểm tra lại ngày hoặc các ca đã chọn có thể đã ở trong quá khứ/bị trùng)."
       );
       setBatchLoading(false);
       return;
@@ -518,26 +564,34 @@ const SlotSchedule = () => {
       const successCount = results.filter(
         (r) => r.status === "fulfilled"
       ).length;
+      // Lỗi từ API (ví dụ: trùng lặp ở ngày *không* được chọn xem)
       const failedCount = results.filter(
         (r) => r.status === "rejected"
       ).length;
 
       toast.dismiss();
+
+      let successMsg = "";
       if (successCount > 0) {
-        toast.success(`Tạo thành công ${successCount} ca.`);
+        successMsg = `Tạo thành công ${successCount} ca.`;
       }
+
+      let errorMsg = "";
       if (failedCount > 0) {
-        toast.error(`Tạo thất bại ${failedCount} ca (có thể do trùng lịch).`);
-        console.error(
-          "Lỗi tạo hàng loạt:",
-          results.filter((r) => r.status === "rejected")
-        );
+        errorMsg = `Tạo thất bại ${failedCount} ca (lỗi API/trùng lặp).`;
       }
+      // Thêm thông báo về các ca bị bỏ qua (do logic mới)
+      if (skippedConflictCount > 0) {
+        errorMsg += ` Đã bỏ qua ${skippedConflictCount} ca (do trùng với lịch ngày đang xem).`
+      }
+
+      if (successMsg) toast.success(successMsg);
+      if (errorMsg) toast.error(errorMsg, { duration: 5000 }); // Cho toast lỗi hiển thị lâu hơn
 
       setBatchLoading(false);
       setIsBatchModalOpen(false);
       setBatchSlots([]);
-      fetchSlots();
+      fetchSlots(); // Tải lại ngày hiện tại
     } catch (error) {
       toast.dismiss();
       console.error("Lỗi khi tạo lịch hàng loạt:", error);
@@ -957,7 +1011,7 @@ const SlotSchedule = () => {
           </Dialog>
         </Transition>
 
-        {/* === ⭐️ MODAL HÀNG LOẠT (Đã cập nhật Verify Giờ + Ngày) === */}
+        {/* === ⭐️ MODAL HÀNG LOẠT (Đã cập nhật Verify Giờ + Ngày + Trùng lặp) === */}
         <Transition appear show={isBatchModalOpen} as={Fragment}>
           <Dialog
             as="div"
@@ -1173,8 +1227,8 @@ const SlotSchedule = () => {
                                   key={day.id}
                                   onClick={() => handleToggleWeekday(day.id)}
                                   className={`px-4 py-2 text-sm rounded-md border font-medium transition-all ${batchWeekdays[day.id]
-                                    ? "bg-blue-600 text-white border-blue-600"
-                                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                                      ? "bg-blue-600 text-white border-blue-600"
+                                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
                                     }`}
                                 >
                                   {day.label}

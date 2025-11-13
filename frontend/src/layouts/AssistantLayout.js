@@ -75,12 +75,29 @@ const DoctorLayout = () => {
   };
 
   // Hợp nhất menu từ nhiều roles → loại trùng theo link
-  const menuItems = roles
+  const mergedMenu = roles
     .flatMap((r) => MENUS_BY_ROLE[r] || [])
     .reduce((acc, item) => {
       if (!acc.some((x) => x.link === item.link)) acc.push(item);
       return acc;
     }, []);
+
+  const hasReceptionist = roles.includes("RECEPTIONIST");
+  const hasNurse = roles.includes("NURSE");
+
+  // Xử lý đặc biệt cho role đôi RECEPTIONIST + NURSE
+  let menuItems = [...mergedMenu];
+  if (hasReceptionist && hasNurse) {
+    menuItems = menuItems.map((item) => {
+      if (item.link === "/assistant/appointments") {
+        return {
+          ...item,
+          title: "Duyệt lịch khám và Tạo hồ sơ bệnh án",
+        };
+      }
+      return item;
+    });
+  }
 
   // Nếu không có role khớp, fallback an toàn (tránh rỗng)
   const effectiveMenu = menuItems.length
@@ -91,22 +108,19 @@ const DoctorLayout = () => {
 
   const handleLogout = async () => {
     try {
-      // Gọi API logout với refreshToken
-      const refreshToken = sessionStorage.getItem("refreshToken") || localStorage.getItem("refreshToken");
+      const refreshToken =
+        sessionStorage.getItem("refreshToken") ||
+        localStorage.getItem("refreshToken");
       if (refreshToken) {
         await logoutApi.logout(refreshToken);
       }
     } catch (error) {
       console.error("Đăng xuất thất bại:", error);
-      // Vẫn tiếp tục logout local nếu API thất bại
     } finally {
-      // Gọi logout từ useAuth để clear auth context
       logout();
-      // Clear localStorage nếu có
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("refreshToken");
-      // Navigate về trang login
       navigate("/login");
     }
   };
@@ -178,7 +192,7 @@ const DoctorLayout = () => {
             </button>
 
             <div
-              className={`user-profile`}
+              className="user-profile"
               onClick={() => navigate("/assistant/profile")}
               style={{ cursor: "pointer" }}
             >
@@ -231,7 +245,7 @@ const DoctorLayout = () => {
         </footer>
       </div>
 
-      {/* Inline style cho badge vai trò (hoặc thêm vào CSS của bạn) */}
+      {/* Inline style cho badge vai trò */}
       <style>{`
         .inline-badges { display: inline-flex; gap: 6px; flex-wrap: wrap; }
         .role-badge {

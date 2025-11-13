@@ -11,6 +11,7 @@ export const doctorApi = {
   GET_ALL_MEDICAL_RECORDS: "/doctor/medical-records",
   GET_MEDICAL_RECORD_BY_ID: (id) => `/doctor/medical-records/${id}`,
   CHANGE_PASSWORD: "/doctor/change-password",
+  GET_PROFILE: "/doctor/profile",
 
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
   getDoctorTop: (limit) => axiosInstance.get("/doctor/top", { params: { limit } }),
@@ -85,7 +86,7 @@ export const doctorApi = {
   getDoctorById: (id, params = {}) => axiosInstance.get(`/doctor/${id}`, { params }),
 
   //lấy profile bác sĩ
-  getProfile: () => axiosInstance.get("/doctor/profile"),
+  getProfile: () => axiosInstance.get(doctorApi.GET_PROFILE),
 
   //cap nhat profile bác sĩ
   updateProfile: (data) => axiosInstance.put("/doctor/profile", data),
