@@ -60,6 +60,21 @@ const MedicalRecordRequests = () => {
     }
   }, [historyError]);
 
+  // Map: medical_record_id -> status (chỉ lưu PENDING / APPROVED)
+  const recordStatusMap = accessRequests.reduce((acc, req) => {
+    const status = req.status;
+    const recordId =
+      req.medical_record_id ||
+      req.medical_record?.medical_record_id ||
+      req.medical_record?._id ||
+      req.medical_record?.id;
+
+    if (recordId && (status === "PENDING" || status === "APPROVED")) {
+      acc[recordId] = status;
+    }
+    return acc;
+  }, {});
+
   // Hàm định dạng ngày
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -139,6 +154,16 @@ const MedicalRecordRequests = () => {
 
   // Toggle chọn / bỏ chọn 1 hồ sơ (checkbox style, ĐA chọn)
   const handleToggleRecord = (index) => {
+    const rec = patientRecords[index];
+    if (!rec) return;
+
+    const recordId = rec.medical_record_id || rec._id || rec.id;
+    const status = recordStatusMap[recordId];
+    const isBlocked = status === "PENDING" || status === "APPROVED";
+
+    // Nếu đã PENDING/APPROVED thì không cho chọn
+    if (isBlocked) return;
+
     setSelectedRecordIndexes((current) =>
       current.includes(index)
         ? current.filter((i) => i !== index)
@@ -163,15 +188,17 @@ const MedicalRecordRequests = () => {
       return;
     }
 
-    // Chuẩn bị list request
+    // Chuẩn bị list request, bỏ qua hồ sơ đã PENDING/APPROVED
     const tasks = selectedRecordIndexes
       .map((idx) => {
         const selectedRecord = patientRecords[idx];
-        console.log("patientRecords1: ", patientRecords[idx]);
         if (!selectedRecord) return null;
 
         const recordId = selectedRecord.medical_record_id;
         if (!recordId) return null;
+
+        const status = recordStatusMap[recordId];
+        if (status === "PENDING" || status === "APPROVED") return null;
 
         return doctorApi.requestMedicalRecordAccess(
           foundPatient._id,
@@ -182,7 +209,9 @@ const MedicalRecordRequests = () => {
       .filter(Boolean);
 
     if (tasks.length === 0) {
-      toast.error("Không tìm thấy ID hồ sơ hợp lệ để gửi yêu cầu.");
+      toast.error(
+        "Các hồ sơ đã chọn đều đã được yêu cầu trước đó (PENDING/APPROVED)."
+      );
       return;
     }
 
@@ -327,24 +356,49 @@ const MedicalRecordRequests = () => {
             ) : (
               <ul className="space-y-3 max-h-64 overflow-y-auto pr-2">
                 {patientRecords.map((rec, idx) => {
-                  const isSelected = selectedRecordIndexes.includes(idx);
+                  const recordId = rec.medical_record_id || rec._id || rec.id;
+                  const recordStatus = recordStatusMap[recordId];
+                  const isBlocked =
+                    recordStatus === "PENDING" ||
+                    recordStatus === "APPROVED";
+                  const isSelected =
+                    !isBlocked && selectedRecordIndexes.includes(idx);
                   const displayDate = formatDate(rec.createdAt).split(",")[0];
+
+                  const baseClasses =
+                    "flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 shadow-sm";
+                  const stateClasses = isBlocked
+                    ? "border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed"
+                    : isSelected
+                    ? "border-green-500 bg-green-50 ring-2 ring-green-300"
+                    : "border-gray-200 hover:bg-gray-50";
 
                   return (
                     <li
-                      key={rec._id || rec.id || idx}
+                      key={recordId || idx}
                       onClick={() => handleToggleRecord(idx)}
-                      className={`flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 shadow-sm ${
-                        isSelected
-                          ? "border-green-500 bg-green-50 ring-2 ring-green-300"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
+                      className={`${baseClasses} ${stateClasses}`}
                     >
                       {/* Thông tin hồ sơ */}
                       <div className="flex flex-col flex-grow truncate">
-                        <p className="text-sm font-bold text-gray-800 truncate">
-                          {rec.diagnosis || "Chưa có chẩn đoán"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-gray-800 truncate">
+                            {rec.diagnosis || "Chưa có chẩn đoán"}
+                          </p>
+                          {isBlocked && (
+                            <span
+                              className={`text-[10px] font-semibold inline-flex items-center px-2 py-0.5 rounded-full border ${
+                                recordStatus === "APPROVED"
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                              }`}
+                            >
+                              {recordStatus === "APPROVED"
+                                ? "Đã được duyệt"
+                                : "Đang chờ duyệt"}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                           <Calendar size={12} /> Ngày khám: {displayDate}
                         </p>
@@ -353,12 +407,14 @@ const MedicalRecordRequests = () => {
                       {/* Checkbox style (multi-select) */}
                       <span
                         className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md border-2 transition-colors ${
-                          isSelected
+                          isBlocked
+                            ? "border-gray-300 bg-gray-100"
+                            : isSelected
                             ? "border-green-600 bg-green-600"
                             : "border-gray-400 bg-white"
                         }`}
                       >
-                        {isSelected && (
+                        {!isBlocked && isSelected && (
                           <span className="w-2.5 h-2.5 bg-white rounded-sm" />
                         )}
                       </span>
