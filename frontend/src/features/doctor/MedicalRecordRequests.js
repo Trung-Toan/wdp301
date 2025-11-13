@@ -167,9 +167,10 @@ const MedicalRecordRequests = () => {
     const tasks = selectedRecordIndexes
       .map((idx) => {
         const selectedRecord = patientRecords[idx];
+        console.log("patientRecords1: ", patientRecords[idx]);
         if (!selectedRecord) return null;
 
-        const recordId = selectedRecord._id || selectedRecord.id;
+        const recordId = selectedRecord.medical_record_id;
         if (!recordId) return null;
 
         return doctorApi.requestMedicalRecordAccess(
@@ -187,8 +188,9 @@ const MedicalRecordRequests = () => {
 
     try {
       const results = await Promise.allSettled(tasks);
-      const successCount = results.filter((r) => r.status === "fulfilled")
-        .length;
+      const successCount = results.filter(
+        (r) => r.status === "fulfilled"
+      ).length;
       const failCount = results.length - successCount;
 
       if (successCount > 0) {
@@ -407,9 +409,7 @@ const MedicalRecordRequests = () => {
         ) : accessRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-10 flex-grow text-gray-500">
             <FileText size={48} className="mb-3 text-gray-400" />
-            <p className="font-medium text-lg">
-              Chưa có yêu cầu nào được gửi.
-            </p>
+            <p className="font-medium text-lg">Chưa có yêu cầu nào được gửi.</p>
             <p className="text-sm">
               Hãy tìm kiếm bệnh nhân và gửi yêu cầu xem hồ sơ.
             </p>
