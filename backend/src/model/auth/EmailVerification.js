@@ -5,7 +5,7 @@ const emailVerificationSchema = new Schema(
   {
     token_hash: { type: String, required: true }, // chỉ lưu hash
     expires_at: { type: Date, required: true, index: true, expires: 0 },
-    used: { type: Boolean, default: false, index: true },
+    used: { type: Boolean, default: false },
     account_id: { type: Schema.Types.ObjectId, ref: "Account", required: true, index: true },
   },
   { timestamps: true, collection: "email_verifications" }

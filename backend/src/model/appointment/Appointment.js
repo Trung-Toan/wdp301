@@ -4,9 +4,9 @@ const { Schema } = mongoose;
 const statusEnum = ["SCHEDULED", "COMPLETED", "APPROVE", "CANCELLED", "NO_SHOW"];
 
 const appointmentSchema = new Schema({
-  slot_id: { type: Schema.Types.ObjectId, ref: "Slot", required: true, index: true },
+  slot_id: { type: Schema.Types.ObjectId, ref: "Slot", required: true },
   doctor_id: { type: Schema.Types.ObjectId, ref: "Doctor", required: true, index: true },
-  patient_id: { type: Schema.Types.ObjectId, ref: "Patient", required: true, index: true },
+  patient_id: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
   specialty_id: { type: Schema.Types.ObjectId, ref: "Specialty", required: true, index: true },
   clinic_id: { type: Schema.Types.ObjectId, ref: "Clinic", index: true },
   //Thêm Enum ai đặtlịchh

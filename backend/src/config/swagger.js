@@ -18,7 +18,6 @@ const options = {
 const swaggerSpec = swaggerJSDoc(options);
 
 if (process.env.NODE_ENV !== 'production') {
-    console.log('Swagger paths:', Object.keys(swaggerSpec.paths || {}));
 }
 
 module.exports = swaggerSpec;

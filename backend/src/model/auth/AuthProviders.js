@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const authProviderSchema = new Schema(
   {
-    provider: { type: String, enum: ["google", "facebook", "apple"], required: true },
+    provider: { type: String, enum: ["google", "facebook", "apple"] },
     provider_user_id: { type: String, required: true },
     email: { type: String, lowercase: true, trim: true },
     access_token_enc: { type: String },
