@@ -9,13 +9,13 @@ const Account = require("../../model/auth/Account");
 const Appointment = require("../../model/appointment/Appointment");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
 
-
-
 // Helpers ngày UTC (khớp kiểu lưu scheduled_date là date-only UTC)
 const startOfUTCDay = (d) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 const addUTCDays = (d, days) =>
-  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
+  new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days)
+  );
 
 /**
  * Dashboard stats cho Doctor
@@ -39,6 +39,17 @@ exports.dashboard = async (doctorId) => {
 
   // Mốc ngày UTC cho hôm nay/hôm qua và 7 ngày tới
   const now = new Date();
+  const nowUTC = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      now.getUTCHours(),
+      now.getUTCMinutes(),
+      now.getUTCSeconds(),
+      now.getUTCMilliseconds()
+    )
+  );
   const todayStart = startOfUTCDay(now);
   const todayEnd = addUTCDays(now, 1);
   const yesterdayStart = addUTCDays(now, -1);
@@ -93,6 +104,42 @@ exports.dashboard = async (doctorId) => {
     status: { $in: ACTIVE_APPT },
   });
 
+  // 7) danh sách lịch hẹn của ngày hôm nay
+
+  const todayAppointmentsList = await Appointment.aggregate([
+    {
+      $match: {
+        doctor_id: doctorObjectId,
+        scheduled_date: { $gte: todayStart, $lt: todayEnd },
+        status: "APPROVE",
+      },
+    },
+    {
+      $lookup: {
+        from: "slots",
+        localField: "slot_id",
+        foreignField: "_id",
+        as: "slot",
+      },
+    },
+    { $unwind: "$slot" },
+    {
+      $addFields: {
+        slotStartDiff: {
+          $abs: {
+            $subtract: ["$slot.start_time", nowUTC],
+          },
+        },
+      },
+    },
+    {
+      $sort: {
+        slotStartDiff: 1,
+        booked_at: 1,
+      },
+    },
+  ]);
+
   const [
     todayPatientsIds,
     todayAppt,
@@ -132,6 +179,7 @@ exports.dashboard = async (doctorId) => {
     appointmentChange,
     pendingPrescriptions: pendingPrescriptions || 0,
     pendingRequests,
+    todayAppointmentsList,
     totalPatients: (totalPatientsDistinct || []).length,
     upcomingAppointments: upcomingAppointments || 0,
   };
@@ -285,10 +333,18 @@ exports.updateProfile = async (accountId, data) => {
   // Thực hiện cập nhật song song (chỉ chạy nếu có trường cần update)
   await Promise.all([
     Object.keys(userUpdate).length
-      ? User.findByIdAndUpdate(doctor.user_id, { $set: userUpdate }, { new: true })
+      ? User.findByIdAndUpdate(
+          doctor.user_id,
+          { $set: userUpdate },
+          { new: true }
+        )
       : Promise.resolve(null),
     Object.keys(accountUpdate).length
-      ? Account.findByIdAndUpdate(accountId, { $set: accountUpdate }, { new: true })
+      ? Account.findByIdAndUpdate(
+          accountId,
+          { $set: accountUpdate },
+          { new: true }
+        )
       : Promise.resolve(null),
   ]);
 
@@ -306,7 +362,8 @@ exports.updateProfile = async (accountId, data) => {
     .populate("specialty_id", "name")
     .lean();
 
-  if (!updatedProfile) throw new Error("Không tìm thấy hồ sơ bác sĩ sau cập nhật");
+  if (!updatedProfile)
+    throw new Error("Không tìm thấy hồ sơ bác sĩ sau cập nhật");
   return updatedProfile;
 };
 
@@ -345,7 +402,8 @@ exports.uploadLicense = async (accountId, payload) => {
   const doctor = await Doctor.findOne({ user_id: user._id });
   if (!doctor) throw new Error("Không tìm thấy hồ sơ bác sĩ");
 
-  const { licenseNumber, issued_by, issued_date, expiry_date, document_url } = payload || {};
+  const { licenseNumber, issued_by, issued_date, expiry_date, document_url } =
+    payload || {};
 
   const license = await License.create({
     licenseNumber,
