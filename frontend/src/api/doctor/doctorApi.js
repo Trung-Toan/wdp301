@@ -66,7 +66,6 @@ export const doctorApi = {
 
   //gửi yêu cầu truy cập hồ sơ
   requestMedicalRecordAccess: (patientId, medicalRecordId, reason) => {
-    console.log("patientId: ",patientId, " medicalRecordId: ", medicalRecordId, "reason: ", reason);
     return axiosInstance.post(`/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,{ reason });
   },
 
