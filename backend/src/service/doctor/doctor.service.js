@@ -2,7 +2,6 @@
 const mongoose = require("mongoose");
 const Doctor = require("../../model/doctor/Doctor");
 const userService = require("../user/user.service");
-const appointmentService = require("../appointment/appointment.service"); // (đang không dùng ở file này, giữ lại nếu dùng nơi khác)
 const patientService = require("../patient/patient.service");
 const License = require("../../model/clinic/License");
 const User = require("../../model/user/User");
@@ -146,6 +145,16 @@ exports.findDoctorByUserId = async (userId) => {
     return doctor;
   } catch (error) {
     console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+    return null;
+  }
+};
+
+exports.findDoctorById = async (doctorId) => {
+  try {
+    const doctor = await Doctor.findById(doctorId);
+    return doctor;
+  } catch (error) {
+    console.error("Lỗi khi tìm bác sĩ bằng doctorId:", error);
     return null;
   }
 };

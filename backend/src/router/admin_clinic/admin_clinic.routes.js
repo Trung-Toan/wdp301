@@ -9,6 +9,31 @@ router.get(
   roleRequired("ADMIN_CLINIC"),
   adminclinicController.dashboard
 );
+router.put(
+  "/doctor/clinic",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateDoctorClinic
+);
+router.put(
+  "/doctor/specialties",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateDoctorSpecialties
+);
+router.put(
+  "/assistant/:id",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.updateAssistant
+);
+
+router.get(
+  "/blacklist",
+  authRequired,
+  roleRequired("ADMIN_CLINIC"),
+  adminclinicController.getAllBlackList
+);
 
 router.get(
   "/feedback",
@@ -66,7 +91,7 @@ router.post(
 );
 
 //xoá trợ lý theo clinic mà admin_clinic đang quản lý
-router.delete(
+router.put(
   "/delete_assistant/:id",
   authRequired,
   roleRequired("ADMIN_CLINIC"),
@@ -74,7 +99,7 @@ router.delete(
 );
 
 //xoá bác sĩ (bao gồm Doctor, User, Account)
-router.delete(
+router.put(
   "/delete_doctor/:id",
   authRequired,
   roleRequired("ADMIN_CLINIC"),

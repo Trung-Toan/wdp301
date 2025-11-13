@@ -83,18 +83,18 @@ export default function AppointmentsContent() {
                 const data =
                     Array.isArray(res.data?.data?.data)
                         ? res.data.data.data.map((apt) => {
-                            // Format time từ UTC sang local time
+                            // Format time từ UTC để hiển thị đúng như trong data
                             let formattedTime = null;
                             let formattedEndTime = null;
                             let formattedDate = null;
 
-                            // Nếu có start_time (ISO string), format thành local time
+                            // Nếu có start_time (ISO string), format thành UTC time để hiển thị đúng như trong data
                             if (apt.start_time) {
-                                formattedTime = formatISOTime(apt.start_time, false); // false = local time
+                                formattedTime = formatISOTime(apt.start_time, true); // true = UTC time
                             } else if (apt.time) {
                                 // Nếu time đã là string, kiểm tra xem có phải ISO không
                                 if (apt.time.includes('T')) {
-                                    formattedTime = formatISOTime(apt.time, false);
+                                    formattedTime = formatISOTime(apt.time, true);
                                 } else {
                                     formattedTime = apt.time;
                                 }
@@ -103,7 +103,7 @@ export default function AppointmentsContent() {
                             // Format end_time
                             if (apt.end_time) {
                                 if (apt.end_time.includes('T')) {
-                                    formattedEndTime = formatISOTime(apt.end_time, false);
+                                    formattedEndTime = formatISOTime(apt.end_time, true);
                                 } else {
                                     formattedEndTime = apt.end_time;
                                 }
@@ -281,18 +281,18 @@ export default function AppointmentsContent() {
 
             const data = Array.isArray(res.data?.data?.data)
                 ? res.data.data.data.map((apt) => {
-                    // Format time từ UTC sang local time
+                    // Format time từ UTC để hiển thị đúng như trong data
                     let formattedTime = null;
                     let formattedEndTime = null;
                     let formattedDate = null;
 
-                    // Nếu có start_time (ISO string), format thành local time
+                    // Nếu có start_time (ISO string), format thành UTC time để hiển thị đúng như trong data
                     if (apt.start_time) {
-                        formattedTime = formatISOTime(apt.start_time, false); // false = local time
+                        formattedTime = formatISOTime(apt.start_time, true); // true = UTC time
                     } else if (apt.time) {
                         // Nếu time đã là string, kiểm tra xem có phải ISO không
                         if (apt.time.includes('T')) {
-                            formattedTime = formatISOTime(apt.time, false);
+                            formattedTime = formatISOTime(apt.time, true);
                         } else {
                             formattedTime = apt.time;
                         }
@@ -301,7 +301,7 @@ export default function AppointmentsContent() {
                     // Format end_time
                     if (apt.end_time) {
                         if (apt.end_time.includes('T')) {
-                            formattedEndTime = formatISOTime(apt.end_time, false);
+                            formattedEndTime = formatISOTime(apt.end_time, true);
                         } else {
                             formattedEndTime = apt.end_time;
                         }

@@ -735,8 +735,8 @@ const AppointmentComponent = () => {
                       setPage(1);
                     }}
                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${selectedSlot === slot._id
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                   >
                     Ca: {formatTime(slot.start_time)} -{" "}

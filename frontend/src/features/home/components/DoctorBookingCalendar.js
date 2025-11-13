@@ -33,9 +33,9 @@ export function DoctorBookingCalendar({ doctor }) {
 
     const slots = doctor.slots || [];
 
-    // Format time với local timezone để hiển thị đúng giờ local (GMT+7)
-    // Dùng useUTC = false để convert UTC từ backend sang local time
-    const formatSlotTime = (isoString) => formatISOTime(isoString, false);
+    // Format time với UTC timezone để hiển thị đúng giờ UTC như trong data
+    // Dùng useUTC = true để hiển thị UTC time từ backend
+    const formatSlotTime = (isoString) => formatISOTime(isoString, true);
 
     // Helper function để lấy date string từ ISO string (YYYY-MM-DD)
     // Có 2 cách:

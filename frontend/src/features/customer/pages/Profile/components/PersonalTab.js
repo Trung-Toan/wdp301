@@ -173,13 +173,32 @@ export default function PersonalTab() {
                 dob: editData.dob,
                 gender: editData.gender,
                 address: editData.address,
-                phone_number: editData.phone_number,
+                phone: editData.phone_number, // Backend expect 'phone' not 'phone_number'
                 province_code: editData.provinceCode,
                 ward_code: editData.wardCode,
             };
             const res = await profilePatientApi.updateInformation(payload);
             if (res.data?.success) {
-                setFormData(editData);
+                // Fetch lại dữ liệu từ API để đảm bảo hiển thị đúng
+                const profileRes = await profilePatientApi.getInformation();
+                if (profileRes.data?.success) {
+                    const data = profileRes.data.data;
+                    const updatedData = {
+                        full_name: data.full_name || "",
+                        dob: data.dob ? data.dob.split("T")[0] : "",
+                        gender: data.gender || "",
+                        address: data.address || "",
+                        email: data.account?.email || "",
+                        phone_number: data.account?.phone_number || "",
+                        provinceCode: data.province_code || "",
+                        wardCode: data.ward_code || "",
+                    };
+                    setFormData(updatedData);
+                    setEditData(updatedData);
+                } else {
+                    // Fallback: dùng editData nếu fetch thất bại
+                    setFormData(editData);
+                }
                 setIsEditing(false);
                 toast.success("Cập nhật thông tin thành công!");
             } else {

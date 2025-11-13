@@ -98,6 +98,11 @@ exports.getDashboard = async (assistantId) => {
   };
 };
 
+exports.findAssistantById = async (assistantId) => {
+  const assistant = await Assistant.findById(assistantId);
+  return assistant || null;
+}
+
 // ---- đã gửi trước: updateUserById (giữ nguyên) ----
 const ALLOWED_USER_FIELDS = [
   "full_name","dob","gender","address","avatar_url",

@@ -3,6 +3,7 @@ import { axiosInstance } from "../axiosInstance";
 export const adminclinicAPI = {
   GET_DASHBOARD: "/admin_clinic/dashboard",
   GET_FEEDBACK: "/admin_clinic/feedback",
+  GET_BLACKLIST: "/admin_clinic/blacklist",
   //lấy danh sách chuyên khoa
   getAllSpecialties: () => {
     return axiosInstance.get("/clinic-registration/specialties");
@@ -11,6 +12,15 @@ export const adminclinicAPI = {
   //gửi yêu cầu đăng ký phòng khám
   createRegistrationRequest: (data) => {
     return axiosInstance.post("/clinic-registration/create", data);
+  },
+
+  updateDoctorClinic: (data) => {
+    console.log("payload: ", data);
+    return axiosInstance.put("/admin_clinic/doctor/clinic", data);
+  },
+  updateDoctorSpecialties: (data) => {
+    console.log("payload: ", data);
+    return axiosInstance.put("/admin_clinic/doctor/specialties", data);
   },
 
   //tạo tài khoản bác sĩ
@@ -45,6 +55,7 @@ export const adminclinicAPI = {
 
   //tạo tài khoản trợ lý cho bác sĩ
   createAccountAssistant: (data) => {    
+    console.log("payload: ", data);
     return axiosInstance.post("/admin_clinic/create_assistant", data);
   },
 
@@ -55,9 +66,14 @@ export const adminclinicAPI = {
 
   //xoá trợ lý theo id
   deleteAssistant: (assistantId) => {
-    return axiosInstance.delete(
+    return axiosInstance.put(
       `/admin_clinic/delete_assistant/${assistantId}`
     );
+  },
+  //cập nhật trợ lý
+  updateAssistant: (payload) => {
+    const { assistant_id, ...rest } = payload;
+    return axiosInstance.put(`/admin_clinic/assistant/${assistant_id}`, rest);
   },
 
   //lấy danh sách giấy phép bác sĩ đang chờ duyệt
@@ -80,6 +96,6 @@ export const adminclinicAPI = {
 
   //xóa tài khoản bác sĩ
   deleteDoctor: (doctorId) => {
-    return axiosInstance.delete(`/admin_clinic/delete_doctor/${doctorId}`);
+    return axiosInstance.put(`/admin_clinic/delete_doctor/${doctorId}`);
   },
 };
