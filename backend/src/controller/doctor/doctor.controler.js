@@ -39,16 +39,9 @@ exports.viewDashboard = async (req, res) => {
 // GET /patients
 exports.viewListPatients = async (req, res) => {
   try {
-    // 1. Lấy dữ liệu từ service, bao gồm cả 'patients' và 'pagination'
-    // Truyền req.query vào để service có thể lấy page và limit (ví dụ: /patients?page=1&limit=10)
-
     const { patients, pagination } = await doctorService.getListPatients(req);
-
-    // 2. Dùng .map() để tạo một mảng mới với định dạng mong muốn
     const formattedPatients =
       patients.map((patient) => formatDataUtils.formatData(patient)) || [];
-
-    // 3. Trả về response thành công với dữ liệu đã được định dạng
     return resUtils.paginatedResponse(
       res,
       formattedPatients,
@@ -56,7 +49,6 @@ exports.viewListPatients = async (req, res) => {
       "Lấy danh sách bệnh nhân thành công."
     );
   } catch (error) {
-    // Xử lý lỗi nếu có
     console.error("Error in viewListPatients:", error);
     return resUtils.errorResponse(res, error.message || "Có lỗi xảy ra", 500);
   }

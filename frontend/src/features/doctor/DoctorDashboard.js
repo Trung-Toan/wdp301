@@ -106,15 +106,19 @@ const QuickActionCard = ({ title, description, icon, link, color }) => {
 // Container: Dashboard
 // =======================
 const DoctorDashboard = () => {
-  // Lấy thông tin user từ sessionStorage (tuỳ app của bạn)
-  const user =
-    JSON.parse(sessionStorage.getItem("user")) || { username: "Bác sĩ" };
-
   // Gọi API một lần qua hook của bạn
   const { data, isLoading, error } = useDataByUrl({
     key: "dashboard",
     url: doctorApi.GET_DASHBOARD,
   });
+
+  const {data: profileData} = useDataByUrl({
+    key: "doctor-profile",
+    url: doctorApi.GET_PROFILE,
+  });
+
+  const profile = useMemo(() => profileData?.data || {}, [profileData]);
+  console.log("data: ", data);
 
   useEffect(() => {
     if (error) toast.error("Không thể tải dữ liệu bảng điều khiển.");
@@ -129,9 +133,9 @@ const DoctorDashboard = () => {
       pendingRequests: data?.data?.pendingRequests ?? 0,
       totalPatients: data?.data?.totalPatients ?? 0,
       upcomingAppointments: data?.data?.upcomingAppointments ?? 0,
-      todayAppointments: Array.isArray(data?.data?.todayAppointments)
-        ? data.data.todayAppointments
-        : [], // nếu backend có trả danh sách hôm nay
+      todayAppointments: Array.isArray(data?.data?.todayAppointmentsList)
+        ? data.data.todayAppointmentsList
+        : [],
     }),
     [data]
   );
@@ -146,7 +150,7 @@ const DoctorDashboard = () => {
         link: "/doctor/appointments?filter=today",
       },
       {
-        title: "Lịch hẹn sắp tới",
+        title: "Lịch hẹn 7 ngày tới",
         value: stats.upcomingAppointments,
         change: stats.appointmentChange,
         icon: <Calendar size={32} />,
@@ -199,10 +203,10 @@ const DoctorDashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-gray-200 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900 mb-1">
-              Chào mừng trở lại, BS. {user.username || "Tên Bác sĩ"} 👋
+              Xin chào bác sĩ { profile?.user_id?.full_name || ""} 👋
             </h1>
             <p className="text-lg text-gray-500">
-              Tổng quan hoạt động vào{" "}
+              Hôm nay: {" "}
               {new Date().toLocaleDateString("vi-VN", {
                 weekday: "long",
                 year: "numeric",

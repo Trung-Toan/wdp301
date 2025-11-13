@@ -1,122 +1,146 @@
-const Patient = require('../../model/patient/Patient');
+const Patient = require("../../model/patient/Patient");
 const userService = require("../user/user.service");
 const appointmentService = require("../appointment/appointment.service");
 
 exports.getPatientById = async (req) => {
-    try {
-        const patientId = req.params.patientId;
+  try {
+    const patientId = req.params.patientId;
 
-        const patients = await Patient.findById(patientId)
-            .select('-__v -createdAt -updatedAt')
-            .populate({
-                path: 'user_id',
-                select: "-__v -createdAt -updatedAt -address ",
-                populate: {
-                    path: 'account_id',
-                    select: '_id email email phone_number'
-                }
-            })
-            .lean();
-        const patient = patients ? {
-            patient_id: patients._id,
-            user_id: patients.user_id._id,
-            patient_code: patients.patient_code,
-            full_name: patients.user_id.full_name,
-            dob: patients.user_id.dob,
-            gender: patients.user_id.gender,
-            avatar_url: patients.user_id.avatar_url,
-            email: patients.user_id.account_id.email,
-            phone_number: patients.user_id.account_id.phone_number,
-            blood_type: patients.blood_type,
-            allergies: patients.allergies,
-            chronic_diseases: patients.chronic_diseases,
-            medications: patients.medications,
-            surgery_history: patients.surgery_history,
-        } : null;
-        return { patient };
-    } catch (error) {
-        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
-        return null;
-    }
+    const patients = await Patient.findById(patientId)
+      .select("-__v -createdAt -updatedAt")
+      .populate({
+        path: "user_id",
+        select: "-__v -createdAt -updatedAt -address ",
+        populate: {
+          path: "account_id",
+          select: "_id email email phone_number",
+        },
+      })
+      .lean();
+    const patient = patients
+      ? {
+          patient_id: patients._id,
+          user_id: patients.user_id._id,
+          patient_code: patients.patient_code,
+          full_name: patients.user_id.full_name,
+          dob: patients.user_id.dob,
+          gender: patients.user_id.gender,
+          avatar_url: patients.user_id.avatar_url,
+          email: patients.user_id.account_id.email,
+          phone_number: patients.user_id.account_id.phone_number,
+          blood_type: patients.blood_type,
+          allergies: patients.allergies,
+          chronic_diseases: patients.chronic_diseases,
+          medications: patients.medications,
+          surgery_history: patients.surgery_history,
+        }
+      : null;
+    return { patient };
+  } catch (error) {
+    console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+    return null;
+  }
 };
 
 /**
  * get patient by code
  */
 exports.getPatientByCode = async (req) => {
-    try {
-        const { patientCode } = req.params;
-        const patient = await Patient.findOne({ patient_code: patientCode }).lean();
-        return { patient };
-    } catch (error) {
-        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
-        return null;
-    }
+  try {
+    const { patientCode } = req.params;
+    const patient = await Patient.findOne({ patient_code: patientCode }).lean();
+    return { patient };
+  } catch (error) {
+    console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+    return null;
+  }
 };
 
 exports.findPatientByUserId = async (userId) => {
-    try {
-        const patient = await Patient.findOne({ user_id: userId }).lean();
-        return patient || null;
-    } catch (error) {
-        console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
-        return null;
-    }
+  try {
+    const patient = await Patient.findOne({ user_id: userId }).lean();
+    return patient || null;
+  } catch (error) {
+    console.error("Lỗi khi tìm bác sĩ bằng user_id:", error);
+    return null;
+  }
 };
 
 exports.findPatientByAccountId = async (accountId) => {
-    try {
-        const user = await userService.findUserByAccountId(accountId);
-        if (!user) {
-            return null;
-        }
-        const patient = await exports.findPatientByUserId(user._id);
-        return patient || null;
-    } catch (error) {
-        console.error("Lỗi khi tìm user bằng accountId:", error);
-        return null;
+  try {
+    const user = await userService.findUserByAccountId(accountId);
+    if (!user) {
+      return null;
     }
-}
+    const patient = await exports.findPatientByUserId(user._id);
+    return patient || null;
+  } catch (error) {
+    console.error("Lỗi khi tìm user bằng accountId:", error);
+    return null;
+  }
+};
 
 /**
  * Update patient location (province_code, ward_code optional) by account id
  */
-exports.updatePatientLocationByAccountId = async (accountId, { province_code, ward_code }) => {
-    const user = await userService.findUserByAccountId(accountId);
-    if (!user) {
-        throw new Error('User not found');
-    }
+exports.updatePatientLocationByAccountId = async (
+  accountId,
+  { province_code, ward_code }
+) => {
+  const user = await userService.findUserByAccountId(accountId);
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-    const updateData = { province_code };
-    if (ward_code !== undefined) {
-        updateData.ward_code = ward_code;
-    }
+  const updateData = { province_code };
+  if (ward_code !== undefined) {
+    updateData.ward_code = ward_code;
+  }
 
-    const patient = await Patient.findOneAndUpdate(
-        { user_id: user._id },
-        { $set: updateData },
-        { new: true }
-    ).lean();
+  const patient = await Patient.findOneAndUpdate(
+    { user_id: user._id },
+    { $set: updateData },
+    { new: true }
+  ).lean();
 
-    if (!patient) {
-        throw new Error('Patient not found');
-    }
-    return patient;
-}
+  if (!patient) {
+    throw new Error("Patient not found");
+  }
+  return patient;
+};
 
 /**
  * Thực hiện phân trang trên một mảng ID.
  */
 const getPaginatedIds = (allIds, { page, limit }) => {
-    const skip = (page - 1) * limit;
-    return allIds.slice(skip, skip + limit);
+  const skip = (page - 1) * limit;
+  return allIds.slice(skip, skip + limit);
 };
 
-exports.getPatientAvailableOfDoctor = async (doctor_id, page = 1, limit = 10, search = "") => {
-    const { patients, pagination } = await appointmentService.getPatientsWithAppointments(doctor_id, "COMPLETED", page, limit, search);
-    return {
-        patients: patients,
-        pagination: pagination
-    };
+/**
+ * get patient available of doctor on appointment
+ * @param {ObjectId} doctor_id id doctor
+ * @param {Number} page current page
+ * @param {Number} limit limit record on a page
+ * @param {String} search Key need to search
+ * @returns list patient on appointment
+ */
+exports.getPatientAvailableOfDoctor = async (
+  doctor_id,
+  page = 1,
+  limit = 10,
+  search = ""
+) => {
+  const { patients, pagination } =
+    await appointmentService.getPatientsWithAppointments(
+      doctor_id,
+      "COMPLETED",
+      page,
+      limit,
+      search
+    );
+  return {
+    patients: patients,
+    pagination: pagination,
+  };
 };
-
