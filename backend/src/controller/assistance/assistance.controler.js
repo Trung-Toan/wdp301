@@ -132,7 +132,11 @@ exports.verifyAppointment = async (req, res) => {
     if (app.status !== "SCHEDULED") return resUtils.badRequestResponse(res, "Bạn chỉ được xác nhận với trạng thái là chờ duyệt");
     if (!status || (status !== "APPROVE" && status !== "CANCELLED"))
       return resUtils.badRequestResponse(res, "Trạng thái không phù hợp");
-
+    if (status === "CANCELLED") {
+      const slot = await slotService.getSlotById(app.slot_id);
+      if (!slot) return resUtils.badRequestResponse(res, "Không tìm thấy slot để hủy lịch khám");
+      slot.current_patients = Math.max(0, slot.current_patients - 1);
+    }
     app.status = status;
     const appUpdated = await appointmentService.updateAppointment(app._id, app);
     if (!appUpdated) return resUtils.badRequestResponse(res, "Cập nhật thất bại.");
