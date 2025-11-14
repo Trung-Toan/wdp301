@@ -12,6 +12,7 @@ import {
   BoxArrowRight,
   Bell,
   PersonCircle,
+  PersonBadge,
 } from "react-bootstrap-icons";
 import { Button, Spinner } from "react-bootstrap";
 import { toast } from "react-toastify";
@@ -125,6 +126,11 @@ const DoctorLayout = () => {
       title: "Feedback",
       icon: <ChatLeftText size={20} />,
       link: "/doctor/feedback",
+    },
+    {
+      title: "Xem trợ lý của tôi",
+      icon: <PersonBadge size={20} />,
+      link: "/doctor/assistants",
     },
   ];
 

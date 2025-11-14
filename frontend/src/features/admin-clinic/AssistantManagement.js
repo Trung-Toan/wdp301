@@ -291,15 +291,6 @@ const AssistantManagement = () => {
       if (typeof adminclinicAPI.updateAssistant === "function") {
         return adminclinicAPI.updateAssistant(payload);
       }
-      if (typeof adminclinicAPI.updateAssistantById === "function") {
-        return adminclinicAPI.updateAssistantById(payload);
-      }
-      if (typeof adminclinicAPI.updateAssistantInfo === "function") {
-        return adminclinicAPI.updateAssistantInfo(payload);
-      }
-      if (typeof adminclinicAPI.updateAssistantAccount === "function") {
-        return adminclinicAPI.updateAssistantAccount(payload);
-      }
       throw new Error("Chưa có API cập nhật trợ lý (updateAssistant).");
     },
     onSuccess: (res) => {
@@ -1227,7 +1218,7 @@ const AssistantManagement = () => {
                     assistant_id: selectedAssistant?.id,
                     clinic_id: detailClinicId,
                     doctor_id: detailDoctorId || undefined,
-                    roles: detailRoles.map(String),
+                    type: detailRoles.map(String),
                     note: detailNote || "",
                   };
                   updateAssistant(payload);
