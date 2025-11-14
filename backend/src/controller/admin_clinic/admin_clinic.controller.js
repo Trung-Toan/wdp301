@@ -84,7 +84,7 @@ exports.updateDoctorSpecialties = async (req, res, next) => {
 exports.updateAssistant = async (req, res) => {
   try {
     const ass_id = req.params.id;
-    const payload = req.body;
+    const payload = req.body;    
 
     // Nếu payload rỗng thì báo lỗi sớm (tránh update rỗng)
     if (!payload || Object.keys(payload).length === 0) {

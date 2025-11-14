@@ -242,6 +242,7 @@ const buildSafeUpdate = (Model, payload, disallowed = []) => {
  * @returns {object} { ok, data? , message? }
  */
 exports.updateAssistant = async (assistant, payload) => {
+    console.log("payload: ", payload);
   try {
     // Làm sạch mảng type nếu có (loại trùng, bỏ falsy)
     if (Array.isArray(payload?.type)) {
