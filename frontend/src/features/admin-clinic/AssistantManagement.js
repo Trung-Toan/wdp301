@@ -1,12 +1,13 @@
 import { memo, useMemo, useState, useEffect } from "react";
 import {
   Plus,
-  Trash2,
   Search,
   CheckCircle,
   XCircle,
   Building2,
   Eye,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
@@ -273,7 +274,7 @@ const AssistantManagement = () => {
   const { mutate: deleteAssistant, isLoading: deletingAssistant } = useMutation({
     mutationFn: (id) => adminclinicAPI.deleteAssistant(id),
     onSuccess: () => {
-      toast.success("Đã xoá trợ lý");
+      toast.success("Đã chuyển trạng thái của trợ lý");
       queryClient.invalidateQueries({ queryKey: ["assistants-of-admin-clinic"] });
     },
     onError: () => toast.error("Không thể xoá trợ lý"),
@@ -310,9 +311,49 @@ const AssistantManagement = () => {
     },
   });
 
-  // ===== Handlers =====
-  const handleDeleteAssistant = (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
+  // ===== Handlers Change Status For Assistant =====
+  const confirmAction = (message) => {
+    return new Promise((resolve) => {
+      toast(
+        ({ closeToast }) => (
+          <div className="flex flex-col gap-2">
+            <span>{message}</span>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  resolve(true);
+                  closeToast();
+                }}
+                className="px-3 py-1 bg-green-500 text-white rounded"
+              >
+                Đồng ý
+              </button>
+
+              <button
+                onClick={() => {
+                  resolve(false);
+                  closeToast();
+                }}
+                className="px-3 py-1 bg-gray-300 rounded"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        ),
+        { autoClose: false }
+      );
+    });
+  };
+
+  const handleChangeStatusAssistant = async (id) => {
+    const confirm = await confirmAction(
+      "Bạn có chắc chắn muốn chuyển trạng thái trợ lý này không?"
+    );
+
+    if (!confirm) return;
+
     deleteAssistant(id);
   };
 
@@ -584,8 +625,8 @@ const AssistantManagement = () => {
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${assistant.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
                         }`}
                     >
                       {assistant.status === "ACTIVE" ? (
@@ -611,12 +652,20 @@ const AssistantManagement = () => {
                         <Eye size={18} />
                       </button>
                       <button
-                        onClick={() => handleDeleteAssistant(assistant.id)}
-                        className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
-                        title="Xóa"
+                        onClick={() => handleChangeStatusAssistant(assistant.id)}
+                        className={`p-1.5 rounded transition-colors disabled:opacity-50
+    ${assistant.status === "ACTIVE"
+                            ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
+                            : "bg-green-100 text-green-600 hover:bg-green-200"
+                          }`}
+                        title={assistant.status === "INACTIVE" ? "Ngừng hoạt động" : "Kích hoạt"}
                         disabled={deletingAssistant}
                       >
-                        <Trash2 size={18} />
+                        {assistant.status === "INACTIVE" ? (
+                          <UserX size={18} />
+                        ) : (
+                          <UserCheck size={18} />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -963,8 +1012,8 @@ const AssistantManagement = () => {
                 <div className="text-sm">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedAssistant.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-600"
                       }`}
                   >
                     {selectedAssistant.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
