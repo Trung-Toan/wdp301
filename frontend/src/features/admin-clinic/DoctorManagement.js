@@ -242,10 +242,10 @@ const DoctorManagement = () => {
       setSelectedDoctor((prev) =>
         prev
           ? {
-              ...prev,
-              specialty: names,
-              doctorData: { ...prev.doctorData, specialty_id: specialtyIds.map(id => ({ _id: id })) },
-            }
+            ...prev,
+            specialty: names,
+            doctorData: { ...prev.doctorData, specialty_id: specialtyIds.map(id => ({ _id: id })) },
+          }
           : prev
       );
 
@@ -355,16 +355,16 @@ const DoctorManagement = () => {
           prev.map((doc) =>
             doc.id === id
               ? {
-                  ...doc,
-                  status: newStatus,
-                  doctorData: {
-                    ...doc.doctorData,
-                    user_id: {
-                      ...doc.doctorData.user_id,
-                      account_id: { ...doc.doctorData.user_id.account_id, status: newStatus },
-                    },
+                ...doc,
+                status: newStatus,
+                doctorData: {
+                  ...doc.doctorData,
+                  user_id: {
+                    ...doc.doctorData.user_id,
+                    account_id: { ...doc.doctorData.user_id.account_id, status: newStatus },
                   },
-                }
+                },
+              }
               : doc
           )
         );
@@ -375,14 +375,14 @@ const DoctorManagement = () => {
 
         toast.success(
           res?.data?.message ||
-            `${newStatus === "INACTIVE" ? "Khóa" : "Mở"} tài khoản thành công!`
+          `${newStatus === "INACTIVE" ? "Khóa" : "Mở"} tài khoản thành công!`
         );
       }
     } catch (err) {
       toast.error(
         err?.response?.data?.message ||
-          err.message ||
-          `Không thể ${status === "ACTIVE" ? "khóa" : "mở"} tài khoản này`
+        err.message ||
+        `Không thể ${status === "ACTIVE" ? "khóa" : "mở"} tài khoản này`
       );
     } finally {
       setIsConfirming(false);
@@ -509,9 +509,8 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
-                      doctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                      }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -536,11 +535,10 @@ const DoctorManagement = () => {
                     </button>
                     <button
                       onClick={() => handleOpenConfirm(doctor)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors ${
-                        doctor.status === "ACTIVE"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors ${doctor.status === "ACTIVE"
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
-                      }`}
+                        }`}
                       title={doctor.status === "ACTIVE" ? "Khóa tài khoản" : "Mở tài khoản"}
                     >
                       {doctor.status === "ACTIVE" ? (
@@ -573,8 +571,308 @@ const DoctorManagement = () => {
       {/* Modal Tạo bác sĩ */}
       {showModal && (
         <ElegantModal onClose={() => setShowModal(false)}>
-          {/* ... nội dung modal tạo bác sĩ (giữ nguyên như cũ) ... */}
-          {/* (Bạn có thể copy phần modal tạo từ code cũ, không thay đổi) */}
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-blue-100 flex items-center justify-center ring-1 ring-blue-200">
+                <Plus size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Thêm bác sĩ mới
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Điền thông tin tài khoản, chọn phòng khám & chuyên khoa
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowModal(false)}
+              className="shrink-0 rounded-lg p-2 hover:bg-gray-100 transition-colors"
+              aria-label="Đóng"
+            >
+              <XCircle
+                size={22}
+                className="text-gray-500 hover:text-gray-700"
+              />
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
+
+          {/* Content */}
+          <div className="overflow-y-auto pr-1 -mr-1 space-y-4">
+            {/* Họ tên */}
+            <FormField
+              label="Tên bác sĩ"
+              name="full_name"
+              required
+              placeholder="vd: Trần Minh Khôi"
+              formik={formik}
+            />
+
+            {/* Username + Password */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                label="Tên đăng nhập"
+                name="username"
+                required
+                placeholder="vd: minh.khoi"
+                formik={formik}
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mật khẩu <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formik.values.password}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    placeholder="Nhập mật khẩu"
+                    className={
+                      "w-full rounded-xl border px-3 py-2 text-gray-900 shadow-sm transition pr-10 " +
+                      (formik.touched.password && formik.errors.password
+                        ? "border-red-400 focus:ring-4 focus:ring-red-100 focus:border-red-400"
+                        : "border-gray-300 bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400")
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {formik.touched.password && formik.errors.password && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {formik.errors.password}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Email + Phone */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                label="Email"
+                name="email"
+                type="email"
+                required
+                placeholder="vd: email@domain.com"
+                formik={formik}
+              />
+              <FormField
+                label="Số điện thoại"
+                name="phone_number"
+                required
+                placeholder="vd: 0912345678"
+                formik={formik}
+              />
+            </div>
+
+            {/* PHÒNG KHÁM (single-select bằng list) */}
+            <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Phòng khám <span className="text-red-500">*</span>
+              </label>
+
+              <input
+                type="text"
+                placeholder="Tìm phòng khám..."
+                value={searchClinic}
+                onChange={(e) => setSearchClinic(e.target.value)}
+                onBlur={() => formik.setFieldTouched("clinic_id", true)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm
+                     focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition mb-2"
+              />
+
+              <div className="max-h-44 overflow-y-auto rounded-xl border border-gray-200">
+                {clinics.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500">
+                    Chưa có phòng khám.
+                  </div>
+                ) : (
+                  filteredClinicCreate.map((c) => {
+                    const id = String(c._id);
+                    const isSelected = formik.values.clinic_id === id;
+                    return (
+                      <button
+                        type="button"
+                        key={c._id}
+                        onClick={() => formik.setFieldValue("clinic_id", id)}
+                        className={
+                          "w-full flex items-center justify-between px-3 py-2 text-sm transition text-left " +
+                          (isSelected
+                            ? "bg-blue-50 text-blue-700 font-medium"
+                            : "hover:bg-gray-50 text-gray-700")
+                        }
+                      >
+                        <span className="flex items-center gap-2">
+                          <Building2 size={16} className="text-gray-400" />
+                          {c.name}
+                        </span>
+                        {isSelected && (
+                          <CheckCircle size={16} className="text-blue-600" />
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {formik.touched.clinic_id && formik.errors.clinic_id && (
+                <p className="text-xs text-red-600 mt-2">
+                  {formik.errors.clinic_id}
+                </p>
+              )}
+
+              {formik.values.clinic_id && (
+                <p className="text-sm text-gray-600 mt-2">
+                  Đã chọn:{" "}
+                  <b>
+                    {clinics.find(
+                      (c) => String(c._id) === String(formik.values.clinic_id)
+                    )?.name || "—"}
+                  </b>
+                </p>
+              )}
+            </div>
+
+            {/* CHUYÊN KHOA (multi-select bằng list, theo clinic đã chọn) */}
+            <div className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Chuyên khoa <span className="text-red-500">*</span>
+              </label>
+
+              {!formik.values.clinic_id ? (
+                <div className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-500">
+                  Hãy chọn <b>Phòng khám</b> trước để hiển thị danh sách chuyên
+                  khoa.
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm chuyên khoa..."
+                    value={searchSpecCreate}
+                    onChange={(e) => setSearchSpecCreate(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm
+                         focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition mb-3"
+                  />
+
+                  <div className="max-h-56 overflow-y-auto rounded-xl border border-gray-200 p-1">
+                    {loadingCreateSpecs ? (
+                      <div className="flex justify-center items-center p-4 text-sm text-gray-500">
+                        <Spinner animation="border" size="sm" />
+                        <span className="ml-2">Đang tải...</span>
+                      </div>
+                    ) : createSpecs.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500">
+                        Phòng khám chưa có chuyên khoa hoặc không lấy được danh
+                        sách.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                        {createSpecs
+                          .filter((s) =>
+                            (s.name || "")
+                              .toLowerCase()
+                              .includes((searchSpecCreate || "").toLowerCase())
+                          )
+                          .map((s) => {
+                            const id = String(s.id);
+                            const isSelected =
+                              formik.values.specialty_id.includes(id);
+                            return (
+                              <button
+                                type="button"
+                                key={id}
+                                onClick={() => {
+                                  const next = new Set(
+                                    formik.values.specialty_id
+                                  );
+                                  if (isSelected) next.delete(id);
+                                  else next.add(id);
+                                  formik.setFieldValue(
+                                    "specialty_id",
+                                    Array.from(next)
+                                  );
+                                }}
+                                className={
+                                  "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition text-left " +
+                                  (isSelected
+                                    ? "bg-blue-50 text-blue-700 font-medium"
+                                    : "hover:bg-gray-50 text-gray-700")
+                                }
+                              >
+                                <span>{s.name}</span>
+                                {isSelected && (
+                                  <CheckCircle
+                                    size={16}
+                                    className="text-blue-600"
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  {formik.touched.specialty_id &&
+                    formik.errors.specialty_id && (
+                      <p className="text-xs text-red-600 mt-2">
+                        {formik.errors.specialty_id}
+                      </p>
+                    )}
+
+                  {formik.values.specialty_id.length > 0 && (
+                    <p className="text-sm text-gray-600 mt-3">
+                      Đã chọn:{" "}
+                      <b>
+                        {createSpecs
+                          .filter((sp) =>
+                            formik.values.specialty_id.includes(String(sp.id))
+                          )
+                          .map((sp) => sp.name)
+                          .join(", ")}
+                      </b>
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Footer sticky */}
+          <div className="sticky -mb-6 mt-6 bottom-0 -mx-6 px-6 py-4 bg-gradient-to-t from-white to-white/40 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-t">
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={formik.handleSubmit}
+                disabled={creatingDoctor}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-[0.99] transition disabled:opacity-60"
+              >
+                {creatingDoctor ? "Đang lưu..." : "Lưu"}
+              </button>
+            </div>
+          </div>
         </ElegantModal>
       )}
 
@@ -598,9 +896,8 @@ const DoctorManagement = () => {
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-gray-900">{selectedDoctor.name}</h2>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
-                        selectedDoctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                      }`}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedDoctor.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                        }`}
                     >
                       {selectedDoctor.status === "ACTIVE" ? (
                         <>
@@ -654,9 +951,8 @@ const DoctorManagement = () => {
                           type="button"
                           key={c._id}
                           onClick={() => setDetailClinicId(id)}
-                          className={`w-full flex items-center justify-between px-3 py-2 text-sm transition text-left ${
-                            isSelected ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700"
-                          }`}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-sm transition text-left ${isSelected ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700"
+                            }`}
                         >
                           <span className="flex items-center gap-2">
                             <Building2 size={16} className="text-gray-400" />
@@ -747,9 +1043,8 @@ const DoctorManagement = () => {
                               else next.add(id);
                               setDetailSelectedSpecIds(Array.from(next));
                             }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition text-left ${
-                              checked ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700"
-                            }`}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition text-left ${checked ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700"
+                              }`}
                           >
                             <span>{s.name}</span>
                             {checked && <CheckCircle size={16} className="text-blue-600" />}
@@ -799,11 +1094,10 @@ const DoctorManagement = () => {
                   setShowDetailModal(false);
                   handleOpenConfirm(selectedDoctor);
                 }}
-                className={`px-4 py-2 text-white rounded-lg font-semibold transition-colors ${
-                  selectedDoctor.status === "ACTIVE"
+                className={`px-4 py-2 text-white rounded-lg font-semibold transition-colors ${selectedDoctor.status === "ACTIVE"
                     ? "bg-red-600 hover:bg-red-700"
                     : "bg-green-600 hover:bg-green-700"
-                }`}
+                  }`}
               >
                 {selectedDoctor.status === "ACTIVE" ? "Khóa tài khoản" : "Mở tài khoản"}
               </button>
@@ -817,11 +1111,10 @@ const DoctorManagement = () => {
         <ElegantModal onClose={() => setShowConfirmModal(false)} maxWidth="max-w-md">
           <div className="flex flex-col items-center text-center px-6 py-4">
             <div
-              className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-md ${
-                doctorToConfirm.status === "ACTIVE"
+              className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-md ${doctorToConfirm.status === "ACTIVE"
                   ? "bg-gradient-to-br from-red-100 to-red-200 ring-4 ring-red-50"
                   : "bg-gradient-to-br from-green-100 to-green-200 ring-4 ring-green-50"
-              }`}
+                }`}
             >
               {doctorToConfirm.status === "ACTIVE" ? (
                 <AlertTriangle className="text-red-600" size={30} />
@@ -851,17 +1144,16 @@ const DoctorManagement = () => {
               type="button"
               onClick={handleConfirmAction}
               disabled={isConfirming}
-              className={`px-4 py-2 rounded-xl text-white shadow hover:opacity-90 active:scale-[0.99] transition disabled:opacity-60 w-full ${
-                doctorToConfirm.status === "ACTIVE"
+              className={`px-4 py-2 rounded-xl text-white shadow hover:opacity-90 active:scale-[0.99] transition disabled:opacity-60 w-full ${doctorToConfirm.status === "ACTIVE"
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-green-600 hover:bg-green-700"
-              }`}
+                }`}
             >
               {isConfirming
                 ? "Đang xử lý…"
                 : doctorToConfirm.status === "ACTIVE"
-                ? "Xác nhận Khóa"
-                : "Xác nhận Mở"}
+                  ? "Xác nhận Khóa"
+                  : "Xác nhận Mở"}
             </button>
           </div>
         </ElegantModal>
