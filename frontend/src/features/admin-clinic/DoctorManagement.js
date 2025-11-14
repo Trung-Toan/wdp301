@@ -589,8 +589,8 @@ const DoctorManagement = () => {
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-600"
                       }`}
                   >
                     {doctor.status === "ACTIVE" ? (
@@ -607,26 +607,26 @@ const DoctorManagement = () => {
                 {/* actions */}
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
+                    {/* --- Nút 1: Xem (Giữ nguyên làm chuẩn) --- */}
                     <button
                       onClick={() => handleViewDetail(doctor)}
-                      // 1. Thay p-1.5 thành px-3 py-1.5 (hoặc py-1) để nút rộng hơn cho vừa chữ
-                      // 2. Thêm 'flex items-center' để căn icon và chữ
-                      // 3. Thêm 'gap-1.5' (hoặc gap-1) để tạo khoảng cách giữa icon và chữ
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                       title="Xem chi tiết"
                     >
                       <Eye size={18} />
-                      {/* Thêm chữ "Xem" vào đây */}
                       <span className="text-sm font-medium">Xem</span>
                     </button>
+
+                    {/* --- Nút 2: Khóa / Mở (Cập nhật style) --- */}
                     <button
                       onClick={() => handleDeleteDoctor(doctor.id, doctor.status)}
-                      className={`p-1.5 rounded transition-colors flex items-center gap-1
-                        ${doctor.status === "ACTIVE"
+                      // THAY ĐỔI: Dùng 'px-3 py-1.5' và 'gap-1.5' giống nút "Xem"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors
+        ${doctor.status === "ACTIVE"
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                         }
-                      `}
+      `}
                       title={
                         doctor.status === "ACTIVE"
                           ? "Chuyển thành không hoạt động"
@@ -635,11 +635,15 @@ const DoctorManagement = () => {
                     >
                       {doctor.status === "ACTIVE" ? (
                         <>
-                          <XCircle size={18} /> Khóa
+                          <XCircle size={18} />
+                          {/* THAY ĐỔI: Bọc text trong <span> để đồng bộ font */}
+                          <span className="text-sm font-medium">Khóa</span>
                         </>
                       ) : (
                         <>
-                          <CheckCircle size={18} /> Mở
+                          <CheckCircle size={18} />
+                          {/* THAY ĐỔI: Bọc text trong <span> để đồng bộ font */}
+                          <span className="text-sm font-medium">Mở</span>
                         </>
                       )}
                     </button>
@@ -994,8 +998,8 @@ const DoctorManagement = () => {
                     </h2>
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedDoctor.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
                         }`}
                     >
                       {selectedDoctor.status === "ACTIVE" ? (
