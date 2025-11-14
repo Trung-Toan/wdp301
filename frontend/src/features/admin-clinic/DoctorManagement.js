@@ -76,7 +76,7 @@ const DoctorManagement = () => {
   const [detailSpecialties, setDetailSpecialties] = useState([]); // [{id,name}]
   const [detailLoadingSpecs, setDetailLoadingSpecs] = useState(false);
   const [detailSelectedSpecIds, setDetailSelectedSpecIds] = useState([]); // ["id1","id2"]
-  const [detailSearchSpec, setDetailSearchSpec] = useState("");  
+  const [detailSearchSpec, setDetailSearchSpec] = useState("");
   // ======= Helpers =======
   const sameSet = (a = [], b = []) => {
     if (a.length !== b.length) return false;
@@ -159,7 +159,7 @@ const DoctorManagement = () => {
       console.error("Lỗi khi lấy danh sách bác sĩ:", err);
       toast.error(
         "Không thể lấy danh sách bác sĩ: " +
-          (err?.message || "Lỗi không xác định")
+        (err?.message || "Lỗi không xác định")
       );
     }
   }, []);
@@ -229,8 +229,8 @@ const DoctorManagement = () => {
       onError: (error) => {
         toast.error(
           error?.response?.data?.message ||
-            error.message ||
-            "Không thể cập nhật phòng khám."
+          error.message ||
+          "Không thể cập nhật phòng khám."
         );
       },
     }
@@ -274,13 +274,13 @@ const DoctorManagement = () => {
         setSelectedDoctor((prev) =>
           prev
             ? {
-                ...prev,
-                specialty: names,
-                doctorData: {
-                  ...prev.doctorData,
-                  specialty_id: specialtyIds,
-                },
-              }
+              ...prev,
+              specialty: names,
+              doctorData: {
+                ...prev.doctorData,
+                specialty_id: specialtyIds,
+              },
+            }
             : prev
         );
 
@@ -291,8 +291,8 @@ const DoctorManagement = () => {
       onError: (error) => {
         toast.error(
           error?.response?.data?.message ||
-            error.message ||
-            "Không thể cập nhật chuyên khoa."
+          error.message ||
+          "Không thể cập nhật chuyên khoa."
         );
       },
     });
@@ -588,11 +588,10 @@ const DoctorManagement = () => {
                 {/* status */}
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
-                      doctor.status === "ACTIVE"
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-600"
-                    }`}
+                      }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -610,18 +609,22 @@ const DoctorManagement = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleViewDetail(doctor)}
-                      className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                      // 1. Thay p-1.5 thành px-3 py-1.5 (hoặc py-1) để nút rộng hơn cho vừa chữ
+                      // 2. Thêm 'flex items-center' để căn icon và chữ
+                      // 3. Thêm 'gap-1.5' (hoặc gap-1) để tạo khoảng cách giữa icon và chữ
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                       title="Xem chi tiết"
                     >
                       <Eye size={18} />
+                      {/* Thêm chữ "Xem" vào đây */}
+                      <span className="text-sm font-medium">Xem</span>
                     </button>
                     <button
                       onClick={() => handleDeleteDoctor(doctor.id, doctor.status)}
                       className={`p-1.5 rounded transition-colors flex items-center gap-1
-                        ${
-                          doctor.status === "ACTIVE"
-                            ? "bg-red-100 text-red-600 hover:bg-red-200"
-                            : "bg-green-100 text-green-600 hover:bg-green-200"
+                        ${doctor.status === "ACTIVE"
+                          ? "bg-red-100 text-red-600 hover:bg-red-200"
+                          : "bg-green-100 text-green-600 hover:bg-green-200"
                         }
                       `}
                       title={
@@ -990,11 +993,10 @@ const DoctorManagement = () => {
                       {selectedDoctor.name}
                     </h2>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
-                        selectedDoctor.status === "ACTIVE"
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedDoctor.status === "ACTIVE"
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-600"
-                      }`}
+                        }`}
                     >
                       {selectedDoctor.status === "ACTIVE" ? (
                         <>
