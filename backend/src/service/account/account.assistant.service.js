@@ -14,12 +14,12 @@ exports.findAccountByAssistantId = async (assistantId) => {
   return account || null;
 };
 
-exports.deleteAssistantById = async (assistantId) => {
+exports.deleteAssistantById = async (assistantId, status) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
         let account = await this.findAccountByAssistantId(assistantId);
-        account.status = "INACTIVE";
+        account.status = status;
         const saved = await account.save({ session });
         await session.commitTransaction();
         session.endSession();

@@ -7,6 +7,8 @@ const medicalRecordService = require("../../service/medical_record/medicalRecord
 const Account = require("../../model/auth/Account");
 const feedbackService = require("../../service/feedback/feedback.service");
 const assistantService = require("../../service/doctor/doctor.assistant.service");
+const notificationService = require("../../service/notification/notification.service"); // <--- import thêm
+
 
 exports.viewDashboard = async (req, res) => {
   try {
@@ -178,9 +180,7 @@ exports.requestViewMedicalRecord = async (req, res) => {
 // POST /doctor/patients/:patientId/medical-records/:medicalRecordsId/request
 exports.requestViewMedicalRecordById = async (req, res) => {
   try {
-    const requests = await medicalRecordService.requestViewMedicalRecordById(
-      req
-    );
+    const requests = await medicalRecordService.requestViewMedicalRecordById(req);
 
     // Không có hồ sơ nào
     if (!requests) {
@@ -198,6 +198,33 @@ exports.requestViewMedicalRecordById = async (req, res) => {
       );
     }
 
+    // --- BẮT ĐẦU LOGIC GỬI THÔNG BÁO ---
+    // requests: mảng các request mới tạo, có dạng:
+    // {
+    //   createdAt,
+    //   diagnosis,
+    //   doctor_id,
+    //   medical_record_id,
+    //   patient_code,
+    //   patient_id,
+    //   patient_name,
+    //   prescription_status,
+    //   updatedAt
+    // }
+    try {
+      const notify = await notificationService.createMedicalRecordViewRequestNotification(
+        requests,
+        req.user
+      );
+    } catch (notifyError) {
+      console.error(
+        "[Notify] Error sending medical record view request notification:",
+        notifyError
+      );
+      // KHÔNG trả lỗi cho client, chỉ log lại
+    }
+    // --- KẾT THÚC LOGIC GỬI THÔNG BÁO ---
+
     // Thành công
     return resUtils.successResponse(
       res,
@@ -205,7 +232,7 @@ exports.requestViewMedicalRecordById = async (req, res) => {
       "Yêu cầu xem hồ sơ bệnh án đã được gửi. Vui lòng chờ phê duyệt."
     );
   } catch (error) {
-    console.error("Error in requestViewMedicalRecord:", error);
+    console.error("Error in requestViewMedicalRecordById:", error);
     return resUtils.serverErrorResponse(
       res,
       error,

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   UserPlus,
   Send,
@@ -21,8 +22,8 @@ const MedicalRecordRequests = () => {
   const [patientRecords, setPatientRecords] = useState([]);
   const [message, setMessage] = useState(null);
 
-  // dùng index để xác định hồ sơ đang được chọn
-  const [selectedRecordIndex, setSelectedRecordIndex] = useState(null);
+  // Dùng mảng index để xác định nhiều hồ sơ đang được chọn
+  const [selectedRecordIndexes, setSelectedRecordIndexes] = useState([]);
 
   const [reason, setReason] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -30,6 +31,8 @@ const MedicalRecordRequests = () => {
   // Phân trang lịch sử
   const [page, setPage] = useState(1);
   const limit = 10;
+
+  const location = useLocation();
 
   // --- 1. Lấy dữ liệu Lịch sử yêu cầu ---
   const {
@@ -57,6 +60,21 @@ const MedicalRecordRequests = () => {
     }
   }, [historyError]);
 
+  // Map: medical_record_id -> status (chỉ lưu PENDING / APPROVED)
+  const recordStatusMap = accessRequests.reduce((acc, req) => {
+    const status = req.status;
+    const recordId =
+      req.medical_record_id ||
+      req.medical_record?.medical_record_id ||
+      req.medical_record?._id ||
+      req.medical_record?.id;
+
+    if (recordId && (status === "PENDING" || status === "APPROVED")) {
+      acc[recordId] = status;
+    }
+    return acc;
+  }, {});
+
   // Hàm định dạng ngày
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -70,29 +88,29 @@ const MedicalRecordRequests = () => {
     });
   };
 
-  // Hàm xử lý tìm bệnh nhân
-  const handleFindPatient = async (e) => {
-    e.preventDefault();
-
-    if (!patientCode.trim()) {
+  // Hàm search dùng chung (cho cả form & URL)
+  const searchByCode = async (code) => {
+    if (!code || !code.trim()) {
       setMessage({ type: "error", text: "Vui lòng nhập mã bệnh nhân." });
       return;
     }
+
+    const trimmedCode = code.trim();
 
     setIsSearching(true);
     setFoundPatient(null);
     setPatientRecords([]);
     setMessage(null);
-    setSelectedRecordIndex(null);
+    setSelectedRecordIndexes([]); // reset lựa chọn
 
     try {
-      const res = await doctorApi.searchMedicalRecords(patientCode.trim());
+      const res = await doctorApi.searchMedicalRecords(trimmedCode);
       const records = res.data?.data || [];
 
       if (records.length === 0) {
         setMessage({
           type: "error",
-          text: `Không tìm thấy hồ sơ bệnh án nào cho mã BN: ${patientCode}.`,
+          text: `Không tìm thấy hồ sơ bệnh án nào cho mã BN: ${trimmedCode}.`,
         });
         return;
       }
@@ -117,20 +135,51 @@ const MedicalRecordRequests = () => {
     }
   };
 
-  // Toggle chọn / bỏ chọn 1 hồ sơ (checkbox style nhưng chỉ 1 được chọn)
-  const handleToggleRecord = (index) => {
-    setSelectedRecordIndex((current) => (current === index ? null : index));
+  // Hàm xử lý tìm bệnh nhân (form submit)
+  const handleFindPatient = async (e) => {
+    e.preventDefault();
+    await searchByCode(patientCode);
   };
 
-  // --- 2. Xử lý gửi yêu cầu ---
+  // Auto lấy patient-code từ URL nếu có: /doctor/record-requests?patient-code=14452410
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const codeFromUrl = params.get("patient-code");
+
+    if (codeFromUrl) {
+      setPatientCode(codeFromUrl);
+      searchByCode(codeFromUrl);
+    }
+  }, [location.search]);
+
+  // Toggle chọn / bỏ chọn 1 hồ sơ (checkbox style, ĐA chọn)
+  const handleToggleRecord = (index) => {
+    const rec = patientRecords[index];
+    if (!rec) return;
+
+    const recordId = rec.medical_record_id || rec._id || rec.id;
+    const status = recordStatusMap[recordId];
+    const isBlocked = status === "PENDING" || status === "APPROVED";
+
+    // Nếu đã PENDING/APPROVED thì không cho chọn
+    if (isBlocked) return;
+
+    setSelectedRecordIndexes((current) =>
+      current.includes(index)
+        ? current.filter((i) => i !== index)
+        : [...current, index]
+    );
+  };
+
+  // --- 2. Xử lý gửi yêu cầu (multi-select) ---
   const handleSendRequest = async () => {
     if (!foundPatient) {
       toast.error("Vui lòng tìm và chọn bệnh nhân trước.");
       return;
     }
 
-    if (selectedRecordIndex === null) {
-      toast.error("Vui lòng chọn hồ sơ cần gửi yêu cầu.");
+    if (selectedRecordIndexes.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một hồ sơ cần gửi yêu cầu.");
       return;
     }
 
@@ -139,43 +188,58 @@ const MedicalRecordRequests = () => {
       return;
     }
 
-    const selectedRecord = patientRecords[selectedRecordIndex];
+    // Chuẩn bị list request, bỏ qua hồ sơ đã PENDING/APPROVED
+    const tasks = selectedRecordIndexes
+      .map((idx) => {
+        const selectedRecord = patientRecords[idx];
+        if (!selectedRecord) return null;
 
-    if (!selectedRecord) {
-      toast.error("Hồ sơ đã chọn không tồn tại.");
-      return;
-    }
+        const recordId = selectedRecord.medical_record_id;
+        if (!recordId) return null;
 
-    // ưu tiên _id, fallback sang id nếu API trả về khác tên
-    const recordId = selectedRecord._id || selectedRecord.id;
+        const status = recordStatusMap[recordId];
+        if (status === "PENDING" || status === "APPROVED") return null;
 
-    if (!recordId) {
-      toast.error("Không tìm thấy ID hồ sơ để gửi yêu cầu. Kiểm tra lại dữ liệu API.");
+        return doctorApi.requestMedicalRecordAccess(
+          foundPatient._id,
+          recordId,
+          reason
+        );
+      })
+      .filter(Boolean);
+
+    if (tasks.length === 0) {
+      toast.error(
+        "Các hồ sơ đã chọn đều đã được yêu cầu trước đó (PENDING/APPROVED)."
+      );
       return;
     }
 
     try {
-      const res = await doctorApi.requestMedicalRecordAccess(
-        foundPatient._id,
-        recordId,
-        reason
-      );
+      const results = await Promise.allSettled(tasks);
+      const successCount = results.filter(
+        (r) => r.status === "fulfilled"
+      ).length;
+      const failCount = results.length - successCount;
 
-      if (res.data?.ok) {
-        toast.success("Đã gửi yêu cầu truy cập hồ sơ thành công!");
+      if (successCount > 0) {
+        toast.success(`Đã gửi thành công ${successCount} yêu cầu truy cập.`);
+      }
+      if (failCount > 0) {
+        toast.error(`Có ${failCount} yêu cầu gửi thất bại.`);
+      }
 
-        // Reload lịch sử
-        refetchHistory();
-        if (page !== 1) setPage(1);
+      // Reload lịch sử
+      refetchHistory();
+      if (page !== 1) setPage(1);
 
-        // Reset state
-        setSelectedRecordIndex(null);
+      // Nếu tất cả đều OK thì reset form
+      if (failCount === 0) {
+        setSelectedRecordIndexes([]);
         setReason("");
         setPatientRecords([]);
         setFoundPatient(null);
         setPatientCode("");
-      } else {
-        toast.error(res.data?.message || "Gửi yêu cầu thất bại.");
       }
     } catch (error) {
       console.error(error);
@@ -278,9 +342,9 @@ const MedicalRecordRequests = () => {
 
             <h4 className="font-semibold text-gray-700 text-base mb-2 flex items-center justify-between">
               <span>Chọn hồ sơ cần yêu cầu ({patientRecords.length})</span>
-              {selectedRecordIndex !== null && (
+              {selectedRecordIndexes.length > 0 && (
                 <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full border border-green-200">
-                  Đã chọn 1 hồ sơ
+                  Đã chọn {selectedRecordIndexes.length} hồ sơ
                 </span>
               )}
             </h4>
@@ -292,38 +356,65 @@ const MedicalRecordRequests = () => {
             ) : (
               <ul className="space-y-3 max-h-64 overflow-y-auto pr-2">
                 {patientRecords.map((rec, idx) => {
-                  const isSelected = selectedRecordIndex === idx;
+                  const recordId = rec.medical_record_id || rec._id || rec.id;
+                  const recordStatus = recordStatusMap[recordId];
+                  const isBlocked =
+                    recordStatus === "PENDING" ||
+                    recordStatus === "APPROVED";
+                  const isSelected =
+                    !isBlocked && selectedRecordIndexes.includes(idx);
                   const displayDate = formatDate(rec.createdAt).split(",")[0];
+
+                  const baseClasses =
+                    "flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 shadow-sm";
+                  const stateClasses = isBlocked
+                    ? "border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed"
+                    : isSelected
+                    ? "border-green-500 bg-green-50 ring-2 ring-green-300"
+                    : "border-gray-200 hover:bg-gray-50";
 
                   return (
                     <li
-                      key={rec._id || rec.id || idx}
+                      key={recordId || idx}
                       onClick={() => handleToggleRecord(idx)}
-                      className={`flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 shadow-sm ${
-                        isSelected
-                          ? "border-green-500 bg-green-50 ring-2 ring-green-300"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
+                      className={`${baseClasses} ${stateClasses}`}
                     >
                       {/* Thông tin hồ sơ */}
                       <div className="flex flex-col flex-grow truncate">
-                        <p className="text-sm font-bold text-gray-800 truncate">
-                          {rec.diagnosis || "Chưa có chẩn đoán"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-gray-800 truncate">
+                            {rec.diagnosis || "Chưa có chẩn đoán"}
+                          </p>
+                          {isBlocked && (
+                            <span
+                              className={`text-[10px] font-semibold inline-flex items-center px-2 py-0.5 rounded-full border ${
+                                recordStatus === "APPROVED"
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                              }`}
+                            >
+                              {recordStatus === "APPROVED"
+                                ? "Đã được duyệt"
+                                : "Đang chờ duyệt"}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                           <Calendar size={12} /> Ngày khám: {displayDate}
                         </p>
                       </div>
 
-                      {/* Checkbox style */}
+                      {/* Checkbox style (multi-select) */}
                       <span
                         className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md border-2 transition-colors ${
-                          isSelected
+                          isBlocked
+                            ? "border-gray-300 bg-gray-100"
+                            : isSelected
                             ? "border-green-600 bg-green-600"
                             : "border-gray-400 bg-white"
                         }`}
                       >
-                        {isSelected && (
+                        {!isBlocked && isSelected && (
                           <span className="w-2.5 h-2.5 bg-white rounded-sm" />
                         )}
                       </span>
@@ -333,7 +424,7 @@ const MedicalRecordRequests = () => {
               </ul>
             )}
 
-            {selectedRecordIndex !== null && (
+            {selectedRecordIndexes.length > 0 && (
               <>
                 <div className="mt-6">
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -374,9 +465,7 @@ const MedicalRecordRequests = () => {
         ) : accessRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-10 flex-grow text-gray-500">
             <FileText size={48} className="mb-3 text-gray-400" />
-            <p className="font-medium text-lg">
-              Chưa có yêu cầu nào được gửi.
-            </p>
+            <p className="font-medium text-lg">Chưa có yêu cầu nào được gửi.</p>
             <p className="text-sm">
               Hãy tìm kiếm bệnh nhân và gửi yêu cầu xem hồ sơ.
             </p>

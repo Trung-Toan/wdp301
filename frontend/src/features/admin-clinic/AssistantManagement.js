@@ -272,7 +272,7 @@ const AssistantManagement = () => {
   });
 
   const { mutate: deleteAssistant, isLoading: deletingAssistant } = useMutation({
-    mutationFn: (id) => adminclinicAPI.deleteAssistant(id),
+    mutationFn: ({id, status}) => adminclinicAPI.deleteAssistant(id, status),
     onSuccess: () => {
       toast.success("Đã chuyển trạng thái của trợ lý");
       queryClient.invalidateQueries({ queryKey: ["assistants-of-admin-clinic"] });
@@ -311,50 +311,11 @@ const AssistantManagement = () => {
     },
   });
 
-  // ===== Handlers Change Status For Assistant =====
-  const confirmAction = (message) => {
-    return new Promise((resolve) => {
-      toast(
-        ({ closeToast }) => (
-          <div className="flex flex-col gap-2">
-            <span>{message}</span>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  resolve(true);
-                  closeToast();
-                }}
-                className="px-3 py-1 bg-green-500 text-white rounded"
-              >
-                Đồng ý
-              </button>
-
-              <button
-                onClick={() => {
-                  resolve(false);
-                  closeToast();
-                }}
-                className="px-3 py-1 bg-gray-300 rounded"
-              >
-                Hủy
-              </button>
-            </div>
-          </div>
-        ),
-        { autoClose: false }
-      );
-    });
-  };
-
-  const handleChangeStatusAssistant = async (id) => {
-    const confirm = await confirmAction(
-      "Bạn có chắc chắn muốn chuyển trạng thái trợ lý này không?"
-    );
-
-    if (!confirm) return;
-
-    deleteAssistant(id);
+  // ===== Handlers =====
+  const handleDeleteAssistant = (id, status ) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
+    status = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    deleteAssistant({ id, status });
   };
 
   const handleOpenCreate = () => {
@@ -643,30 +604,54 @@ const AssistantManagement = () => {
 
                   {/* Actions */}
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    {/* Thêm flex-wrap để tự xuống hàng trên di động nếu cần */}
+                    <div className="flex gap-2 flex-wrap">
+
+                      {/* --- Nút 1: Xem / Cập nhật --- */}
                       <button
                         onClick={() => handleOpenDetail(assistant)}
-                        className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                         title="Xem / Cập nhật"
                       >
                         <Eye size={18} />
+                        <span className="text-sm font-medium">Xem</span>
                       </button>
+
+                      {/* --- Nút 2: Khóa / Mở (Ban/Unban) --- */}
+                      {/* Nút này vẫn gọi hàm 'handleDeleteAssistant' của bạn, 
+      vì như bạn nói, nó đang dùng để thay đổi trạng thái.
+      Chúng ta chỉ thay đổi giao diện (icon và chữ) cho nó.
+    */}
                       <button
-                        onClick={() => handleChangeStatusAssistant(assistant.id)}
-                        className={`p-1.5 rounded transition-colors disabled:opacity-50
-    ${assistant.status === "ACTIVE"
-                            ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
-                            : "bg-green-100 text-green-600 hover:bg-green-200"
-                          }`}
-                        title={assistant.status === "INACTIVE" ? "Ngừng hoạt động" : "Kích hoạt"}
+                        onClick={() => handleDeleteAssistant(assistant.id, assistant.status)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors disabled:opacity-50
+                            ${assistant.status === "ACTIVE"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200" // Đang Bật -> Nút "Khóa"
+                            : "bg-green-100 text-green-700 hover:bg-green-200" // Đang Tắt -> Nút "Mở"
+                          }
+      `}
+                        title={
+                          assistant.status === "ACTIVE"
+                            ? "Ngừng hoạt động (Ban)"
+                            : "Kích hoạt (Unban)"
+                        }
                         disabled={deletingAssistant}
                       >
-                        {assistant.status === "INACTIVE" ? (
-                          <UserX size={18} />
+                        {assistant.status === "ACTIVE" ? (
+                          <>
+                            <XCircle size={18} />
+                            <span className="text-sm font-medium">Khóa</span>
+                          </>
                         ) : (
-                          <UserCheck size={18} />
+                          <>
+                            <CheckCircle size={18} />
+                            <span className="text-sm font-medium">Mở</span>
+                          </>
                         )}
                       </button>
+
+                      {/* Nút Xóa (Trash2) đã được loại bỏ */}
+
                     </div>
                   </td>
                 </tr>

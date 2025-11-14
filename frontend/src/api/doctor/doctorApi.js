@@ -65,11 +65,9 @@ export const doctorApi = {
     axiosInstance.get(doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD),
 
   //gửi yêu cầu truy cập hồ sơ
-  requestMedicalRecordAccess: (patientId, medicalRecordId, reason) =>
-    axiosInstance.post(
-      `/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,
-      { reason }
-    ),
+  requestMedicalRecordAccess: (patientId, medicalRecordId, reason) => {
+    return axiosInstance.post(`/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,{ reason });
+  },
 
   //lấy danh sách trợ lý
   getAssistants: (params) =>

@@ -219,8 +219,6 @@ const PatientList = () => {
 
   const patients = data?.data || [];
 
-  console.log(patients);
-
   const handleShowMedicalRecord = async (appointmentId) => {
     if (!appointmentId) {
       alert("Không tìm thấy ID cuộc hẹn!");
