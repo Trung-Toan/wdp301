@@ -428,6 +428,7 @@ exports.viewMedicalRecordDetail = async (req, res) => {
   try {
     const { recordId } = req.params;
     const record = await medical_recordService.getMedicalRecordById(recordId);
+    console.log("record: ", record);
     return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
   } catch (error) {
     console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);

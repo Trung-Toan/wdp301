@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from "react";
 import {
   Clipboard2Pulse,
-  Person,
+  PersonCircle,
   PersonBadge,
   Telephone,
-  CheckCircle,
-  XCircle,
-  FileEarmarkPlus,
+  CheckCircleFill,
+  XCircleFill,
+  FileEarmarkPlusFill,
   EyeFill,
   PencilFill,
+  Calendar3,
+  Clock,
+  Capsule,
+  ExclamationTriangleFill,
 } from "react-bootstrap-icons";
 import { MEDICAL_RECORD_API } from "../../api/assistant/assistant.api";
 import { useDataByUrl } from "../../utility/data.utils";
 
 const AppComponent = ({
+  setSelectedApp,
   appointment,
   patient,
   item,
@@ -28,14 +33,13 @@ const AppComponent = ({
 }) => {
   const record = appointment.medical_record;
   const hasRecord = !!record;
-  const recordPrescriptionStatus = record?.prescription?.status;
+  const localPrescriptionStatus = record?.prescription?.status;
 
   const roles = Array.isArray(typeAss) ? typeAss : [];
   const isNurseOnly = roles.length === 1 && roles[0] === "NURSE";
   const isReceptionistOnly = roles.length === 1 && roles[0] !== "NURSE";
   const hasBothRoles = roles.length >= 2;
 
-  // ====== FETCH HỒ SƠ (đã move xuống đây) ======
   const [shouldFetchRecord, setShouldFetchRecord] = useState(false);
 
   const {
@@ -43,271 +47,473 @@ const AppComponent = ({
     isLoading: isMrcLoading,
     error: mrcError,
   } = useDataByUrl({
-    url: MEDICAL_RECORD_API.GET_MEDICAL_RECORD_BY_APPOINTMENT_ID(appointment?.appointment_id),
-    key: "get-medical-record-by-appointment-id",
+    url: MEDICAL_RECORD_API.GET_MEDICAL_RECORD_BY_APPOINTMENT_ID(
+      appointment?.appointment_id
+    ),
+    key: [
+      "get-medical-record-by-appointment-id",
+      appointment?.appointment_id,
+    ],
+    options: {
+      enabled: !!appointment?.appointment_id && shouldFetchRecord,
+    },
   });
 
-  console.log("mrc: ", mrc);
-  console.log("appointment: ", appointment);
+  // Chuẩn hóa data record từ API
+  const apiRecord = Array.isArray(mrc?.data)
+    ? mrc.data[0]
+    : mrc?.data?.[0];
 
-  
+  const apiPrescriptionStatus = apiRecord?.prescription?.status;
+  const displayPrescriptionStatus = apiPrescriptionStatus || localPrescriptionStatus;
+  const hasApiRecord = !!apiRecord;
+  const showNoRecord = !hasRecord && !hasApiRecord && !isMrcLoading;
+
+  // CHỈ VÔ HIỆU HÓA EDIT KHI VERIFIED
+  const isEditDisabled = displayPrescriptionStatus === "VERIFIED";
 
   useEffect(() => {
     if (!shouldFetchRecord) return;
 
-    // notify loading
-    onRecordLoadingChange &&
-      onRecordLoadingChange(appointment.appointment_id, isMrcLoading);
+    onRecordLoadingChange?.(appointment.appointment_id, isMrcLoading);
 
-    if (!isMrcLoading && mrc) {
-      const apiRecord = Array.isArray(mrc.data) ? mrc.data[0] : mrc.data?.[0];
-      if (apiRecord) {
-        onRecordLoaded &&
-          onRecordLoaded(appointment.appointment_id, apiRecord);
-        setShouldFetchRecord(false);
-      }
+    if (!isMrcLoading && apiRecord) {
+      onRecordLoaded?.(appointment.appointment_id, apiRecord);
+      setShouldFetchRecord(false);
     }
 
     if (!isMrcLoading && mrcError) {
-      onRecordError &&
-        onRecordError(
-          appointment.appointment_id,
-          mrcError.message || "Lỗi tải hồ sơ bệnh án"
-        );
+      onRecordError?.(
+        appointment.appointment_id,
+        mrcError.message || "Lỗi tải hồ sơ"
+      );
       setShouldFetchRecord(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldFetchRecord, isMrcLoading, mrc, mrcError]);
+    setSelectedApp(mrc.data[0] || mrc?.data?.[0])
+  }, [
+    shouldFetchRecord,
+    isMrcLoading,
+    apiRecord,
+    mrcError,
+    appointment.appointment_id,
+    onRecordLoaded,
+    onRecordLoadingChange,
+    onRecordError,
+  ]);
 
-  // ====== Buttons ======
+  // ====== AVATAR BỆNH NHÂN ======
+  const PatientAvatar = () => {
+    const gender = patient?.gender;
+    const bgColor =
+      gender === "MALE"
+        ? "bg-blue-100"
+        : gender === "FEMALE"
+        ? "bg-pink-100"
+        : "bg-gray-100";
+    const iconColor =
+      gender === "MALE"
+        ? "text-blue-600"
+        : gender === "FEMALE"
+        ? "text-pink-600"
+        : "text-gray-600";
+
+    return (
+      <div className={`w-12 h-12 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+        <PersonCircle className={iconColor} size={26} />
+      </div>
+    );
+  };
+
+  // ====== BADGE TRẠNG THÁI LỊCH HẸN ======
+  const AppointmentStatusBadge = () => {
+    const config = {
+      SCHEDULED: {
+        label: "Đã đặt",
+        color: "bg-purple-100 text-purple-800",
+        icon: <Calendar3 size={14} />,
+      },
+      APPROVE: {
+        label: "Đã xác nhận",
+        color: "bg-blue-100 text-blue-800",
+        icon: <CheckCircleFill size={14} />,
+      },
+      COMPLETED: {
+        label: "Đã khám",
+        color: "bg-green-100 text-green-800",
+        icon: <CheckCircleFill size={14} />,
+      },
+      CANCELLED: {
+        label: "Đã hủy",
+        color: "bg-red-100 text-red-800",
+        icon: <XCircleFill size={14} />,
+      },
+      NO_SHOW: {
+        label: "Vắng mặt",
+        color: "bg-orange-100 text-orange-800",
+        icon: <ExclamationTriangleFill size={14} />,
+      },
+    };
+
+    const { label, color, icon } = config[appointment.status] || {
+      label: appointment.status,
+      color: "bg-gray-100 text-gray-700",
+      icon: <Calendar3 size={14} />,
+    };
+
+    return (
+      <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ${color}`}>
+        {icon} {label}
+      </span>
+    );
+  };
+
+  // ====== BADGE TRẠNG THÁI ĐƠN THUỐC ======
+  const PrescriptionStatusBadge = () => {
+    if (!displayPrescriptionStatus) return null;
+
+    const config = {
+      PENDING: {
+        label: "Chờ duyệt đơn",
+        color: "bg-yellow-100 text-yellow-800",
+        icon: <Clock size={14} />,
+      },
+      VERIFIED: {
+        label: "Đã duyệt đơn",
+        color: "bg-green-100 text-green-800",
+        icon: <CheckCircleFill size={14} />,
+      },
+      REJECTED: {
+        label: "Từ chối đơn",
+        color: "bg-red-100 text-red-800",
+        icon: <XCircleFill size={14} />,
+      },
+    };
+
+    const { label, color, icon } = config[displayPrescriptionStatus] || {
+      label: displayPrescriptionStatus,
+      color: "bg-gray-100 text-gray-700",
+      icon: <Capsule size={14} />,
+    };
+
+    return (
+      <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ${color}`}>
+        {icon} {label}
+      </span>
+    );
+  };
+
+  // ====== THÔNG BÁO CHƯA CÓ BỆNH ÁN ======
+  const NoRecordMessage = () => (
+    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-full text-sm italic shadow-sm">
+      <Clipboard2Pulse size={14} /> Chưa có bệnh án
+    </span>
+  );
+
+  // ====== NÚT HÀNH ĐỘNG ======
+  const ActionButton = ({
+    onClick,
+    label,
+    icon,
+    color = "blue",
+    disabled = false,
+    variant = "solid",
+  }) => {
+    const variants = {
+      solid: {
+        green: "bg-green-600 text-white hover:bg-green-700",
+        red: "bg-red-600 text-white hover:bg-red-700",
+        blue: "bg-blue-600 text-white hover:bg-blue-700",
+        indigo: "bg-indigo-600 text-white hover:bg-indigo-700",
+        amber: "bg-amber-600 text-white hover:bg-amber-700",
+        gray: "bg-gray-400 text-white cursor-not-allowed",
+      },
+      outline: {
+        green: "border border-green-600 text-green-600 hover:bg-green-50",
+        red: "border border-red-600 text-red-600 hover:bg-red-50",
+        blue: "border border-blue-600 text-blue-600 hover:bg-blue-50",
+        indigo: "border border-indigo-600 text-indigo-600 hover:bg-indigo-50",
+        amber: "border border-amber-600 text-amber-600 hover:bg-amber-50",
+      },
+    };
+
+    const style =
+      variant === "outline"
+        ? variants.outline[color]
+        : variants.solid[color];
+
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-sm ${style}`}
+      >
+        {icon} {label}
+      </button>
+    );
+  };
+
   const ApproveBtn = () => (
-    <button
+    <ActionButton
       onClick={() =>
         handleVerifyStatus(appointment.appointment_id, "APPROVE")
       }
-      className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
-      title="Duyệt"
-    >
-      <CheckCircle size={16} />
-    </button>
+      label="Duyệt lịch"
+      icon={<CheckCircleFill size={16} />}
+      color="green"
+    />
   );
 
   const CancelBtn = () => (
-    <button
+    <ActionButton
       onClick={() =>
         handleVerifyStatus(appointment.appointment_id, "CANCELLED")
       }
-      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-      title="Từ chối"
-    >
-      <XCircle size={16} />
-    </button>
+      label="Hủy lịch"
+      icon={<XCircleFill size={16} />}
+      color="red"
+    />
   );
 
   const NoShowBtn = () => (
-    <button
+    <ActionButton
       onClick={() =>
         handleVerifyStatus(appointment.appointment_id, "NO_SHOW")
       }
-      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-      title="Vắng mặt"
-    >
-      <XCircle size={16} />
-    </button>
+      label="Vắng mặt"
+      icon={<ExclamationTriangleFill size={16} />}
+      color="red"
+      variant="outline"
+    />
   );
 
   const CreateRecordBtn = () => (
-    <button
+    <ActionButton
       onClick={() => openRecordModal(item, "CREATE")}
-      className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-      title="Tạo bệnh án"
-    >
-      <FileEarmarkPlus size={16} />
-    </button>
+      label="Tạo bệnh án"
+      icon={<FileEarmarkPlusFill size={16} />}
+      color="blue"
+    />
   );
 
   const ViewRecordBtn = () => (
-    <button
+    <ActionButton
       onClick={() => {
         openRecordModal(item, "VIEW");
         setShouldFetchRecord(true);
       }}
-      className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
-      title="Xem bệnh án"
-    >
-      <EyeFill size={16} />
-    </button>
+      label="Xem bệnh án"
+      icon={<EyeFill size={16} />}
+      color="indigo"
+      variant="outline"
+    />
   );
 
   const EditRecordBtn = () => (
-    <button
+    <ActionButton
       onClick={() => {
         openRecordModal(item, "EDIT");
         setShouldFetchRecord(true);
       }}
-      className="p-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 disabled:opacity-50"
-      title="Sửa bệnh án"
-      disabled={recordPrescriptionStatus === "VERIFIED"}
-    >
-      <PencilFill size={16} />
-    </button>
+      label={
+        isEditDisabled
+          ? "Đã duyệt, không thể sửa"
+          : displayPrescriptionStatus === "REJECTED"
+          ? "Sửa lại bệnh án"
+          : "Sửa bệnh án"
+      }
+      icon={<PencilFill size={16} />}
+      color={isEditDisabled ? "gray" : "amber"}
+      disabled={isEditDisabled}
+    />
   );
 
-  const StatusBadge = () => (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeColor}`}
-    >
-      {statusInfo.label}
-    </span>
-  );
-
+  // ====== RENDER HÀNH ĐỘNG THEO VAI TRÒ ======
   const renderActions = () => {
-    // --- Chỉ NURSE ---
+    const statusBadges = (
+      <div className="flex flex-wrap items-center gap-2">
+        <AppointmentStatusBadge />
+        {displayPrescriptionStatus && <PrescriptionStatusBadge />}
+      </div>
+    );
+
+    const hasMedicalRecord = hasRecord || hasApiRecord;
+
     if (isNurseOnly) {
-      if (appointment.status === "SCHEDULED") return <StatusBadge />;
+      if (appointment.status === "SCHEDULED") return statusBadges;
 
       if (appointment.status === "APPROVE") {
         return (
-          <>
-            <StatusBadge />
-            {!hasRecord && <CreateRecordBtn />}
-          </>
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {!hasMedicalRecord && <CreateRecordBtn />}
+          </div>
         );
       }
 
       if (appointment.status === "COMPLETED") {
         return (
-          <>
-            <StatusBadge />
-            {recordPrescriptionStatus === "PENDING" && (
-              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-                Đơn thuốc chờ duyệt
-              </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {hasMedicalRecord ? (
+              <>
+                <ViewRecordBtn />
+                <EditRecordBtn />
+              </>
+            ) : (
+              <NoRecordMessage />
             )}
-            <ViewRecordBtn />
-            <EditRecordBtn />
-          </>
+          </div>
         );
       }
 
       if (["CANCELLED", "NO_SHOW"].includes(appointment.status)) {
-        return <StatusBadge />;
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {showNoRecord && <NoRecordMessage />}
+          </div>
+        );
       }
     }
 
-    // --- Chỉ RECEPTIONIST (hoặc role khác không phải NURSE đơn lẻ) ---
     if (isReceptionistOnly) {
       if (appointment.status === "SCHEDULED") {
         return (
-          <>
-            <StatusBadge />
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
             <ApproveBtn />
             <CancelBtn />
-          </>
+          </div>
         );
       }
 
       if (appointment.status === "APPROVE") {
         return (
-          <>
-            <StatusBadge />
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
             <NoShowBtn />
-          </>
+          </div>
         );
       }
 
       if (appointment.status === "COMPLETED") {
         return (
-          <>
-            <StatusBadge />
-            {recordPrescriptionStatus === "PENDING" && (
-              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-                Đơn thuốc chờ duyệt
-              </span>
-            )}
-            <ViewRecordBtn />
-          </>
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {hasMedicalRecord ? <ViewRecordBtn /> : <NoRecordMessage />}
+          </div>
         );
       }
 
       if (["CANCELLED", "NO_SHOW"].includes(appointment.status)) {
-        return <StatusBadge />;
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {showNoRecord && <NoRecordMessage />}
+          </div>
+        );
       }
     }
 
-    // --- Có nhiều role (NURSE + DOCTOR, etc.) ---
     if (hasBothRoles) {
       if (appointment.status === "SCHEDULED") {
         return (
-          <>
-            <StatusBadge />
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
             <ApproveBtn />
             <CancelBtn />
-          </>
+          </div>
         );
       }
 
       if (appointment.status === "APPROVE") {
         return (
-          <>
-            <StatusBadge />
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
             <NoShowBtn />
-            {!hasRecord && <CreateRecordBtn />}
-          </>
+            {!hasMedicalRecord && <CreateRecordBtn />}
+          </div>
         );
       }
 
       if (appointment.status === "COMPLETED") {
         return (
-          <>
-            <StatusBadge />
-            {recordPrescriptionStatus === "PENDING" && (
-              <span className="p-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-                Đơn thuốc chờ duyệt
-              </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {hasMedicalRecord ? (
+              <>
+                <ViewRecordBtn />
+                <EditRecordBtn />
+              </>
+            ) : (
+              <NoRecordMessage />
             )}
-            <ViewRecordBtn />
-            <EditRecordBtn />
-          </>
+          </div>
         );
       }
 
       if (["CANCELLED", "NO_SHOW"].includes(appointment.status)) {
-        return <StatusBadge />;
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            {statusBadges}
+            {showNoRecord && <NoRecordMessage />}
+          </div>
+        );
       }
     }
 
-    // Mặc định
-    return <StatusBadge />;
+    return statusBadges;
   };
 
-  // ==== UI chính ====
+  // ====== GIAO DIỆN CHÍNH ======
   return (
-    <div className="flex flex-wrap items-center justify-between p-4 border rounded-lg shadow-sm">
-      {/* Thông tin bệnh nhân */}
-      <div className="flex items-center gap-4 mb-2 sm:mb-0">
-        <Person className="text-blue-600" size={20} />
-        <div>
-          <p className="font-semibold">
-            {patient.patient_name || "Bệnh nhân ẩn"}
-          </p>
-          <p className="text-gray-500 text-sm">
-            <Telephone className="inline mr-1" />
-            {patient.phone_number || "Không rõ"}
-          </p>
-          <p className="text-gray-500 text-sm mt-1">
-            <PersonBadge className="inline mr-1" />
-            Mã BN: {patient.patient_code || "N/A"}
-          </p>
-          <p className="text-gray-500 text-sm mt-1">
-            <Clipboard2Pulse className="inline mr-1" />
-            Lý do: {appointment.reason || "Không rõ"}
-          </p>
-        </div>
-      </div>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all duration-200">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        {/* THÔNG TIN BỆNH NHÂN */}
+        <div className="flex items-start gap-4 flex-1">
+          <PatientAvatar />
+          <div className="space-y-2 flex-1">
+            <h3 className="font-bold text-gray-900 text-xl">
+              {patient.patient_name || "Bệnh nhân ẩn"}
+            </h3>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2">{renderActions()}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+              <span className="flex items-center gap-1.5">
+                <Telephone size={15} /> {patient.phone_number || "Không rõ"}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <PersonBadge size={15} /> {patient.patient_code || "N/A"}
+              </span>
+            </div>
+
+            <p className="text-sm text-gray-700 flex items-center gap-1.5">
+              <Clipboard2Pulse size={15} className="text-blue-600" />
+              <span className="font-semibold">Lý do khám:</span>{" "}
+              {appointment.reason || "Không rõ"}
+            </p>
+
+            {appointment.appointment_time && (
+              <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                <Calendar3 size={14} />
+                {new Date(appointment.appointment_time).toLocaleString(
+                  "vi-VN",
+                  {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* TRẠNG THÁI & HÀNH ĐỘNG */}
+        <div className="flex flex-col gap-3">{renderActions()}</div>
+      </div>
     </div>
   );
 };

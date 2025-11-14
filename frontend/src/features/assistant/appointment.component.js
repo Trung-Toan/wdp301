@@ -1,5 +1,10 @@
 import { memo, useState, Fragment } from "react";
-import { Calendar, Telephone, XCircleFill, PlusCircle } from "react-bootstrap-icons";
+import {
+  Calendar,
+  Telephone,
+  XCircleFill,
+  PlusCircle,
+} from "react-bootstrap-icons";
 import { Dialog, Transition } from "@headlessui/react";
 import "../../styles/assistant/appointment-schedule.css";
 import { APPOINTMENT_API, MEDICAL_RECORD_API } from "../../api/assistant/assistant.api";
@@ -36,6 +41,13 @@ const formatTime = (timeString) => {
   }
 };
 
+// Hàm reload cứng cả trang
+const hardReloadPage = () => {
+  setTimeout(() => {
+    window.location.reload();
+  }, 300);
+};
+
 const AppointmentComponent = () => {
   // === Bộ lọc ===
   const [selectedDate, setSelectedDate] = useState(getLocalDate());
@@ -45,15 +57,18 @@ const AppointmentComponent = () => {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [searchTerm] = useState("");
 
-  // === Modal Hồ sơ ===
+  // === Modal Hồ sơ / bệnh án ===
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [selectedAptForRecord, setSelectedAptForRecord] = useState(null);
   const [recordFormData, setRecordFormData] = useState(initialRecordFormData);
   const [recordModalError, setRecordModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [modalMode, setModalMode] = useState("CREATE");
+  const [modalMode, setModalMode] = useState("CREATE"); // CREATE | EDIT | VIEW
+  const [selectedApp, setSelectedApp] = useState(null);
 
-  // trạng thái tải/ lỗi hồ sơ (nhận từ AppComponent)
+  console.log("selectedApp: ", selectedApp);
+
+  // Trạng thái tải/ lỗi hồ sơ (nhận từ AppComponent qua callback)
   const [recordLoading, setRecordLoading] = useState(false);
   const [recordError, setRecordError] = useState(null);
   const [currentPresStatus, setCurrentPresStatus] = useState(undefined);
@@ -74,7 +89,12 @@ const AppointmentComponent = () => {
 
   const typeAss = getProfile?.data?.assistant?.type || [];
 
-  const { data, isLoading, error, refetch } = useDataByUrl({
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useDataByUrl({
     url: APPOINTMENT_API.GET_LIST_APPOINTMENTS,
     key: ["appointments-list", ...Object.values(params)],
     params,
@@ -85,14 +105,20 @@ const AppointmentComponent = () => {
   const appointments = data?.data?.appointments || [];
   const slots = data?.data?.slot?.slot_list || [];
   const selectedSlotInfo = data?.data?.slot?.slot_select || null;
-  const pagination = data?.pagination || { page: 1, totalPages: 1, totalItems: 0 };
+  const pagination = data?.pagination || {
+    page: 1,
+    totalPages: 1,
+    totalItems: 0,
+  };
   const totalPages = pagination.totalPages;
 
-  // === Xác minh trạng thái ===
+  // === Xác minh trạng thái lịch hẹn ===
   const handleVerifyStatus = async (appointmentId, newStatus) => {
     try {
       await APPOINTMENT_API.verifyAppointment(appointmentId, newStatus);
-      refetch();
+      // Có thể giữ refetch nếu muốn, nhưng reload đã đảm bảo dữ liệu mới
+      // refetch();
+      hardReloadPage();
     } catch (error) {
       alert(error.response?.data?.message || "Lỗi khi xác minh lịch hẹn.");
     }
@@ -185,12 +211,13 @@ const AppointmentComponent = () => {
     }));
   };
 
-  // === Chuẩn bị body ===
+  // === Chuẩn bị body gọi API ===
   const prepareRequestBody = () => {
     const safeSymptoms = (recordFormData.symptoms || "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+
     const safeAttachments = (recordFormData.attachments || "")
       .split(",")
       .map((s) => s.trim())
@@ -219,7 +246,7 @@ const AppointmentComponent = () => {
     };
   };
 
-  // === Tạo / Sửa hồ sơ ===
+  // === Tạo hồ sơ ===
   const handleCreateRecord = async () => {
     if (!recordFormData.diagnosis) {
       return setRecordModalError("Vui lòng nhập chẩn đoán.");
@@ -234,7 +261,8 @@ const AppointmentComponent = () => {
       if (res?.data?.ok) {
         alert("Tạo hồ sơ thành công!");
         closeRecordModal();
-        refetch();
+        // refetch();
+        hardReloadPage();
       } else {
         throw new Error(res?.data?.message);
       }
@@ -245,12 +273,13 @@ const AppointmentComponent = () => {
     }
   };
 
+  // === Sửa hồ sơ ===
   const handleEditRecord = async () => {
     if (!recordFormData.diagnosis) {
       return setRecordModalError("Vui lòng nhập chẩn đoán.");
     }
 
-    const recordId = selectedAptForRecord?.appointment?.medical_record?._id;
+    const recordId = selectedApp?._id;
     if (!recordId) {
       return setRecordModalError("Không tìm thấy hồ sơ.");
     }
@@ -262,7 +291,8 @@ const AppointmentComponent = () => {
       if (res?.data?.ok) {
         alert("Cập nhật thành công!");
         closeRecordModal();
-        refetch();
+        // refetch();
+        hardReloadPage();
       } else {
         throw new Error(res?.data?.message);
       }
@@ -295,7 +325,10 @@ const AppointmentComponent = () => {
       attachments: Array.isArray(apiRecord.attachments)
         ? apiRecord.attachments.join(", ")
         : apiRecord.attachments || "",
-      prescription: apiRecord.prescription || { instruction: "", medicines: [] },
+      prescription: apiRecord.prescription || {
+        instruction: "",
+        medicines: [],
+      },
       status: apiRecord.status || "PRIVATE",
     });
 
@@ -304,14 +337,14 @@ const AppointmentComponent = () => {
     setRecordError(null);
   };
 
-  const handleRecordLoadingChange = (appointmentId, isLoading) => {
+  const handleRecordLoadingChange = (appointmentId, isLoadingRecord) => {
     if (
       !selectedAptForRecord ||
       selectedAptForRecord.appointment.appointment_id !== appointmentId
     ) {
       return;
     }
-    setRecordLoading(isLoading);
+    setRecordLoading(isLoadingRecord);
   };
 
   const handleRecordError = (appointmentId, errorMessage) => {
@@ -385,7 +418,8 @@ const AppointmentComponent = () => {
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  Ca: {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                  Ca: {formatTime(slot.start_time)} -{" "}
+                  {formatTime(slot.end_time)}
                 </button>
               ))
             ) : (
@@ -396,7 +430,7 @@ const AppointmentComponent = () => {
           </div>
         </div>
 
-        {/* Danh sách */}
+        {/* Danh sách lịch hẹn */}
         {isLoading ? (
           <div className="bg-white rounded-xl shadow-sm p-12 flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -421,6 +455,7 @@ const AppointmentComponent = () => {
               onRecordLoaded={handleRecordLoaded}
               onRecordLoadingChange={handleRecordLoadingChange}
               onRecordError={handleRecordError}
+              setSelectedApp={setSelectedApp}
             />
 
             {totalPages > 1 && (
@@ -510,26 +545,28 @@ const AppointmentComponent = () => {
                   )}
 
                   {/* Chip trạng thái đơn thuốc nếu có */}
-                  {!recordLoading && !recordError && (() => {
-                    const mapLabel = {
-                      PENDING: "Đơn thuốc chờ duyệt",
-                      VERIFIED: "Đơn thuốc đã duyệt",
-                      REJECTED: "Đơn thuốc bị từ chối",
-                    };
-                    return currentPresStatus ? (
-                      <div className="mb-3">
-                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                          {mapLabel[currentPresStatus] ||
-                            `Trạng thái: ${currentPresStatus}`}
-                        </span>
-                        {isEditLocked && (
-                          <span className="ml-2 text-xs font-medium text-red-600">
-                            (Đã duyệt — không thể chỉnh sửa)
+                  {!recordLoading &&
+                    !recordError &&
+                    (() => {
+                      const mapLabel = {
+                        PENDING: "Đơn thuốc chờ duyệt",
+                        VERIFIED: "Đơn thuốc đã duyệt",
+                        REJECTED: "Đơn thuốc bị từ chối",
+                      };
+                      return currentPresStatus ? (
+                        <div className="mb-3">
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                            {mapLabel[currentPresStatus] ||
+                              `Trạng thái: ${currentPresStatus}`}
                           </span>
-                        )}
-                      </div>
-                    ) : null;
-                  })()}
+                          {isEditLocked && (
+                            <span className="ml-2 text-xs font-medium text-red-600">
+                              (Đã duyệt — không thể chỉnh sửa)
+                            </span>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
 
                   {/* Vô hiệu hóa form khi VIEW hoặc EDIT nhưng VERIFIED */}
                   <fieldset disabled={modalMode === "VIEW" || isEditLocked}>

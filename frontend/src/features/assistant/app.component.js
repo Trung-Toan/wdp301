@@ -14,6 +14,7 @@ const getStatusBadge = (status) => {
 };
 
 const AppListComponent = ({
+  setSelectedApp,
   appointments,
   typeAss,
   handleVerifyStatus,
@@ -51,6 +52,7 @@ const AppListComponent = ({
 
         return (
           <AppComponent
+           setSelectedApp={setSelectedApp}
             key={appointment.appointment_id}
             appointment={appointment}
             patient={patient}
