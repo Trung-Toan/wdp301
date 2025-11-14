@@ -584,8 +584,8 @@ const AssistantManagement = () => {
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${assistant.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
                         }`}
                     >
                       {assistant.status === "ACTIVE" ? (
@@ -963,8 +963,8 @@ const AssistantManagement = () => {
                 <div className="text-sm">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedAssistant.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-600"
                       }`}
                   >
                     {selectedAssistant.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
