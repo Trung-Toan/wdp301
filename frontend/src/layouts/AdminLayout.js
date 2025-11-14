@@ -56,11 +56,6 @@ const AdminLayout = () => {
       link: "/admin/complaints",
     },
     {
-      title: "Tài khoản bị khóa",
-      icon: <Ban size={20} />,
-      link: "/admin/banned",
-    },
-    {
       title: "Danh sách đen",
       icon: <Shield size={20} />,
       link: "/admin/blacklist",
@@ -94,9 +89,8 @@ const AdminLayout = () => {
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-indigo-900 to-indigo-800 text-white transition-all duration-300 z-40 flex flex-col shadow-lg ${
-          sidebarOpen ? "w-64" : "w-20"
-        }`}
+        className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-indigo-900 to-indigo-800 text-white transition-all duration-300 z-40 flex flex-col shadow-lg ${sidebarOpen ? "w-64" : "w-20"
+          }`}
       >
         <div className="border-b border-indigo-700 p-6">
           <div className="flex items-center gap-3">
@@ -119,11 +113,10 @@ const AdminLayout = () => {
             <Link
               key={index}
               to={item.link}
-              className={`mb-2 flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 no-underline ${
-                location.pathname === item.link
+              className={`mb-2 flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 no-underline ${location.pathname === item.link
                   ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
                   : "text-indigo-100 hover:bg-indigo-700 hover:text-white"
-              }`}
+                }`}
             >
               <span className="flex-shrink-0">{item.icon}</span>
               {sidebarOpen && (
@@ -153,9 +146,8 @@ const AdminLayout = () => {
 
       {/* Main Content */}
       <div
-        className={`flex flex-1 flex-col transition-all duration-300 ${
-          sidebarOpen ? "ml-64" : "ml-20"
-        }`}
+        className={`flex flex-1 flex-col transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-20"
+          }`}
       >
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-6 py-4 shadow-sm">

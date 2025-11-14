@@ -44,9 +44,6 @@ export function DoctorBookingCalendar({ doctor }) {
     // Thử extract trực tiếp từ string trước (ví dụ: "2025-11-09T17:00:00.000Z" -> "2025-11-9")
     const getLocalDateStringFromISO = (isoString) => {
         if (!isoString) return null;
-        
-        // Thử extract date trực tiếp từ ISO string (YYYY-MM-DD)
-        // Nếu format là "2025-11-09T17:00:00.000Z", lấy phần "2025-11-09"
         const dateMatch = isoString.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (dateMatch) {
             const year = parseInt(dateMatch[1], 10);
@@ -54,8 +51,6 @@ export function DoctorBookingCalendar({ doctor }) {
             const day = parseInt(dateMatch[3], 10);
             return `${year}-${month}-${day}`;
         }
-        
-        // Fallback: parse thành Date và dùng local methods
         const date = new Date(isoString);
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -72,14 +67,17 @@ export function DoctorBookingCalendar({ doctor }) {
         return `${year}-${month}-${day}`;
     };
 
+    // Lấy thời gian hiện tại theo UTC
+    const nowUTC = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+
     const availableSlots = selectedDate
         ? slots
             .filter((slot) => {
-                // So sánh date string: cả hai đều dùng local time
-                // Convert UTC date từ backend sang local time để so với selectedDate (local)
                 const slotDateStr = getLocalDateStringFromISO(slot.start_time);
                 const selectedDateStr = getDateStringFromDate(selectedDate);
-                return slotDateStr === selectedDateStr;
+                if (slotDateStr !== selectedDateStr) return false;
+                // So sánh theo UTC
+                return new Date(slot.start_time) >= nowUTC;
             })
             .map((slot) => ({
                 id: slot._id,
@@ -94,25 +92,52 @@ export function DoctorBookingCalendar({ doctor }) {
             }))
         : [];
 
+    console.log("thời gian bây giờ: ", nowUTC);
+    console.log("Available Slots:", availableSlots);
     // Tạo workingDates từ local date (convert từ UTC) để đánh dấu đúng ngày trong calendar
     const workingDates = [...new Set(slots.map((slot) => {
         return getLocalDateStringFromISO(slot.start_time);
     }))];
 
-    // Hàm kiểm tra đăng nhập
+    // Hàm kiểm tra đăng nhập + cảnh báo đặt lịch sát giờ
     const handleBooking = () => {
         const user = JSON.parse(sessionStorage.getItem("user"));
-        // key lưu login
         if (!user) {
             toast.error("Vui lòng đăng nhập để đặt lịch!");
             setTimeout(() => {
                 navigate("/login", {
-                    state: { from: window.location.pathname + window.location.search }, // lưu đường dẫn hiện tại
+                    state: { from: window.location.pathname + window.location.search },
                 });
             }, 500);
             return;
         }
-        // Nếu đã đăng nhập, chuyển sang booking page
+
+        // Nếu chưa chọn slot thì không làm gì
+        if (!selectedSlot) {
+            toast.warning("Vui lòng chọn khung giờ trước khi đặt lịch!");
+            return;
+        }
+
+        // Tính thời gian hiện tại theo UTC (dự án bạn dùng UTC toàn phần)
+        const nowUTC = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+        const slotStart = new Date(selectedSlot.start_time);
+
+        // Tính khoảng cách phút giữa slot và thời điểm hiện tại
+        const diffMinutes = (slotStart - nowUTC) / (1000 * 60);
+
+        // Nếu slot sắp tới trong vòng 30 phút → cảnh báo
+        if (diffMinutes > 0 && diffMinutes < 30) {
+            toast.warning("Khung giờ này quá sát, vui lòng chọn thời gian cách hiện tại ít nhất 30 phút!");
+            return;
+        }
+
+        // Nếu đã qua giờ → không cho đặt
+        if (diffMinutes <= 0) {
+            toast.error("Khung giờ này đã qua, vui lòng chọn thời gian khác!");
+            return;
+        }
+
+        // Chuyển hướng sang trang booking
         navigate(`/home/doctordetail/${id}/booking`, {
             state: {
                 selectedDate: selectedDate ? format(selectedDate, "dd/MM/yyyy") : null,
@@ -133,6 +158,7 @@ export function DoctorBookingCalendar({ doctor }) {
             },
         });
     };
+
 
 
     return (
@@ -189,24 +215,13 @@ export function DoctorBookingCalendar({ doctor }) {
                             </div>
                         ) : (
                             <p className="text-muted-foreground text-sm">
-                                Bác sĩ không có lịch khám ngày này.
+                                Không còn khung giờ khả dụng trong ngày này.
                             </p>
                         )}
                     </div>
                 )}
 
                 <div className="pt-4 border-t">
-                    {/* <div className="flex justify-between mb-4">
-                        <span className="text-muted-foreground">Giá khám:</span>
-                        <span className="text-xl font-bold text-primary">
-                            {selectedSlot?.fee
-                                ? formatCurrency(selectedSlot.fee, doctor.pricing?.currency)
-                                : doctor.pricing?.minFee
-                                    ? formatCurrency(doctor.pricing.minFee, doctor.pricing.currency)
-                                    : "Chưa có giá"}
-                        </span>
-                    </div> */}
-
                     <Button
                         className="w-full"
                         size="lg"
