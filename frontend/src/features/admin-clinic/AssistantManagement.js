@@ -624,7 +624,7 @@ const AssistantManagement = () => {
                       <button
                         onClick={() => handleDeleteAssistant(assistant.id, assistant.status)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors disabled:opacity-50
-        ${assistant.status === "ACTIVE"
+                            ${assistant.status === "ACTIVE"
                             ? "bg-red-100 text-red-600 hover:bg-red-200" // Đang Bật -> Nút "Khóa"
                             : "bg-green-100 text-green-700 hover:bg-green-200" // Đang Tắt -> Nút "Mở"
                           }

@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
-  Trash2,
   Search,
   Eye,
   EyeOff,
