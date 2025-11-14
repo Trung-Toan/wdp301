@@ -603,22 +603,54 @@ const AssistantManagement = () => {
 
                   {/* Actions */}
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    {/* Thêm flex-wrap để tự xuống hàng trên di động nếu cần */}
+                    <div className="flex gap-2 flex-wrap">
+
+                      {/* --- Nút 1: Xem / Cập nhật --- */}
                       <button
                         onClick={() => handleOpenDetail(assistant)}
-                        className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                         title="Xem / Cập nhật"
                       >
                         <Eye size={18} />
+                        <span className="text-sm font-medium">Xem</span>
                       </button>
+
+                      {/* --- Nút 2: Khóa / Mở (Ban/Unban) --- */}
+                      {/* Nút này vẫn gọi hàm 'handleDeleteAssistant' của bạn, 
+      vì như bạn nói, nó đang dùng để thay đổi trạng thái.
+      Chúng ta chỉ thay đổi giao diện (icon và chữ) cho nó.
+    */}
                       <button
                         onClick={() => handleDeleteAssistant(assistant.id, assistant.status)}
-                        className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
-                        title="Xóa"
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors disabled:opacity-50
+        ${assistant.status === "ACTIVE"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200" // Đang Bật -> Nút "Khóa"
+                            : "bg-green-100 text-green-700 hover:bg-green-200" // Đang Tắt -> Nút "Mở"
+                          }
+      `}
+                        title={
+                          assistant.status === "ACTIVE"
+                            ? "Ngừng hoạt động (Ban)"
+                            : "Kích hoạt (Unban)"
+                        }
                         disabled={deletingAssistant}
                       >
-                        <Trash2 size={18} />
+                        {assistant.status === "ACTIVE" ? (
+                          <>
+                            <XCircle size={18} />
+                            <span className="text-sm font-medium">Khóa</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={18} />
+                            <span className="text-sm font-medium">Mở</span>
+                          </>
+                        )}
                       </button>
+
+                      {/* Nút Xóa (Trash2) đã được loại bỏ */}
+
                     </div>
                   </td>
                 </tr>
