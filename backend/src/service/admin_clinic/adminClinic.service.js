@@ -1114,11 +1114,9 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
 };
 
 // Xoá trợ lý
-exports.deleteAssistant = async (assistantId) => {
+exports.deleteAssistant = async (assistantId, status) => {
   try {
-    const assistant = await accountAssistantService.deleteAssistantById(
-      assistantId
-    );
+    const assistant = await accountAssistantService.deleteAssistantById(assistantId, status);
     if (!assistant) {
       throw new Error("Không tìm thấy trợ lý");
     }
@@ -1134,9 +1132,9 @@ exports.deleteAssistant = async (assistantId) => {
  * ====================================== */
 
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
-exports.deleteDoctor = async (doctorId) => {
+exports.deleteDoctor = async (doctorId, status) => {
   try {
-    const deleted = await accountDoctorService.deleteDoctorById(doctorId);
+    const deleted = await accountDoctorService.deleteDoctorById(doctorId, status);
     if (!deleted) {
       throw new Error("Không tìm thấy bác sĩ");
     }

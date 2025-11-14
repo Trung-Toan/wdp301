@@ -294,7 +294,14 @@ exports.getAssistants = async (req, res, next) => {
 // Xoá trợ lý theo clinic mà admin_clinic đang quản lý
 exports.deleteAssistant = async (req, res) => {
   try {
-    const deleted = await deleteAssistantSvc(req.params.id);
+    const {status} = req.query;
+    if (!status) {
+      return resUtils.badRequestResponse(res, "Thiếu tham số status");
+    }
+    if (status !== "INACTIVE" && status !== "ACTIVE") {
+      return resUtils.badRequestResponse(res, "Tham số status không hợp lệ");
+    }
+    const deleted = await deleteAssistantSvc(req.params.id, status);
     return resUtils.successResponse(res, deleted, "Xoá trợ lý thành công");
   } catch (err) {
     return resUtils.serverErrorResponse(res, err, "Xoá trợ lý thất bại");
@@ -302,9 +309,16 @@ exports.deleteAssistant = async (req, res) => {
 };
 
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
-exports.deleteDoctor = async (req, res, next) => {
+exports.deleteDoctor = async (req, res) => {
   try {
-    const deleted = await deleteDoctorSvc(req.params.id);
+    const {status} = req.query;
+    if (!status) {
+      return resUtils.badRequestResponse(res, "Thiếu tham số status");
+    }
+    if (status !== "INACTIVE" && status !== "ACTIVE") {
+      return resUtils.badRequestResponse(res, "Tham số status không hợp lệ");
+    }
+    const deleted = await deleteDoctorSvc(req.params.id, status);
     return resUtils.successResponse(res, deleted, "Xoá bác sĩ thành công");
   } catch (err) {
     return resUtils.serverErrorResponse(res, err, "Xoá bác sĩ thất bại");

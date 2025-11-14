@@ -65,9 +65,9 @@ export const adminclinicAPI = {
   },
 
   //xoá trợ lý theo id
-  deleteAssistant: (assistantId) => {
+  deleteAssistant: (assistantId, status) => {
     return axiosInstance.put(
-      `/admin_clinic/delete_assistant/${assistantId}`
+      `/admin_clinic/delete_assistant/${assistantId}&status=${status}`
     );
   },
   //cập nhật trợ lý
@@ -95,7 +95,7 @@ export const adminclinicAPI = {
   },
 
   //xóa tài khoản bác sĩ
-  deleteDoctor: (doctorId) => {
-    return axiosInstance.put(`/admin_clinic/delete_doctor/${doctorId}`);
+  deleteDoctor: (doctorId, status) => {
+    return axiosInstance.put(`/admin_clinic/delete_doctor/${doctorId}&status=${status}`);
   },
 };
