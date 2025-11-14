@@ -13,9 +13,6 @@ const Blacklist = require("../../model/system/Blacklist");
 const accountAssistantService = require("../account/account.assistant.service");
 const accountDoctorService = require("../account/account.doctor.service");
 
-const SALT_ROUNDS = 12;
-
-const hashPassword = async (s) => bcrypt.hash(s, SALT_ROUNDS);
 const DISALLOWED = [
   "_id",
   "user_id",
@@ -867,16 +864,13 @@ exports.createDoctor = async (payload) => {
       throw new Error("Phải chọn ít nhất 1 chuyên khoa");
     }
 
-    // Tạo tài khoản
-    const hashedPassword = await hashPassword(password);
-
     const acc = await Account.create(
       [
         {
           username: username?.trim(),
           email: email?.trim(),
           phone_number: phone_number?.trim(),
-          password: hashedPassword,
+          password,
           role: "DOCTOR",
           status: "ACTIVE",
           email_verified: true,
@@ -908,7 +902,7 @@ exports.createDoctor = async (payload) => {
           description: "",
           experience: "",
           clinic_id,
-          specialty_id: spec, // model đã có validator & dedupe pre-save
+          specialty_id: spec, 
           user_id: user[0]._id,
         },
       ],
@@ -972,14 +966,13 @@ exports.createAssistant = async (payload) => {
     }
 
     // Tạo tài khoản
-    const hashedPassword = await hashPassword(password);
     const acc = await Account.create(
       [
         {
           username: `${username?.trim()}`,
           email: email?.trim(),
           phone_number: phone_number?.trim(),
-          password: hashedPassword,
+          password,
           role: "ASSISTANT",
           status: "ACTIVE",
           email_verified: true,
@@ -1121,11 +1114,9 @@ exports.getAssistantsByAdminClinic = async (adminAccountId) => {
 };
 
 // Xoá trợ lý
-exports.deleteAssistant = async (assistantId) => {
+exports.deleteAssistant = async (assistantId, status) => {
   try {
-    const assistant = await accountAssistantService.deleteAssistantById(
-      assistantId
-    );
+    const assistant = await accountAssistantService.deleteAssistantById(assistantId, status);
     if (!assistant) {
       throw new Error("Không tìm thấy trợ lý");
     }
@@ -1141,9 +1132,9 @@ exports.deleteAssistant = async (assistantId) => {
  * ====================================== */
 
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
-exports.deleteDoctor = async (doctorId) => {
+exports.deleteDoctor = async (doctorId, status) => {
   try {
-    const deleted = await accountDoctorService.deleteDoctorById(doctorId);
+    const deleted = await accountDoctorService.deleteDoctorById(doctorId, status);
     if (!deleted) {
       throw new Error("Không tìm thấy bác sĩ");
     }

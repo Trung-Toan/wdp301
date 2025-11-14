@@ -17,9 +17,10 @@ export default function AccessibilitySettings() {
     const { settings, updateSettings, toggleElderlyMode, resetSettings, resetGuides } = useAccessibility();
     const [isOpen, setIsOpen] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
-    
+
     // Get accessibility classes for modal - modal sẽ phản ánh settings
     const isLarge = settings.largeFont || settings.elderlyMode;
+
 
     // Handle modal animation
     useEffect(() => {
@@ -34,6 +35,16 @@ export default function AccessibilitySettings() {
         setIsAnimating(false);
         setTimeout(() => setIsOpen(false), 300);
     };
+
+    // Kiểm tra role - chỉ hiển thị cho PATIENT và user thường
+    const account = JSON.parse(sessionStorage.getItem('account') || '{}');
+    const userRole = account.role;
+
+    // KHÔNG hiển thị cho admin, assistant, doctor
+    if (userRole === 'ADMIN_SYSTEM' || userRole === 'ADMIN_CLINIC' ||
+        userRole === 'ASSISTANT' || userRole === 'DOCTOR') {
+        return null;
+    }
 
     return (
         <>
@@ -57,11 +68,11 @@ export default function AccessibilitySettings() {
 
             {/* Modal with Animation - Responsive to accessibility settings */}
             {isOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-2 sm:p-4 transition-opacity duration-300"
                     onClick={handleClose}
                 >
-                    <div 
+                    <div
                         className={`bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden transform transition-all duration-300 ${isAnimating ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'} ${isLarge ? 'text-lg accessibility-large-font' : ''} ${settings.largeButtons ? 'accessibility-large-buttons' : ''}`}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -96,7 +107,7 @@ export default function AccessibilitySettings() {
                                 {/* Decorative Background */}
                                 <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-pink-200/30 rounded-full blur-3xl"></div>
                                 <div className="absolute bottom-0 left-0 w-16 sm:w-24 h-16 sm:h-24 bg-rose-200/30 rounded-full blur-2xl"></div>
-                                
+
                                 <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
                                     <div className="flex items-start lg:items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                         <div className={`${isLarge ? 'p-4 sm:p-5' : 'p-3 sm:p-4'} bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl sm:rounded-2xl shadow-lg transform hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
@@ -176,7 +187,7 @@ export default function AccessibilitySettings() {
                                 ].map((item) => {
                                     const IconComponent = item.icon;
                                     return (
-                                        <div 
+                                        <div
                                             key={item.key}
                                             className={`group relative flex flex-col lg:flex-row lg:items-center lg:justify-between ${isLarge ? 'p-5 sm:p-6' : 'p-4 sm:p-5'} bg-gradient-to-br from-gray-50 to-gray-100/50 ${isLarge ? 'rounded-xl sm:rounded-2xl' : 'rounded-lg sm:rounded-xl'} border-2 border-gray-200/50 hover:border-gray-300 hover:shadow-md transition-all duration-300 ${item.disabled ? 'opacity-60' : 'hover:scale-[1.01] sm:hover:scale-[1.02]'}`}
                                         >

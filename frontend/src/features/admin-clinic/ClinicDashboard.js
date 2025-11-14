@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react"; // <-- ĐÃ THÊM useState
 import { Link } from "react-router-dom";
 import {
   Users,
@@ -17,21 +17,73 @@ import {
 import { useDataByUrl } from "../../utility/data.utils";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 
+// ===== IMPORT MỚI CHO BIỂU ĐỒ =====
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+// ===================================
+
+// ===== ĐĂNG KÝ CÁC MODULE CỦA CHARTJS (BẮT BUỘC) =====
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+// =======================================
+
+// --- LOGIC GỐC CỦA BẠN (GIỮ NGUYÊN) ---
 const STATUS_LABELS = {
-  SCHEDULED: { label: "Chờ duyệt", icon: Clock4, tone: "text-amber-600", pill: "bg-amber-100 text-amber-700" },
-  APPROVE: { label: "Đã duyệt", icon: CheckCircle2, tone: "text-blue-600", pill: "bg-blue-100 text-blue-700" },
-  COMPLETED: { label: "Đã khám", icon: CheckCircle2, tone: "text-emerald-600", pill: "bg-emerald-100 text-emerald-700" },
-  CANCELLED: { label: "Đã hủy", icon: XCircle, tone: "text-rose-600", pill: "bg-rose-100 text-rose-700" },
-  NO_SHOW: { label: "Vắng mặt", icon: CircleSlash, tone: "text-gray-600", pill: "bg-gray-100 text-gray-700" },
+  SCHEDULED: {
+    label: "Chờ duyệt",
+    icon: Clock4,
+    tone: "text-amber-600",
+    pill: "bg-amber-100 text-amber-700",
+  },
+  APPROVE: {
+    label: "Đã duyệt",
+    icon: CheckCircle2,
+    tone: "text-blue-600",
+    pill: "bg-blue-100 text-blue-700",
+  },
+  COMPLETED: {
+    label: "Đã khám",
+    icon: CheckCircle2,
+    tone: "text-emerald-600",
+    pill: "bg-emerald-100 text-emerald-700",
+  },
+  CANCELLED: {
+    label: "Đã hủy",
+    icon: XCircle,
+    tone: "text-rose-600",
+    pill: "bg-rose-100 text-rose-700",
+  },
+  NO_SHOW: {
+    label: "Vắng mặt",
+    icon: CircleSlash,
+    tone: "text-gray-600",
+    pill: "bg-gray-100 text-gray-700",
+  },
 };
 
 const numberFormat = (n) =>
   (typeof n === "number" ? n : 0).toLocaleString("vi-VN");
 
 const percentFormat = (n) =>
-  `${(typeof n === "number" && isFinite(n) ? Math.round(n) : 0)}%`;
+  `${typeof n === "number" && isFinite(n) ? Math.round(n) : 0}%`;
+// --- HẾT LOGIC GỐC ---
 
 const ClinicDashboard = () => {
+  // --- LOGIC GỐC CỦA BẠN (GIỮ NGUYÊN) ---
   const { data, isLoading, error } = useDataByUrl({
     url: adminclinicAPI.GET_DASHBOARD,
     key: "dashboard-admin-clinic",
@@ -40,7 +92,9 @@ const ClinicDashboard = () => {
   const dashboard = data?.data || {};
 
   // bookings7d: [{ date: "YYYY-MM-DD", total, completed }]
-  const bookings7d = Array.isArray(dashboard.bookings7d) ? dashboard.bookings7d : [];
+  const bookings7d = Array.isArray(dashboard.bookings7d)
+    ? dashboard.bookings7d
+    : [];
 
   // Tổng đặt lịch 7 ngày
   const totalBookings7d = useMemo(
@@ -62,7 +116,6 @@ const ClinicDashboard = () => {
 
   const todayStatus = dashboard?.today?.byStatus || {};
   const todayTotal = dashboard?.today?.total || 0;
-
   const avgRating = dashboard?.feedback?.avgRating || 0;
   const totalFeedbacks = dashboard?.feedback?.totalFeedbacks || 0;
 
@@ -91,7 +144,85 @@ const ClinicDashboard = () => {
       link: "/admin-clinic/clinic/list",
     },
   ];
+  // --- HẾT LOGIC GỐC ---
 
+  // ===== LOGIC MỚI CHO BIỂU ĐỒ =====
+  const [trendView, setTrendView] = useState("week"); // 'week' | 'month'
+
+  // Giả định API trả về 'bookings30d' tương tự 'bookings7d'
+  const bookings30d = Array.isArray(dashboard.bookings30d)
+    ? dashboard.bookings30d
+    : [];
+
+  const chartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false, // Để biểu đồ fill theo chiều cao
+      plugins: {
+        legend: {
+          position: "top",
+        },
+        title: {
+          display: false, // Tắt tiêu đề (vì đã có tiêu đề card)
+        },
+        tooltip: {
+          intersect: false,
+          mode: "index",
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0, // Đảm bảo số trên trục Y là số nguyên
+          },
+        },
+        x: {
+          grid: {
+            display: false, // Ẩn lưới trục X
+          },
+        },
+      },
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
+    }),
+    []
+  );
+
+  const chartData = useMemo(() => {
+    const activeData = trendView === "week" ? bookings7d : bookings30d;
+
+    const labels = activeData.map((d) => d.date);
+    const totalData = activeData.map((d) => d.total || 0);
+    const completedData = activeData.map((d) => d.completed || 0);
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Tổng lịch",
+          data: totalData,
+          backgroundColor: "rgba(59, 130, 246, 0.7)", // Màu xanh (blue-500)
+          borderColor: "rgba(59, 130, 246, 1)",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: "Hoàn thành",
+          data: completedData,
+          backgroundColor: "rgba(16, 185, 129, 0.7)", // Màu xanh lá (emerald-500)
+          borderColor: "rgba(16, 185, 129, 1)",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [trendView, bookings7d, bookings30d]);
+  // ===== HẾT LOGIC MỚI =====
+
+  // --- LOGIC GỐC CỦA BẠN (GIỮ NGUYÊN) ---
   if (isLoading) {
     return (
       <div className="p-6">
@@ -118,16 +249,22 @@ const ClinicDashboard = () => {
         <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-200 rounded-lg text-rose-700">
           <AlertCircle size={20} />
           <div>
-            <p className="m-0 font-semibold">Không tải được dữ liệu dashboard</p>
-            <p className="m-0 text-sm">{error?.message || "Vui lòng thử lại sau."}</p>
+            <p className="m-0 font-semibold">
+              Không tải được dữ liệu dashboard
+            </p>
+            <p className="m-0 text-sm">
+              {error?.message || "Vui lòng thử lại sau."}
+            </p>
           </div>
         </div>
       </div>
     );
   }
+  // --- HẾT LOGIC GỐC ---
 
   return (
     <div className="flex flex-col gap-6">
+      {/* --- PHẦN HEADER GỐC (GIỮ NGUYÊN) --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -143,7 +280,7 @@ const ClinicDashboard = () => {
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* --- PHẦN STAT CARDS GỐC (GIỮ NGUYÊN) --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {statCards.map((card, index) => (
           <Link
@@ -189,13 +326,76 @@ const ClinicDashboard = () => {
                 ) : (
                   <TrendingDown size={16} />
                 )}
-                <span>{percentFormat(Math.abs(card.change))} so với hôm qua</span>
+                <span>
+                  {percentFormat(Math.abs(card.change))} so với hôm qua
+                </span>
               </div>
             )}
           </Link>
         ))}
       </div>
 
+      {/* ===== KHU VỰC ĐÃ THAY THẾ: BIỂU ĐỒ ===== */}
+      <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+        {/* Header với nút Tuần/Tháng */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+          <h3 className="text-lg font-bold text-gray-900">
+            Xu hướng lịch khám
+          </h3>
+          {/* Nút chuyển đổi view */}
+          <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg mt-2 sm:mt-0">
+            <button
+              onClick={() => setTrendView("week")}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
+                ${
+                  trendView === "week"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }
+              `}
+            >
+              Theo tuần
+            </button>
+            <button
+              onClick={() => setTrendView("month")}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
+                ${
+                  trendView === "month"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }
+              `}
+            >
+              Theo tháng
+            </button>
+          </div>
+        </div>
+
+        {/* Vùng chứa biểu đồ */}
+        <div className="h-80 relative">
+          {/* h-80 (hoặc 320px) là chiều cao cố định cho biểu đồ */}
+          {(trendView === "week" && bookings7d.length > 0) ||
+          (trendView === "month" && bookings30d.length > 0) ? (
+            <Bar options={chartOptions} data={chartData} />
+          ) : (
+            // Thông báo nếu không có dữ liệu
+            <div className="text-center py-10">
+              <AlertCircle size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-base font-semibold text-gray-900">
+                Chưa có dữ liệu
+              </h3>
+              <p className="text-sm text-gray-500 mt-2">
+                {trendView === "month"
+                  ? "Không có dữ liệu 30 ngày để hiển thị."
+                  : "Khi có đặt lịch, biểu đồ xu hướng 7 ngày sẽ hiển thị tại đây."}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* ===== KẾT THÚC KHU VỰC THAY THẾ ===== */}
+
+      {/* --- PHẦN LỊCH HẸN HÔM NAY & PHẢN HỒI GỐC (GIỮ NGUYÊN) --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Hôm nay theo trạng thái */}
         <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
@@ -235,7 +435,9 @@ const ClinicDashboard = () => {
                   >
                     <div className="flex items-center gap-3">
                       <Icon size={22} className={meta.tone} />
-                      <span className={`text-xs font-bold px-2 py-1 rounded ${meta.pill}`}>
+                      <span
+                        className={`text-xs font-bold px-2 py-1 rounded ${meta.pill}`}
+                      >
                         {meta.label}
                       </span>
                     </div>
@@ -265,7 +467,11 @@ const ClinicDashboard = () => {
                   <Star
                     key={i}
                     size={18}
-                    className={i < Math.round(avgRating) ? "text-yellow-500" : "text-gray-300"}
+                    className={
+                      i < Math.round(avgRating)
+                        ? "text-yellow-500"
+                        : "text-gray-300"
+                    }
                     fill={i < Math.round(avgRating) ? "currentColor" : "none"}
                   />
                 ))}
@@ -277,50 +483,10 @@ const ClinicDashboard = () => {
           </div>
 
           <p className="text-xs text-gray-500 mt-3">
-            Điểm trung bình và tổng số đánh giá từ tất cả bác sĩ thuộc hệ thống phòng khám của bạn.
+            Điểm trung bình và tổng số đánh giá từ tất cả bác sĩ thuộc hệ thống
+            phòng khám của bạn.
           </p>
         </div>
-      </div>
-
-      {/* Xu hướng 7 ngày */}
-      <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Xu hướng 7 ngày</h2>
-        {bookings7d.length === 0 ? (
-          <div className="text-center py-10">
-            <AlertCircle size={48} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-base font-semibold text-gray-900">Chưa có dữ liệu</h3>
-            <p className="text-sm text-gray-500 mt-2">
-              Khi có đặt lịch, biểu đồ xu hướng 7 ngày sẽ hiển thị tại đây.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Ngày (UTC)
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Tổng lịch
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Hoàn thành
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings7d.map((d) => (
-                  <tr key={d.date} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{d.date}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{numberFormat(d.total || 0)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{numberFormat(d.completed || 0)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );

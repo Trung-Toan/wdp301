@@ -228,7 +228,7 @@ export default function ManageAccounts() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Quản lý tài khoản ADMIN_CLINIC</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Quản lý tài khoản </h1>
       </div>
 
       {/* Bộ lọc */}

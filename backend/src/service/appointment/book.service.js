@@ -189,13 +189,11 @@ async function createAsync(payload) {
         slot_id, doctor_id, patient_id, specialty_id, clinic_id,
         full_name, phone, email, dob, gender,
         province_code, ward_code, address_text, reason,
-        scheduled_date, // Thêm scheduled_date để kiểm tra theo ngày
-        // Thông tin người thân (cho người già)
+        scheduled_date,
         relative_name, relative_phone, relative_relationship,
         is_elderly, patient_age
     } = payload;
 
-    //Auto-assign doctor nếu không có doctor_id ***
     let autoAssignedDoctor = false;
     if (!doctor_id && clinic_id) {
         console.log("🤖 Auto-assigning doctor for clinic:", clinic_id);
@@ -210,7 +208,6 @@ async function createAsync(payload) {
             );
 
             doctor_id = doctorAssignment.doctor_id;
-            // Nếu không có slot_id được chọn, dùng slot tự động tìm được
             if (!slot_id) {
                 slot_id = doctorAssignment.slot_id;
             }
@@ -221,20 +218,16 @@ async function createAsync(payload) {
         }
     }
 
-    // Validate required fields (doctor_id bây giờ có thể được auto-assign)
+    // Validate required fields
     if (!slot_id || !doctor_id || !patient_id || !full_name || !phone || !email) {
         throw new Error("Missing required fields");
     }
 
     // Validate ObjectIds
     if (!Types.ObjectId.isValid(slot_id)) throw new Error("Invalid slot_id");
-
     if (!Types.ObjectId.isValid(doctor_id)) throw new Error("Invalid doctor_id");
-
     if (!Types.ObjectId.isValid(patient_id)) throw new Error("Invalid patient_id");
-
     if (specialty_id && !Types.ObjectId.isValid(specialty_id)) throw new Error("Invalid specialty_id");
-
     if (clinic_id && !Types.ObjectId.isValid(clinic_id)) throw new Error("Invalid clinic_id");
 
     const session = await mongoose.startSession();
@@ -244,37 +237,29 @@ async function createAsync(payload) {
         await session.withTransaction(async () => {
             // 1) Kiểm tra slot availability theo ngày
             const targetDate = scheduled_date ? new Date(scheduled_date) : new Date();
-
             const slotAvailability = await checkSlotAvailability(slot_id, targetDate);
 
             if (!slotAvailability.isAvailable) {
                 throw new Error(slotAvailability.reason);
             }
 
-            // 2) Kiểm tra slot cơ bản
-            const slot = await Slot.findById(slot_id).session(session).lean();
-
+            // 2) Lấy slot
+            // NOTE: lấy không-lean để đảm bảo chúng ta có giá trị slot.max_patients, booked_count
+            const slot = await Slot.findById(slot_id).session(session);
             if (!slot) throw new Error("Slot not found");
-
             if (slot.status !== "AVAILABLE") throw new Error("Slot is unavailable");
 
-            // 2.1) Kiểm tra doctor tồn tại và active TRƯỚC KHI kiểm tra slot
-            // Note: status is in Account, not Doctor, so we need to populate
+            // 2.1) Kiểm tra doctor tồn tại và active
             const doctor = await Doctor.findById(doctor_id)
                 .populate({
                     path: "user_id",
                     select: "account_id",
-                    populate: {
-                        path: "account_id",
-                        select: "status",
-                        model: "Account"
-                    }
+                    populate: { path: "account_id", select: "status", model: "Account" }
                 })
                 .session(session)
                 .lean();
             if (!doctor) throw new Error("Không tìm thấy bác sĩ");
 
-            // Check status from Account
             const account = doctor.user_id?.account_id;
             if (!account || account.status !== "ACTIVE") {
                 throw new Error("Bác sĩ không hoạt động");
@@ -287,20 +272,14 @@ async function createAsync(payload) {
 
             // 3) Kiểm tra bệnh nhân đã có lịch trong slot này CÙNG NGÀY chưa
             const startOfDay = new Date(targetDate);
-
             startOfDay.setHours(0, 0, 0, 0);
-
             const endOfDay = new Date(targetDate);
-
             endOfDay.setHours(23, 59, 59, 999);
 
             const existingAppointment = await Appointment.findOne({
                 slot_id: new Types.ObjectId(slot_id),
                 patient_id: new Types.ObjectId(patient_id),
-                scheduled_date: {
-                    $gte: startOfDay,
-                    $lte: endOfDay
-                },
+                scheduled_date: { $gte: startOfDay, $lte: endOfDay },
                 status: { $in: ["SCHEDULED", "COMPLETED"] }
             }).session(session);
 
@@ -314,18 +293,51 @@ async function createAsync(payload) {
 
             // 4.5) Nếu không có clinic_id, lấy từ doctor
             if (!clinic_id && doctor_id) {
-                const doctor = await Doctor.findById(doctor_id).session(session).select("clinic_id").lean();
-                if (doctor && doctor.clinic_id) {
-                    clinic_id = doctor.clinic_id;
+                const doc = await Doctor.findById(doctor_id).session(session).select("clinic_id").lean();
+                if (doc && doc.clinic_id) {
+                    clinic_id = doc.clinic_id;
                     console.log("✅ Auto-retrieved clinic_id from doctor:", clinic_id);
                 }
+            }
+
+            // ========================
+            // NEW: kiểm tra giới hạn slot và tăng booked_count một cách an toàn
+            // ========================
+
+            // Nếu slot.max_patients không có (undefined/null), ta vẫn cho phép (không giới hạn)
+            if (typeof slot.max_patients === "number") {
+                // Dùng updateOne có điều kiện để tránh race condition:
+                const updateResult = await Slot.updateOne(
+                    { _id: slot_id, booked_count: { $lt: slot.max_patients } },
+                    { $inc: { booked_count: 1 } },
+                    { session }
+                );
+
+                // Nếu không có document nào được cập nhật => slot đầy
+                if (updateResult.modifiedCount === 0 && updateResult.matchedCount === 0) {
+                    // matchedCount === 0 có nghĩa filter không match (có thể slot không tồn tại) -> lỗi chung
+                    throw new Error("Slot is full");
+                }
+
+                // Nếu matchedCount >0 nhưng modifiedCount === 0, có thể booked_count already == max_patients
+                if (updateResult.modifiedCount === 0 && updateResult.matchedCount > 0) {
+                    throw new Error("Slot is full");
+                }
+
+                // Lúc này booked_count đã tăng tạm thời trong transaction.
+            } else {
+                // Nếu không có max_patients (không giới hạn), ta chỉ tăng booked_count để thống kê (không cần điều kiện)
+                await Slot.updateOne(
+                    { _id: slot_id },
+                    { $inc: { booked_count: 1 } },
+                    { session }
+                );
             }
 
             // 5) Tạo appointment
             const booking_code = randomBookingCode();
             const fee_amount = Number(slot.fee_amount ?? 0);
 
-            // Helper để lấy phần ngày (bỏ giờ)
             const dateOnlyUTC = (d) => {
                 return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
             };
@@ -337,7 +349,6 @@ async function createAsync(payload) {
                 booking_code,
                 fee_amount,
                 scheduled_date: scheduled_date ? dateOnlyUTC(new Date(scheduled_date)) : dateOnlyUTC(new Date(slot.start_time)),
-                // Thông tin người thân (cho người già)
                 ...(is_elderly && {
                     relative_name: relative_name || null,
                     relative_phone: relative_phone || null,
@@ -398,8 +409,8 @@ async function createAsync(payload) {
                     start_time: slot.start_time,
                     end_time: slot.end_time,
                     max_patients: slot.max_patients,
-                    booked_count: slotAvailability.bookedCount + 1,
-                    remaining_slots: slotAvailability.remainingSlots - 1
+                    booked_count: (slotAvailability.bookedCount ?? 0) + 1,
+                    remaining_slots: (slotAvailability.remainingSlots ?? (slot.max_patients ? slot.max_patients - (slotAvailability.bookedCount ?? 0) : null)) - 1
                 }
             };
         });

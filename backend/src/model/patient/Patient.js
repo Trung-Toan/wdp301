@@ -27,9 +27,7 @@ patientSchema.pre("save", async function (next) {
     const existing = await this.constructor.findOne({ patient_code: randomCode });
     if (!existing) unique = true;
   }
-
   this.patient_code = randomCode;
-  console.log(" Sinh mã bệnh nhân:", this.patient_code);
   next();
 });
 

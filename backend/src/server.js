@@ -58,7 +58,6 @@ app.use("/api/patient", patientRoutes);
 app.use("/api/patient", medicalRecordRoutes);
 app.use("/api/user", userRoutes);
 
-app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use("/api/admin_clinic", adminClinic);
 app.use("/api/admin-system", adminSystemRoutes);

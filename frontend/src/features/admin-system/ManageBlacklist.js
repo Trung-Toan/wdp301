@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { adminSystemAPI } from "../../api/admin-system/adminSystemAPI"
 import ConfirmModal from "./ConfirmModal"

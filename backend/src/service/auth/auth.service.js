@@ -27,7 +27,6 @@ const User = require('../../model/user/User');
 
 const SALT_ROUNDS = 12;
 const randomToken = (bytes = 48) => crypto.randomBytes(bytes).toString('hex');
-const hashPassword = (s) => bcrypt.hash(s, SALT_ROUNDS);
 const comparePassword = (s, h) => bcrypt.compare(s, h);
 const hashOpaque = (s) => bcrypt.hash(s, SALT_ROUNDS);
 const compareOpaque = (s, h) => bcrypt.compare(s, h);
@@ -38,13 +37,11 @@ const fpRefresh = (token) => crypto.createHash('sha256').update(token).digest('h
 
 exports.registerPatients = async ({ username, email, password, phone_number, role }) => {
     const emailNorm = (email || '').trim().toLowerCase();
-    const hash = await hashPassword(password);
-
     const acc = await Account.create({
         username: username.trim(),
         email: emailNorm,
         phone_number: phone_number?.trim(),
-        password: hash,
+        password,
         role: role || 'PATIENT',
         status: 'ACTIVE',
         email_verified: false,
@@ -73,13 +70,12 @@ exports.registerPatients = async ({ username, email, password, phone_number, rol
 
 exports.registerClinicOwner = async ({ username, email, password, phone_number, role }) => {
     const emailNorm = (email || '').trim().toLowerCase();
-    const hash = await hashPassword(password);
 
     const acc = await Account.create({
         username: username.trim(),
         email: emailNorm,
         phone_number: phone_number?.trim(),
-        password: hash,
+        password,
         role: role || 'ADMIN_CLINIC',
         status: 'PENDING',
         email_verified: false,
@@ -385,8 +381,7 @@ exports.resetPassword = async ({ token, newPassword, accountId }) => {
     if (!matched) throw new Error('Invalid token');
     if (matched.expires_at <= new Date()) throw new Error('Token expired');
 
-    const newHash = await hashPassword(newPassword);
-    await Account.findByIdAndUpdate(matched.account_id, { $set: { password: newHash } });
+    await Account.findByIdAndUpdate(matched.account_id, { $set: { password: newPassword } });
 
     await Session.updateMany(
         { account_id: matched.account_id, revoked_at: { $exists: false } },

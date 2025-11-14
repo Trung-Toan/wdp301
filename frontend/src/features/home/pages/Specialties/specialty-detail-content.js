@@ -53,6 +53,7 @@ export default function SpecialtyDetail() {
                 });
 
                 const data = doctorRes.data;
+                console.log("Doctor by Specialty Data:", data);
                 setDoctors(data.items || []);
                 setTotalPages(data.meta?.totalPages || 1);
             } catch (error) {

@@ -10,7 +10,6 @@ const doctorSchema = new Schema(
     clinic_id: {
       type: Schema.Types.ObjectId,
       ref: "Clinic",
-      index: true,
     },
     specialty_id: [
       {
@@ -23,7 +22,6 @@ const doctorSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
   },
   { timestamps: true }

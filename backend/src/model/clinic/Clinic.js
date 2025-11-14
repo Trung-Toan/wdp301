@@ -73,7 +73,6 @@ const clinicSchema = new Schema(
 clinicSchema.index({ "address.province.code": 1, "address.ward.code": 1 });
 clinicSchema.index({ name: 1 });
 clinicSchema.index({ status: 1 });
-clinicSchema.index({ specialties: 1 });
 clinicSchema.index({ created_by: 1 });
 
 clinicSchema.pre("save", function (next) {
