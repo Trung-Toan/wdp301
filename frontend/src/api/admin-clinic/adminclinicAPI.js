@@ -54,7 +54,7 @@ export const adminclinicAPI = {
   },
 
   //tạo tài khoản trợ lý cho bác sĩ
-  createAccountAssistant: (data) => {    
+  createAccountAssistant: (data) => {
     console.log("payload: ", data);
     return axiosInstance.post("/admin_clinic/create_assistant", data);
   },
@@ -64,12 +64,7 @@ export const adminclinicAPI = {
     return axiosInstance.get("/admin_clinic/get_assistants");
   },
 
-  //xoá trợ lý theo id
-  deleteAssistant: (assistantId, status) => {
-    return axiosInstance.put(
-      `/admin_clinic/delete_assistant/${assistantId}&status=${status}`
-    );
-  },
+  
   //cập nhật trợ lý
   updateAssistant: (payload) => {
     const { assistant_id, ...rest } = payload;
@@ -94,8 +89,19 @@ export const adminclinicAPI = {
     return axiosInstance.put("/admin_clinic/update_clinic", data);
   },
 
+  //xoá trợ lý theo id
+  deleteAssistant: (assistantId, status) => {
+    console.log("status: ", status);
+    return axiosInstance.put(
+      `/admin_clinic/delete_assistant/${assistantId}?status=${status}`
+    );
+  },
+
   //xóa tài khoản bác sĩ
   deleteDoctor: (doctorId, status) => {
-    return axiosInstance.put(`/admin_clinic/delete_doctor/${doctorId}&status=${status}`);
+    console.log("status: ", status);
+    return axiosInstance.put(
+      `/admin_clinic/delete_doctor/${doctorId}?status=${status}`
+    );
   },
 };

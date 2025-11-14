@@ -406,7 +406,7 @@ const DoctorManagement = () => {
     setShowDetailModal(true);
   };
 
-  const handleDeleteDoctor = async (id, status) => {
+  const handleDeleteDoctor = async (id, status ) => {
     if (
       !window.confirm(
         "Bạn có muốn khóa tài khoản này không?"
@@ -414,6 +414,7 @@ const DoctorManagement = () => {
     ) {
       return;
     }
+    status = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
       const res = await adminclinicAPI.deleteDoctor(id, status);
       if (res?.data?.ok) {

@@ -21,60 +21,99 @@ exports.dashboard = async (req, res, next) => {
   try {
     const accountId = req.user?.sub;
     const data = await adminClinicService.getDashboard(accountId);
-    return resUtils.successResponse(res, data, "Lấy dữ liệu dashboard thành công");
+    return resUtils.successResponse(
+      res,
+      data,
+      "Lấy dữ liệu dashboard thành công"
+    );
   } catch (err) {
-    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      err.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
 
 exports.updateDoctorClinic = async (req, res, next) => {
   try {
-    const {doctor_id, clinic_id} =  req.body;
+    const { doctor_id, clinic_id } = req.body;
     const doctor = await doctorService.findDoctorById(doctor_id);
     if (!doctor) {
       return resUtils.serverErrorResponse(res, error, "Bác sĩ không tồn tại");
     }
     const data = await adminClinicService.updateDoctorClinic(doctor, clinic_id);
-    return resUtils.successResponse(res, data, "Cập nhật phòng khám cho bác sĩ thành công");
+    return resUtils.successResponse(
+      res,
+      data,
+      "Cập nhật phòng khám cho bác sĩ thành công"
+    );
   } catch (err) {
-    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      err.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
 
 exports.updateDoctorSpecialties = async (req, res, next) => {
   try {
-    const {doctor_id, specialty_id} =  req.body;
+    const { doctor_id, specialty_id } = req.body;
     const doctor = await doctorService.findDoctorById(doctor_id);
     if (!doctor) {
       return resUtils.serverErrorResponse(res, error, "Bác sĩ không tồn tại");
     }
-    const data = await adminClinicService.updateDoctorSpecialties(doctor, specialty_id);
-    return resUtils.successResponse(res, data, "Cập nhật chuyên khoa cho bác sĩ thành công");
+    const data = await adminClinicService.updateDoctorSpecialties(
+      doctor,
+      specialty_id
+    );
+    return resUtils.successResponse(
+      res,
+      data,
+      "Cập nhật chuyên khoa cho bác sĩ thành công"
+    );
   } catch (err) {
-    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      err.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
 exports.updateAssistant = async (req, res) => {
   try {
     const ass_id = req.params.id;
-    const payload =  req.body;
+    const payload = req.body;
 
     // Nếu payload rỗng thì báo lỗi sớm (tránh update rỗng)
     if (!payload || Object.keys(payload).length === 0) {
-      return resUtils.badRequestResponse?.(res, "Không có dữ liệu để cập nhật") 
-        || res.status(400).json({ ok: false, message: "Không có dữ liệu để cập nhật" });
+      return (
+        resUtils.badRequestResponse?.(res, "Không có dữ liệu để cập nhật") ||
+        res
+          .status(400)
+          .json({ ok: false, message: "Không có dữ liệu để cập nhật" })
+      );
     }
 
     const assistant = await assistantService.findAssistantById(ass_id);
-    if (!assistant) return resUtils.notFoundResponse(res, "Không tìm thấy trợ lý");
+    if (!assistant)
+      return resUtils.notFoundResponse(res, "Không tìm thấy trợ lý");
 
     const data = await adminClinicService.updateAssistant(assistant, payload);
-    return resUtils.successResponse(res, data, "Cập nhật chuyên khoa cho bác sĩ thành công");
+    return resUtils.successResponse(
+      res,
+      data,
+      "Cập nhật chuyên khoa cho bác sĩ thành công"
+    );
   } catch (err) {
-    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      err.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
-
 
 exports.getAllBlackList = async (req, res, next) => {
   try {
@@ -84,8 +123,8 @@ exports.getAllBlackList = async (req, res, next) => {
       q = "",
       page = "1",
       limit = "20",
-      clinic_id,          // optional
-      scope = "mine",     // "mine" (mặc định) | "all"
+      clinic_id, // optional
+      scope = "mine", // "mine" (mặc định) | "all"
     } = req.query;
 
     const data = await adminClinicService.getAllBlackList(accountId, {
@@ -96,9 +135,17 @@ exports.getAllBlackList = async (req, res, next) => {
       scope: scope === "all" ? "all" : "mine",
     });
 
-    return resUtils.successResponse(res, data, "Lấy dữ liệu danh sách đen thành công");
+    return resUtils.successResponse(
+      res,
+      data,
+      "Lấy dữ liệu danh sách đen thành công"
+    );
   } catch (err) {
-    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      err.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
 
@@ -110,16 +157,16 @@ exports.feedback = async (req, res, next) => {
 
     // Các filter từ query
     const {
-      q,                    // từ khóa tìm kiếm: comment / tên bệnh nhân / tên bác sĩ / tên cơ sở
-      bucket,               // "positive" | "neutral" | "negative"
-      rating,               // "1", "4,5", ...
-      doctor_id,            // 1 ID hoặc nhiều ID (comma)
-      clinic_id,            // 1 ID (chỉ các clinic thuộc admin)
-      start_date,           // YYYY-MM-DD
-      end_date,             // YYYY-MM-DD (inclusive)
-      page = "1",           // trang
-      limit = "15",         // kích thước trang
-      sort = "newest",      // newest | oldest | rating_desc | rating_asc
+      q, // từ khóa tìm kiếm: comment / tên bệnh nhân / tên bác sĩ / tên cơ sở
+      bucket, // "positive" | "neutral" | "negative"
+      rating, // "1", "4,5", ...
+      doctor_id, // 1 ID hoặc nhiều ID (comma)
+      clinic_id, // 1 ID (chỉ các clinic thuộc admin)
+      start_date, // YYYY-MM-DD
+      end_date, // YYYY-MM-DD (inclusive)
+      page = "1", // trang
+      limit = "15", // kích thước trang
+      sort = "newest", // newest | oldest | rating_desc | rating_asc
     } = req.query;
 
     const filters = {
@@ -136,9 +183,17 @@ exports.feedback = async (req, res, next) => {
     };
 
     const data = await adminClinicService.getFeedback(adminClinic._id, filters);
-    return resUtils.successResponse(res, data, "Lấy dữ liệu feedback thành công");
+    return resUtils.successResponse(
+      res,
+      data,
+      "Lấy dữ liệu feedback thành công"
+    );
   } catch (err) {
-    return resUtils.serverErrorResponse(res, err.message || "Có lỗi xảy ra", 500);
+    return resUtils.serverErrorResponse(
+      res,
+      err.message || "Có lỗi xảy ra",
+      500
+    );
   }
 };
 
@@ -170,7 +225,9 @@ exports.createAccountDoctor = async (req, res, next) => {
       if (!clinicResult.ok) return res.status(400).json(clinicResult);
       clinicId = clinicResult.data._id;
     }
-    const rawSpec = Array.isArray(req.body?.specialty_id) ? req.body.specialty_id : [];
+    const rawSpec = Array.isArray(req.body?.specialty_id)
+      ? req.body.specialty_id
+      : [];
     const specialty_id = [...new Set(rawSpec.map(String))].filter(Boolean);
     const payload = { ...req.body, clinic_id: clinicId, specialty_id };
     const result = await createDoctor(payload);
@@ -242,7 +299,9 @@ exports.createAccountAssistant = async (req, res, next) => {
     // FE có thể gửi roles[] hoặc type[] → gộp & chuẩn hoá sang type[] (unique + sạch)
     const rolesArr = Array.isArray(req.body?.roles) ? req.body.roles : [];
     const typeArr = Array.isArray(req.body?.type) ? req.body.type : [];
-    const type = [...new Set([...rolesArr, ...typeArr].map(String))].filter(Boolean);
+    const type = [...new Set([...rolesArr, ...typeArr].map(String))].filter(
+      Boolean
+    );
 
     const payload = { ...req.body, clinic_id: clinic._id, type };
 
@@ -294,12 +353,17 @@ exports.getAssistants = async (req, res, next) => {
 // Xoá trợ lý theo clinic mà admin_clinic đang quản lý
 exports.deleteAssistant = async (req, res) => {
   try {
-    const {status} = req.query;
+    const { status } = req.query;
+    console.log("status: ", status);
+
     if (!status) {
-      return resUtils.badRequestResponse(res, "Thiếu tham số status");
+      return resUtils.badRequestResponse(res, "Thiếu tham số trạng thái");
     }
     if (status !== "INACTIVE" && status !== "ACTIVE") {
-      return resUtils.badRequestResponse(res, "Tham số status không hợp lệ");
+      return resUtils.badRequestResponse(
+        res,
+        "Tham số trạng thái không hợp lệ"
+      );
     }
     const deleted = await deleteAssistantSvc(req.params.id, status);
     return resUtils.successResponse(res, deleted, "Xoá trợ lý thành công");
@@ -311,19 +375,24 @@ exports.deleteAssistant = async (req, res) => {
 // Xoá bác sĩ (bao gồm Doctor, User, Account)
 exports.deleteDoctor = async (req, res) => {
   try {
-    const {status} = req.query;
+    const { status } = req.query;
+    console.log("status: ", status);
+
     if (!status) {
-      return resUtils.badRequestResponse(res, "Thiếu tham số status");
+      return resUtils.badRequestResponse(res, "Thiếu tham số trạng thái");
     }
     if (status !== "INACTIVE" && status !== "ACTIVE") {
-      return resUtils.badRequestResponse(res, "Tham số status không hợp lệ");
+      return resUtils.badRequestResponse(
+        res,
+        "Tham số trạng thái không hợp lệ"
+      );
     }
     const deleted = await deleteDoctorSvc(req.params.id, status);
     return resUtils.successResponse(res, deleted, "Xoá bác sĩ thành công");
   } catch (err) {
     return resUtils.serverErrorResponse(res, err, "Xoá bác sĩ thất bại");
   }
-}
+};
 
 // Lấy danh sách giấy phép bác sĩ đang chờ duyệt (PENDING)
 exports.getPendingLicenses = async (req, res, next) => {

@@ -271,7 +271,7 @@ const AssistantManagement = () => {
   });
 
   const { mutate: deleteAssistant, isLoading: deletingAssistant } = useMutation({
-    mutationFn: (id) => adminclinicAPI.deleteAssistant(id),
+    mutationFn: ({id, status}) => adminclinicAPI.deleteAssistant(id, status),
     onSuccess: () => {
       toast.success("Đã xoá trợ lý");
       queryClient.invalidateQueries({ queryKey: ["assistants-of-admin-clinic"] });
@@ -311,9 +311,10 @@ const AssistantManagement = () => {
   });
 
   // ===== Handlers =====
-  const handleDeleteAssistant = (id, status) => {
+  const handleDeleteAssistant = (id, status ) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
-    deleteAssistant(id, status);
+    status = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    deleteAssistant({ id, status });
   };
 
   const handleOpenCreate = () => {
