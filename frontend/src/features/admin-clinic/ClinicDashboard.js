@@ -149,23 +149,21 @@ const ClinicDashboard = () => {
           <Link
             key={index}
             to={card.link}
-            className={`p-5 bg-white rounded-lg border-l-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all ${
-              card.color === "blue"
+            className={`p-5 bg-white rounded-lg border-l-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all ${card.color === "blue"
                 ? "border-l-blue-500"
                 : card.color === "green"
-                ? "border-l-green-500"
-                : "border-l-orange-500"
-            }`}
+                  ? "border-l-green-500"
+                  : "border-l-orange-500"
+              }`}
           >
             <div className="flex items-start gap-4 mb-3">
               <div
-                className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  card.color === "blue"
+                className={`w-12 h-12 rounded-lg flex items-center justify-center ${card.color === "blue"
                     ? "bg-blue-100 text-blue-600"
                     : card.color === "green"
-                    ? "bg-green-100 text-green-600"
-                    : "bg-orange-100 text-orange-600"
-                }`}
+                      ? "bg-green-100 text-green-600"
+                      : "bg-orange-100 text-orange-600"
+                  }`}
               >
                 {card.icon}
               </div>
@@ -180,9 +178,8 @@ const ClinicDashboard = () => {
             </div>
             {typeof card.change === "number" && card.change !== 0 && (
               <div
-                className={`flex items-center gap-1 text-xs font-medium ${
-                  card.change >= 0 ? "text-green-600" : "text-red-600"
-                }`}
+                className={`flex items-center gap-1 text-xs font-medium ${card.change >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
               >
                 {card.change >= 0 ? (
                   <TrendingUp size={16} />
