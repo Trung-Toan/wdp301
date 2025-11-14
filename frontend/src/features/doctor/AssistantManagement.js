@@ -22,15 +22,18 @@ const AssistantManagement = () => {
       const res = await doctorApi.getAssistants(search, page);
       if (res.data?.ok) {
         const parsed = res.data.data.map((item) => {
-          const a = item.assistant;
-          const user = a.user || {};
-          const account = user.account || {};
+          const assistant = item.assistant;
+          const user = item.user || {};
+          const account = item.account || {};
           return {
-            _id: a._id,
+            _id: assistant._id,
+            type: assistant.type || [],
             name: user.full_name || account.username || "Chưa có tên",
+            gender: user.gender || "Chưa xác định",
             email: account.email || "Không có email",
+            phone_number: account.phone_number || "Không có số điện thoại",
             status: account.status || "INACTIVE",
-            createdAt: a.createdAt,
+            createdAt: assistant.createdAt,
           };
         });
         setAssistants(parsed);
@@ -71,7 +74,7 @@ const AssistantManagement = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen space-y-6">
       <h1 className="text-2xl font-bold text-blue-700 flex items-center gap-2">
-        <UserCog size={26} /> Quản lý tài khoản trợ lý
+        <UserCog size={26} /> Trợ lý của tôi
       </h1>
 
       {message && (
@@ -112,7 +115,10 @@ const AssistantManagement = () => {
               <thead>
                 <tr className="bg-blue-50 text-blue-700 font-semibold text-left">
                   <th className="p-3">Họ và tên</th>
+                  <th className="p-3">Giới tính</th>
                   <th className="p-3">Email</th>
+                  <th className="p-3">Số điện thoại</th>
+                  <th className="p-3">Loại trợ lý</th>
                   <th className="p-3">Trạng thái</th>
                   <th className="p-3">Ngày tạo</th>
                 </tr>
@@ -123,8 +129,46 @@ const AssistantManagement = () => {
                     key={a._id}
                     className="border-b hover:bg-gray-50 transition"
                   >
+                    {/* Họ và tên */}
                     <td className="p-3 font-medium text-gray-800">{a.name}</td>
+
+                    {/* Giới tính */}
+                    <td className="p-3 text-gray-600">
+                      {a.gender === "MALE"
+                        ? "Nam"
+                        : a.gender === "FEMALE"
+                        ? "Nữ"
+                        : a.gender}
+                    </td>
+
+                    {/* Email */}
                     <td className="p-3 text-gray-600">{a.email}</td>
+
+                    {/* Số điện thoại */}
+                    <td className="p-3 text-gray-600">{a.phone_number}</td>
+
+                    {/* Loại trợ lý (NURSE / RECEPTIONIST) */}
+                    <td className="p-3">
+                      <div className="flex gap-1 flex-wrap">
+                        {a.type.includes("NURSE") && (
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                            Y tá
+                          </span>
+                        )}
+                        {a.type.includes("RECEPTIONIST") && (
+                          <span className="px-2 py-1 bg-teal-100 text-teal-700 text-xs font-medium rounded-full">
+                            Chăm sóc KH
+                          </span>
+                        )}
+                        {a.type.length === 0 && (
+                          <span className="text-gray-400 text-xs italic">
+                            Không xác định
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Trạng thái */}
                     <td className="p-3">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -136,6 +180,8 @@ const AssistantManagement = () => {
                         {a.status === "ACTIVE" ? "Hoạt động" : "Khóa"}
                       </span>
                     </td>
+
+                    {/* Ngày tạo */}
                     <td className="p-3 text-gray-500">
                       {new Date(a.createdAt).toLocaleDateString("vi-VN")}
                     </td>
@@ -149,17 +195,17 @@ const AssistantManagement = () => {
               <button
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
-                className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Trước
               </button>
               <span className="text-sm text-gray-700">
-                {pagination.page} / {pagination.totalPages}
+                Trang {pagination.page} / {pagination.totalPages}
               </span>
               <button
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page === pagination.totalPages}
-                className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                className="px-3 py-1 border rounded-lg text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Sau
               </button>

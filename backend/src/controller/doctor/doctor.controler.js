@@ -485,7 +485,6 @@ exports.viewListAssistants = async (req, res) => {
     const { assistants, pagination } = await assistantService.getListAssistants(
       req
     );
-
     return resUtils.paginatedResponse(
       res,
       assistants,
