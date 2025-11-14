@@ -335,66 +335,6 @@ const ClinicDashboard = () => {
         ))}
       </div>
 
-      {/* ===== KHU VỰC ĐÃ THAY THẾ: BIỂU ĐỒ ===== */}
-      <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
-        {/* Header với nút Tuần/Tháng */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-900">
-            Xu hướng lịch khám
-          </h3>
-          {/* Nút chuyển đổi view */}
-          <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg mt-2 sm:mt-0">
-            <button
-              onClick={() => setTrendView("week")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
-                ${
-                  trendView === "week"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }
-              `}
-            >
-              Theo tuần
-            </button>
-            <button
-              onClick={() => setTrendView("month")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
-                ${
-                  trendView === "month"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }
-              `}
-            >
-              Theo tháng
-            </button>
-          </div>
-        </div>
-
-        {/* Vùng chứa biểu đồ */}
-        <div className="h-80 relative">
-          {/* h-80 (hoặc 320px) là chiều cao cố định cho biểu đồ */}
-          {(trendView === "week" && bookings7d.length > 0) ||
-          (trendView === "month" && bookings30d.length > 0) ? (
-            <Bar options={chartOptions} data={chartData} />
-          ) : (
-            // Thông báo nếu không có dữ liệu
-            <div className="text-center py-10">
-              <AlertCircle size={48} className="mx-auto text-gray-300 mb-4" />
-              <h3 className="text-base font-semibold text-gray-900">
-                Chưa có dữ liệu
-              </h3>
-              <p className="text-sm text-gray-500 mt-2">
-                {trendView === "month"
-                  ? "Không có dữ liệu 30 ngày để hiển thị."
-                  : "Khi có đặt lịch, biểu đồ xu hướng 7 ngày sẽ hiển thị tại đây."}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-      {/* ===== KẾT THÚC KHU VỰC THAY THẾ ===== */}
-
       {/* --- PHẦN LỊCH HẸN HÔM NAY & PHẢN HỒI GỐC (GIỮ NGUYÊN) --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Hôm nay theo trạng thái */}
@@ -488,6 +428,66 @@ const ClinicDashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* ===== KHU VỰC ĐÃ THAY THẾ: BIỂU ĐỒ ===== */}
+      <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+        {/* Header với nút Tuần/Tháng */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+          <h3 className="text-lg font-bold text-gray-900">
+            Xu hướng lịch khám
+          </h3>
+          {/* Nút chuyển đổi view */}
+          <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg mt-2 sm:mt-0">
+            <button
+              onClick={() => setTrendView("week")}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
+                ${
+                  trendView === "week"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }
+              `}
+            >
+              Theo tuần
+            </button>
+            <button
+              onClick={() => setTrendView("month")}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
+                ${
+                  trendView === "month"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }
+              `}
+            >
+              Theo tháng
+            </button>
+          </div>
+        </div>
+
+        {/* Vùng chứa biểu đồ */}
+        <div className="h-80 relative">
+          {/* h-80 (hoặc 320px) là chiều cao cố định cho biểu đồ */}
+          {(trendView === "week" && bookings7d.length > 0) ||
+          (trendView === "month" && bookings30d.length > 0) ? (
+            <Bar options={chartOptions} data={chartData} />
+          ) : (
+            // Thông báo nếu không có dữ liệu
+            <div className="text-center py-10">
+              <AlertCircle size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-base font-semibold text-gray-900">
+                Chưa có dữ liệu
+              </h3>
+              <p className="text-sm text-gray-500 mt-2">
+                {trendView === "month"
+                  ? "Không có dữ liệu 30 ngày để hiển thị."
+                  : "Khi có đặt lịch, biểu đồ xu hướng 7 ngày sẽ hiển thị tại đây."}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* ===== KẾT THÚC KHU VỰC THAY THẾ ===== */}
     </div>
   );
 };

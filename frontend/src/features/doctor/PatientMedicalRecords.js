@@ -178,11 +178,11 @@ const PatientMedicalRecords = () => {
   };
 
   // Cập nhật: Dùng refetchList và đóng modal
-  const handleVerifyPrescription = async (recordId) => {
+  const handleVerifyPrescription = async (recordId, status) => {
     if (!recordId) return;
 
     try {
-      const res = await doctorApi.verifyMedicalRecord(recordId, "VERIFIED");
+      const res = await doctorApi.verifyMedicalRecord(recordId, status);
 
       if (res.data?.ok) {
         toast.success("Phê duyệt đơn thuốc thành công!");
@@ -193,7 +193,7 @@ const PatientMedicalRecords = () => {
             ...prev.medical_record,
             prescription: {
               ...prev.medical_record.prescription,
-              status: "VERIFIED",
+              status: status,
               verified_at: new Date().toISOString(),
             },
           },
@@ -621,16 +621,19 @@ const PatientMedicalRecords = () => {
                           <div className="mt-6 flex flex-wrap justify-end gap-3 border-t pt-4">
                             <button
                               onClick={() =>
-                                handleVerifyPrescription(
-                                  selectedRecord?.medical_record?._id
-                                )
+                                handleVerifyPrescription(selectedRecord?.medical_record?._id, "VERIFIED")
                               }
                               className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-green-500/30 transition hover:bg-green-700"
                             >
                               <CheckCircle className="h-4 w-4" />
                               Phê duyệt đơn thuốc
                             </button>
-                            <button className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-red-500/30 transition hover:bg-red-700">
+                            <button 
+                              onClick={() =>
+                                handleVerifyPrescription(selectedRecord?.medical_record?._id, "REJECTED")
+                              }
+                              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-red-500/30 transition hover:bg-red-700"
+                            >
                               <XCircle className="h-4 w-4" />
                               Yêu cầu làm lại
                             </button>

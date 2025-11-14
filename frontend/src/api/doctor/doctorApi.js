@@ -50,10 +50,7 @@ export const doctorApi = {
 
   //duyệt đơn thuốc
   verifyMedicalRecord: (id, status, data = {}) =>
-    axiosInstance.put(
-      `/doctor/verify/medical-records/${id}?status=${status}`,
-      data
-    ),
+    axiosInstance.put(`/doctor/verify/medical-records/${id}?status=${status}`,data),
 
   //tìm hồ sơ bệnh án theo mã bệnh nhân
   searchMedicalRecords: (search) =>
