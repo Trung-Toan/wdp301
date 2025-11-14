@@ -272,7 +272,7 @@ const AssistantManagement = () => {
   });
 
   const { mutate: deleteAssistant, isLoading: deletingAssistant } = useMutation({
-    mutationFn: ({id, status}) => adminclinicAPI.deleteAssistant(id, status),
+    mutationFn: ({ id, status }) => adminclinicAPI.deleteAssistant(id, status),
     onSuccess: () => {
       toast.success("Đã chuyển trạng thái của trợ lý");
       queryClient.invalidateQueries({ queryKey: ["assistants-of-admin-clinic"] });
@@ -312,7 +312,7 @@ const AssistantManagement = () => {
   });
 
   // ===== Handlers =====
-  const handleDeleteAssistant = (id, status ) => {
+  const handleDeleteAssistant = (id, status) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
     status = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     deleteAssistant({ id, status });
@@ -787,6 +787,24 @@ const AssistantManagement = () => {
                     : "Vai trò không hợp lệ"}
                 </p>
               )}
+              {/* Chức năng theo Role */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 mt-3">
+                <div className="text-sm font-semibold text-blue-800 mb-2">Chức năng sẽ có</div>
+                {(getFeaturesForRoles(formik.values.roles)).length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {getFeaturesForRoles(formik.values.roles).map((f) => (
+                      <span
+                        key={f.key}
+                        className="inline-flex items-center rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-700"
+                      >
+                        {f.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-blue-700/80">Chưa chọn vai trò — chưa có chức năng nào.</div>
+                )}
+              </div>
             </div>
 
             {/* PHÒNG KHÁM (search + list) */}
@@ -910,25 +928,6 @@ const AssistantManagement = () => {
 
             {/* Note */}
             <FormField label="Ghi chú" name="note" as="textarea" placeholder="Thông tin bổ sung…" formik={formik} />
-
-            {/* Chức năng theo Role */}
-            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
-              <div className="text-sm font-semibold text-blue-800 mb-2">Chức năng sẽ có</div>
-              {(getFeaturesForRoles(formik.values.roles)).length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {getFeaturesForRoles(formik.values.roles).map((f) => (
-                    <span
-                      key={f.key}
-                      className="inline-flex items-center rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-700"
-                    >
-                      {f.label}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-blue-700/80">Chưa chọn vai trò — chưa có chức năng nào.</div>
-              )}
-            </div>
           </div>
 
           {/* Footer */}
