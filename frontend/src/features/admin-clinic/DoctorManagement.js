@@ -13,6 +13,7 @@ import {
   GraduationCap,
   CheckCircle,
   XCircle,
+  AlertTriangle, // <-- THÊM MỚI
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
@@ -36,6 +37,12 @@ const DoctorManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+
+  // ===== STATE MỚI CHO MODAL XÁC NHẬN =====
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [doctorToConfirm, setDoctorToConfirm] = useState(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  // ===== HẾT PHẦN MỚI =====
 
   // Tìm kiếm & lọc
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,6 +96,7 @@ const DoctorManagement = () => {
     name: s?.name ?? s?.label ?? String(s),
   });
 
+  // ===== HÀM TRANSFORM NGUYÊN BẢN CỦA BẠN (GIỮ NGUYÊN) =====
   const transformDoctor = (doc) => {
     const specialties = Array.isArray(doc.specialty_id)
       ? doc.specialty_id.map((s) => s?.name || s).join(", ")
@@ -406,14 +414,20 @@ const DoctorManagement = () => {
     setShowDetailModal(true);
   };
 
-  const handleDeleteDoctor = async (id, status) => {
-    if (
-      !window.confirm(
-        "Bạn có muốn khóa tài khoản này không?"
-      )
-    ) {
-      return;
-    }
+  // ===== BƯỚC 1: TẠO HÀM MỞ MODAL =====
+  const handleOpenConfirm = (doctor) => {
+    setDoctorToConfirm(doctor);
+    setShowConfirmModal(true);
+  };
+
+  // ===== BƯỚC 2: ĐỔI TÊN `handleDeleteDoctor` THÀNH `handleConfirmAction` VÀ CẬP NHẬT LOGIC =====
+  const handleConfirmAction = async () => {
+    // Lấy thông tin từ state, không dùng params
+    if (!doctorToConfirm) return;
+    const { id, status } = doctorToConfirm;
+
+    // Bỏ `window.confirm`
+    setIsConfirming(true); // Bật loading
     try {
       const res = await adminclinicAPI.deleteDoctor(id, status);
       if (res?.data?.ok) {
@@ -424,15 +438,25 @@ const DoctorManagement = () => {
           open && selectedDoctor?.id === id ? false : open
         );
         if (selectedDoctor?.id === id) setSelectedDoctor(null);
-        toast.success(res?.data?.message || "Xóa tài khoản bác sĩ thành công");
+
+        // Cập nhật toast message cho rõ ràng
+        const actionText = status === "ACTIVE" ? "Khóa" : "Mở";
+        toast.success(res?.data?.message || `${actionText} tài khoản bác sĩ thành công`);
       } else {
-        toast.error(res?.data?.message || "Không thể xóa bác sĩ");
+        const actionText = status === "ACTIVE" ? "khóa" : "mở";
+        toast.error(res?.data?.message || `Không thể ${actionText} bác sĩ`);
       }
     } catch (err) {
-      console.error("Lỗi khi xóa bác sĩ:", err);
+      console.error("Lỗi khi thay đổi trạng thái bác sĩ:", err);
+      const actionText = status === "ACTIVE" ? "khóa" : "mở";
       toast.error(
-        err?.response?.data?.message || err.message || "Không thể xóa bác sĩ"
+        err?.response?.data?.message || err.message || `Không thể ${actionText} bác sĩ`
       );
+    } finally {
+      // Luôn tắt loading và đóng modal
+      setIsConfirming(false);
+      setShowConfirmModal(false);
+      setDoctorToConfirm(null);
     }
   };
 
@@ -524,7 +548,7 @@ const DoctorManagement = () => {
         </select>
       </div>
 
-      {/* Bảng danh sách bác sĩ */}
+      {/* Bảng danh sách bác sĩ (GIỮ NGUYÊN CÁC CỘT CỦA BẠN) */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -607,7 +631,7 @@ const DoctorManagement = () => {
                 {/* actions */}
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    {/* --- Nút 1: Xem (Giữ nguyên làm chuẩn) --- */}
+                    {/* --- Nút 1: Xem (Giữ nguyên style của bạn) --- */}
                     <button
                       onClick={() => handleViewDetail(doctor)}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
@@ -617,16 +641,16 @@ const DoctorManagement = () => {
                       <span className="text-sm font-medium">Xem</span>
                     </button>
 
-                    {/* --- Nút 2: Khóa / Mở (Cập nhật style) --- */}
+                    {/* --- Nút 2: Khóa / Mở (Giữ nguyên style của bạn) --- */}
                     <button
-                      onClick={() => handleDeleteDoctor(doctor.id, doctor.status)}
-                      // THAY ĐỔI: Dùng 'px-3 py-1.5' và 'gap-1.5' giống nút "Xem"
+                      // ===== BƯỚC 3: CẬP NHẬT HANDLER `onClick` =====
+                      onClick={() => handleOpenConfirm(doctor)} // Thay vì `handleDeleteDoctor`
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors
-        ${doctor.status === "ACTIVE"
+                        ${doctor.status === "ACTIVE"
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                         }
-      `}
+                      `}
                       title={
                         doctor.status === "ACTIVE"
                           ? "Chuyển thành không hoạt động"
@@ -636,13 +660,11 @@ const DoctorManagement = () => {
                       {doctor.status === "ACTIVE" ? (
                         <>
                           <XCircle size={18} />
-                          {/* THAY ĐỔI: Bọc text trong <span> để đồng bộ font */}
                           <span className="text-sm font-medium">Khóa</span>
                         </>
                       ) : (
                         <>
                           <CheckCircle size={18} />
-                          {/* THAY ĐỔI: Bọc text trong <span> để đồng bộ font */}
                           <span className="text-sm font-medium">Mở</span>
                         </>
                       )}
@@ -665,7 +687,7 @@ const DoctorManagement = () => {
         </table>
       </div>
 
-      {/* Modal Tạo bác sĩ */}
+      {/* Modal Tạo bác sĩ (GIỮ NGUYÊN) */}
       {showModal && (
         <ElegantModal onClose={() => setShowModal(false)}>
           {/* Header */}
@@ -973,7 +995,7 @@ const DoctorManagement = () => {
         </ElegantModal>
       )}
 
-      {/* Modal xem chi tiết bác sĩ (EDIT modal) */}
+      {/* Modal xem chi tiết bác sĩ (EDIT modal) (GIỮ NGUYÊN) */}
       {showDetailModal && selectedDoctor && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -1246,19 +1268,105 @@ const DoctorManagement = () => {
               >
                 Đóng
               </button>
+
+              {/* ===== BƯỚC 3: CẬP NHẬT NÚT TRONG MODAL CHI TIẾT ===== */}
               <button
                 onClick={() => {
                   setShowDetailModal(false);
-                  handleDeleteDoctor(selectedDoctor.id, selectedDoctor.status);
+                  handleOpenConfirm(selectedDoctor); // Gọi hàm mở modal
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                // Thêm logic đổi màu/chữ
+                className={`px-4 py-2 text-white rounded-lg font-semibold transition-colors
+                  ${selectedDoctor.status === "ACTIVE"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-green-600 hover:bg-green-700"
+                  }
+                `}
               >
-                Khóa tài khoản
+                {/* Đổi chữ động */}
+                {selectedDoctor.status === "ACTIVE" ? "Khóa tài khoản" : "Mở tài khoản"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ===== BƯỚC 4: THÊM MODAL XÁC NHẬN ===== */}
+      {showConfirmModal && doctorToConfirm && (
+        <ElegantModal onClose={() => setShowConfirmModal(false)} maxWidth="max-w-md">
+          <div className="flex flex-col items-center text-center px-6 py-4">
+            {/* Icon động */}
+            <div
+              className={`
+      h-14 w-14 rounded-2xl flex items-center justify-center shadow-md
+      ${doctorToConfirm.status === "ACTIVE"
+                  ? "bg-gradient-to-br from-red-100 to-red-200 ring-4 ring-red-50"
+                  : "bg-gradient-to-br from-green-100 to-green-200 ring-4 ring-green-50"
+                }
+    `}
+            >
+              {doctorToConfirm.status === "ACTIVE" ? (
+                <AlertTriangle className="text-red-600" size={30} />
+              ) : (
+                <CheckCircle className="text-green-600" size={30} />
+              )}
+            </div>
+
+            {/* Tiêu đề */}
+            <h2 className="text-2xl font-semibold text-gray-900 mt-5">
+              {doctorToConfirm.status === "ACTIVE"
+                ? "Xác nhận Khóa tài khoản?"
+                : "Xác nhận Mở tài khoản?"}
+            </h2>
+
+            {/* Nội dung mô tả */}
+            <p className="text-gray-600 mt-3 leading-relaxed">
+              Bạn có chắc chắn muốn{" "}
+              <span className="font-semibold">
+                {doctorToConfirm.status === "ACTIVE" ? "khóa" : "mở"}
+              </span>{" "}
+              tài khoản của bác sĩ{" "}
+              <span className="font-semibold text-gray-900">
+                {doctorToConfirm.name || "này"}
+              </span>
+              ?
+            </p>
+          </div>
+
+
+          {/* Các nút bấm */}
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <button
+              type="button"
+              onClick={() => setShowConfirmModal(false)}
+              className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition w-full"
+              disabled={isConfirming} // Vô hiệu hóa khi đang load
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmAction} // Gọi hàm xử lý xác nhận
+              disabled={isConfirming} // Vô hiệu hóa khi đang load
+              // Màu nút động
+              className={`px-4 py-2 rounded-xl text-white shadow hover:opacity-90 active:scale-[0.99] transition disabled:opacity-60 w-full
+                ${doctorToConfirm.status === "ACTIVE"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-green-600 hover:bg-green-700"
+                }
+              `}
+            >
+              {isConfirming
+                ? "Đang xử lý…"
+                : doctorToConfirm.status === "ACTIVE"
+                  ? "Xác nhận Khóa"
+                  : "Xác nhận Mở"}
+            </button>
+          </div>
+        </ElegantModal>
+      )}
+      {/* ===== HẾT MODAL XÁC NHẬN ===== */}
+
     </div>
   );
 };
