@@ -166,7 +166,7 @@ const DoctorManagement = () => {
       console.error("Lỗi khi lấy danh sách bác sĩ:", err);
       toast.error(
         "Không thể lấy danh sách bác sĩ: " +
-        (err?.message || "Lỗi không xác định")
+          (err?.message || "Lỗi không xác định")
       );
     }
   }, []);
@@ -236,8 +236,8 @@ const DoctorManagement = () => {
       onError: (error) => {
         toast.error(
           error?.response?.data?.message ||
-          error.message ||
-          "Không thể cập nhật phòng khám."
+            error.message ||
+            "Không thể cập nhật phòng khám."
         );
       },
     }
@@ -281,13 +281,13 @@ const DoctorManagement = () => {
         setSelectedDoctor((prev) =>
           prev
             ? {
-              ...prev,
-              specialty: names,
-              doctorData: {
-                ...prev.doctorData,
-                specialty_id: specialtyIds,
-              },
-            }
+                ...prev,
+                specialty: names,
+                doctorData: {
+                  ...prev.doctorData,
+                  specialty_id: specialtyIds,
+                },
+              }
             : prev
         );
 
@@ -298,8 +298,8 @@ const DoctorManagement = () => {
       onError: (error) => {
         toast.error(
           error?.response?.data?.message ||
-          error.message ||
-          "Không thể cập nhật chuyên khoa."
+            error.message ||
+            "Không thể cập nhật chuyên khoa."
         );
       },
     });
@@ -421,37 +421,62 @@ const DoctorManagement = () => {
 
   // ===== BƯỚC 2: ĐỔI TÊN `handleDeleteDoctor` THÀNH `handleConfirmAction` VÀ CẬP NHẬT LOGIC =====
   const handleConfirmAction = async () => {
-    // Lấy thông tin từ state, không dùng params
     if (!doctorToConfirm) return;
-    const { id, status } = doctorToConfirm;
-    // Bỏ `window.confirm`
-    setIsConfirming(true); // Bật loading
-    try {
-      const res = await adminclinicAPI.deleteDoctor(id, status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
-      if (res?.data?.ok) {
-        // Xoá ngay trong state mà không reload
-        setDoctors((prev) => prev.filter((doc) => doc.id !== id));
-        // Nếu đang mở modal chi tiết của người vừa xoá -> đóng modal
-        setShowDetailModal((open) =>
-          open && selectedDoctor?.id === id ? false : open
-        );
-        if (selectedDoctor?.id === id) setSelectedDoctor(null);
 
-        // Cập nhật toast message cho rõ ràng
-        const actionText = status === "ACTIVE" ? "Khóa" : "Mở";
-        toast.success(res?.data?.message || `${actionText} tài khoản bác sĩ thành công`);
+    const { id, status } = doctorToConfirm;
+    const newStatus = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+
+    setIsConfirming(true);
+
+    try {
+      const res = await adminclinicAPI.deleteDoctor(id, newStatus);
+
+      if (res?.data?.ok || res?.data?.success !== false) {
+        // CẬP NHẬT TRẠNG THÁI NGAY TRONG STATE (không cần refetch)
+        setDoctors((prev) =>
+          prev.map((doc) =>
+            doc.id === id
+              ? {
+                  ...doc,
+                  status: newStatus,
+                  doctorData: {
+                    ...doc.doctorData,
+                    user_id: {
+                      ...doc.doctorData.user_id,
+                      account_id: {
+                        ...doc.doctorData.user_id.account_id,
+                        status: newStatus,
+                      },
+                    },
+                  },
+                }
+              : doc
+          )
+        );
+
+        // Nếu đang xem chi tiết bác sĩ đó → cập nhật luôn modal chi tiết
+        if (selectedDoctor?.id === id) {
+          setSelectedDoctor((prev) =>
+            prev ? { ...prev, status: newStatus } : prev
+          );
+        }
+
+        // Toast thành công
+        toast.success(
+          res?.data?.message ||
+            `${newStatus === "INACTIVE" ? "Khóa" : "Mở"} tài khoản thành công!`
+        );
       } else {
-        const actionText = status === "ACTIVE" ? "khóa" : "mở";
-        toast.error(res?.data?.message || `Không thể ${actionText} bác sĩ`);
+        throw new Error("Thao tác thất bại");
       }
     } catch (err) {
       console.error("Lỗi khi thay đổi trạng thái bác sĩ:", err);
-      const actionText = status === "ACTIVE" ? "khóa" : "mở";
       toast.error(
-        err?.response?.data?.message || err.message || `Không thể ${actionText} bác sĩ`
+        err?.response?.data?.message ||
+          err.message ||
+          `Không thể ${status === "ACTIVE" ? "khóa" : "mở"} tài khoản này`
       );
     } finally {
-      // Luôn tắt loading và đóng modal
       setIsConfirming(false);
       setShowConfirmModal(false);
       setDoctorToConfirm(null);
@@ -610,10 +635,11 @@ const DoctorManagement = () => {
                 {/* status */}
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${doctor.status === "ACTIVE"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                      }`}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                      doctor.status === "ACTIVE"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
                   >
                     {doctor.status === "ACTIVE" ? (
                       <>
@@ -644,9 +670,10 @@ const DoctorManagement = () => {
                       // ===== BƯỚC 3: CẬP NHẬT HANDLER `onClick` =====
                       onClick={() => handleOpenConfirm(doctor)} // Thay vì `handleDeleteDoctor`
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors
-                        ${doctor.status === "ACTIVE"
-                          ? "bg-red-100 text-red-600 hover:bg-red-200"
-                          : "bg-green-100 text-green-600 hover:bg-green-200"
+                        ${
+                          doctor.status === "ACTIVE"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200"
+                            : "bg-green-100 text-green-600 hover:bg-green-200"
                         }
                       `}
                       title={
@@ -1017,10 +1044,11 @@ const DoctorManagement = () => {
                       {selectedDoctor.name}
                     </h2>
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedDoctor.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
-                        }`}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                        selectedDoctor.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
                     >
                       {selectedDoctor.status === "ACTIVE" ? (
                         <>
@@ -1275,14 +1303,17 @@ const DoctorManagement = () => {
                 }}
                 // Thêm logic đổi màu/chữ
                 className={`px-4 py-2 text-white rounded-lg font-semibold transition-colors
-                  ${selectedDoctor.status === "ACTIVE"
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-green-600 hover:bg-green-700"
+                  ${
+                    selectedDoctor.status === "ACTIVE"
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
                   }
                 `}
               >
                 {/* Đổi chữ động */}
-                {selectedDoctor.status === "ACTIVE" ? "Khóa tài khoản" : "Mở tài khoản"}
+                {selectedDoctor.status === "ACTIVE"
+                  ? "Khóa tài khoản"
+                  : "Mở tài khoản"}
               </button>
             </div>
           </div>
@@ -1291,16 +1322,20 @@ const DoctorManagement = () => {
 
       {/* ===== BƯỚC 4: THÊM MODAL XÁC NHẬN ===== */}
       {showConfirmModal && doctorToConfirm && (
-        <ElegantModal onClose={() => setShowConfirmModal(false)} maxWidth="max-w-md">
+        <ElegantModal
+          onClose={() => setShowConfirmModal(false)}
+          maxWidth="max-w-md"
+        >
           <div className="flex flex-col items-center text-center px-6 py-4">
             {/* Icon động */}
             <div
               className={`
       h-14 w-14 rounded-2xl flex items-center justify-center shadow-md
-      ${doctorToConfirm.status === "ACTIVE"
-                  ? "bg-gradient-to-br from-red-100 to-red-200 ring-4 ring-red-50"
-                  : "bg-gradient-to-br from-green-100 to-green-200 ring-4 ring-green-50"
-                }
+      ${
+        doctorToConfirm.status === "ACTIVE"
+          ? "bg-gradient-to-br from-red-100 to-red-200 ring-4 ring-red-50"
+          : "bg-gradient-to-br from-green-100 to-green-200 ring-4 ring-green-50"
+      }
     `}
             >
               {doctorToConfirm.status === "ACTIVE" ? (
@@ -1331,7 +1366,6 @@ const DoctorManagement = () => {
             </p>
           </div>
 
-
           {/* Các nút bấm */}
           <div className="flex items-center justify-center gap-3 mt-6">
             <button
@@ -1348,23 +1382,23 @@ const DoctorManagement = () => {
               disabled={isConfirming} // Vô hiệu hóa khi đang load
               // Màu nút động
               className={`px-4 py-2 rounded-xl text-white shadow hover:opacity-90 active:scale-[0.99] transition disabled:opacity-60 w-full
-                ${doctorToConfirm.status === "ACTIVE"
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-green-600 hover:bg-green-700"
+                ${
+                  doctorToConfirm.status === "ACTIVE"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-green-600 hover:bg-green-700"
                 }
               `}
             >
               {isConfirming
                 ? "Đang xử lý…"
                 : doctorToConfirm.status === "ACTIVE"
-                  ? "Xác nhận Khóa"
-                  : "Xác nhận Mở"}
+                ? "Xác nhận Khóa"
+                : "Xác nhận Mở"}
             </button>
           </div>
         </ElegantModal>
       )}
       {/* ===== HẾT MODAL XÁC NHẬN ===== */}
-
     </div>
   );
 };
