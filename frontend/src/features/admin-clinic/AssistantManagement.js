@@ -311,9 +311,9 @@ const AssistantManagement = () => {
   });
 
   // ===== Handlers =====
-  const handleDeleteAssistant = (id) => {
+  const handleDeleteAssistant = (id, status) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
-    deleteAssistant(id);
+    deleteAssistant(id, status);
   };
 
   const handleOpenCreate = () => {
@@ -611,7 +611,7 @@ const AssistantManagement = () => {
                         <Eye size={18} />
                       </button>
                       <button
-                        onClick={() => handleDeleteAssistant(assistant.id)}
+                        onClick={() => handleDeleteAssistant(assistant.id, assistant.status)}
                         className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
                         title="Xóa"
                         disabled={deletingAssistant}
