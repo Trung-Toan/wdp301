@@ -55,17 +55,102 @@ exports.listMyRecords = async (req, res) => {
             MedicalRecord.countDocuments({ patient_id: patientId }),
         ]);
 
-        const items = rawItems.map(r => ({
-            ...r,
-            doctor_name: r.doctor_id?.user_id?.full_name || "Chưa xác định",
-            specialties: r.doctor_id?.specialty_id?.map(s => s.name) || [],
-            clinic_name: r.doctor_id?.clinic_id?.name || "Chưa có cơ sở",
+        // Populate doctor_id trong access_requests sau khi query
+        const Doctor = require("../../model/doctor/Doctor");
+        const items = await Promise.all(rawItems.map(async (r) => {
+            // Populate doctor_id trong access_requests
+            if (r.access_requests && r.access_requests.length > 0) {
+                r.access_requests = await Promise.all(r.access_requests.map(async (req) => {
+                    // Kiểm tra và populate doctor_id
+                    if (req.doctor_id) {
+                        let doctorId = null;
+                        
+                        // Xác định doctorId
+                        if (typeof req.doctor_id === 'string') {
+                            doctorId = req.doctor_id;
+                        } else if (req.doctor_id && req.doctor_id.toString) {
+                            doctorId = req.doctor_id.toString();
+                        } else if (typeof req.doctor_id === 'object' && req.doctor_id._id) {
+                            doctorId = req.doctor_id._id.toString();
+                        }
+                        
+                        // Populate doctor nếu có doctorId
+                        if (doctorId) {
+                            const doctor = await Doctor.findById(doctorId)
+                                .populate({
+                                    path: "user_id",
+                                    select: "full_name avatar_url"
+                                })
+                                .populate({
+                                    path: "specialty_id",
+                                    select: "name description"
+                                })
+                                .populate({
+                                    path: "clinic_id",
+                                    select: "name address phone"
+                                })
+                                .lean();
+                            
+                            if (doctor) {
+                                // Đảm bảo serialize đúng bằng cách convert ObjectId thành string
+                                req.doctor_id = {
+                                    ...doctor,
+                                    _id: doctor._id?.toString() || doctor._id,
+                                    user_id: doctor.user_id ? {
+                                        ...doctor.user_id,
+                                        _id: doctor.user_id._id?.toString() || doctor.user_id._id,
+                                        avatar_url: doctor.user_id.avatar_url
+                                    } : doctor.user_id,
+                                    specialty_id: Array.isArray(doctor.specialty_id) 
+                                        ? doctor.specialty_id.map(s => ({
+                                            ...s,
+                                            _id: s._id?.toString() || s._id
+                                        }))
+                                        : doctor.specialty_id,
+                                    clinic_id: doctor.clinic_id ? {
+                                        ...doctor.clinic_id,
+                                        _id: doctor.clinic_id._id?.toString() || doctor.clinic_id._id
+                                    } : doctor.clinic_id
+                                };
+                            }
+                        }
+                    }
+                    
+                    return req;
+                }));
+            }
+
+            return {
+                ...r,
+                doctor_name: r.doctor_id?.user_id?.full_name || "Chưa xác định",
+                specialties: Array.isArray(r.doctor_id?.specialty_id) 
+                    ? r.doctor_id.specialty_id.map(s => s.name || s) 
+                    : (r.doctor_id?.specialty_id?.name ? [r.doctor_id.specialty_id.name] : []),
+                clinic_name: r.doctor_id?.clinic_id?.name || "Chưa có cơ sở",
+            };
         }));
+
+        // Serialize để đảm bảo ObjectId được convert thành string
+        const serializeItems = items.map(item => {
+            // Deep clone và convert ObjectId
+            const serialized = JSON.parse(JSON.stringify(item, (key, value) => {
+                // Convert ObjectId thành string
+                if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'ObjectId') {
+                    return value.toString();
+                }
+                // Convert Date thành ISO string
+                if (value instanceof Date) {
+                    return value.toISOString();
+                }
+                return value;
+            }));
+            return serialized;
+        });
 
         return res.status(200).json({
             success: true,
             data: {
-                items,
+                items: serializeItems,
                 page: Number(page),
                 limit: Number(limit),
                 total,

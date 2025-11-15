@@ -9,7 +9,6 @@ import {
     AlertCircle,
 } from "lucide-react";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
-import AccessRequests from "./RecordsTab/AccessRequests";
 import Notes from "./RecordsTab/Notes";
 import Prescriptions from "./RecordsTab/Prescriptions";
 import FirstTimeGuide from "../../../../../components/FirstTimeGuide";
@@ -184,7 +183,6 @@ export default function RecordDetail({ recordId, onBack }) {
             <div className="space-y-6">
                 <Notes records={[record]} />
                 <Prescriptions records={[record]} />
-                <AccessRequests records={[record]} />
             </div>
             <FirstTimeGuide page="record_detail" />
         </div>

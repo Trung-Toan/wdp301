@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
+import { getAvatarUrl } from "../../../../../utils/imageUtils";
 
 export default function AccessRequestsTab() {
     const [requests, setRequests] = useState([]);
@@ -35,10 +36,20 @@ export default function AccessRequestsTab() {
                 if (!r.access_requests || r.access_requests.length === 0) return [];
                 
                 return r.access_requests.map((req, reqIndex) => {
-                    const doctor = r.doctor_id || {};
-                    const user = doctor.user_id || {};
-                    const specialty = doctor.specialty_id?.[0];
-                    const clinic = doctor.clinic_id;
+                    // Lấy doctor từ access_request, không phải từ record
+                    const doctor = req.doctor_id || {};
+                    
+                    // Xử lý user_id có thể là object hoặc string
+                    let user = {};
+                    if (typeof doctor.user_id === 'object' && doctor.user_id !== null) {
+                        user = doctor.user_id;
+                    } else if (typeof doctor.user_id === 'string') {
+                        // Nếu user_id là string, có thể cần fetch thêm hoặc dùng fallback
+                        user = { _id: doctor.user_id };
+                    }
+                    
+                    const specialty = Array.isArray(doctor.specialty_id) ? doctor.specialty_id[0] : doctor.specialty_id;
+                    const clinic = doctor.clinic_id || {};
 
                     // Ghép địa chỉ hiển thị đẹp
                     const addressParts = [
@@ -58,13 +69,17 @@ export default function AccessRequestsTab() {
                         requestId = `INDEX:${reqIndex}`;
                     }
 
+                    // Xử lý avatar với utility function
+                    const doctorName = user.full_name || "Chưa rõ bác sĩ";
+                    const avatarUrl = getAvatarUrl(user.avatar_url, user._id, doctorName);
+
                     return {
                         ...req,
                         _id: requestId,
                         requestIndex: reqIndex,
                         recordId: r._id,
                         doctorName: user.full_name || "Chưa rõ bác sĩ",
-                        avatar: user.avatar_url || `https://i.pravatar.cc/150?u=${user._id}`,
+                        avatar: avatarUrl,
                         specialty: specialty?.name || "Chưa rõ chuyên khoa",
                         facility: clinic?.name || "Chưa rõ cơ sở",
                         address: address || "Chưa có địa chỉ",
@@ -83,7 +98,6 @@ export default function AccessRequestsTab() {
             setRequests(allRequests);
         } catch (err) {
             setError(err.message || "Lỗi khi tải dữ liệu");
-            console.error("Error fetching access requests:", err);
         } finally {
             setLoading(false);
         }
@@ -108,7 +122,7 @@ export default function AccessRequestsTab() {
 
         try {
             await medicalRecordPatientApi.updateAccessRequest(recordId, requestId, action);
-            
+
             // Update UI
             setRequests(prev =>
                 prev.map(r =>
@@ -117,7 +131,7 @@ export default function AccessRequestsTab() {
                         : r
                 )
             );
-            
+
             // Show success message
             if (action === "APPROVE") {
                 toast.success("Đã phê duyệt yêu cầu truy cập hồ sơ bệnh án");
@@ -125,7 +139,6 @@ export default function AccessRequestsTab() {
                 toast.success("Đã từ chối yêu cầu truy cập hồ sơ bệnh án");
             }
         } catch (err) {
-            console.error("Error updating access request:", err);
             const errorMessage = err.response?.data?.error || err.message || "Không thể cập nhật yêu cầu. Vui lòng thử lại sau.";
             toast.error(errorMessage);
         }
@@ -218,13 +231,12 @@ export default function AccessRequestsTab() {
                         return (
                             <div
                                 key={req._id}
-                                className={`bg-white/60 border-2 rounded-xl p-4 transition-all hover:shadow-lg ${
-                                    req.status === "PENDING"
+                                className={`bg-white/60 border-2 rounded-xl p-4 transition-all hover:shadow-lg ${req.status === "PENDING"
                                         ? "border-yellow-300 bg-gradient-to-br from-yellow-50/60 to-amber-50/60"
                                         : req.status === "APPROVED"
                                             ? "border-green-300 bg-gradient-to-br from-green-50/60 to-emerald-50/60"
                                             : "border-red-300 bg-gradient-to-br from-red-50/60 to-rose-50/60"
-                                }`}
+                                    }`}
                             >
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     {/* Avatar */}
@@ -234,6 +246,11 @@ export default function AccessRequestsTab() {
                                                 src={req.avatar}
                                                 alt={req.doctorName}
                                                 className="h-16 w-16 rounded-xl object-cover border-2 border-gray-200 shadow-md"
+                                                onError={(e) => {
+                                                    // Fallback nếu ảnh lỗi
+                                                    const fallbackUrl = getAvatarUrl(null, null, req.doctorName);
+                                                    e.target.src = fallbackUrl;
+                                                }}
                                             />
                                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center">
                                                 {req.status === "PENDING" && (
