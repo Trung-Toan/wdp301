@@ -24,7 +24,7 @@ export default function RecordsTab() {
     const [limit] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
 
-    // ✅ Ghi nhớ hàm fetchRecords để không bị re-create mỗi render
+    // Ghi nhớ hàm fetchRecords để không bị re-create mỗi render
     const fetchRecords = useCallback(async (pageNumber = 1) => {
         setLoading(true);
         setError(null);
