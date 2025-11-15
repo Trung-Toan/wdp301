@@ -4,6 +4,7 @@ import PersonalTab from "./components/PersonalTab";
 import MedicalInfoTab from "./components/MedicalInfoTab";
 import HistoryTab from "./components/HistoryTab";
 import RecordsTab from "./components/RecordsTab";
+import AccessRequestsTab from "./components/AccessRequestsTab";
 import SettingsTab from "./components/SettingsTab";
 import Sidebar from "./components/Sidebar";
 import { Loader2, ChevronLeft } from "lucide-react";
@@ -41,6 +42,8 @@ export default function ProfilePatient() {
                 return <HistoryTab />;
             case "records":
                 return <RecordsTab />;
+            case "access-requests":
+                return <AccessRequestsTab />;
             case "settings":
                 return <SettingsTab />;
             default:
