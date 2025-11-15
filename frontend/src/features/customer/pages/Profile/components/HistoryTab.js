@@ -336,19 +336,19 @@ export default function HistoryTab() {
 
             {/* Modal xem chi tiết - Render ra ngoài bằng Portal */}
             {showModal && selectedAppointment && createPortal(
-                <div 
+                <div
                     className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fadeIn pointer-events-none overflow-y-auto"
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
                             handleCloseModal();
                         }
                     }}
-                    style={{ 
+                    style={{
                         scrollBehavior: 'smooth',
                         WebkitOverflowScrolling: 'touch'
                     }}
                 >
-                    <div 
+                    <div
                         className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-auto max-h-[calc(100vh-2rem)] flex flex-col border-2 border-gray-200 pointer-events-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -374,7 +374,7 @@ export default function HistoryTab() {
                         </div>
 
                         {/* Content - Scrollable */}
-                        <div 
+                        <div
                             className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 min-h-0"
                             style={{
                                 scrollBehavior: 'smooth',
@@ -496,7 +496,7 @@ export default function HistoryTab() {
                 </div>,
                 document.body
             )}
-            
+
             {/* Custom scrollbar styles */}
             <style>{`
                 div[class*="overflow-y-auto"]::-webkit-scrollbar {
