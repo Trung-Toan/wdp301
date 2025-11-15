@@ -121,18 +121,46 @@ export function DoctorDetailContent({ doctorId }) {
 
     const d = doctor.data;
 
-    // Build address string
+    console.log("Thông tin bác sĩ: ", d);
+
+    // Chuyển đổi trạng thái chứng chỉ sang tiếng Việt
+    const getLicenseStatusText = (status) => {
+        const statusMap = {
+            "APPROVED": "Đã phê duyệt",
+            "PENDING": "Chờ phê duyệt",
+            "REJECTED": "Đã từ chối",
+            "EXPIRED": "Đã hết hạn"
+        };
+        return statusMap[status] || status;
+    };
+
+    // Build address string - xử lý cả 2 trường hợp: address object hoặc các trường trực tiếp
     const buildAddress = () => {
-        if (!d.clinic?.address) return "Chưa rõ địa chỉ";
-        const addr = d.clinic.address;
+        if (!d.clinic) return "Chưa rõ địa chỉ";
+
+        // Trường hợp 1: có object address
+        if (d.clinic.address) {
+            const addr = d.clinic.address;
+            const parts = [
+                addr.houseNumber,
+                addr.street,
+                typeof addr.ward === "object" ? addr.ward.name : addr.ward,
+                typeof addr.district === "object" ? addr.district.name : addr.district,
+                typeof addr.province === "object" ? addr.province.name : addr.province
+            ].filter(Boolean);
+            return parts.join(", ");
+        }
+
+        // Trường hợp 2: các trường trực tiếp trong clinic (houseNumber, street, ward, province)
         const parts = [
-            addr.houseNumber,
-            addr.street,
-            typeof addr.ward === "object" ? addr.ward.name : addr.ward,
-            typeof addr.district === "object" ? addr.district.name : addr.district,
-            typeof addr.province === "object" ? addr.province.name : addr.province
+            d.clinic.houseNumber,
+            d.clinic.street,
+            typeof d.clinic.ward === "object" ? d.clinic.ward.name : d.clinic.ward,
+            typeof d.clinic.district === "object" ? d.clinic.district.name : d.clinic.district,
+            typeof d.clinic.province === "object" ? d.clinic.province.name : d.clinic.province
         ].filter(Boolean);
-        return parts.join(", ");
+
+        return parts.length > 0 ? parts.join(", ") : "Chưa rõ địa chỉ";
     };
 
     return (
@@ -187,6 +215,13 @@ export function DoctorDetailContent({ doctorId }) {
                                             <GraduationCap className="doctor-detail-icon" />
                                             <span className="doctor-detail-text">{d.degree || "Chưa có học vị"}</span>
                                         </div>
+
+                                        {(d.clinic?.address || d.clinic?.houseNumber || d.clinic?.street) && (
+                                            <div className="doctor-detail-item">
+                                                <MapPin className="doctor-detail-icon" />
+                                                <span className="doctor-detail-text">{buildAddress()}</span>
+                                            </div>
+                                        )}
 
                                         <div className="doctor-rating">
                                             <Star className="doctor-rating-icon" />
@@ -290,7 +325,7 @@ export function DoctorDetailContent({ doctorId }) {
                                                                 <strong>Hiệu lực:</strong> {formatDateShort(l.issued_date)} - {formatDateShort(l.expiry_date)}
                                                             </div>
                                                             <div className="doctor-license-field">
-                                                                <strong>Trạng thái:</strong> {l.status}
+                                                                <strong>Trạng thái:</strong> {getLicenseStatusText(l.status)}
                                                             </div>
                                                         </div>
                                                     ))}
