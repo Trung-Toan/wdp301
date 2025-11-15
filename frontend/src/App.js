@@ -11,15 +11,19 @@ function App() {
       <AccessibilitySettings />
       <HelpButton />
       <ToastContainer
-        position="top-right"
-        autoClose={3000}
+        position="top-center"
+        autoClose={5000}
         hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
+        newestOnTop={true}
+        closeOnClick={true}
         rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
+        pauseOnFocusLoss={true}
+        draggable={true}
+        pauseOnHover={true}
+        limit={10}
+        enableMultiContainer={false}
+        toastClassName="custom-toast"
+        bodyClassName="custom-toast-body"
       />
     </>
   );

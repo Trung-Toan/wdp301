@@ -9,6 +9,7 @@ import {
     AlertCircle,
 } from "lucide-react";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
+import { withMinLoadingTime } from "../../../../../utils/loadingUtils";
 import Notes from "./RecordsTab/Notes";
 import Prescriptions from "./RecordsTab/Prescriptions";
 import FirstTimeGuide from "../../../../../components/FirstTimeGuide";
@@ -19,16 +20,22 @@ export default function RecordDetail({ recordId, onBack }) {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setLoading(true);
-        setError(null);
-        medicalRecordPatientApi
-            .getMedicalRecordsById(recordId)
-            .then((res) => {
+        const fetchRecord = async () => {
+            setError(null);
+            try {
+                const res = await withMinLoadingTime(
+                    () => medicalRecordPatientApi.getMedicalRecordsById(recordId),
+                    setLoading,
+                    600 // Minimum 600ms loading time
+                );
                 if (res.data?.data) setRecord(res.data.data);
                 else setError("Không tìm thấy hồ sơ");
-            })
-            .catch((err) => setError(err.message || "Lỗi khi tải dữ liệu"))
-            .finally(() => setLoading(false));
+            } catch (err) {
+                setError(err.message || "Lỗi khi tải dữ liệu");
+                setLoading(false);
+            }
+        };
+        fetchRecord();
     }, [recordId]);
 
     // Format ngày tháng đẹp hơn

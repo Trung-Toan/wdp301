@@ -9,7 +9,26 @@ const appointmentSchema = new Schema({
   patient_id: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
   specialty_id: { type: Schema.Types.ObjectId, ref: "Specialty", required: true, index: true },
   clinic_id: { type: Schema.Types.ObjectId, ref: "Clinic", index: true },
-  //Thêm Enum ai đặtlịchh
+  
+  // Booking for: "self" (bản thân) hoặc "relative" (người thân)
+  booking_for: { 
+    type: String, 
+    enum: ["self", "relative"], 
+    default: "self",
+    index: true
+  },
+  // ID người thân nếu booking_for === "relative"
+  relative_id: { 
+    type: Schema.Types.ObjectId, 
+    ref: "Relative",
+    default: null
+  },
+  // ID của user đặt lịch (người đặt lịch cho người thân)
+  booked_by_user_id: { 
+    type: Schema.Types.ObjectId, 
+    ref: "User",
+    default: null
+  },
 
   full_name: { type: String, required: true },
   phone: { type: String, required: true },
@@ -21,7 +40,9 @@ const appointmentSchema = new Schema({
   address_text: { type: String },
   reason: { type: String },
 
-  // Thông tin người thân (cho người già)
+  // Thông tin người thân (cho người già - one-time info, không lưu vào Relative)
+  // Lưu ý: Nếu booking_for === "relative", dùng relative_id thay vì các fields này
+  // Các fields này chỉ dùng khi is_elderly === true và booking_for === "self"
   relative_name: { type: String },
   relative_phone: { type: String },
   relative_relationship: { 

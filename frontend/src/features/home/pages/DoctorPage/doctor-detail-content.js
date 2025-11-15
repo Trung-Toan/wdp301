@@ -19,6 +19,7 @@ import { useAuth } from "../../../../hooks/useAuth";
 import { axiosInstance } from "../../../../api/axiosInstance";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import ComplaintForm from "../../../customer/components/ComplaintForm";
+import { withMinLoadingTime } from "../../../../utils/loadingUtils";
 import "../../../../styles/DoctorDetailContent.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -51,20 +52,21 @@ export function DoctorDetailContent({ doctorId }) {
 
     useEffect(() => {
         const fetchDoctor = async () => {
-            setLoading(true);
             try {
                 const to = new Date();
                 to.setMonth(to.getMonth() + 1); // +1 tháng
 
-                const res = await doctorApi.getDoctorById(doctorId, {
-                    to: to.toISOString(),
-                    limitSlot: 500, // đủ lớn để không bị cắt bớt
-                });
-                console.log("Doctor in Doctor Details:", res.data);
+                const res = await withMinLoadingTime(
+                    () => doctorApi.getDoctorById(doctorId, {
+                        to: to.toISOString(),
+                        limitSlot: 500, // đủ lớn để không bị cắt bớt
+                    }),
+                    setLoading,
+                    600 // Minimum 600ms loading time
+                );
                 setDoctor(res.data || {});
             } catch (err) {
                 setError(err.response?.data?.message || err.message || "Lỗi khi tải bác sĩ");
-            } finally {
                 setLoading(false);
             }
         };

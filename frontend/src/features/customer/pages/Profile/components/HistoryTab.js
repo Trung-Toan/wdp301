@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
+import { withMinLoadingTime } from "../../../../../utils/loadingUtils";
 import {
     Clock,
     CalendarDays,
@@ -33,29 +34,36 @@ export default function HistoryTab() {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
-        const patientData = JSON.parse(sessionStorage.getItem("patient"));
-        const pid = patientData?._id;
-        setPatientId(pid);
+        const fetchHistory = async () => {
+            const patientData = JSON.parse(sessionStorage.getItem("patient"));
+            const pid = patientData?._id;
+            setPatientId(pid);
 
-        if (!pid) {
-            console.error("Không tìm thấy patientId từ dữ liệu đăng nhập");
-            setLoading(false);
-            return;
-        }
+            if (!pid) {
+                console.error("Không tìm thấy patientId từ dữ liệu đăng nhập");
+                setLoading(false);
+                return;
+            }
 
-        // Gọi API lấy lịch sử khám
-        medicalRecordPatientApi
-            .getListMedicalRecordsByPatientId(pid)
-            .then((res) => {
+            try {
+                // Gọi API lấy lịch sử khám với minimum loading time
+                const res = await withMinLoadingTime(
+                    () => medicalRecordPatientApi.getListMedicalRecordsByPatientId(pid),
+                    setLoading,
+                    600 // Minimum 600ms loading time
+                );
                 const list = res.data?.data?.data || [];
                 // Chỉ lấy những lịch sử khám đã completed
                 const completedAppointments = list.filter(
                     (appointment) => appointment.status === "completed"
                 );
                 setAppointments(completedAppointments);
-            })
-            .catch((err) => console.error("Lỗi tải lịch hẹn:", err))
-            .finally(() => setLoading(false));
+            } catch (err) {
+                console.error("Lỗi tải lịch hẹn:", err);
+                setLoading(false);
+            }
+        };
+        fetchHistory();
     }, []);
 
     // Xử lý phân trang

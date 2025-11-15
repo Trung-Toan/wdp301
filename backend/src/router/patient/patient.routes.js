@@ -9,6 +9,7 @@ const {
     deleteFeedback
 } = require("../../controller/patient/feedback.controller");
 const complaintController = require("../../controller/patient/complaint.controller");
+const relativeController = require("../../controller/patient/relative.controller");
 
 /**
  * @openapi
@@ -294,6 +295,204 @@ router.get("/complaints", authRequired, complaintController.getPatientComplaints
  *         description: Không tìm thấy khiếu nại
  */
 router.get("/complaints/:complaintId", authRequired, complaintController.getComplaintById);
+
+/**
+ * @openapi
+ * /api/patient/relatives:
+ *   get:
+ *     tags:
+ *       - Patient
+ *     summary: Lấy danh sách người thân của bệnh nhân
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Số lượng người thân mỗi trang
+ *     responses:
+ *       200:
+ *         description: Danh sách người thân
+ *       401:
+ *         description: Chưa đăng nhập
+ */
+router.get("/relatives", authRequired, relativeController.getRelatives);
+
+/**
+ * @openapi
+ * /api/patient/relatives:
+ *   post:
+ *     tags:
+ *       - Patient
+ *     summary: Tạo người thân mới
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [full_name, phone, relationship]
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *                 example: "Nguyễn Văn A"
+ *               phone:
+ *                 type: string
+ *                 example: "0987654321"
+ *               email:
+ *                 type: string
+ *                 example: "example@email.com"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-01"
+ *               gender:
+ *                 type: string
+ *                 enum: [MALE, FEMALE, OTHER]
+ *                 example: "MALE"
+ *               province_code:
+ *                 type: string
+ *                 example: "01"
+ *               ward_code:
+ *                 type: string
+ *                 example: "00004"
+ *               address:
+ *                 type: string
+ *                 example: "123 Đường ABC"
+ *               relationship:
+ *                 type: string
+ *                 enum: [cha, me, con, vo_chong, anh_chi_em, ban, khac]
+ *                 example: "cha"
+ *               notes:
+ *                 type: string
+ *                 example: "Ghi chú thêm"
+ *     responses:
+ *       201:
+ *         description: Tạo người thân thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ */
+router.post("/relatives", authRequired, relativeController.createRelative);
+
+/**
+ * @openapi
+ * /api/patient/relatives/{id}:
+ *   get:
+ *     tags:
+ *       - Patient
+ *     summary: Lấy chi tiết người thân
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID người thân
+ *     responses:
+ *       200:
+ *         description: Thông tin người thân
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy người thân
+ */
+router.get("/relatives/:id", authRequired, relativeController.getRelativeById);
+
+/**
+ * @openapi
+ * /api/patient/relatives/{id}:
+ *   put:
+ *     tags:
+ *       - Patient
+ *     summary: Cập nhật thông tin người thân
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID người thân
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *               gender:
+ *                 type: string
+ *                 enum: [MALE, FEMALE, OTHER]
+ *               province_code:
+ *                 type: string
+ *               ward_code:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               relationship:
+ *                 type: string
+ *                 enum: [cha, me, con, vo_chong, anh_chi_em, ban, khac]
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy người thân
+ */
+router.put("/relatives/:id", authRequired, relativeController.updateRelative);
+
+/**
+ * @openapi
+ * /api/patient/relatives/{id}:
+ *   delete:
+ *     tags:
+ *       - Patient
+ *     summary: Xóa người thân
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID người thân
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy người thân
+ */
+router.delete("/relatives/:id", authRequired, relativeController.deleteRelative);
 
 module.exports = router;
 

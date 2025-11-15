@@ -10,6 +10,7 @@ import { clinicApi } from "../../../../api/clinic/clinicApi";
 import { doctorApi } from "../../../../api/doctor/doctorApi";
 import { SLOT_API } from "../../../../api/assistant/assistant.api";
 import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
+import { relativesApi } from "../../../../api/patients/relativesApi";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import { useAccessibility } from "../../../../contexts/AccessibilityContext";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
@@ -91,6 +92,14 @@ export function BookingContent() {
     const [isElderly, setIsElderly] = useState(false);
     const [patientAge, setPatientAge] = useState(null);
     const [showElderlyWarningModal, setShowElderlyWarningModal] = useState(false);
+
+    // States cho booking cho người thân
+    const [bookingFor, setBookingFor] = useState("self"); // "self" hoặc "relative"
+    const [relativesList, setRelativesList] = useState([]);
+    const [selectedRelativeId, setSelectedRelativeId] = useState(null);
+    const [isLoadingRelatives, setIsLoadingRelatives] = useState(false);
+    const [showAddRelativeForm, setShowAddRelativeForm] = useState(false);
+    const [saveRelative, setSaveRelative] = useState(false); // Checkbox để lưu người thân
 
     const [storedAccount, setStoredAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
     const [storedUser, setStoredUser] = useState(() => JSON.parse(sessionStorage.getItem("user") || "{}"));
@@ -211,9 +220,96 @@ export function BookingContent() {
         }
     }, [formData.dateOfBirth]);
 
+    // Load relatives khi bookingFor === "relative" HOẶC khi người già đặt lịch (để có thể chọn người thân đã lưu)
+    useEffect(() => {
+        const fetchRelatives = async () => {
+            if (bookingFor === "relative" || (isElderly && bookingFor === "self")) {
+                setIsLoadingRelatives(true);
+                try {
+                    const response = await relativesApi.getRelatives({ page: 1, limit: 50 });
+                    // Response format: { ok: true, data: [...], pagination: {...} }
+                    const relatives = response.data?.data || [];
+                    setRelativesList(relatives);
+                } catch (err) {
+                    // Không hiển thị error nếu chỉ là để load cho người già (optional)
+                    if (bookingFor === "relative") {
+                        toast.error("Không thể tải danh sách người thân", {
+                            position: "top-center",
+                            autoClose: 5000,
+                        });
+                    }
+                } finally {
+                    setIsLoadingRelatives(false);
+                }
+            }
+        };
+        fetchRelatives();
+    }, [bookingFor, isElderly]);
+
+    // Auto-fill form khi chọn relative hoặc clear form khi chuyển sang relative mà chưa chọn
+    useEffect(() => {
+        if (bookingFor === "relative") {
+            if (selectedRelativeId) {
+                // Nếu đã chọn relative, auto-fill form
+                const selectedRelative = relativesList.find(r => r._id === selectedRelativeId);
+                if (selectedRelative) {
+                    // Format dob
+                    let dobFormatted = "";
+                    if (selectedRelative.dob) {
+                        const date = new Date(selectedRelative.dob);
+                        dobFormatted = date.toISOString().split("T")[0];
+                    }
+
+                    // Convert gender
+                    const convertGender = (gender) => {
+                        if (!gender) return "male";
+                        const genderLower = gender.toLowerCase();
+                        if (genderLower === "male" || genderLower === "nam") return "male";
+                        if (genderLower === "female" || genderLower === "nữ") return "female";
+                        if (genderLower === "other" || genderLower === "khác") return "other";
+                        return "male";
+                    };
+
+                    setFormData(prev => ({
+                        ...prev,
+                        fullName: selectedRelative.full_name || "",
+                        phone: selectedRelative.phone || "",
+                        email: selectedRelative.email || "",
+                        dateOfBirth: dobFormatted,
+                        gender: convertGender(selectedRelative.gender),
+                        province: selectedRelative.province_code || "",
+                        ward: selectedRelative.ward_code || "",
+                        address: selectedRelative.address || "",
+                        relativeRelationship: selectedRelative.relationship || "",
+                    }));
+                }
+            } else {
+                // Nếu chưa chọn relative, clear form (chỉ giữ lại reason)
+                setFormData(prev => ({
+                    fullName: "",
+                    phone: "",
+                    email: "",
+                    dateOfBirth: "",
+                    gender: "male",
+                    province: "",
+                    ward: "",
+                    address: "",
+                    reason: prev.reason || "", // Giữ lại reason
+                    relativeName: prev.relativeName || "",
+                    relativePhone: prev.relativePhone || "",
+                    relativeRelationship: "",
+                }));
+            }
+        } else if (bookingFor === "self") {
+            // Reset selectedRelativeId khi chuyển về "self"
+            // Form sẽ được điền lại bởi useEffect khác khi bookingFor === "self"
+            setSelectedRelativeId(null);
+        }
+    }, [selectedRelativeId, relativesList, bookingFor]);
+
     // Gán dữ liệu user vào form
     useEffect(() => {
-        if (storedUser || storedAccount || storedPatient) {
+        if ((storedUser || storedAccount || storedPatient) && bookingFor === "self") {
             // Chuyển định dạng ngày nếu có
             let dobFormatted = "";
             if (storedUser?.dob) {
@@ -313,29 +409,27 @@ export function BookingContent() {
                 reason: "", // Giữ nguyên reason nếu có
             };
 
-            // Update form data - luôn update tất cả các field có giá trị
+            // Update form data - điền đầy đủ thông tin user khi bookingFor === "self"
             setFormData(prev => {
-                const updated = {
+                return {
                     ...prev,
-                    // Update các field nếu có giá trị
-                    ...(newFormData.fullName ? { fullName: newFormData.fullName } : {}),
-                    ...(phoneNumber ? { phone: phoneNumber } : {}),
-                    ...(email ? { email: email } : {}),
-                    ...(dobFormatted ? { dateOfBirth: dobFormatted } : {}),
-                    // Luôn update gender nếu có giá trị từ storedUser hoặc storedPatient
-                    // (kể cả khi là "male" - giá trị mặc định)
-                    ...(storedUser?.gender || storedPatient?.gender ? { gender: genderValue } : {}),
-                    ...(provinceCode ? { province: provinceCode } : {}),
-                    ...(wardCode ? { ward: wardCode } : {}),
-                    ...(addressText ? { address: addressText } : {}),
-                    // Giữ nguyên reason
+                    // Điền tất cả các field từ user data (kể cả empty string)
+                    fullName: newFormData.fullName || "",
+                    phone: phoneNumber || "",
+                    email: email || "",
+                    dateOfBirth: dobFormatted || "",
+                    gender: genderValue || "male",
+                    province: provinceCode || "",
+                    ward: wardCode || "",
+                    address: addressText || "",
+                    // Giữ nguyên reason và các field khác
                     reason: prev.reason || "",
+                    // Clear relativeRelationship khi chuyển về self
+                    relativeRelationship: "",
                 };
-                
-                return updated;
             });
         }
-    }, [storedUser, storedAccount, storedPatient]);
+    }, [storedUser, storedAccount, storedPatient, bookingFor]);
 
     // Fetch clinic data nếu có clinicId
     useEffect(() => {
@@ -630,28 +724,28 @@ export function BookingContent() {
         if (!selectedSlot) {
             toast.error("Vui lòng chọn lịch khám", {
                 position: "top-center",
-                autoClose: 3000,
+                autoClose: 5000,
             });
             return;
         }
         if (!formData.dateOfBirth) {
             toast.error("Vui lòng nhập ngày sinh", {
                 position: "top-center",
-                autoClose: 3000,
+                autoClose: 5000,
             });
             return;
         }
         if (!formData.province) {
             toast.error("Vui lòng chọn Tỉnh/Thành phố", {
                 position: "top-center",
-                autoClose: 3000,
+                autoClose: 5000,
             });
             return;
         }
         if (!formData.ward) {
             toast.error("Vui lòng chọn Phường/Xã", {
                 position: "top-center",
-                autoClose: 3000,
+                autoClose: 5000,
             });
             return;
         }
@@ -660,15 +754,27 @@ export function BookingContent() {
         if (!patientId) {
             toast.error("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.", {
                 position: "top-center",
-                autoClose: 4000,
+                autoClose: 6000,
             });
             return;
         }
 
-        // Kiểm tra thông tin người thân cho người già (khuyến nghị, không bắt buộc)
-        if (isElderly && !formData.relativeName && !formData.relativePhone) {
-            // Hiển thị modal thay vì alert
-            setShowElderlyWarningModal(true);
+        // Kiểm tra mối quan hệ khi booking cho người thân
+        if (bookingFor === "relative" && !formData.relativeRelationship) {
+            toast.error("Vui lòng chọn mối quan hệ", {
+                position: "top-center",
+                autoClose: 5000,
+            });
+            return;
+        }
+
+        // Kiểm tra thông tin người thân cho người già (BẮT BUỘC)
+        // Người già phải có ít nhất: tên người thân HOẶC số điện thoại người thân
+        if (isElderly && bookingFor === "self" && !formData.relativeName && !formData.relativePhone) {
+            toast.error("Vui lòng điền thông tin người thân (ít nhất tên hoặc số điện thoại) để chúng tôi có thể liên hệ khi cần thiết.", {
+                position: "top-center",
+                autoClose: 10000,
+            });
             return;
         }
 
@@ -714,6 +820,36 @@ export function BookingContent() {
                 clinicData?._id || 
                 null;
 
+            // Nếu booking cho người thân và có chọn lưu, tạo relative trước
+            let createdRelativeId = selectedRelativeId;
+            if (bookingFor === "relative" && saveRelative && !selectedRelativeId) {
+                try {
+                    const relativeData = {
+                        full_name: formData.fullName,
+                        phone: formData.phone,
+                        email: formData.email || null,
+                        dob: formData.dateOfBirth || null,
+                        gender: apiGender,
+                        province_code: formData.province || null,
+                        ward_code: formData.ward || null,
+                        address: formData.address || null,
+                        relationship: formData.relativeRelationship,
+                    };
+                    const relativeResponse = await relativesApi.createRelative(relativeData);
+                    createdRelativeId = relativeResponse.data?.data?._id || relativeResponse.data?._id;
+                    toast.success("Đã lưu thông tin người thân", {
+                        position: "top-center",
+                        autoClose: 4000,
+                    });
+                } catch (err) {
+                    // Nếu lưu thất bại, vẫn tiếp tục đặt lịch nhưng không lưu relative
+                    toast.warning("Không thể lưu thông tin người thân, nhưng vẫn tiếp tục đặt lịch", {
+                        position: "top-center",
+                        autoClose: 5000,
+                    });
+                }
+            }
+
             const payload = {
                 slot_id: selectedSlot.id,
                 doctor_id: doctorId,
@@ -729,6 +865,11 @@ export function BookingContent() {
                 ward_code: formData.ward,
                 address_text: formData.address,
                 reason: formData.reason,
+                // Booking for relative
+                booking_for: bookingFor,
+                ...(bookingFor === "relative" && createdRelativeId && {
+                    relative_id: createdRelativeId,
+                }),
                 // Thông tin người thân (cho người già)
                 ...(isElderly && {
                     relative_name: formData.relativeName || null,
@@ -745,7 +886,7 @@ export function BookingContent() {
             // Hiển thị toast success
             toast.success("Đặt lịch khám thành công!", {
                 position: "top-center",
-                autoClose: 3000,
+                autoClose: 5000,
                 hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
@@ -809,7 +950,7 @@ export function BookingContent() {
             // Hiển thị toast error với message rõ ràng
             toast.error(errorMessage, {
                 position: "top-center",
-                autoClose: 5000,
+                autoClose: 7000,
                 hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
@@ -935,6 +1076,124 @@ export function BookingContent() {
                         <form onSubmit={handleSubmit} className={`space-y-8 ${isElderly ? 'elderly-mode' : ''}`} style={isElderly ? {
                             fontSize: '1.1rem',
                         } : {}}>
+                            {/* Booking For Selector */}
+                            <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
+                                <h3 className="text-lg font-bold mb-4 text-gray-900 flex items-center gap-2">
+                                    <UserCircle className="h-5 w-5 text-indigo-600" />
+                                    Đặt lịch cho
+                                </h3>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-3 cursor-pointer flex-1 p-4 rounded-xl border-2 transition-all hover:bg-white/50"
+                                        style={{
+                                            borderColor: bookingFor === "self" ? "#4f46e5" : "#e5e7eb",
+                                            backgroundColor: bookingFor === "self" ? "white" : "transparent"
+                                        }}>
+                                        <input
+                                            type="radio"
+                                            name="bookingFor"
+                                            value="self"
+                                            checked={bookingFor === "self"}
+                                            onChange={(e) => setBookingFor(e.target.value)}
+                                            className="w-5 h-5 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <div>
+                                            <div className="font-semibold text-gray-900">Bản thân</div>
+                                            <div className="text-sm text-gray-600">Đặt lịch cho chính bạn</div>
+                                        </div>
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer flex-1 p-4 rounded-xl border-2 transition-all hover:bg-white/50"
+                                        style={{
+                                            borderColor: bookingFor === "relative" ? "#4f46e5" : "#e5e7eb",
+                                            backgroundColor: bookingFor === "relative" ? "white" : "transparent"
+                                        }}>
+                                        <input
+                                            type="radio"
+                                            name="bookingFor"
+                                            value="relative"
+                                            checked={bookingFor === "relative"}
+                                            onChange={(e) => setBookingFor(e.target.value)}
+                                            className="w-5 h-5 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <div>
+                                            <div className="font-semibold text-gray-900">Người thân</div>
+                                            <div className="text-sm text-gray-600">Đặt lịch cho người thân</div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {/* Relative Selection (chỉ hiện khi bookingFor === "relative") */}
+                                {bookingFor === "relative" && (
+                                    <div className="mt-4 space-y-3">
+                                        {isLoadingRelatives ? (
+                                            <div className="text-center py-4 text-gray-600">Đang tải danh sách người thân...</div>
+                                        ) : relativesList.length > 0 ? (
+                                            <>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                    Chọn người thân đã lưu (tùy chọn)
+                                                </label>
+                                                <select
+                                                    value={selectedRelativeId || ""}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setSelectedRelativeId(value || null);
+                                                        setShowAddRelativeForm(!value);
+                                                        // Nếu chọn "-- Chọn người thân hoặc nhập mới --", clear form
+                                                        if (!value) {
+                                                            setFormData(prev => ({
+                                                                fullName: "",
+                                                                phone: "",
+                                                                email: "",
+                                                                dateOfBirth: "",
+                                                                gender: "male",
+                                                                province: "",
+                                                                ward: "",
+                                                                address: "",
+                                                                reason: prev.reason || "",
+                                                                relativeName: prev.relativeName || "",
+                                                                relativePhone: prev.relativePhone || "",
+                                                                relativeRelationship: "",
+                                                            }));
+                                                        }
+                                                    }}
+                                                    className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none"
+                                                >
+                                                    <option value="">-- Chọn người thân hoặc nhập mới --</option>
+                                                    {relativesList.map((relative) => (
+                                                        <option key={relative._id} value={relative._id}>
+                                                            {relative.full_name} - {relative.phone} ({relative.relationship === "cha" ? "Cha" : relative.relationship === "me" ? "Mẹ" : relative.relationship === "con" ? "Con" : relative.relationship === "vo_chong" ? "Vợ/Chồng" : relative.relationship === "anh_chi_em" ? "Anh/Chị/Em" : relative.relationship === "ban" ? "Bạn" : "Khác"})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {selectedRelativeId && (
+                                                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                                                        ✓ Đã chọn người thân. Thông tin đã được điền tự động. Bạn có thể chỉnh sửa nếu cần.
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="text-sm text-gray-600 py-2">
+                                                Bạn chưa có người thân nào đã lưu. Vui lòng điền thông tin bên dưới.
+                                            </div>
+                                        )}
+                                        
+                                        {/* Checkbox để lưu người thân mới */}
+                                        {!selectedRelativeId && (
+                                            <label className="flex items-center gap-2 cursor-pointer p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={saveRelative}
+                                                    onChange={(e) => setSaveRelative(e.target.checked)}
+                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    Lưu thông tin người thân này để sử dụng lần sau
+                                                </span>
+                                            </label>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Elderly User Notice */}
                             {isElderly && (
                                 <div className="flex items-start gap-3 p-5 rounded-2xl shadow-sm border-2 bg-gradient-to-r from-pink-50 to-rose-50 border-pink-300">
@@ -1081,6 +1340,30 @@ export function BookingContent() {
                                     </div>
                                 </div>
 
+                                {/* Mối quan hệ (chỉ hiện khi booking cho người thân) */}
+                                {bookingFor === "relative" && (
+                                    <div>
+                                        <label className={`block mb-2 font-semibold text-gray-700 ${isElderly ? 'text-lg' : ''}`}>
+                                            Mối quan hệ <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            className={`w-full border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${isElderly ? 'p-4 text-lg' : 'p-3'}`}
+                                            value={formData.relativeRelationship}
+                                            onChange={e => handleChange("relativeRelationship", e.target.value)}
+                                            required
+                                        >
+                                            <option value="">-- Chọn mối quan hệ --</option>
+                                            <option value="cha">Cha</option>
+                                            <option value="me">Mẹ</option>
+                                            <option value="con">Con</option>
+                                            <option value="vo_chong">Vợ/Chồng</option>
+                                            <option value="anh_chi_em">Anh/Chị/Em</option>
+                                            <option value="ban">Bạn</option>
+                                            <option value="khac">Khác</option>
+                                        </select>
+                                    </div>
+                                )}
+
                                 {/* Tỉnh và Phường */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -1147,22 +1430,67 @@ export function BookingContent() {
                             </div>
 
                             {/* Thông tin người thân (cho người già) */}
-                            {isElderly && (
+                            {isElderly && bookingFor === "self" && (
                                 <div className="space-y-4 p-6 bg-pink-50/50 rounded-xl border-2 border-pink-200">
                                     <h3 className="text-xl font-bold flex items-center gap-3 text-gray-900">
                                         <div className="p-2 bg-pink-600 rounded-lg">
                                             <Heart className="h-5 w-5 text-white" /> 
                                         </div>
-                                        Thông tin người thân (Khuyến nghị)
+                                        Thông tin người thân <span className="text-red-500 text-lg">*</span>
                                     </h3>
                                     <p className="text-sm text-gray-600 mb-4">
-                                        Vui lòng điền thông tin người thân để chúng tôi có thể liên hệ trong trường hợp cần thiết.
+                                        <strong className="text-red-600">Bắt buộc:</strong> Vui lòng điền thông tin người thân (ít nhất tên hoặc số điện thoại) để chúng tôi có thể liên hệ trong trường hợp cần thiết.
                                     </p>
+                                    
+                                    {/* Cho phép chọn từ danh sách người thân đã lưu (nếu có) */}
+                                    {relativesList.length > 0 && (
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Hoặc chọn từ danh sách người thân đã lưu
+                                            </label>
+                                            <select
+                                                value={relativesList.find(r => 
+                                                    r.full_name === formData.relativeName && 
+                                                    r.phone === formData.relativePhone
+                                                )?._id || ""}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    if (value) {
+                                                        const selectedRelative = relativesList.find(r => r._id === value);
+                                                        if (selectedRelative) {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                relativeName: selectedRelative.full_name || "",
+                                                                relativePhone: selectedRelative.phone || "",
+                                                                relativeRelationship: selectedRelative.relationship || "",
+                                                            }));
+                                                        }
+                                                    } else {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            relativeName: "",
+                                                            relativePhone: "",
+                                                            relativeRelationship: "",
+                                                        }));
+                                                    }
+                                                }}
+                                                className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
+                                            >
+                                                <option value="">-- Chọn người thân đã lưu (tùy chọn) --</option>
+                                                {relativesList.map((relative) => (
+                                                    <option key={relative._id} value={relative._id}>
+                                                        {relative.full_name} - {relative.phone} ({relative.relationship === "cha" ? "Cha" : relative.relationship === "me" ? "Mẹ" : relative.relationship === "con" ? "Con" : relative.relationship === "vo_chong" ? "Vợ/Chồng" : relative.relationship === "anh_chi_em" ? "Anh/Chị/Em" : relative.relationship === "ban" ? "Bạn" : "Khác"})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block mb-2 font-semibold text-gray-700">
-                                                Họ tên người thân
+                                                Họ tên người thân <span className="text-red-500">*</span>
+                                                <span className="text-xs text-gray-500 font-normal ml-1">(ít nhất một trong hai)</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -1174,7 +1502,8 @@ export function BookingContent() {
                                         </div>
                                         <div>
                                             <label className="block mb-2 font-semibold text-gray-700">
-                                                Số điện thoại người thân
+                                                Số điện thoại người thân <span className="text-red-500">*</span>
+                                                <span className="text-xs text-gray-500 font-normal ml-1">(ít nhất một trong hai)</span>
                                             </label>
                                             <input
                                                 type="tel"

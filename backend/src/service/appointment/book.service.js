@@ -5,6 +5,7 @@ const Appointment = require("../../model/appointment/Appointment");
 const Slot = require("../../model/appointment/Slot");
 const Patient = require("../../model/patient/Patient");
 const Doctor = require("../../model/doctor/Doctor");
+const Relative = require("../../model/patient/Relative");
 const { sendBookingEmail } = require("../../mail/mail");
 const { createAppointmentNotification, createAppointmentStatusUpdateNotification } = require("../notification/notification.service");
 
@@ -194,7 +195,11 @@ async function createAsync(payload) {
         province_code, ward_code, address_text, reason,
         scheduled_date,
         relative_name, relative_phone, relative_relationship,
-        is_elderly, patient_age
+        is_elderly, patient_age,
+        // Booking for relative
+        booking_for = "self",
+        relative_id,
+        booked_by_user_id
     } = payload;
 
     let autoAssignedDoctor = false;
@@ -297,6 +302,44 @@ async function createAsync(payload) {
             const patient = await Patient.findById(patient_id).session(session).lean();
             if (!patient) throw new Error("Patient not found");
 
+            // 4.1) Nếu booking cho người thân, kiểm tra relative_id
+            let relativeData = null;
+            if (booking_for === "relative") {
+                if (!relative_id) {
+                    throw new Error("relative_id is required when booking_for is 'relative'");
+                }
+                if (!Types.ObjectId.isValid(relative_id)) {
+                    throw new Error("Invalid relative_id");
+                }
+                
+                // Kiểm tra relative tồn tại và thuộc về user đặt lịch
+                relativeData = await Relative.findOne({
+                    _id: relative_id,
+                    is_active: true
+                }).session(session).lean();
+                
+                if (!relativeData) {
+                    throw new Error("Relative not found or inactive");
+                }
+                
+                // Nếu có booked_by_user_id, verify relative thuộc về user đó
+                if (booked_by_user_id) {
+                    if (relativeData.user_id.toString() !== booked_by_user_id.toString()) {
+                        throw new Error("Relative does not belong to the booking user");
+                    }
+                }
+                
+                // Override thông tin từ relative nếu không được cung cấp
+                if (!full_name) full_name = relativeData.full_name;
+                if (!phone) phone = relativeData.phone;
+                if (!email && relativeData.email) email = relativeData.email;
+                if (!dob && relativeData.dob) dob = relativeData.dob;
+                if (!gender && relativeData.gender) gender = relativeData.gender;
+                if (!province_code && relativeData.province_code) province_code = relativeData.province_code;
+                if (!ward_code && relativeData.ward_code) ward_code = relativeData.ward_code;
+                if (!address_text && relativeData.address) address_text = relativeData.address;
+            }
+
             // 4.5) Nếu không có clinic_id, lấy từ doctor
             if (!clinic_id && doctor_id) {
                 const doc = await Doctor.findById(doctor_id).session(session).select("clinic_id").lean();
@@ -348,21 +391,37 @@ async function createAsync(payload) {
                 return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
             };
 
-            const appt = new Appointment({
+            // Xử lý thông tin người thân:
+            // - Nếu booking_for === "relative": Dùng relative_id (từ Relative model)
+            // - Nếu is_elderly === true và booking_for === "self": Dùng fields relative_name, relative_phone, relative_relationship (one-time info)
+            const appointmentData = {
                 slot_id, doctor_id, patient_id, specialty_id, clinic_id,
                 full_name, phone, email, dob, gender,
                 province_code, ward_code, address_text, reason,
                 booking_code,
                 fee_amount,
                 scheduled_date: scheduled_date ? dateOnlyUTC(new Date(scheduled_date)) : dateOnlyUTC(new Date(slot.start_time)),
-                ...(is_elderly && {
-                    relative_name: relative_name || null,
-                    relative_phone: relative_phone || null,
-                    relative_relationship: relative_relationship || null,
-                    is_elderly: true,
-                    patient_age: patient_age || null
-                })
-            });
+                booking_for: booking_for || "self",
+                relative_id: booking_for === "relative" ? relative_id : null,
+                booked_by_user_id: booking_for === "relative" && booked_by_user_id ? booked_by_user_id : null,
+            };
+
+            // Thông tin người già (chỉ dùng khi booking_for === "self")
+            // Nếu booking_for === "relative", không dùng các fields này vì đã có relative_id
+            if (is_elderly && booking_for !== "relative") {
+                // Validation: Người già phải có ít nhất tên hoặc số điện thoại người thân
+                if (!relative_name && !relative_phone) {
+                    throw new Error("Người cao tuổi phải cung cấp thông tin người thân (ít nhất tên hoặc số điện thoại) để chúng tôi có thể liên hệ khi cần thiết.");
+                }
+                
+                appointmentData.is_elderly = true;
+                appointmentData.patient_age = patient_age || null;
+                appointmentData.relative_name = relative_name || null;
+                appointmentData.relative_phone = relative_phone || null;
+                appointmentData.relative_relationship = relative_relationship || null;
+            }
+
+            const appt = new Appointment(appointmentData);
 
             await appt.save({ session });
 

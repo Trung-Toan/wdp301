@@ -14,6 +14,7 @@ import {
 import { toast } from "react-toastify";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
 import { getAvatarUrl } from "../../../../../utils/imageUtils";
+import { withMinLoadingTime } from "../../../../../utils/loadingUtils";
 
 export default function AccessRequestsTab() {
     const [requests, setRequests] = useState([]);
@@ -21,14 +22,17 @@ export default function AccessRequestsTab() {
     const [error, setError] = useState(null);
 
     const fetchAccessRequests = useCallback(async () => {
-        setLoading(true);
         setError(null);
         try {
             // Lấy tất cả medical records
-            const res = await medicalRecordPatientApi.getListMedicalRecords({
-                page: 1,
-                limit: 100, // Lấy nhiều records để có đủ access requests
-            });
+            const res = await withMinLoadingTime(
+                () => medicalRecordPatientApi.getListMedicalRecords({
+                    page: 1,
+                    limit: 100, // Lấy nhiều records để có đủ access requests
+                }),
+                setLoading,
+                600 // Minimum 600ms loading time
+            );
             const records = res.data?.data?.items || [];
 
             // Flatten tất cả access requests từ tất cả records
@@ -98,7 +102,6 @@ export default function AccessRequestsTab() {
             setRequests(allRequests);
         } catch (err) {
             setError(err.message || "Lỗi khi tải dữ liệu");
-        } finally {
             setLoading(false);
         }
     }, []);

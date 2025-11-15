@@ -138,3 +138,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ------------------------------
+   Toast Notification Custom Styles
+--------------------------------- */
+.custom-toast {
+  min-height: 60px !important;
+  font-size: 14px !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  margin-bottom: 10px !important;
+}
+
+.custom-toast-body {
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+}
+
+/* Đảm bảo toast không bị ẩn sớm */
+.Toastify__toast-container {
+  z-index: 9999 !important;
+}
+
+.Toastify__toast {
+  animation-duration: 0.3s !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Đảm bảo progress bar hiển thị đúng thời gian */
+.Toastify__progress-bar {
+  animation-duration: var(--toastify-toast-duration) !important;
+}

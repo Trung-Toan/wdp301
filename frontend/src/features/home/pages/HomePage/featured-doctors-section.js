@@ -3,6 +3,7 @@ import { Star, MapPin, Calendar } from "lucide-react";
 import { doctorApi } from "../../../../api";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../hooks/useAuth";
+import { withMinLoadingTime } from "../../../../utils/loadingUtils";
 import "../../../../styles/FeaturedDoctorsSection.css";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
@@ -24,30 +25,33 @@ export function FeaturedDoctorsSection() {
 
     useEffect(() => {
         const fetchDoctors = async () => {
-            setLoading(true);
             try {
                 const limit = 4;
-                let res;
 
-                if (isAuthenticated) {
-                    // Nếu đã đăng nhập -> thử lấy top gần vị trí người dùng
-                    try {
-                        res = await doctorApi.getDoctorTopNearMe(limit);
-                    } catch (err) {
-                        // Nếu lỗi (vd: chưa có province) -> fallback về top toàn hệ thống
-                        console.warn("Cannot get doctors near me, falling back to top doctors:", err.message);
-                        res = await doctorApi.getDoctorTop(limit);
-                    }
-                } else {
-                    // Nếu chưa đăng nhập -> top toàn hệ thống
-                    res = await doctorApi.getDoctorTop(limit);
-                }
+                const res = await withMinLoadingTime(
+                    async () => {
+                        if (isAuthenticated) {
+                            // Nếu đã đăng nhập -> thử lấy top gần vị trí người dùng
+                            try {
+                                return await doctorApi.getDoctorTopNearMe(limit);
+                            } catch (err) {
+                                // Nếu lỗi (vd: chưa có province) -> fallback về top toàn hệ thống
+                                console.warn("Cannot get doctors near me, falling back to top doctors:", err.message);
+                                return await doctorApi.getDoctorTop(limit);
+                            }
+                        } else {
+                            // Nếu chưa đăng nhập -> top toàn hệ thống
+                            return await doctorApi.getDoctorTop(limit);
+                        }
+                    },
+                    setLoading,
+                    600 // Minimum 600ms loading time
+                );
 
                 setDoctors(res.data.data || []);
             } catch (err) {
                 console.error("Lỗi khi lấy bác sĩ top:", err);
                 setDoctors([]);
-            } finally {
                 setLoading(false);
             }
         };
