@@ -24,14 +24,39 @@ async function searchDoctorsBySpecialty({
         .filter(Boolean)
         .forEach(f => (f[0] === "-" ? (sortObj[f.slice(1)] = -1) : (sortObj[f] = 1)));
 
-    // Bộ lọc tìm kiếm
-    const filter = { specialty_id: specObjId };
+    // Bước 1: Lấy danh sách doctor_id có license APPROVED
+    const approvedLicenses = await License.find({
+        status: "APPROVED",
+    })
+        .select("doctor_id")
+        .lean();
+    
+    const approvedDoctorIds = [...new Set(approvedLicenses.map(l => String(l.doctor_id)))];
+    
+    if (approvedDoctorIds.length === 0) {
+        return {
+            meta: {
+                page: Number(page),
+                limit: Number(limit),
+                total: 0,
+                totalPages: 1,
+            },
+            items: [],
+        };
+    }
+
+    // Bước 2: Bộ lọc tìm kiếm - chỉ lấy bác sĩ có license APPROVED
+    const filter = {
+        specialty_id: specObjId,
+        _id: { $in: approvedDoctorIds.map(id => new mongoose.Types.ObjectId(id)) },
+    };
+    
     if (q && q.trim()) {
         const rx = new RegExp(q.trim(), "i");
         filter.$or = [{ title: rx }, { degree: rx }, { description: rx }, { experience: rx }];
     }
 
-    // Lấy danh sách bác sĩ + tổng số lượng
+    // Bước 3: Lấy danh sách bác sĩ + tổng số lượng (chỉ những bác sĩ có license APPROVED)
     const [doctors, total] = await Promise.all([
         Doctor.find(filter)
             .sort(sortObj)
@@ -57,16 +82,16 @@ async function searchDoctorsBySpecialty({
         Doctor.countDocuments(filter),
     ]);
 
-    // Lấy danh sách license hợp lệ (APPROVED)
+    // Bước 4: Lấy danh sách license hợp lệ (APPROVED) cho các bác sĩ đã query
     const doctorIds = doctors.map(d => d._id);
     const licenses = await License.find({
         doctor_id: { $in: doctorIds },
-        status: "APPROVED", // chỉ lấy giấy phép hợp lệ
+        status: "APPROVED",
     })
         .select("doctor_id licenseNumber issued_by issued_date expiry_date status document_url")
         .lean();
 
-    //  Gắn license vào từng bác sĩ tương ứng
+    // Bước 5: Gắn license vào từng bác sĩ tương ứng
     const items = doctors.map(d => ({
         _id: d._id,
         title: d.title,
@@ -95,17 +120,14 @@ async function searchDoctorsBySpecialty({
         createdAt: d.createdAt,
     }));
 
-    // Nếu muốn: chỉ hiển thị bác sĩ có ít nhất 1 license hợp lệ
-    const filteredItems = items.filter(d => d.licenses.length > 0);
-
     return {
         meta: {
             page: Number(page),
             limit: Number(limit),
-            total: filteredItems.length,
-            totalPages: Math.ceil(filteredItems.length / Number(limit)) || 1,
+            total: total,
+            totalPages: Math.ceil(total / Number(limit)) || 1,
         },
-        items: filteredItems,
+        items: items,
     };
 }
 
