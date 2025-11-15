@@ -3,7 +3,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import vi from "date-fns/locale/vi";
-import { Calendar, Clock, MapPin, DollarSign, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, MapPin, CheckCircle2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Button from "../../../components/ui/Button";
@@ -171,38 +171,114 @@ export function DoctorBookingCalendar({ doctor }) {
 
             <CardContent className="space-y-6 p-6">
                 {/* Date Picker Section */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-blue-600" />
-                        <h4 className="font-semibold text-gray-800 text-base">Chọn ngày khám</h4>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <Calendar className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-800 text-base">Chọn ngày khám</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">Chọn ngày có sẵn lịch</p>
+                            </div>
+                        </div>
+                        {selectedDate && (
+                            <div className="text-right">
+                                <div className="text-xs text-gray-500">Đã chọn</div>
+                                <div className="text-sm font-semibold text-blue-600">
+                                    {format(selectedDate, "dd/MM/yyyy")}
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <div className="border rounded-xl p-2 bg-gray-50">
-                        <DatePicker
-                            selected={selectedDate}
-                            onChange={(date) => {
-                                setSelectedDate(date);
-                                setSelectedSlot(null);
-                            }}
-                            inline
-                            locale={vi}
-                            minDate={new Date()}
-                            className="w-full"
-                            dayClassName={(date) => {
-                                const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                                const isWorking = workingDates.includes(key);
-                                const isSelected = selectedDate && 
-                                    date.getFullYear() === selectedDate.getFullYear() &&
-                                    date.getMonth() === selectedDate.getMonth() &&
-                                    date.getDate() === selectedDate.getDate();
-                                
-                                if (isSelected) {
-                                    return "bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700";
-                                }
-                                return isWorking
-                                    ? "bg-green-100 text-green-700 font-medium rounded-full hover:bg-green-200"
-                                    : "text-gray-400 hover:bg-gray-100 rounded-full";
-                            }}
-                        />
+                    <div className="relative border-2 border-gray-200 rounded-2xl p-4 bg-gradient-to-br from-white to-gray-50 shadow-inner overflow-hidden">
+                        {/* Decorative elements */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full -mr-16 -mt-16 opacity-20"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-cyan-100 rounded-full -ml-12 -mb-12 opacity-20"></div>
+                        
+                        <div className="relative flex justify-center">
+                            <DatePicker
+                                selected={selectedDate}
+                                onChange={(date) => {
+                                    setSelectedDate(date);
+                                    setSelectedSlot(null);
+                                }}
+                                inline
+                                locale={vi}
+                                minDate={new Date()}
+                                className="w-full"
+                                calendarClassName="!border-0 !shadow-none"
+                                dayClassName={(date) => {
+                                    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                                    const isWorking = workingDates.includes(key);
+                                    const isSelected = selectedDate && 
+                                        date.getFullYear() === selectedDate.getFullYear() &&
+                                        date.getMonth() === selectedDate.getMonth() &&
+                                        date.getDate() === selectedDate.getDate();
+                                    
+                                    if (isSelected) {
+                                        return "!bg-gradient-to-br !from-blue-600 !to-cyan-600 !text-white !font-bold !rounded-full !shadow-lg !shadow-blue-300 hover:!from-blue-700 hover:!to-cyan-700 !scale-110 !transition-all !duration-200";
+                                    }
+                                    if (isWorking) {
+                                        return "!bg-green-50 !text-green-700 !font-semibold !rounded-full !border-2 !border-green-300 hover:!bg-green-100 hover:!border-green-400 hover:!scale-105 !transition-all !duration-200";
+                                    }
+                                    return "!text-gray-400 hover:!bg-gray-100 !rounded-full !transition-all !duration-200";
+                                }}
+                                renderCustomHeader={({
+                                    date,
+                                    decreaseMonth,
+                                    increaseMonth,
+                                    prevMonthButtonDisabled,
+                                    nextMonthButtonDisabled,
+                                }) => (
+                                    <div className="flex items-center justify-between mb-4 px-2 max-w-[280px] mx-auto">
+                                        <button
+                                            onClick={decreaseMonth}
+                                            disabled={prevMonthButtonDisabled}
+                                            className={`p-2 rounded-lg transition-all ${
+                                                prevMonthButtonDisabled
+                                                    ? "text-gray-300 cursor-not-allowed"
+                                                    : "text-gray-600 hover:bg-gray-100 hover:text-blue-600"
+                                            }`}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                        </button>
+                                        <div className="text-center flex-1">
+                                            <div className="text-lg font-bold text-gray-800">
+                                                {format(date, "MMMM yyyy", { locale: vi })}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={increaseMonth}
+                                            disabled={nextMonthButtonDisabled}
+                                            className={`p-2 rounded-lg transition-all ${
+                                                nextMonthButtonDisabled
+                                                    ? "text-gray-300 cursor-not-allowed"
+                                                    : "text-gray-600 hover:bg-gray-100 hover:text-blue-600"
+                                            }`}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                )}
+                            />
+                        </div>
+                        
+                        {/* Legend */}
+                        <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-center gap-4 text-xs">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-green-50 border-2 border-green-300"></div>
+                                <span className="text-gray-600">Có lịch</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                                <span className="text-gray-600">Đã chọn</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
