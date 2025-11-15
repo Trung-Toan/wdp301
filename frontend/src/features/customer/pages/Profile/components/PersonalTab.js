@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Edit2, Save, X, User, Calendar, Users, MapPin, Building2, Loader2, Phone } from "lucide-react";
+import { Edit2, Save, X, User, Calendar, Users, MapPin, Building2, Loader2, Phone, Hash } from "lucide-react";
 import { toast } from "react-toastify";
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi";
 import { provinceApi } from "../../../../../api/address/provinceApi";
@@ -7,6 +7,7 @@ import { wardApi } from "../../../../../api/address/wardApi";
 
 export default function PersonalTab() {
     const [isEditing, setIsEditing] = useState(false);
+    const [patientCode, setPatientCode] = useState("");
     const [formData, setFormData] = useState({
         full_name: "",
         dob: "",
@@ -69,6 +70,7 @@ export default function PersonalTab() {
                     };
                     setFormData(initialData);
                     setEditData(initialData);
+                    setPatientCode(data.patient_code || "");
                     console.log("Initial formData:", initialData);
 
                     // Load wards nếu provinceCode có sẵn
@@ -195,6 +197,7 @@ export default function PersonalTab() {
                     };
                     setFormData(updatedData);
                     setEditData(updatedData);
+                    setPatientCode(data.patient_code || "");
                 } else {
                     // Fallback: dùng editData nếu fetch thất bại
                     setFormData(editData);
@@ -421,6 +424,29 @@ export default function PersonalTab() {
                 </div>
             ) : (
                 <div className="grid gap-5 sm:grid-cols-2">
+                    {/* Mã bệnh nhân - Highlighted */}
+                    <div className="sm:col-span-2 bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-500 p-6 rounded-2xl border-2 border-blue-400 shadow-xl shadow-blue-200/50 relative overflow-hidden">
+                        {/* Decorative background pattern */}
+                        <div className="absolute inset-0 opacity-10">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-16 -mt-16"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-12 -mb-12"></div>
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                                    <Hash className="h-5 w-5 text-white" />
+                                </div>
+                                <p className="text-sm font-bold text-white/90 uppercase tracking-wider">Mã bệnh nhân</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <p className="text-3xl sm:text-4xl font-black text-white tracking-wider drop-shadow-lg">
+                                    {patientCode || "Chưa có mã"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
                         <div className="flex items-center gap-2 mb-2">
                             <User className="h-4 w-4 text-sky-600" />
