@@ -3,7 +3,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import vi from "date-fns/locale/vi";
-import { Calendar } from "lucide-react";
+import { Calendar, Clock, MapPin, DollarSign, CheckCircle2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Button from "../../../components/ui/Button";
@@ -162,73 +162,147 @@ export function DoctorBookingCalendar({ doctor }) {
 
 
     return (
-        <Card className="sticky top-24">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" /> Đặt lịch khám
+        <Card className="sticky top-24 shadow-lg border-2">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2">
+                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
+                    <Calendar className="h-6 w-6 text-blue-600" /> Đặt lịch khám
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-                <div>
-                    <h4 className="font-semibold mb-3">Chọn ngày khám</h4>
-                    <DatePicker
-                        selected={selectedDate}
-                        onChange={(date) => {
-                            setSelectedDate(date);
-                            setSelectedSlot(null);
-                        }}
-                        inline
-                        locale={vi}
-                        minDate={new Date()}
-                        dayClassName={(date) => {
-                            const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                            return workingDates.includes(key)
-                                ? "bg-green-100 text-green-700 font-medium rounded-full"
-                                : "text-gray-400";
-                        }}
-                    />
+            <CardContent className="space-y-6 p-6">
+                {/* Date Picker Section */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600" />
+                        <h4 className="font-semibold text-gray-800 text-base">Chọn ngày khám</h4>
+                    </div>
+                    <div className="border rounded-xl p-2 bg-gray-50">
+                        <DatePicker
+                            selected={selectedDate}
+                            onChange={(date) => {
+                                setSelectedDate(date);
+                                setSelectedSlot(null);
+                            }}
+                            inline
+                            locale={vi}
+                            minDate={new Date()}
+                            className="w-full"
+                            dayClassName={(date) => {
+                                const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                                const isWorking = workingDates.includes(key);
+                                const isSelected = selectedDate && 
+                                    date.getFullYear() === selectedDate.getFullYear() &&
+                                    date.getMonth() === selectedDate.getMonth() &&
+                                    date.getDate() === selectedDate.getDate();
+                                
+                                if (isSelected) {
+                                    return "bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700";
+                                }
+                                return isWorking
+                                    ? "bg-green-100 text-green-700 font-medium rounded-full hover:bg-green-200"
+                                    : "text-gray-400 hover:bg-gray-100 rounded-full";
+                            }}
+                        />
+                    </div>
                 </div>
 
+                {/* Time Slots Section */}
                 {selectedDate && (
-                    <div>
-                        <h4 className="font-semibold mb-3">
-                            Chọn giờ khám cho {format(selectedDate, "dd/MM/yyyy")}
-                        </h4>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                            <h4 className="font-semibold text-gray-800 text-base">
+                                Chọn giờ khám - {format(selectedDate, "dd/MM/yyyy")}
+                            </h4>
+                        </div>
                         {availableSlots.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {availableSlots.map((slot) => (
                                     <button
                                         key={slot.id}
                                         onClick={() => setSelectedSlot(slot)}
-                                        className={`px-3 py-2 rounded-lg border text-sm transition-colors ${selectedSlot?.id === slot.id
-                                            ? "border-primary bg-primary text-white"
-                                            : "border-border hover:border-primary/50"
-                                            }`}
+                                        className={`relative px-4 py-3 rounded-xl border-2 text-sm transition-all duration-200 transform hover:scale-105 ${
+                                            selectedSlot?.id === slot.id
+                                                ? "border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                                : "border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:shadow-md"
+                                        }`}
                                     >
-                                        {slot.time} <br />
-                                        <span className="text-xs text-muted-foreground">
-                                            {slot.clinicName}
-                                        </span>
+                                        {selectedSlot?.id === slot.id && (
+                                            <CheckCircle2 className="absolute top-1 right-1 h-4 w-4 text-white" />
+                                        )}
+                                        <div className="text-center space-y-1">
+                                            <div className="font-bold text-base">{slot.time}</div>
+                                            <div className={`text-xs font-semibold mt-1 pt-1 border-t ${
+                                                selectedSlot?.id === slot.id 
+                                                    ? "border-blue-400 text-blue-100" 
+                                                    : "border-gray-200 text-blue-600"
+                                            }`}>
+                                            </div>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-muted-foreground text-sm">
-                                Không còn khung giờ khả dụng trong ngày này.
-                            </p>
+                            <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                                <p className="text-gray-500 text-sm font-medium">
+                                    Không còn khung giờ khả dụng trong ngày này.
+                                </p>
+                                <p className="text-gray-400 text-xs mt-1">
+                                    Vui lòng chọn ngày khác
+                                </p>
+                            </div>
                         )}
                     </div>
                 )}
 
-                <div className="pt-4 border-t">
+                {/* Selected Slot Summary */}
+                {selectedSlot && (
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border-2 border-blue-200 space-y-2">
+                        <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2">
+                            <CheckCircle2 className="h-5 w-5" />
+                            <span>Thông tin đặt lịch</span>
+                        </div>
+                        <div className="space-y-1.5 text-sm">
+                            <div className="flex items-center gap-2 text-gray-700">
+                                <Calendar className="h-4 w-4 text-blue-600" />
+                                <span><strong>Ngày:</strong> {format(selectedDate, "dd/MM/yyyy")}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-700">
+                                <Clock className="h-4 w-4 text-blue-600" />
+                                <span><strong>Giờ:</strong> {selectedSlot.time}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-700">
+                                <MapPin className="h-4 w-4 text-blue-600" />
+                                <span><strong>Địa điểm:</strong> {selectedSlot.clinicName}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Booking Button */}
+                <div className="pt-2 border-t-2">
                     <Button
-                        className="w-full"
+                        className={`w-full py-3 text-base font-semibold transition-all duration-200 ${
+                            selectedSlot 
+                                ? "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]" 
+                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        }`}
                         size="lg"
                         disabled={!selectedSlot}
                         onClick={handleBooking}
                     >
-                        {selectedSlot ? "Xác nhận đặt lịch" : "Chọn giờ khám"}
+                        {selectedSlot ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <CheckCircle2 className="h-5 w-5" />
+                                Xác nhận đặt lịch
+                            </span>
+                        ) : (
+                            <span className="flex items-center justify-center gap-2">
+                                <Clock className="h-5 w-5" />
+                                Chọn giờ khám
+                            </span>
+                        )}
                     </Button>
                 </div>
             </CardContent>
