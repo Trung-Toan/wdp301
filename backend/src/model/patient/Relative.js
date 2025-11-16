@@ -26,6 +26,13 @@ const relativeSchema = new Schema(
       enum: ["cha", "me", "con", "vo_chong", "anh_chi_em", "ban", "khac"],
       required: true
     },
+    // Link với Patient record (nếu đã có)
+    patient_id: { 
+      type: Schema.Types.ObjectId, 
+      ref: "Patient",
+      default: null,
+      index: true
+    },
     is_active: { type: Boolean, default: true },
     notes: { type: String } // Ghi chú thêm về người thân
   },

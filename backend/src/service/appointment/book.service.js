@@ -280,29 +280,8 @@ async function createAsync(payload) {
                 throw new Error("Slot không thuộc về bác sĩ đã chọn");
             }
 
-            // 3) Kiểm tra bệnh nhân đã có lịch trong slot này CÙNG NGÀY chưa
-            const startOfDay = new Date(targetDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(targetDate);
-            endOfDay.setHours(23, 59, 59, 999);
-
-            const existingAppointment = await Appointment.findOne({
-                slot_id: new Types.ObjectId(slot_id),
-                patient_id: new Types.ObjectId(patient_id),
-                scheduled_date: { $gte: startOfDay, $lte: endOfDay },
-                status: { $in: ["SCHEDULED", "COMPLETED"] }
-            }).session(session);
-
-            if (existingAppointment) {
-                console.log('🔍 Found existing appointment:', existingAppointment);
-                throw new Error("Patient already has an appointment in this slot for this date");
-            }
-
-            // 4) Kiểm tra bệnh nhân
-            const patient = await Patient.findById(patient_id).session(session).lean();
-            if (!patient) throw new Error("Patient not found");
-
-            // 4.1) Nếu booking cho người thân, kiểm tra relative_id
+            // 4.1) Nếu booking cho người thân, kiểm tra relative_id và tạo/link Patient
+            // (Phải xử lý trước để patient_id có thể thay đổi)
             let relativeData = null;
             if (booking_for === "relative") {
                 if (!relative_id) {
@@ -313,12 +292,9 @@ async function createAsync(payload) {
                 }
                 
                 // Kiểm tra relative tồn tại và thuộc về user đặt lịch
-                relativeData = await Relative.findOne({
-                    _id: relative_id,
-                    is_active: true
-                }).session(session).lean();
+                relativeData = await Relative.findById(relative_id).session(session);
                 
-                if (!relativeData) {
+                if (!relativeData || !relativeData.is_active) {
                     throw new Error("Relative not found or inactive");
                 }
                 
@@ -329,6 +305,36 @@ async function createAsync(payload) {
                     }
                 }
                 
+                // Kiểm tra Relative đã có Patient chưa
+                let patientForRelative;
+                if (relativeData.patient_id) {
+                    // Đã có Patient → Dùng Patient hiện có
+                    patientForRelative = await Patient.findById(relativeData.patient_id).session(session);
+                    if (!patientForRelative) {
+                        throw new Error("Patient linked to relative not found");
+                    }
+                } else {
+                    // Chưa có Patient → Tạo Patient mới cho người thân
+                    patientForRelative = new Patient({
+                        user_id: null, // Người thân chưa có tài khoản
+                        phone: relativeData.phone, // Lưu phone để match khi đăng ký
+                        email: relativeData.email || null, // Lưu email để match khi đăng ký
+                        province_code: relativeData.province_code || null,
+                        ward_code: relativeData.ward_code || null,
+                        // patient_code sẽ tự động tạo bởi pre-save hook
+                    });
+                    await patientForRelative.save({ session });
+                    
+                    // Link Relative với Patient
+                    relativeData.patient_id = patientForRelative._id;
+                    await relativeData.save({ session });
+                    
+                    console.log("✅ Created Patient for relative:", patientForRelative._id, "patient_code:", patientForRelative.patient_code);
+                }
+                
+                // Dùng patient_id của người thân cho appointment
+                patient_id = patientForRelative._id;
+                
                 // Override thông tin từ relative nếu không được cung cấp
                 if (!full_name) full_name = relativeData.full_name;
                 if (!phone) phone = relativeData.phone;
@@ -338,6 +344,29 @@ async function createAsync(payload) {
                 if (!province_code && relativeData.province_code) province_code = relativeData.province_code;
                 if (!ward_code && relativeData.ward_code) ward_code = relativeData.ward_code;
                 if (!address_text && relativeData.address) address_text = relativeData.address;
+            }
+
+            // 4.2) Kiểm tra bệnh nhân (sau khi xử lý relative, patient_id có thể đã thay đổi)
+            const patient = await Patient.findById(patient_id).session(session).lean();
+            if (!patient) throw new Error("Patient not found");
+
+            // 4.3) Kiểm tra bệnh nhân đã có lịch trong slot này CÙNG NGÀY chưa
+            // (Phải kiểm tra sau khi xử lý relative vì patient_id có thể đã thay đổi)
+            const startOfDay = new Date(targetDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(targetDate);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const existingAppointment = await Appointment.findOne({
+                slot_id: new Types.ObjectId(slot_id),
+                patient_id: new Types.ObjectId(patient_id), // patient_id đã được cập nhật nếu booking_for === "relative"
+                scheduled_date: { $gte: startOfDay, $lte: endOfDay },
+                status: { $in: ["SCHEDULED", "COMPLETED"] }
+            }).session(session);
+
+            if (existingAppointment) {
+                console.log('🔍 Found existing appointment:', existingAppointment);
+                throw new Error("Patient already has an appointment in this slot for this date");
             }
 
             // 4.5) Nếu không có clinic_id, lấy từ doctor

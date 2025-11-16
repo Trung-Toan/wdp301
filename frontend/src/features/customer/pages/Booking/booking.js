@@ -12,7 +12,6 @@ import { SLOT_API } from "../../../../api/assistant/assistant.api";
 import { profilePatientApi } from "../../../../api/patients/profilePatientApi";
 import { relativesApi } from "../../../../api/patients/relativesApi";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
-import { useAccessibility } from "../../../../contexts/AccessibilityContext";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -54,8 +53,6 @@ const ELDERLY_AGE_THRESHOLD = 60;
 export function BookingContent() {
     const location = useLocation();
     const { selectedDate, selectedSlot, doctorName, specialty, hospital, price, doctorId, doctorAvatar, clinicId, doctor } = location.state || {};
-    const { settings } = useAccessibility();
-    const isElderlyMode = settings.elderlyMode || settings.autoEnabled;
 
 
     const [formData, setFormData] = useState({
@@ -98,7 +95,6 @@ export function BookingContent() {
     const [relativesList, setRelativesList] = useState([]);
     const [selectedRelativeId, setSelectedRelativeId] = useState(null);
     const [isLoadingRelatives, setIsLoadingRelatives] = useState(false);
-    const [showAddRelativeForm, setShowAddRelativeForm] = useState(false);
     const [saveRelative, setSaveRelative] = useState(false); // Checkbox để lưu người thân
 
     const [storedAccount, setStoredAccount] = useState(() => JSON.parse(sessionStorage.getItem("account") || "{}"));
@@ -1136,7 +1132,6 @@ export function BookingContent() {
                                                     onChange={(e) => {
                                                         const value = e.target.value;
                                                         setSelectedRelativeId(value || null);
-                                                        setShowAddRelativeForm(!value);
                                                         // Nếu chọn "-- Chọn người thân hoặc nhập mới --", clear form
                                                         if (!value) {
                                                             setFormData(prev => ({
@@ -1486,52 +1481,54 @@ export function BookingContent() {
                                         </div>
                                     )}
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block mb-2 font-semibold text-gray-700">
-                                                Họ tên người thân <span className="text-red-500">*</span>
-                                                <span className="text-xs text-gray-500 font-normal ml-1">(ít nhất một trong hai)</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                                                value={formData.relativeName}
-                                                onChange={e => handleChange("relativeName", e.target.value)}
-                                                placeholder="Nhập họ tên người thân"
-                                            />
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="flex flex-col">
+                                                <label className="block mb-1 font-semibold text-gray-700">
+                                                    Họ tên người thân <span className="text-red-500">*</span>
+                                                </label>
+                                                <span className="text-xs text-gray-500 font-normal mb-2">(ít nhất một trong hai)</span>
+                                                <input
+                                                    type="text"
+                                                    className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
+                                                    value={formData.relativeName}
+                                                    onChange={e => handleChange("relativeName", e.target.value)}
+                                                    placeholder="Nhập họ tên người thân"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <label className="block mb-1 font-semibold text-gray-700">
+                                                    Số điện thoại người thân <span className="text-red-500">*</span>
+                                                </label>
+                                                <span className="text-xs text-gray-500 font-normal mb-2">(ít nhất một trong hai)</span>
+                                                <input
+                                                    type="tel"
+                                                    className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
+                                                    value={formData.relativePhone}
+                                                    onChange={e => handleChange("relativePhone", e.target.value)}
+                                                    placeholder="Nhập số điện thoại"
+                                                />
+                                            </div>
                                         </div>
-                                        <div>
+                                        
+                                        <div className="flex flex-col">
                                             <label className="block mb-2 font-semibold text-gray-700">
-                                                Số điện thoại người thân <span className="text-red-500">*</span>
-                                                <span className="text-xs text-gray-500 font-normal ml-1">(ít nhất một trong hai)</span>
+                                                Mối quan hệ
                                             </label>
-                                            <input
-                                                type="tel"
-                                                className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                                                value={formData.relativePhone}
-                                                onChange={e => handleChange("relativePhone", e.target.value)}
-                                                placeholder="Nhập số điện thoại"
-                                            />
+                                            <select
+                                                className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none cursor-pointer appearance-none bg-white"
+                                                value={formData.relativeRelationship}
+                                                onChange={e => handleChange("relativeRelationship", e.target.value)}
+                                            >
+                                                <option value="">-- Chọn mối quan hệ --</option>
+                                                <option value="con">Con</option>
+                                                <option value="chau">Cháu</option>
+                                                <option value="vo_chong">Vợ/Chồng</option>
+                                                <option value="anh_chi_em">Anh/Chị/Em</option>
+                                                <option value="ban">Bạn</option>
+                                                <option value="khac">Khác</option>
+                                            </select>
                                         </div>
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="block mb-2 font-semibold text-gray-700">
-                                            Mối quan hệ
-                                        </label>
-                                        <select
-                                            className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none cursor-pointer"
-                                            value={formData.relativeRelationship}
-                                            onChange={e => handleChange("relativeRelationship", e.target.value)}
-                                        >
-                                            <option value="">-- Chọn mối quan hệ --</option>
-                                            <option value="con">Con</option>
-                                            <option value="chau">Cháu</option>
-                                            <option value="vo_chong">Vợ/Chồng</option>
-                                            <option value="anh_chi_em">Anh/Chị/Em</option>
-                                            <option value="ban">Bạn</option>
-                                            <option value="khac">Khác</option>
-                                        </select>
                                     </div>
                                 </div>
                             )}

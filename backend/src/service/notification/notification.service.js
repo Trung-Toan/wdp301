@@ -10,31 +10,83 @@ const userService = require("../user/user.service");
  */
 async function createAppointmentNotification(appointmentData) {
   try {
-    // Lấy thông tin patient -> user_id -> account_id
-    const patient = await Patient.findById(appointmentData.patient_id)
-      .populate({
-        path: "user_id",
-        select: "account_id full_name",
-      })
-      .lean();
+    // Xác định recipient: Nếu booking cho người thân, gửi cho người đặt lịch (booked_by_user_id)
+    let accountId = null;
+    let recipientName = "";
 
-    if (!patient || !patient.user_id || !patient.user_id.account_id) {
+    if (appointmentData.booking_for === "relative" && appointmentData.booked_by_user_id) {
+      // Trường hợp đặt lịch cho người thân: Gửi notification cho người đặt lịch
+      const User = require("../../model/user/User");
+      const user = await User.findById(appointmentData.booked_by_user_id)
+        .populate({
+          path: "account_id",
+          select: "_id",
+        })
+        .lean();
+
+      if (user && user.account_id) {
+        accountId = user.account_id._id || user.account_id;
+        recipientName = user.full_name || "Bạn";
+      } else {
+        console.error("User or account_id not found for booked_by_user_id:", appointmentData.booked_by_user_id);
+        // Fallback về patient_id nếu không tìm thấy booked_by_user_id
+        const patient = await Patient.findById(appointmentData.patient_id)
+          .populate({
+            path: "user_id",
+            select: "account_id full_name",
+          })
+          .lean();
+        if (patient && patient.user_id && patient.user_id.account_id) {
+          accountId = patient.user_id.account_id;
+          recipientName = patient.user_id.full_name || "Bạn";
+        }
+      }
+    } else {
+      // Trường hợp đặt lịch cho bản thân: Gửi notification cho patient
+      const patient = await Patient.findById(appointmentData.patient_id)
+        .populate({
+          path: "user_id",
+          select: "account_id full_name",
+        })
+        .lean();
+
+      if (patient && patient.user_id && patient.user_id.account_id) {
+        accountId = patient.user_id.account_id;
+        recipientName = patient.user_id.full_name || "Bạn";
+      }
+    }
+
+    if (!accountId) {
       console.error(
-        "Patient, user_id, or account_id not found for notification"
+        "Account ID not found for notification"
       );
       return null;
     }
 
-    const accountId = patient.user_id.account_id;
-
-    const notification = new Notification({
-      title: "Đặt lịch khám thành công",
-      type: "APPOINTMENT",
-      content: `Bạn đã đặt lịch khám thành công với ${
+    // Tạo nội dung notification dựa trên booking_for
+    let title, content;
+    if (appointmentData.booking_for === "relative") {
+      title = "Đặt lịch khám cho người thân thành công";
+      content = `Bạn đã đặt lịch khám thành công cho ${
+        appointmentData.full_name || "người thân"
+      } với ${
         appointmentData.doctor_id?.user_id?.full_name || "bác sĩ"
       } vào ngày ${new Date(appointmentData.scheduled_date).toLocaleDateString(
         "vi-VN"
-      )}. Mã đặt lịch: ${appointmentData.booking_code}`,
+      )}. Mã đặt lịch: ${appointmentData.booking_code}`;
+    } else {
+      title = "Đặt lịch khám thành công";
+      content = `Bạn đã đặt lịch khám thành công với ${
+        appointmentData.doctor_id?.user_id?.full_name || "bác sĩ"
+      } vào ngày ${new Date(appointmentData.scheduled_date).toLocaleDateString(
+        "vi-VN"
+      )}. Mã đặt lịch: ${appointmentData.booking_code}`;
+    }
+
+    const notification = new Notification({
+      title: title,
+      type: "APPOINTMENT",
+      content: content,
       recipient_id: accountId,
       recipient_type: "PATIENT",
       related_appointment: appointmentData._id,
@@ -46,6 +98,8 @@ async function createAppointmentNotification(appointmentData) {
         doctor_name: appointmentData.doctor_id?.user_id?.full_name,
         clinic_name: appointmentData.clinic_id?.name,
         specialty_name: appointmentData.specialty_id?.name,
+        booking_for: appointmentData.booking_for || "self",
+        relative_name: appointmentData.booking_for === "relative" ? appointmentData.full_name : null,
       },
     });
 

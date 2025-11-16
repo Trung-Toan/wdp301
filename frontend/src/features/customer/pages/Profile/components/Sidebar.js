@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react"
-import { User, Shield, FileText, Lock, Mail, UserCircle, Camera, Loader2, CheckCircle, Heart, ShieldCheck } from "lucide-react"
+import { User, Shield, FileText, Lock, Mail, UserCircle, Camera, Loader2, CheckCircle, Heart, ShieldCheck, Users } from "lucide-react"
 import { toast } from "react-toastify"
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi"
 
@@ -13,6 +13,7 @@ export default function Sidebar({ activeTab, setActiveTab, formData, onAvatarUpd
         { name: "Lịch sử khám", key: "history", icon: Shield },
         { name: "Hồ sơ bệnh án", key: "records", icon: FileText },
         { name: "Yêu cầu truy cập", key: "access-requests", icon: ShieldCheck },
+        { name: "Người thân", key: "relatives", icon: Users },
         { name: "Cài đặt", key: "settings", icon: Lock },
     ]
 
