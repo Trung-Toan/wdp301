@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Calendar,
     Clock,
@@ -21,6 +21,7 @@ import { appointmentApi } from "../../../../api/patients/appointmentApi";
 import { toast } from "react-toastify";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import { formatISOTime, formatDate } from "../../../../utils/dateTimeUtils";
+import { useAuth } from "../../../../hooks/useAuth";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -35,7 +36,8 @@ const getImageUrl = (url) => {
 };
 
 export default function AppointmentsContent() {
-    const [selectedTab, setSelectedTab] = useState("upcoming");
+    const { user } = useAuth();
+    const [selectedTab, setSelectedTab] = useState("all"); // all, upcoming, completed, cancelled
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
@@ -45,23 +47,47 @@ export default function AppointmentsContent() {
     const [cancelling, setCancelling] = useState(false);
     const navigate = useNavigate();
 
+    // Helper function để lấy patient ID (ưu tiên useAuth, fallback sessionStorage)
+    const getPatientId = useCallback(() => {
+        // Ưu tiên dùng useAuth
+        if (user?.patient?._id) return user.patient._id;
+        if (user?._id) return user._id;
+        
+        // Fallback: dùng sessionStorage
+        const patientStr = sessionStorage.getItem("patient");
+        if (patientStr) {
+            try {
+                const patient = JSON.parse(patientStr);
+                return patient._id;
+            } catch (e) {
+                console.error("Error parsing patient from sessionStorage:", e);
+            }
+        }
+        
+        return null;
+    }, [user]);
+
     // Gọi API lấy danh sách lịch hẹn của bệnh nhân
     useEffect(() => {
         const fetchAppointments = async () => {
             try {
                 setLoading(true);
+                setError(null);
 
-                const patientStr = sessionStorage.getItem("patient");
-                if (!patientStr) {
+                const patientId = getPatientId();
+                if (!patientId) {
                     setError("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
                     return;
                 }
 
-                const patient = JSON.parse(patientStr);
-                console.log("Patient ID:", patient._id);
+                const params = { page: 1, limit: 50 };
+                // Map filter to backend status
+                if (selectedTab === "upcoming") params.status = "SCHEDULED";
+                else if (selectedTab === "completed") params.status = "COMPLETED";
+                else if (selectedTab === "cancelled") params.status = "CANCELLED";
+                // "all" không có status filter
 
-                const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
-                console.log("API response:", res.data);
+                const res = await appointmentApi.getAllAppointmentOfPatient(patientId, params);
 
                 // Lấy mảng thật và chuẩn hóa status
                 const mapStatus = (status) => {
@@ -133,6 +159,10 @@ export default function AppointmentsContent() {
                                 // Giữ nguyên start_time và scheduled_date để dùng cho logic khác
                                 start_time: apt.start_time,
                                 scheduled_date: apt.scheduled_date,
+                                // Giữ nguyên thời gian đặt lịch để hiển thị badge "NEW"
+                                booked_at: apt.booked_at,
+                                createdAt: apt.createdAt,
+                                created_at: apt.created_at,
                             };
                         })
                         : [];
@@ -147,7 +177,7 @@ export default function AppointmentsContent() {
         };
 
         fetchAppointments();
-    }, []);
+    }, [selectedTab, user, getPatientId]);
 
     // Badge trạng thái
     const getStatusBadge = (status) => {
@@ -179,6 +209,51 @@ export default function AppointmentsContent() {
         }
     };
 
+    // Kiểm tra appointment có phải mới không (trong 1 giờ)
+    const isNewAppointment = (appointment) => {
+        // Ưu tiên dùng booked_at (thời điểm đặt lịch), nếu không có thì dùng createdAt
+        const bookingDate = appointment.booked_at || appointment.createdAt || appointment.created_at;
+        if (!bookingDate) return false;
+
+        const bookingTime = new Date(bookingDate);
+        const now = new Date();
+        const diffTime = Math.abs(now - bookingTime);
+        const diffHours = diffTime / (1000 * 60 * 60); // Chuyển sang giờ
+
+        return diffHours <= 1; // Mới trong 1 giờ
+    };
+
+    // Format thời gian đặt lịch để hiển thị
+    const formatBookedTime = (appointment) => {
+        const bookingDate = appointment.booked_at || appointment.createdAt || appointment.created_at;
+        if (!bookingDate) return null;
+
+        const date = new Date(bookingDate);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        // Format ngày và giờ
+        const dateStr = date.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+        const timeStr = date.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+        // Nếu trong cùng ngày, chỉ hiển thị giờ
+        if (diffDays === 0) {
+            return `Hôm nay lúc ${timeStr}`;
+        } else if (diffDays === 1) {
+            return `Hôm qua lúc ${timeStr}`;
+        } else {
+            return `${dateStr} lúc ${timeStr}`;
+        }
+    };
+
     const handleCancelAppointment = (appointment) => {
         setAppointmentToCancel(appointment);
         setCancelDialogOpen(true);
@@ -194,17 +269,15 @@ export default function AppointmentsContent() {
         setCancelling(true);
 
         try {
-            // Lấy patient ID từ sessionStorage
-            const patientStr = sessionStorage.getItem("patient");
-            if (!patientStr) {
+            // Lấy patient ID
+            const patientId = getPatientId();
+            if (!patientId) {
                 toast.error("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
                 setCancelDialogOpen(false);
                 setAppointmentToCancel(null);
                 setCancelling(false);
                 return;
             }
-
-            const patient = JSON.parse(patientStr);
             // Lấy appointment ID - ưu tiên _id vì đó là format từ MongoDB
             let appointmentId = appointmentToCancel._id || appointmentToCancel.id || appointmentToCancel.appointment_id;
 
@@ -245,7 +318,7 @@ export default function AppointmentsContent() {
             console.log("Cancelling appointment with ID:", appointmentId, "Type:", typeof appointmentId);
             
             // Gọi API hủy lịch hẹn
-            const response = await appointmentApi.cancelAppointment(appointmentId, patient._id);
+            const response = await appointmentApi.cancelAppointment(appointmentId, patientId);
             
             console.log("Cancel appointment response:", response);
 
@@ -261,7 +334,7 @@ export default function AppointmentsContent() {
             setAppointmentToCancel(null);
 
             // Fetch lại danh sách appointments
-            const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
+            const res = await appointmentApi.getAllAppointmentOfPatient(patientId);
             
             const mapStatus = (status) => {
                 switch (status?.toUpperCase()) {
@@ -331,6 +404,10 @@ export default function AppointmentsContent() {
                         // Giữ nguyên start_time và scheduled_date để dùng cho logic khác
                         start_time: apt.start_time,
                         scheduled_date: apt.scheduled_date,
+                        // Giữ nguyên thời gian đặt lịch để hiển thị badge "NEW"
+                        booked_at: apt.booked_at,
+                        createdAt: apt.createdAt,
+                        created_at: apt.created_at,
                     };
                 })
                 : [];
@@ -370,9 +447,9 @@ export default function AppointmentsContent() {
     };
 
     //  Lọc danh sách theo tab
-    const filteredAppointments = appointments.filter(
-        (apt) => apt.status === selectedTab
-    );
+    const filteredAppointments = selectedTab === "all" 
+        ? appointments 
+        : appointments.filter((apt) => apt.status === selectedTab);
 
     if (loading) {
         return (
@@ -431,35 +508,27 @@ export default function AppointmentsContent() {
 
                     {/* Tabs */}
                     <div className="flex flex-wrap gap-3 mb-6">
-                        {["upcoming", "completed", "cancelled"].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setSelectedTab(tab)}
-                                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${selectedTab === tab
-                                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
-                                    }`}
-                            >
-                                {tab === "upcoming" && (
-                                    <>
-                                        <Clock className="h-4 w-4" />
-                                        Sắp tới
-                                    </>
-                                )}
-                                {tab === "completed" && (
-                                    <>
-                                        <CheckCircle2 className="h-4 w-4" />
-                                        Đã khám
-                                    </>
-                                )}
-                                {tab === "cancelled" && (
-                                    <>
-                                        <XCircle className="h-4 w-4" />
-                                        Đã hủy
-                                    </>
-                                )}
-                            </button>
-                        ))}
+                        {[
+                            { value: "all", label: "Tất cả", icon: CalendarDays },
+                            { value: "upcoming", label: "Sắp tới", icon: Clock },
+                            { value: "completed", label: "Đã khám", icon: CheckCircle2 },
+                            { value: "cancelled", label: "Đã hủy", icon: XCircle },
+                        ].map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setSelectedTab(tab.value)}
+                                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${selectedTab === tab.value
+                                            ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                                        }`}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -470,25 +539,44 @@ export default function AppointmentsContent() {
                             <CalendarDays className="h-10 w-10 text-gray-400" />
                         </div>
                         <p className="text-gray-700 text-lg font-semibold mb-2">
-                            Không có lịch hẹn nào trong mục này
+                            {selectedTab === "all"
+                                ? "Chưa có lịch hẹn nào"
+                                : `Không có lịch hẹn nào trong mục "${selectedTab === "upcoming"
+                                    ? "Sắp tới"
+                                    : selectedTab === "completed"
+                                        ? "Đã khám"
+                                        : "Đã hủy"
+                                }"`}
                         </p>
                         <p className="text-gray-500 text-sm mb-6">
-                            Lịch hẹn của bạn sẽ hiển thị tại đây
+                            {selectedTab === "all"
+                                ? "Bạn chưa có lịch hẹn nào trong hệ thống"
+                                : "Lịch hẹn của bạn sẽ hiển thị tại đây"}
                         </p>
-                        <Link to="/doctors">
+                        <Link to="/home/facility">
                             <button className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-lg hover:shadow-xl">
                                 <CalendarDays className="h-4 w-4" />
-                                Đặt lịch khám
+                                Đặt lịch khám ngay
                             </button>
                         </Link>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {filteredAppointments.map((appointment) => (
+                        {filteredAppointments.map((appointment) => {
+                            const isNew = isNewAppointment(appointment);
+                            return (
                             <div
                                 key={appointment._id || appointment.id}
-                                className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
+                                className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 relative"
                             >
+                                {/* Badge "New" ở góc trên bên phải */}
+                                {isNew && (
+                                    <div className="absolute top-3 right-3 z-10">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg animate-pulse">
+                                            NEW
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <div className="relative flex-shrink-0">
                                         <img
@@ -540,6 +628,14 @@ export default function AppointmentsContent() {
                                                     </span>
                                                 </div>
                                             )}
+                                            {formatBookedTime(appointment) && (
+                                                <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
+                                                    <CalendarDays className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                                    <span className="text-sm text-gray-700">
+                                                        Đặt lịch: <span className="font-semibold">{formatBookedTime(appointment)}</span>
+                                                    </span>
+                                                </div>
+                                            )}
                                             {appointment.location && [
                                                 appointment.location?.alley,
                                                 appointment.location?.houseNumber,
@@ -583,7 +679,8 @@ export default function AppointmentsContent() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -658,6 +755,14 @@ export default function AppointmentsContent() {
                                                 <Clock className="h-4 w-4 text-blue-600" />
                                                 <span className="text-sm text-gray-700">
                                                     {selectedAppointment.time || "Chưa có giờ"} {selectedAppointment.end_time ? `- ${selectedAppointment.end_time}` : ""}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {formatBookedTime(selectedAppointment) && (
+                                            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg sm:col-span-2 border border-purple-200">
+                                                <CalendarDays className="h-4 w-4 text-purple-600" />
+                                                <span className="text-sm text-gray-700">
+                                                    Đặt lịch: <span className="font-semibold text-purple-700">{formatBookedTime(selectedAppointment)}</span>
                                                 </span>
                                             </div>
                                         )}

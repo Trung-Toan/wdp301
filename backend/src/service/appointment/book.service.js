@@ -610,6 +610,10 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
         relative_name: a.relative_name || null,
         relative_phone: a.relative_phone || null,
         relative_relationship: a.relative_relationship || null,
+        // Thêm thời gian đặt lịch để hiển thị badge "NEW"
+        booked_at: a.booked_at || null,
+        createdAt: a.createdAt || null,
+        created_at: a.created_at || null,
     }));
     function mapStatus(status) {
         switch (status) {
