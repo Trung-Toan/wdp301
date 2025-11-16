@@ -173,3 +173,73 @@ exports.deleteRelative = async (req, res) => {
   }
 };
 
+/**
+ * Khôi phục người thân đã bị xóa
+ * POST /api/patient/relatives/:id/restore
+ */
+exports.restoreRelative = async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { id } = req.params;
+
+    const relative = await relativeService.restoreRelative(id, userId);
+
+    return resUtils.successResponse(
+      res,
+      relative,
+      "Khôi phục người thân thành công"
+    );
+  } catch (error) {
+    console.error("Error in restoreRelative:", error);
+    
+    if (error.message === "Relative not found" || 
+        error.message.includes("Invalid") ||
+        error.message === "Relative is already active" ||
+        error.message.includes("đã tồn tại")) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Lỗi khi khôi phục người thân"
+    });
+  }
+};
+
+/**
+ * Lấy danh sách người thân đã bị xóa
+ * GET /api/patient/relatives/deleted
+ */
+exports.getDeletedRelatives = async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const { page = 1, limit = 50 } = req.query;
+
+    const result = await relativeService.getDeletedRelatives(userId, {
+      page: Number(page),
+      limit: Number(limit)
+    });
+
+    return resUtils.paginatedResponse(
+      res,
+      result.items,
+      {
+        totalItems: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      },
+      "Lấy danh sách người thân đã xóa thành công"
+    );
+  } catch (error) {
+    console.error("Error in getDeletedRelatives:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Lỗi khi lấy danh sách người thân đã xóa"
+    });
+  }
+};
+

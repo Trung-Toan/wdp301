@@ -50,5 +50,26 @@ export const relativesApi = {
   deleteRelative: (relativeId) => {
     return axiosInstance.delete(`/patient/relatives/${relativeId}`);
   },
+
+  /**
+   * Khôi phục người thân đã bị xóa
+   * @param {string} relativeId
+   * @returns Promise
+   */
+  restoreRelative: (relativeId) => {
+    return axiosInstance.post(`/patient/relatives/${relativeId}/restore`);
+  },
+
+  /**
+   * Lấy danh sách người thân đã bị xóa
+   * @param {Object} params - { page, limit }
+   * @returns Promise
+   */
+  getDeletedRelatives: (params = {}) => {
+    const { page = 1, limit = 50 } = params;
+    return axiosInstance.get("/patient/relatives/deleted", {
+      params: { page, limit }
+    });
+  },
 };
 

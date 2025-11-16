@@ -388,6 +388,36 @@ router.post("/relatives", authRequired, relativeController.createRelative);
 
 /**
  * @openapi
+ * /api/patient/relatives/deleted:
+ *   get:
+ *     tags:
+ *       - Patient
+ *     summary: Lấy danh sách người thân đã bị xóa
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Số lượng người thân mỗi trang
+ *     responses:
+ *       200:
+ *         description: Danh sách người thân đã xóa
+ *       401:
+ *         description: Chưa đăng nhập
+ */
+router.get("/relatives/deleted", authRequired, relativeController.getDeletedRelatives);
+
+/**
+ * @openapi
  * /api/patient/relatives/{id}:
  *   get:
  *     tags:
@@ -474,7 +504,7 @@ router.put("/relatives/:id", authRequired, relativeController.updateRelative);
  *   delete:
  *     tags:
  *       - Patient
- *     summary: Xóa người thân
+ *     summary: Xóa người thân (soft delete)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -493,6 +523,34 @@ router.put("/relatives/:id", authRequired, relativeController.updateRelative);
  *         description: Không tìm thấy người thân
  */
 router.delete("/relatives/:id", authRequired, relativeController.deleteRelative);
+
+/**
+ * @openapi
+ * /api/patient/relatives/{id}/restore:
+ *   post:
+ *     tags:
+ *       - Patient
+ *     summary: Khôi phục người thân đã bị xóa
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID người thân
+ *     responses:
+ *       200:
+ *         description: Khôi phục thành công
+ *       400:
+ *         description: Người thân đã active hoặc trùng số điện thoại
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy người thân
+ */
+router.post("/relatives/:id/restore", authRequired, relativeController.restoreRelative);
 
 module.exports = router;
 

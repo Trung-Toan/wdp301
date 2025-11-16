@@ -107,7 +107,7 @@ const DoctorManagement = () => {
     };
   };
 
-  const getSpecialtiesOfClinic = async (clinicId) => {
+  const getSpecialtiesOfClinic = useCallback(async (clinicId) => {
     try {
       if (!clinicId) return [];
       if (typeof adminclinicAPI.getSpecialtiesByClinic === "function") {
@@ -126,7 +126,7 @@ const DoctorManagement = () => {
       console.error("Lỗi lấy chuyên khoa theo clinic:", e);
       return [];
     }
-  };
+  }, [clinics]);
 
   // ======= Fetch data =======
   const fetchClinics = useCallback(async () => {
@@ -290,12 +290,14 @@ const DoctorManagement = () => {
   // Load chuyên khoa khi chọn clinic trong CREATE
   useEffect(() => {
     const cid = formik.values.clinic_id;
+    const currentSpecialtyIds = formik.values.specialty_id || [];
+    const setFieldValue = formik.setFieldValue;
     let mounted = true;
 
     const run = async () => {
       if (!cid) {
         setCreateSpecs([]);
-        formik.setFieldValue("specialty_id", []);
+        setFieldValue("specialty_id", []);
         return;
       }
       setLoadingCreateSpecs(true);
@@ -303,14 +305,15 @@ const DoctorManagement = () => {
       if (!mounted) return;
       setCreateSpecs(specs);
       const allowed = new Set(specs.map((s) => String(s.id)));
-      const next = (formik.values.specialty_id || []).filter((id) => allowed.has(String(id)));
-      formik.setFieldValue("specialty_id", next);
+      const next = currentSpecialtyIds.filter((id) => allowed.has(String(id)));
+      setFieldValue("specialty_id", next);
       setLoadingCreateSpecs(false);
     };
 
     run();
     return () => { mounted = false; };
-  }, [formik.values.clinic_id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formik.values.clinic_id, formik.values.specialty_id, getSpecialtiesOfClinic]);
 
   // ======= Handlers =======
   const handleAddDoctor = () => {
@@ -422,7 +425,7 @@ const DoctorManagement = () => {
 
     run();
     return () => { mounted = false; };
-  }, [detailClinicId, selectedDoctor?.clinicId, originalSpecialtyIds]);
+  }, [detailClinicId, selectedDoctor?.clinicId, originalSpecialtyIds, getSpecialtiesOfClinic]);
 
   // Lọc bác sĩ
   const filteredDoctors = doctors.filter((doc) => {

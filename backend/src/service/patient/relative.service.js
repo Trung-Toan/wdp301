@@ -196,3 +196,84 @@ exports.deleteRelative = async (relativeId, userId) => {
   return { success: true, message: "Relative deleted successfully" };
 };
 
+/**
+ * Khôi phục người thân đã bị xóa (restore)
+ * @param {string} relativeId - ID của người thân
+ * @param {string} userId - ID của user (để verify quyền)
+ * @returns {Promise<Object>} Người thân đã được khôi phục
+ */
+exports.restoreRelative = async (relativeId, userId) => {
+  if (!Types.ObjectId.isValid(relativeId)) {
+    throw new Error("Invalid relativeId");
+  }
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+
+  // Tìm relative (bao gồm cả đã xóa)
+  const relative = await Relative.findOne({
+    _id: relativeId,
+    user_id: userId
+  });
+
+  if (!relative) {
+    throw new Error("Relative not found");
+  }
+
+  // Kiểm tra đã active chưa
+  if (relative.is_active) {
+    throw new Error("Relative is already active");
+  }
+
+  // Kiểm tra trùng phone với relative active khác
+  const existingActive = await Relative.findOne({
+    user_id: userId,
+    phone: relative.phone,
+    is_active: true,
+    _id: { $ne: relativeId } // Loại trừ chính nó
+  });
+
+  if (existingActive) {
+    throw new Error("Người thân với số điện thoại này đã tồn tại trong danh sách active");
+  }
+
+  // Khôi phục
+  relative.is_active = true;
+  await relative.save();
+
+  return relative.toObject();
+};
+
+/**
+ * Lấy danh sách người thân đã bị xóa (soft deleted)
+ * @param {string} userId - ID của user
+ * @param {Object} options - Options: page, limit
+ * @returns {Promise<Object>} Danh sách người thân đã xóa với pagination
+ */
+exports.getDeletedRelatives = async (userId, options = {}) => {
+  const { page = 1, limit = 50 } = options;
+  
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid userId");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [relatives, total] = await Promise.all([
+    Relative.find({ user_id: userId, is_active: false })
+      .sort({ updatedAt: -1 }) // Sắp xếp theo thời gian xóa gần nhất
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Relative.countDocuments({ user_id: userId, is_active: false })
+  ]);
+
+  return {
+    items: relatives,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
+  };
+};
+
