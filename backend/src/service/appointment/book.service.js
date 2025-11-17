@@ -565,6 +565,18 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
                 select: "full_name",
             },
         })
+        .populate({
+            path: "relative_id",
+            select: "full_name phone email relationship dob gender",
+        })
+        .populate({
+            path: "booked_by_user_id",
+            select: "full_name",
+            populate: {
+                path: "account_id",
+                select: "phone_number email",
+            },
+        })
         .sort({ booked_at: -1 })
         .skip(skip)
         .limit(limit)
@@ -573,7 +585,43 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
     const total = await Appointment.countDocuments(filter);
 
     // Chuẩn hóa dữ liệu để frontend dễ dùng
-    const formatted = appointments.map((a) => ({
+    const formatted = await Promise.all(appointments.map(async (a) => {
+        // Nếu appointment được đặt cho người thân (booking_for === "relative")
+        // và có booked_by_user_id, cần tìm relationship từ phía patient
+        let bookedByRelativeRelationship = null;
+        let bookedByRelativeName = null;
+        let bookedByRelativePhone = null;
+
+        if (a.booking_for === "relative" && a.booked_by_user_id && a.patient_id?.user_id) {
+            const patientUserId = a.patient_id.user_id?._id || a.patient_id.user_id;
+            const bookedByUserId = a.booked_by_user_id?._id || a.booked_by_user_id;
+
+            // Nếu đang xem từ phía patient (không phải người đặt lịch)
+            if (patientUserId && bookedByUserId && patientUserId.toString() !== bookedByUserId.toString()) {
+                // Tìm relative từ phía patient với phone/email của người đặt lịch
+                const bookedByPhone = a.booked_by_user_id?.account_id?.phone_number;
+                const bookedByEmail = a.booked_by_user_id?.account_id?.email;
+
+                if (bookedByPhone || bookedByEmail) {
+                    const patientRelative = await Relative.findOne({
+                        user_id: patientUserId,
+                        is_active: true,
+                        $or: [
+                            { phone: bookedByPhone },
+                            { email: bookedByEmail }
+                        ]
+                    }).lean();
+
+                    if (patientRelative) {
+                        bookedByRelativeRelationship = patientRelative.relationship;
+                        bookedByRelativeName = a.booked_by_user_id?.full_name || null;
+                        bookedByRelativePhone = bookedByPhone || null;
+                    }
+                }
+            }
+        }
+
+        return {
         _id: a._id?.toString() || a._id, // Đảm bảo _id là string
         id: a._id?.toString() || a._id, // Giữ id để dùng cho key trong React
         status: a.status.toLowerCase(), // vd: upcoming
@@ -600,21 +648,36 @@ async function getAppointmentsByPatient(patientId, { status, page = 1, limit = 1
             timeZone: "UTC",
         }) : "",
         price: a.fee_amount?.toLocaleString("vi-VN") + "đ",
+        fee_amount: a.fee_amount || null,
         image: a.doctor_id?.user_id?.avatar_url || "/doctor-default.jpg",
         patientName: a.patient_id?.user_id?.full_name || "",
         phone: a.phone,
         reason: a.reason,
-        // Thông tin người thân (cho người già)
+        // Thông tin người thân
+        // Ưu tiên lấy từ relative_id (nếu có) - khi booking_for === "relative"
+        // Nếu không có, lấy từ appointment fields (khi is_elderly === true và booking_for === "self")
         is_elderly: a.is_elderly || false,
         patient_age: a.patient_age || null,
-        relative_name: a.relative_name || null,
-        relative_phone: a.relative_phone || null,
-        relative_relationship: a.relative_relationship || null,
+        relative_name: a.relative_id?.full_name || a.relative_name || null,
+        relative_phone: a.relative_id?.phone || a.relative_phone || null,
+        relative_relationship: a.relative_id?.relationship || a.relative_relationship || null,
+        booking_for: a.booking_for || "self",
+        relative_id: a.relative_id?._id?.toString() || a.relative_id?.toString() || null,
+        // Mã đặt lịch
+        booking_code: a.booking_code || null,
         // Thêm thời gian đặt lịch để hiển thị badge "NEW"
         booked_at: a.booked_at || null,
         createdAt: a.createdAt || null,
         created_at: a.created_at || null,
+        // Thông tin người đặt lịch (khi xem từ phía patient)
+        booked_by_user_id: a.booked_by_user_id?._id?.toString() || a.booked_by_user_id?.toString() || null,
+        booked_by_name: bookedByRelativeName || null,
+        booked_by_phone: bookedByRelativePhone || null,
+        booked_by_relationship: bookedByRelativeRelationship || null,
+    };
     }));
+
+    return formatted;
     function mapStatus(status) {
         switch (status) {
             case "SCHEDULED": return "upcoming";

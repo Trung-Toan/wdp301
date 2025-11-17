@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Users,
     Plus,
@@ -42,44 +42,129 @@ export default function RelativesTab() {
     const [provinces, setProvinces] = useState([]);
     const [wards, setWards] = useState([]);
     const [submitting, setSubmitting] = useState(false);
+    const [formattedAddresses, setFormattedAddresses] = useState({});
+
+    // Helper function để format địa chỉ đầy đủ
+    const formatFullAddress = useCallback(async (relative) => {
+        const parts = [];
+        
+        if (relative.address) {
+            parts.push(relative.address);
+        }
+        
+        // Lấy ward name nếu có ward_code
+        if (relative.ward_code && relative.province_code) {
+            try {
+                const { wardApi } = await import("../../../../../api/address/wardApi");
+                const res = await wardApi.getWardsByProvince(relative.province_code);
+                const wards = res.data?.options || [];
+                const ward = wards.find(w => w.value === relative.ward_code);
+                if (ward) {
+                    parts.push(ward.label);
+                }
+            } catch (err) {
+                console.error("Error loading ward:", err);
+            }
+        }
+        
+        // Lấy province name nếu có province_code
+        if (relative.province_code) {
+            const province = provinces.find(p => p.value === relative.province_code);
+            if (province) {
+                parts.push(province.label);
+            }
+        }
+        
+        return parts.filter(Boolean).join(", ");
+    }, [provinces]);
 
     // Fetch relatives list
-    const fetchRelatives = async () => {
+    const fetchRelatives = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const response = await relativesApi.getRelatives({ page: 1, limit: 100 });
-            setRelatives(response.data?.data || []);
+            const relativesList = response.data?.data || [];
+            setRelatives(relativesList);
+            
+            // Format addresses cho tất cả relatives (nếu provinces đã load)
+            if (provinces.length > 0) {
+                const addresses = {};
+                for (const relative of relativesList) {
+                    if (relative.address || relative.ward_code || relative.province_code) {
+                        addresses[relative._id] = await formatFullAddress(relative);
+                    }
+                }
+                setFormattedAddresses(prev => ({ ...prev, ...addresses }));
+            }
         } catch (err) {
             setError(err.message || "Lỗi khi tải danh sách người thân");
             toast.error("Không thể tải danh sách người thân");
         } finally {
             setLoading(false);
         }
-    };
+    }, [provinces, formatFullAddress]);
 
     // Fetch deleted relatives list
-    const fetchDeletedRelatives = async () => {
+    const fetchDeletedRelatives = useCallback(async () => {
         setLoadingDeleted(true);
         try {
             const response = await relativesApi.getDeletedRelatives({ page: 1, limit: 100 });
-            setDeletedRelatives(response.data?.data || []);
+            const deletedList = response.data?.data || [];
+            setDeletedRelatives(deletedList);
+            
+            // Format addresses cho tất cả deleted relatives (nếu provinces đã load)
+            if (provinces.length > 0) {
+                const addresses = {};
+                for (const relative of deletedList) {
+                    if (relative.address || relative.ward_code || relative.province_code) {
+                        addresses[relative._id] = await formatFullAddress(relative);
+                    }
+                }
+                setFormattedAddresses(prev => ({ ...prev, ...addresses }));
+            }
         } catch (err) {
             console.error("Error fetching deleted relatives:", err);
             toast.error("Không thể tải danh sách người thân đã xóa");
         } finally {
             setLoadingDeleted(false);
         }
-    };
+    }, [provinces, formatFullAddress]);
 
     useEffect(() => {
         fetchRelatives();
         if (activeTab === "deleted") {
             fetchDeletedRelatives();
         }
-    }, [activeTab]);
+    }, [activeTab, fetchRelatives, fetchDeletedRelatives]);
 
-    // Load provinces
+    // Re-format addresses khi provinces đã load
+    useEffect(() => {
+        if (provinces.length > 0) {
+            const formatAddresses = async () => {
+                const addresses = {};
+                
+                // Format cho active relatives
+                for (const relative of relatives) {
+                    if (relative.address || relative.ward_code || relative.province_code) {
+                        addresses[relative._id] = await formatFullAddress(relative);
+                    }
+                }
+                
+                // Format cho deleted relatives
+                for (const relative of deletedRelatives) {
+                    if (relative.address || relative.ward_code || relative.province_code) {
+                        addresses[relative._id] = await formatFullAddress(relative);
+                    }
+                }
+                
+                setFormattedAddresses(addresses);
+            };
+            formatAddresses();
+        }
+    }, [provinces, relatives, deletedRelatives, formatFullAddress]);
+
+    // Load provinces - load luôn khi component mount để dùng cho hiển thị
     useEffect(() => {
         const loadProvinces = async () => {
             try {
@@ -90,10 +175,8 @@ export default function RelativesTab() {
                 console.error("Error loading provinces:", err);
             }
         };
-        if (showAddModal || showEditModal) {
-            loadProvinces();
-        }
-    }, [showAddModal, showEditModal]);
+        loadProvinces();
+    }, []);
 
     // Load wards when province changes
     useEffect(() => {
@@ -411,10 +494,14 @@ export default function RelativesTab() {
                                     <User className="h-4 w-4 text-gray-400" />
                                     <span>{getGenderText(relative.gender)}</span>
                                 </div>
-                                {relative.address && (
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-gray-400" />
-                                        <span className="line-clamp-1">{relative.address}</span>
+                                {(relative.address || relative.ward_code || relative.province_code) && (
+                                    <div className="flex items-start gap-2">
+                                        <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                                        <span className="line-clamp-2 text-sm">
+                                            {formattedAddresses[relative._id] || relative.address || 
+                                             (relative.ward_code ? "Đang tải..." : "") ||
+                                             (relative.province_code ? "Đang tải..." : "")}
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -494,10 +581,14 @@ export default function RelativesTab() {
                                             <User className="h-4 w-4 text-gray-400" />
                                             <span>{getGenderText(relative.gender)}</span>
                                         </div>
-                                        {relative.address && (
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="h-4 w-4 text-gray-400" />
-                                                <span className="line-clamp-1">{relative.address}</span>
+                                        {(relative.address || relative.ward_code || relative.province_code) && (
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                                                <span className="line-clamp-2 text-sm">
+                                                    {formattedAddresses[relative._id] || relative.address || 
+                                                     (relative.ward_code ? "Đang tải..." : "") ||
+                                                     (relative.province_code ? "Đang tải..." : "")}
+                                                </span>
                                             </div>
                                         )}
                                         {relative.updatedAt && (
