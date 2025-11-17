@@ -5,7 +5,7 @@ import { profilePatientApi } from "../../../../../api/patients/profilePatientApi
 import { provinceApi } from "../../../../../api/address/provinceApi";
 import { wardApi } from "../../../../../api/address/wardApi";
 
-export default function PersonalTab() {
+export default function PersonalTab({ onProfileUpdate }) {
     const [isEditing, setIsEditing] = useState(false);
     const [patientCode, setPatientCode] = useState("");
     const [formData, setFormData] = useState({
@@ -182,29 +182,69 @@ export default function PersonalTab() {
             };
             const res = await profilePatientApi.updateInformation(payload);
             if (res.data?.success) {
+                // Cập nhật state ngay từ editData trước, sau đó fetch lại để đồng bộ
+                const tempUpdatedData = {
+                    ...editData,
+                    email: editData.email || formData.email, // Đảm bảo email được cập nhật
+                };
+                setFormData(tempUpdatedData);
+                
                 // Fetch lại dữ liệu từ API để đảm bảo hiển thị đúng
-                const profileRes = await profilePatientApi.getInformation();
-                if (profileRes.data?.success) {
-                    const data = profileRes.data.data;
-                    const updatedData = {
-                        full_name: data.full_name || "",
-                        dob: data.dob ? data.dob.split("T")[0] : "",
-                        gender: data.gender || "",
-                        address: data.address || "",
-                        email: data.account?.email || "",
-                        phone_number: data.account?.phone_number || "",
-                        provinceCode: data.province_code || "",
-                        wardCode: data.ward_code || "",
-                    };
-                    setFormData(updatedData);
-                    setEditData(updatedData);
-                    setPatientCode(data.patient_code || "");
-                } else {
-                    // Fallback: dùng editData nếu fetch thất bại
-                    setFormData(editData);
+                try {
+                    const profileRes = await profilePatientApi.getInformation();
+                    console.log("Profile response after update:", profileRes.data);
+                    if (profileRes.data?.success) {
+                        const data = profileRes.data.data;
+                        console.log("Profile data after update:", data);
+                        const updatedData = {
+                            full_name: data.full_name || "",
+                            dob: data.dob ? data.dob.split("T")[0] : "",
+                            gender: data.gender || "",
+                            address: data.address || "",
+                            email: data.account?.email || editData.email || "",
+                            phone_number: data.account?.phone_number || "",
+                            provinceCode: data.province_code || "",
+                            wardCode: data.ward_code || "",
+                        };
+                        console.log("Updated formData:", updatedData);
+                        setFormData(updatedData);
+                        setEditData(updatedData);
+                        setPatientCode(data.patient_code || "");
+                    
+                    // Reload wards nếu provinceCode có sẵn
+                    if (data.province_code) {
+                        try {
+                            setLoadingWards(true);
+                            const wardRes = await wardApi.getWardsByProvince(data.province_code);
+                            const rawWards = wardRes.data?.data || wardRes.data?.options || [];
+                            const wardList = rawWards.map(w => ({
+                                value: w.code || w.value,
+                                label: w.name || w.label
+                            }));
+                            setWards(wardList);
+                        } catch (err) {
+                            console.error("Lỗi tải quận/huyện sau khi update:", err);
+                        } finally {
+                            setLoadingWards(false);
+                        }
+                    } else {
+                        setWards([]);
+                    }
+                    } else {
+                        // Fallback: dùng editData nếu fetch thất bại
+                        console.warn("Failed to fetch updated profile, using editData");
+                    }
+                } catch (fetchErr) {
+                    console.error("Error fetching updated profile:", fetchErr);
+                    // Giữ lại tempUpdatedData đã set ở trên
                 }
                 setIsEditing(false);
                 toast.success("Cập nhật thông tin thành công!");
+                
+                // Notify parent component để cập nhật Sidebar
+                if (onProfileUpdate) {
+                    onProfileUpdate();
+                }
             } else {
                 toast.error(res.data?.message || "Cập nhật thất bại.");
             }
