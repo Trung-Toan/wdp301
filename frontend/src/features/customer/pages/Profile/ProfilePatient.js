@@ -4,6 +4,8 @@ import PersonalTab from "./components/PersonalTab";
 import MedicalInfoTab from "./components/MedicalInfoTab";
 import HistoryTab from "./components/HistoryTab";
 import RecordsTab from "./components/RecordsTab";
+import AccessRequestsTab from "./components/AccessRequestsTab";
+import RelativesTab from "./components/RelativesTab";
 import SettingsTab from "./components/SettingsTab";
 import Sidebar from "./components/Sidebar";
 import { Loader2, ChevronLeft } from "lucide-react";
@@ -13,38 +15,48 @@ import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 export default function ProfilePatient() {
     const [activeTab, setActiveTab] = useState("personal");
     const [formData, setFormData] = useState(null);
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const res = await profilePatientApi.getInformation();
-                const user = res.data.data;
-                setFormData({
-                    avatar: user.avatar_url || "https://i.pravatar.cc/150?img=12",
-                    name: user.full_name || "Người dùng",
-                    email: user.account.email || "Chưa có email",
-                });
-            } catch (error) {
-                console.error("Lỗi khi lấy thông tin người dùng:", error);
-            }
-        };
+    
+    const fetchProfile = async () => {
+        try {
+            const res = await profilePatientApi.getInformation();
+            const user = res.data.data;
+            setFormData({
+                avatar: user.avatar_url || "https://i.pravatar.cc/150?img=12",
+                name: user.full_name || "Người dùng",
+                email: user.account?.email || "Chưa có email",
+            });
+        } catch (error) {
+            console.error("Lỗi khi lấy thông tin người dùng:", error);
+        }
+    };
 
+    useEffect(() => {
         fetchProfile();
     }, []);
+
+    const handleProfileUpdate = () => {
+        // Refetch profile data khi có update từ PersonalTab
+        fetchProfile();
+    };
 
     const renderTab = () => {
         switch (activeTab) {
             case "personal":
-                return <PersonalTab />;
+                return <PersonalTab onProfileUpdate={handleProfileUpdate} />;
             case "medical":
                 return <MedicalInfoTab />;
             case "history":
                 return <HistoryTab />;
             case "records":
                 return <RecordsTab />;
+            case "access-requests":
+                return <AccessRequestsTab />;
+            case "relatives":
+                return <RelativesTab />;
             case "settings":
                 return <SettingsTab />;
             default:
-                return <PersonalTab />;
+                return <PersonalTab onProfileUpdate={handleProfileUpdate} />;
         }
     };
 

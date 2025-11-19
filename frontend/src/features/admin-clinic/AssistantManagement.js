@@ -1,12 +1,13 @@
-import { memo, useMemo, useState, useEffect } from "react";
+import { memo, useMemo, useState, useEffect, useRef } from "react";
 import {
   Plus,
-  Trash2,
   Search,
   CheckCircle,
   XCircle,
   Building2,
   Eye,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import { toast } from "react-toastify";
@@ -47,6 +48,10 @@ const AssistantManagement = () => {
   const [detailDoctorId, setDetailDoctorId] = useState("");
   const [detailRoles, setDetailRoles] = useState([]);
   const [detailNote, setDetailNote] = useState("");
+
+  // Ghi nhận clinic & doctor gốc (đang lưu DB) khi mở modal detail
+  const originalClinicIdRef = useRef("");
+  const originalDoctorIdRef = useRef("");
 
   const queryClient = useQueryClient();
 
@@ -91,7 +96,7 @@ const AssistantManagement = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // ===== React Query: all doctors (fallback cho lọc theo clinic) =====
+  // ===== React Query: all doctors (fallback) =====
   const {
     data: doctorsAll = [],
     isLoading: loadingDoctorsAll,
@@ -161,6 +166,7 @@ const AssistantManagement = () => {
           assistantData: assistant,
         };
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [assistantsRaw]
   );
 
@@ -271,31 +277,19 @@ const AssistantManagement = () => {
   });
 
   const { mutate: deleteAssistant, isLoading: deletingAssistant } = useMutation({
-    mutationFn: (id) => adminclinicAPI.deleteAssistant(id),
+    mutationFn: ({ id, status }) => adminclinicAPI.deleteAssistant(id, status),
     onSuccess: () => {
-      toast.success("Đã xoá trợ lý");
+      toast.success("Đã cập nhật trạng thái trợ lý");
       queryClient.invalidateQueries({ queryKey: ["assistants-of-admin-clinic"] });
     },
-    onError: () => toast.error("Không thể xoá trợ lý"),
+    onError: () => toast.error("Không thể thay đổi trạng thái trợ lý"),
   });
 
   // Cập nhật trợ lý (view/update modal)
   const { mutate: updateAssistant, isLoading: updatingAssistant } = useMutation({
     mutationFn: async (payload) => {
-      // Ưu tiên 1: updateAssistant
       if (typeof adminclinicAPI.updateAssistant === "function") {
         return adminclinicAPI.updateAssistant(payload);
-      }
-      // Ưu tiên 2: updateAssistantById
-      if (typeof adminclinicAPI.updateAssistantById === "function") {
-        return adminclinicAPI.updateAssistantById(payload);
-      }
-      // Ưu tiên 3: updateAssistantInfo / updateAssistantAccount
-      if (typeof adminclinicAPI.updateAssistantInfo === "function") {
-        return adminclinicAPI.updateAssistantInfo(payload);
-      }
-      if (typeof adminclinicAPI.updateAssistantAccount === "function") {
-        return adminclinicAPI.updateAssistantAccount(payload);
       }
       throw new Error("Chưa có API cập nhật trợ lý (updateAssistant).");
     },
@@ -311,9 +305,10 @@ const AssistantManagement = () => {
   });
 
   // ===== Handlers =====
-  const handleDeleteAssistant = (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa trợ lý này?")) return;
-    deleteAssistant(id);
+  const handleDeleteAssistant = (id, status) => {
+    if (!window.confirm("Bạn có chắc chắn muốn thay đổi trạng thái trợ lý này?")) return;
+    const nextStatus = status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    deleteAssistant({ id, status: nextStatus });
   };
 
   const handleOpenCreate = () => {
@@ -338,10 +333,17 @@ const AssistantManagement = () => {
             : [];
     const roleValues = rawRoles.filter(Boolean).map(String);
 
-    setDetailClinicId(asst.clinicId || "");
-    setDetailDoctorId(asst.assistantData?.doctor_id?._id || "");
+    const clinicIdFromDB = asst.clinicId || "";
+    const doctorIdFromDB = asst.assistantData?.doctor_id?._id || "";
+
+    setDetailClinicId(clinicIdFromDB);
+    setDetailDoctorId(doctorIdFromDB);
     setDetailRoles(roleValues);
     setDetailNote(asst.assistantData?.note || "");
+
+    // Ghi nhớ clinic/doctor gốc để khôi phục khi chuyển qua lại mà chưa lưu
+    originalClinicIdRef.current = clinicIdFromDB;
+    originalDoctorIdRef.current = doctorIdFromDB;
 
     // reset search fields
     setDetailSearchClinic("");
@@ -350,7 +352,7 @@ const AssistantManagement = () => {
     setShowDetailModal(true);
   };
 
-  // Khi đổi clinic trong modal detail -> load doctors theo clinic đó
+  // Khi đổi clinic trong modal detail -> load doctors theo clinic
   useEffect(() => {
     let mounted = true;
     const run = async () => {
@@ -364,8 +366,22 @@ const AssistantManagement = () => {
       const docs = await fetchDoctorsByClinic(detailClinicId);
       if (!mounted) return;
       setDetailClinicDoctors(docs);
+
       const allowed = new Set(docs.map((d) => String(d._id)));
-      if (!allowed.has(String(detailDoctorId))) setDetailDoctorId("");
+
+      if (detailClinicId === originalClinicIdRef.current) {
+        // Quay về phòng khám gốc -> khôi phục bác sĩ gốc nếu hợp lệ
+        const restoreId = originalDoctorIdRef.current || "";
+        if (restoreId && allowed.has(String(restoreId))) {
+          setDetailDoctorId(String(restoreId));
+        } else {
+          setDetailDoctorId("");
+        }
+      } else {
+        // Chuyển sang phòng khám khác -> ép chọn lại bác sĩ
+        setDetailDoctorId("");
+      }
+
       setDetailLoadingClinicDoctors(false);
     };
     run();
@@ -583,10 +599,11 @@ const AssistantManagement = () => {
                   {/* Status */}
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${assistant.status === "ACTIVE"
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
+                        assistant.status === "ACTIVE"
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-600"
-                        }`}
+                      }`}
                     >
                       {assistant.status === "ACTIVE" ? (
                         <>
@@ -602,21 +619,44 @@ const AssistantManagement = () => {
 
                   {/* Actions */}
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {/* Xem / Cập nhật */}
                       <button
                         onClick={() => handleOpenDetail(assistant)}
-                        className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
                         title="Xem / Cập nhật"
                       >
                         <Eye size={18} />
+                        <span className="text-sm font-medium">Xem</span>
                       </button>
+
+                      {/* Khóa / Mở */}
                       <button
-                        onClick={() => handleDeleteAssistant(assistant.id)}
-                        className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
-                        title="Xóa"
+                        onClick={() => handleDeleteAssistant(assistant.id, assistant.status)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors disabled:opacity-50
+                          ${
+                            assistant.status === "ACTIVE"
+                              ? "bg-red-100 text-red-600 hover:bg-red-200"
+                              : "bg-green-100 text-green-700 hover:bg-green-200"
+                          }`}
+                        title={
+                          assistant.status === "ACTIVE"
+                            ? "Ngừng hoạt động (Ban)"
+                            : "Kích hoạt (Unban)"
+                        }
                         disabled={deletingAssistant}
                       >
-                        <Trash2 size={18} />
+                        {assistant.status === "ACTIVE" ? (
+                          <>
+                            <XCircle size={18} />
+                            <span className="text-sm font-medium">Khóa</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={18} />
+                            <span className="text-sm font-medium">Mở</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </td>
@@ -753,6 +793,24 @@ const AssistantManagement = () => {
                     : "Vai trò không hợp lệ"}
                 </p>
               )}
+              {/* Chức năng theo Role */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 mt-3">
+                <div className="text-sm font-semibold text-blue-800 mb-2">Chức năng sẽ có</div>
+                {(getFeaturesForRoles(formik.values.roles)).length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {getFeaturesForRoles(formik.values.roles).map((f) => (
+                      <span
+                        key={f.key}
+                        className="inline-flex items-center rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-700"
+                      >
+                        {f.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-blue-700/80">Chưa chọn vai trò — chưa có chức năng nào.</div>
+                )}
+              </div>
             </div>
 
             {/* PHÒNG KHÁM (search + list) */}
@@ -876,25 +934,6 @@ const AssistantManagement = () => {
 
             {/* Note */}
             <FormField label="Ghi chú" name="note" as="textarea" placeholder="Thông tin bổ sung…" formik={formik} />
-
-            {/* Chức năng theo Role */}
-            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
-              <div className="text-sm font-semibold text-blue-800 mb-2">Chức năng sẽ có</div>
-              {(getFeaturesForRoles(formik.values.roles)).length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {getFeaturesForRoles(formik.values.roles).map((f) => (
-                    <span
-                      key={f.key}
-                      className="inline-flex items-center rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-700"
-                    >
-                      {f.label}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs text-blue-700/80">Chưa chọn vai trò — chưa có chức năng nào.</div>
-              )}
-            </div>
           </div>
 
           {/* Footer */}
@@ -962,10 +1001,11 @@ const AssistantManagement = () => {
                 <label className="block text-xs text-gray-500 mb-1">Trạng thái</label>
                 <div className="text-sm">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${selectedAssistant.status === "ACTIVE"
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                      selectedAssistant.status === "ACTIVE"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-600"
-                      }`}
+                    }`}
                   >
                     {selectedAssistant.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
                   </span>
@@ -1051,8 +1091,16 @@ const AssistantManagement = () => {
             {/* Bác sĩ theo phòng khám (edit) */}
             <div className="rounded-2xl border border-gray-200 p-4">
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Gán bác sĩ (tuỳ chọn)
+                {detailClinicId === originalClinicIdRef.current
+                  ? "Gán bác sĩ (tuỳ chọn)"
+                  : "Gán bác sĩ (bắt buộc khi đổi phòng khám)"}
               </label>
+
+              {detailClinicId && detailClinicId !== originalClinicIdRef.current && !detailDoctorId && (
+                <p className="text-xs text-red-600 mb-2">
+                  Bạn đang chuyển sang phòng khám khác — vui lòng chọn bác sĩ trước khi cập nhật.
+                </p>
+              )}
 
               {!detailClinicId ? (
                 <div className="rounded-xl border border-dashed border-gray-300 p-3 text-sm text-gray-500">
@@ -1085,7 +1133,11 @@ const AssistantManagement = () => {
                             onClick={() => setDetailDoctorId(id)}
                             className={
                               "w-full flex items-center justify-between px-3 py-2 text-sm transition text-left " +
-                              (isSelected ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50 text-gray-700")
+                              (isSelected
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : (detailClinicId !== originalClinicIdRef.current
+                                  ? "hover:bg-rose-50 text-gray-700"
+                                  : "hover:bg-gray-50 text-gray-700"))
                             }
                           >
                             <span>{name}</span>
@@ -1148,17 +1200,25 @@ const AssistantManagement = () => {
               </button>
               <button
                 type="button"
-                disabled={updatingAssistant || !selectedAssistant}
+                disabled={
+                  updatingAssistant ||
+                  !selectedAssistant ||
+                  (detailClinicId !== originalClinicIdRef.current && !detailDoctorId)
+                }
                 onClick={() => {
                   if (!detailClinicId) {
                     toast.error("Vui lòng chọn phòng khám trước khi cập nhật.");
+                    return;
+                  }
+                  if (detailClinicId !== originalClinicIdRef.current && !detailDoctorId) {
+                    toast.error("Bạn đã đổi phòng khám. Vui lòng chọn bác sĩ mới trước khi cập nhật.");
                     return;
                   }
                   const payload = {
                     assistant_id: selectedAssistant?.id,
                     clinic_id: detailClinicId,
                     doctor_id: detailDoctorId || undefined,
-                    roles: detailRoles.map(String),
+                    type: detailRoles.map(String),
                     note: detailNote || "",
                   };
                   updateAssistant(payload);

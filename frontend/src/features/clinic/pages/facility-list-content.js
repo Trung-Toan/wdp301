@@ -34,6 +34,7 @@ export default function FacilitiesList() {
         const fetchClinics = async () => {
             try {
                 const res = await clinicApi.getAllClinic();
+                console.log("API Response Clinic:", res.data.data);
                 if (res.data?.success) {
                     setClinics(res.data.data);
                 } else {
@@ -61,6 +62,9 @@ export default function FacilitiesList() {
 
     // Lọc dữ liệu theo tên / địa chỉ / location
     const filteredClinics = clinics.filter((c) => {
+        // Chỉ hiển thị cơ sở y tế có trạng thái ACTIVE
+        if (c.status !== "ACTIVE") return false;
+
         const addressText = `${c.address?.houseNumber || ""} ${c.address?.street || ""} ${c.address?.ward?.name || ""} ${c.address?.province?.name || ""}`;
 
         const normalizedName = removeVietnameseTones(c.name);

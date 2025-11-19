@@ -6,6 +6,7 @@ const { verifyGoogleIdToken } = require('../../utils/verify-google');
 const { loginWithGoogle } = require('../../service/auth/google.service');
 const User = require('../../model/user/User');
 const Patient = require('../../model/patient/Patient');
+const Relative = require('../../model/patient/Relative');
 const AdminClinic = require('../../model/user/AdminClinic');
 const Account = require('../../model/auth/Account');
 
@@ -124,20 +125,85 @@ exports.registerPatients = async (req, res) => {
                 account_id: account._id,
             });
 
-            // Tạo bản ghi bệnh nhân (Patient) liên kết với user_id
-            const patient = new Patient({
-                user_id: user._id,
-                province_code: province_code || null,
-                ward_code: ward_code || null,
-                blood_type: null,
-                allergies: [],
-                chronic_diseases: [],
-                medications: [],
-                surgery_history: [],
+            // Kiểm tra có Patient nào chưa có user_id và khớp phone/email không
+            // (Trường hợp người thân đã có lịch khám, giờ mới tạo tài khoản)
+            const existingPatient = await Patient.findOne({
+                user_id: null, // Chưa có tài khoản
+                $or: [
+                    { phone: phone_number }, // Match qua phone
+                    { email: email } // Hoặc email
+                ]
             });
 
-            // Middleware pre("save") sẽ tự sinh patient_code
-            await patient.save();
+            let patient;
+            if (existingPatient) {
+                // Tìm thấy Patient chưa có user_id → Link với User mới
+                existingPatient.user_id = user._id;
+                existingPatient.phone = phone_number; // Cập nhật phone
+                existingPatient.email = email; // Cập nhật email
+                // Ưu tiên địa chỉ mới từ form đăng ký
+                if (province_code) existingPatient.province_code = province_code;
+                if (ward_code) existingPatient.ward_code = ward_code;
+                await existingPatient.save();
+                
+                patient = existingPatient;
+                
+                // Cập nhật Relative nếu có (link với Patient này)
+                // Tìm Relative có patient_id trùng với Patient này
+                await Relative.updateMany(
+                    { patient_id: existingPatient._id },
+                    { 
+                        $set: { 
+                            // Không cập nhật user_id của Relative vì user_id là người sở hữu danh sách
+                            // Chỉ cập nhật thông tin liên hệ nếu cần
+                            phone: phone_number, // Cập nhật phone
+                            email: email, // Cập nhật email
+                            province_code: province_code || undefined,
+                            ward_code: ward_code || undefined,
+                            address: address || undefined
+                        } 
+                    }
+                );
+                
+                console.log("✅ Linked existing Patient with User:", existingPatient._id, "patient_code:", existingPatient.patient_code);
+            } else {
+                // Không tìm thấy → Tạo Patient mới
+                patient = new Patient({
+                    user_id: user._id,
+                    phone: phone_number, // Lưu phone
+                    email: email, // Lưu email
+                    province_code: province_code || null,
+                    ward_code: ward_code || null,
+                    blood_type: null,
+                    allergies: [],
+                    chronic_diseases: [],
+                    medications: [],
+                    surgery_history: [],
+                });
+
+                // Middleware pre("save") sẽ tự sinh patient_code
+                await patient.save();
+                
+                // Kiểm tra có Relative nào khớp không (trường hợp người thân đã được thêm vào danh sách)
+                // Tìm Relative chưa có patient_id và khớp phone/email
+                const matchingRelative = await Relative.findOne({
+                    patient_id: null, // Chưa có Patient
+                    $or: [
+                        { phone: phone_number },
+                        { email: email }
+                    ]
+                });
+                
+                if (matchingRelative) {
+                    // Link Relative với Patient mới
+                    // Lưu ý: Không cập nhật user_id của Relative vì user_id là người sở hữu danh sách
+                    matchingRelative.patient_id = patient._id;
+                    await matchingRelative.save();
+                    
+                    console.log("✅ Linked Relative with new Patient:", matchingRelative._id);
+                }
+            }
+            
             additionalData = { patient };
 
         } else if (userRole === "ADMIN_CLINIC") {

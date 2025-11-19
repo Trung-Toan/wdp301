@@ -178,11 +178,11 @@ const PatientMedicalRecords = () => {
   };
 
   // Cập nhật: Dùng refetchList và đóng modal
-  const handleVerifyPrescription = async (recordId) => {
+  const handleVerifyPrescription = async (recordId, status) => {
     if (!recordId) return;
 
     try {
-      const res = await doctorApi.verifyMedicalRecord(recordId, "VERIFIED");
+      const res = await doctorApi.verifyMedicalRecord(recordId, status);
 
       if (res.data?.ok) {
         toast.success("Phê duyệt đơn thuốc thành công!");
@@ -193,7 +193,7 @@ const PatientMedicalRecords = () => {
             ...prev.medical_record,
             prescription: {
               ...prev.medical_record.prescription,
-              status: "VERIFIED",
+              status: status,
               verified_at: new Date().toISOString(),
             },
           },
@@ -374,94 +374,125 @@ const PatientMedicalRecords = () => {
       {/* Modal chi tiết */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 transition-opacity duration-300"
           onClick={handleCloseModal}
         >
-          {/* Nội dung Modal */}
           {loadingRecord ? (
-            // Trạng thái loading
-            <div className="flex flex-col items-center justify-center h-64 bg-gray-900/90 p-8 rounded-xl shadow-2xl">
+            // Loading state
+            <div className="flex flex-col items-center justify-center h-64 w-full max-w-sm rounded-2xl bg-gray-900/90 px-6 py-8 shadow-2xl border border-white/10">
               <Spinner animation="border" variant="white" />
-              <p className="mt-4 text-lg text-white font-medium">
+              <p className="mt-4 text-lg font-medium text-white">
                 Đang tải chi tiết hồ sơ...
+              </p>
+              <p className="mt-1 text-xs text-gray-300 opacity-80">
+                Vui lòng chờ trong giây lát.
               </p>
             </div>
           ) : selectedRecord ? (
-            // Hiển thị chi tiết
+            // Modal chính
             <div
-              className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-transform duration-300 transform scale-100"
+              role="dialog"
+              aria-modal="true"
+              className="flex max-h-[92vh] w-full max-w-6xl transform flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl transition-all duration-300 md:scale-100"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header Modal */}
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-lg">
-                    <FileText className="w-6 h-6 text-white" />
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 border-b border-blue-600/10 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 px-6 py-5 md:px-8 md:py-6">
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className="rounded-2xl bg-white/15 p-2.5 md:p-3 shadow-sm">
+                    <FileText className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-xl md:text-2xl font-bold leading-snug text-white">
                       Hồ sơ bệnh án
                     </h2>
-                    <p className="text-blue-100 text-sm mt-1">
-                      {selectedRecord?.medical_record?.diagnosis}
+                    <p className="mt-1 text-xs md:text-sm text-blue-100 line-clamp-2">
+                      {selectedRecord?.medical_record?.diagnosis ||
+                        "Chưa có chẩn đoán"}
                     </p>
+                    {selectedRecord?.patient?.full_name && (
+                      <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-blue-50">
+                        <User className="h-3.5 w-3.5" />
+                        {selectedRecord.patient.full_name}{" "}
+                        {selectedRecord?.patient?.patient_code && (
+                          <span className="opacity-80">
+                            • Mã BN: {selectedRecord.patient.patient_code}
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button
-                  className="text-white/80 hover:bg-white/20 p-2 rounded-full transition-colors duration-200"
+                  className="rounded-full border border-white/25 bg-white/10 p-1.5 text-white/80 shadow-sm transition hover:bg-white/20 hover:text-white"
                   onClick={handleCloseModal}
                 >
-                  <X className="w-7 h-7" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* Body Modal (Cuộn được) */}
-              <div className="overflow-y-auto flex-1 p-6 md:p-8 bg-gray-50">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Cột chính (2/3): Chẩn đoán, Triệu chứng, Đơn thuốc */}
-                  <div className="lg:col-span-2 space-y-6">
-                    {/* Thẻ chẩn đoán */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-green-100 p-2.5 rounded-lg">
-                          <Activity className="w-5 h-5 text-green-600" />
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-5 md:px-8 md:py-7">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                  {/* Cột trái: nội dung hồ sơ */}
+                  <div className="space-y-6 lg:col-span-2">
+                    {/* Chẩn đoán & ghi chú */}
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl bg-green-100 p-2.5">
+                            <Activity className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-base md:text-lg font-bold text-gray-900">
+                              Chẩn đoán & ghi chú
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              Thông tin chính về lần khám hiện tại
+                            </p>
+                          </div>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-800">
-                          Chẩn đoán & Ghi chú
-                        </h3>
                       </div>
-                      <p className="text-base text-gray-700 leading-relaxed bg-green-50 p-4 rounded-lg border-l-4 border-green-500 mb-4 font-semibold">
-                        {selectedRecord?.medical_record?.diagnosis}
+
+                      <p className="mb-4 rounded-xl border-l-4 border-green-500 bg-green-50 px-4 py-3 text-sm md:text-base font-semibold leading-relaxed text-gray-800">
+                        {selectedRecord?.medical_record?.diagnosis ||
+                          "Chưa có chẩn đoán được ghi nhận."}
                       </p>
+
                       {selectedRecord?.medical_record?.notes && (
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700 mb-2">
+                        <div className="mt-2 space-y-2">
+                          <p className="text-sm font-semibold text-gray-700">
                             Ghi chú của bác sĩ:
                           </p>
-                          <p className="text-base text-gray-700 leading-relaxed bg-gray-100 p-4 rounded-lg">
-                            {selectedRecord?.medical_record?.notes}
+                          <p className="rounded-xl bg-gray-100 px-4 py-3 text-sm leading-relaxed text-gray-800">
+                            {selectedRecord.medical_record.notes}
                           </p>
                         </div>
                       )}
                     </div>
 
-                    {/* Thẻ triệu chứng */}
+                    {/* Triệu chứng */}
                     {selectedRecord?.medical_record?.symptoms?.length > 0 && (
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="bg-orange-100 p-2.5 rounded-lg">
-                            <FileText className="w-5 h-5 text-orange-600" />
+                      <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+                        <div className="mb-4 flex items-center gap-3">
+                          <div className="rounded-xl bg-orange-100 p-2.5">
+                            <FileText className="h-5 w-5 text-orange-600" />
                           </div>
-                          <h3 className="text-lg font-bold text-gray-800">
-                            Triệu chứng
-                          </h3>
+                          <div>
+                            <h3 className="text-base md:text-lg font-bold text-gray-900">
+                              Triệu chứng
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              Các biểu hiện lâm sàng do bệnh nhân ghi nhận
+                            </p>
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {selectedRecord?.medical_record?.symptoms.map(
+                          {selectedRecord.medical_record.symptoms.map(
                             (symptom, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-200 shadow-sm"
+                                className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs md:text-sm font-medium text-orange-700 shadow-sm"
                               >
                                 {symptom}
                               </span>
@@ -471,38 +502,44 @@ const PatientMedicalRecords = () => {
                       </div>
                     )}
 
-                    {/* Thẻ đơn thuốc */}
+                    {/* Đơn thuốc */}
                     {selectedRecord?.medical_record?.prescription && (
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
+                      <div className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4">
                           <div className="flex items-center gap-3">
-                            <div className="bg-purple-100 p-2.5 rounded-lg">
-                              <Pill className="w-5 h-5 text-purple-600" />
+                            <div className="rounded-xl bg-purple-100 p-2.5">
+                              <Pill className="h-5 w-5 text-purple-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-800">
-                              Đơn thuốc
-                            </h3>
+                            <div>
+                              <h3 className="text-base md:text-lg font-bold text-gray-900">
+                                Đơn thuốc
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                Chi tiết thuốc và hướng dẫn sử dụng
+                              </p>
+                            </div>
                           </div>
+
                           {getPrescriptionStatus(
-                            selectedRecord?.medical_record?.prescription.status
+                            selectedRecord.medical_record.prescription.status
                           ) && (
                             <span
-                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm border ${
+                              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs md:text-sm font-semibold shadow-sm ${
                                 getPrescriptionStatus(
-                                  selectedRecord?.medical_record?.prescription
+                                  selectedRecord.medical_record.prescription
                                     .status
                                 ).class
                               }`}
                             >
                               {
                                 getPrescriptionStatus(
-                                  selectedRecord?.medical_record?.prescription
+                                  selectedRecord.medical_record.prescription
                                     .status
                                 ).icon
                               }
                               {
                                 getPrescriptionStatus(
-                                  selectedRecord?.medical_record?.prescription
+                                  selectedRecord.medical_record.prescription
                                     .status
                                 ).text
                               }
@@ -510,47 +547,47 @@ const PatientMedicalRecords = () => {
                           )}
                         </div>
 
-                        {selectedRecord?.medical_record?.prescription.medicines
+                        {selectedRecord.medical_record.prescription.medicines
                           ?.length > 0 ? (
                           <div className="space-y-4">
-                            {selectedRecord?.medical_record?.prescription.medicines.map(
+                            {selectedRecord.medical_record.prescription.medicines.map(
                               (medicine, idx) => (
                                 <div
                                   key={idx}
-                                  className="bg-purple-50 rounded-lg p-4 border border-purple-200"
+                                  className="rounded-xl border border-purple-200 bg-purple-50/80 px-4 py-3.5"
                                 >
                                   <div className="flex items-start gap-3">
-                                    <div className="text-purple-600 font-bold text-lg flex-shrink-0">
-                                      {idx + 1}.
-                                    </div>
-                                    <div className="flex-1">
-                                      <h4 className="text-base font-bold text-gray-900 mb-2">
+                                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-purple-600 text-sm font-bold text-white shadow-sm">
+                                      {idx + 1}
+                                    </span>
+                                    <div className="flex-1 space-y-1.5">
+                                      <h4 className="text-sm md:text-base font-bold text-gray-900">
                                         {medicine.name}
                                       </h4>
-                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm text-gray-700">
+                                      <div className="grid grid-cols-1 gap-2 text-xs text-gray-800 sm:grid-cols-3">
                                         <p>
                                           <span className="font-semibold text-purple-700">
-                                            Liều:
-                                          </span>{" "}
+                                            Liều:&nbsp;
+                                          </span>
                                           {medicine.dosage}
                                         </p>
                                         <p>
                                           <span className="font-semibold text-purple-700">
-                                            Tần suất:
-                                          </span>{" "}
+                                            Tần suất:&nbsp;
+                                          </span>
                                           {medicine.frequency}
                                         </p>
                                         <p>
                                           <span className="font-semibold text-purple-700">
-                                            TG:
-                                          </span>{" "}
+                                            Thời gian:&nbsp;
+                                          </span>
                                           {medicine.duration}
                                         </p>
                                       </div>
                                       {medicine.note && (
-                                        <div className="mt-2 text-xs text-blue-700 italic border-t border-purple-200 pt-2">
+                                        <p className="mt-2 border-t border-purple-200 pt-2 text-xs italic text-blue-700">
                                           Lưu ý: {medicine.note}
-                                        </div>
+                                        </p>
                                       )}
                                     </div>
                                   </div>
@@ -559,71 +596,83 @@ const PatientMedicalRecords = () => {
                             )}
                           </div>
                         ) : (
-                          <p className="text-gray-500 italic">
+                          <p className="text-sm italic text-gray-500">
                             Không có thuốc trong đơn.
                           </p>
                         )}
 
-                        {selectedRecord?.medical_record?.prescription
+                        {selectedRecord.medical_record.prescription
                           .instruction && (
-                          <div className="mt-5 bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                            <p className="text-sm font-bold text-blue-900 mb-1">
+                          <div className="mt-5 rounded-xl border-l-4 border-blue-500 bg-blue-50 px-4 py-3">
+                            <p className="mb-1 text-xs font-bold text-blue-900">
                               Hướng dẫn sử dụng chung:
                             </p>
-                            <p className="text-sm text-blue-800">
+                            <p className="text-xs md:text-sm text-blue-800">
                               {
-                                selectedRecord?.medical_record?.prescription
+                                selectedRecord.medical_record.prescription
                                   .instruction
                               }
                             </p>
                           </div>
                         )}
 
-                        {selectedRecord?.medical_record?.prescription.status ===
+                        {selectedRecord.medical_record.prescription.status ===
                           "PENDING" && (
-                          <div className="mt-6 flex justify-end gap-3 border-t pt-4">
+                          <div className="mt-6 flex flex-wrap justify-end gap-3 border-t pt-4">
                             <button
                               onClick={() =>
-                                handleVerifyPrescription(
-                                  selectedRecord?.medical_record?._id
-                                )
+                                handleVerifyPrescription(selectedRecord?.medical_record?._id, "VERIFIED")
                               }
-                              className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-md shadow-green-500/30"
+                              className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-green-500/30 transition hover:bg-green-700"
                             >
-                              <CheckCircle className="w-4 h-4" />
+                              <CheckCircle className="h-4 w-4" />
                               Phê duyệt đơn thuốc
                             </button>
-
-                            {/* Nút Yêu cầu làm lại (chưa có logic API) */}
-                            <button className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-md shadow-red-500/30">
-                              <XCircle className="w-4 h-4" />
+                            <button 
+                              onClick={() =>
+                                handleVerifyPrescription(selectedRecord?.medical_record?._id, "REJECTED")
+                              }
+                              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-red-500/30 transition hover:bg-red-700"
+                            >
+                              <XCircle className="h-4 w-4" />
                               Yêu cầu làm lại
                             </button>
                           </div>
                         )}
-                        
-                        {selectedRecord?.medical_record?.prescription.status ===
-                          "VERIFIED" && selectedRecord?.medical_record?.prescription.verified_at && (
-                            <p className="mt-4 text-xs text-gray-500 text-right italic">
-                                Đã phê duyệt lúc: {new Date(selectedRecord.medical_record.prescription.verified_at).toLocaleString('vi-VN')}
+
+                        {selectedRecord.medical_record.prescription.status ===
+                          "VERIFIED" &&
+                          selectedRecord.medical_record.prescription
+                            .verified_at && (
+                            <p className="mt-4 text-right text-xs italic text-gray-500">
+                              Đã phê duyệt lúc:{" "}
+                              {new Date(
+                                selectedRecord.medical_record.prescription.verified_at
+                              ).toLocaleString("vi-VN")}
                             </p>
-                        )}
+                          )}
                       </div>
                     )}
                   </div>
 
-                  {/* Cột phụ (1/3): Thông tin bệnh nhân */}
-                  <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 sticky top-0">
-                      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
-                        <div className="bg-blue-100 p-2.5 rounded-lg">
-                          <User className="w-5 h-5 text-blue-600" />
+                  {/* Cột phải: Thông tin bệnh nhân */}
+                  <div className="space-y-6 lg:col-span-1">
+                    <div className="sticky top-2 rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-md">
+                      <div className="mb-4 flex items-center gap-3 border-b border-gray-200 pb-3">
+                        <div className="rounded-xl bg-blue-100 p-2.5">
+                          <User className="h-5 w-5 text-blue-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-800">
-                          Thông tin cá nhân
-                        </h3>
+                        <div>
+                          <h3 className="text-base md:text-lg font-bold text-gray-900">
+                            Thông tin cá nhân
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Dữ liệu hành chính của bệnh nhân
+                          </p>
+                        </div>
                       </div>
-                      <div className="space-y-4">
+
+                      <div className="space-y-3">
                         <InfoRow
                           label="Họ và tên"
                           value={selectedRecord?.patient?.full_name}
@@ -631,20 +680,15 @@ const PatientMedicalRecords = () => {
                         <InfoRow
                           label="Mã BN"
                           value={selectedRecord?.patient?.patient_code}
-                          color="text-blue-600"
+                          color="text-blue-600 font-semibold"
                         />
                         <InfoRow
                           label="Email"
-                          value={selectedRecord.patient?.user?.email}
+                          value={selectedRecord?.patient?.email}
                         />
                         <InfoRow
                           label="SĐT"
-                          value={selectedRecord.patient?.user?.phone}
-                        />
-                        <InfoRow
-                          label="Nhóm máu"
-                          value={selectedRecord.patient?.blood_type}
-                          color="text-red-600"
+                          value={selectedRecord?.patient?.phone}
                         />
                       </div>
                     </div>
@@ -653,22 +697,22 @@ const PatientMedicalRecords = () => {
               </div>
             </div>
           ) : (
-            // Xử lý lỗi (nếu selectedRecord là null sau khi loading xong)
+            // Lỗi: không tải được hồ sơ
             <div
-              className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 text-center"
+              className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <AlertCircle className="mx-auto mb-4 h-16 w-16 text-red-500" />
+              <h2 className="mb-2 text-2xl font-bold text-gray-800">
                 Không thể tải hồ sơ
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="mb-6 text-sm text-gray-600">
                 Đã xảy ra lỗi khi tải chi tiết bệnh án. Vui lòng kiểm tra lại
                 quyền truy cập hoặc kết nối mạng.
               </p>
               <button
                 onClick={handleCloseModal}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 Đã hiểu
               </button>
@@ -686,9 +730,7 @@ const InfoRow = ({ label, value, color = "text-gray-900" }) => (
     <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
       {label}
     </span>
-    <span className={`text-base font-semibold ${color}`}>
-      {value || "N/A"}
-    </span>
+    <span className={`text-base font-semibold ${color}`}>{value || "N/A"}</span>
   </div>
 );
 

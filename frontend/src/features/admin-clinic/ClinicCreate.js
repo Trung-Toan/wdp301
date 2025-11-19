@@ -149,7 +149,7 @@ const ClinicCreation = () => {
             "application/vnd.ms-powerpoint",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
         ];
-        
+
         const validExtensions = [
             ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
             ".pdf",
@@ -185,11 +185,11 @@ const ClinicCreation = () => {
         }
 
         setLogoFile(file);
-        
+
         // Chỉ hiển thị preview nếu là file ảnh
         if (file.type.startsWith("image/")) {
-        const localURL = URL.createObjectURL(file);
-        setLogoPreview(localURL);
+            const localURL = URL.createObjectURL(file);
+            setLogoPreview(localURL);
         } else {
             setLogoPreview(""); // Không preview cho file PDF hoặc document
         }
@@ -212,11 +212,11 @@ const ClinicCreation = () => {
         }
 
         setBannerFile(file);
-        
+
         // Chỉ hiển thị preview nếu là file ảnh
         if (file.type.startsWith("image/")) {
-        const localURL = URL.createObjectURL(file);
-        setBannerPreview(localURL);
+            const localURL = URL.createObjectURL(file);
+            setBannerPreview(localURL);
         } else {
             setBannerPreview(""); // Không preview cho file PDF hoặc document
         }
@@ -243,18 +243,18 @@ const ClinicCreation = () => {
                 sessionStorage.getItem("access_token") ||
                 sessionStorage.getItem("token") ||
                 sessionStorage.getItem("accessToken");
-            
+
             const cleanToken = token ? token.replace(/^"|"$/g, "") : null;
 
             // Upload logo nếu có
             let logoFileName = formData.logo_url;
             if (logoFile) {
                 try {
-                const logoFormData = new FormData();
-                logoFormData.append("myFile", logoFile);
+                    const logoFormData = new FormData();
+                    logoFormData.append("myFile", logoFile);
 
-                const logoUploadResponse = await axios.post(
-                    `${API_BASE_URL}/upload`,
+                    const logoUploadResponse = await axios.post(
+                        `${API_BASE_URL}/upload`,
                         logoFormData,
                         {
                             headers: {
@@ -262,20 +262,20 @@ const ClinicCreation = () => {
                                 ...(cleanToken && { Authorization: `Bearer ${cleanToken}` }),
                             },
                         }
-                );
+                    );
 
-                if (logoUploadResponse.data.files && logoUploadResponse.data.files.length > 0) {
-                    logoFileName = logoUploadResponse.data.files[0].fileName;
-                } else {
-                    toast.error("Server upload logo không trả về tên file.");
+                    if (logoUploadResponse.data.files && logoUploadResponse.data.files.length > 0) {
+                        logoFileName = logoUploadResponse.data.files[0].fileName;
+                    } else {
+                        toast.error("Server upload logo không trả về tên file.");
                         setUploadingFiles(false);
                         return;
                     }
                 } catch (uploadError) {
                     console.error("Lỗi upload logo:", uploadError);
                     toast.error(
-                        uploadError.response?.data?.message || 
-                        uploadError.response?.data?.error || 
+                        uploadError.response?.data?.message ||
+                        uploadError.response?.data?.error ||
                         "Lỗi khi upload logo. Vui lòng thử lại."
                     );
                     setUploadingFiles(false);
@@ -287,11 +287,11 @@ const ClinicCreation = () => {
             let bannerFileName = formData.banner_url;
             if (bannerFile) {
                 try {
-                const bannerFormData = new FormData();
-                bannerFormData.append("myFile", bannerFile);
+                    const bannerFormData = new FormData();
+                    bannerFormData.append("myFile", bannerFile);
 
-                const bannerUploadResponse = await axios.post(
-                    `${API_BASE_URL}/upload`,
+                    const bannerUploadResponse = await axios.post(
+                        `${API_BASE_URL}/upload`,
                         bannerFormData,
                         {
                             headers: {
@@ -299,20 +299,20 @@ const ClinicCreation = () => {
                                 ...(cleanToken && { Authorization: `Bearer ${cleanToken}` }),
                             },
                         }
-                );
+                    );
 
-                if (bannerUploadResponse.data.files && bannerUploadResponse.data.files.length > 0) {
-                    bannerFileName = bannerUploadResponse.data.files[0].fileName;
-                } else {
-                    toast.error("Server upload banner không trả về tên file.");
+                    if (bannerUploadResponse.data.files && bannerUploadResponse.data.files.length > 0) {
+                        bannerFileName = bannerUploadResponse.data.files[0].fileName;
+                    } else {
+                        toast.error("Server upload banner không trả về tên file.");
                         setUploadingFiles(false);
                         return;
                     }
                 } catch (uploadError) {
                     console.error("Lỗi upload banner:", uploadError);
                     toast.error(
-                        uploadError.response?.data?.message || 
-                        uploadError.response?.data?.error || 
+                        uploadError.response?.data?.message ||
+                        uploadError.response?.data?.error ||
                         "Lỗi khi upload banner. Vui lòng thử lại."
                     );
                     setUploadingFiles(false);
@@ -323,13 +323,13 @@ const ClinicCreation = () => {
             // Format address với province và ward từ code sang object
             const selectedProvince = provinces.find(p => p.value === formData.address.province);
             const selectedWard = wards.find(w => w.value === formData.address.ward);
-            
+
             const formattedAddress = {
                 ...formData.address,
-                province: selectedProvince 
+                province: selectedProvince
                     ? { code: selectedProvince.value, name: selectedProvince.label }
                     : null,
-                ward: selectedWard 
+                ward: selectedWard
                     ? { code: selectedWard.value, name: selectedWard.label }
                     : null,
             };
@@ -363,15 +363,15 @@ const ClinicCreation = () => {
                 "Lỗi khi gửi yêu cầu tạo phòng khám:",
                 error.response?.data || error.message
             );
-            
+
             // Hiển thị thông báo lỗi chi tiết hơn
             let errorMessage = "Lỗi khi tạo phòng khám.";
             if (error.response?.data) {
                 if (error.response.data.message) {
                     errorMessage = error.response.data.message;
                 } else if (error.response.data.error) {
-                    errorMessage = typeof error.response.data.error === 'string' 
-                        ? error.response.data.error 
+                    errorMessage = typeof error.response.data.error === 'string'
+                        ? error.response.data.error
                         : error.response.data.error.message || error.response.data.error;
                 } else if (error.response.data.errors) {
                     // Nếu có nhiều lỗi validation
@@ -381,7 +381,7 @@ const ClinicCreation = () => {
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             toast.error(errorMessage);
         } finally {
             setUploadingFiles(false);
@@ -647,11 +647,11 @@ const ClinicCreation = () => {
                                             {logoPreview || logoFile ? (
                                                 <div className="flex flex-col items-center">
                                                     {logoPreview ? (
-                                                    <img
-                                                        src={logoPreview}
-                                                        alt="Logo preview"
-                                                        className="w-32 h-32 object-contain rounded-lg mb-3"
-                                                    />
+                                                        <img
+                                                            src={logoPreview}
+                                                            alt="Logo preview"
+                                                            className="w-32 h-32 object-contain rounded-lg mb-3"
+                                                        />
                                                     ) : (
                                                         <div className="w-32 h-32 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
                                                             <FileText size={48} className="text-gray-400" />
@@ -702,11 +702,11 @@ const ClinicCreation = () => {
                                             {bannerPreview || bannerFile ? (
                                                 <div className="flex flex-col items-center">
                                                     {bannerPreview ? (
-                                                    <img
-                                                        src={bannerPreview}
-                                                        alt="Banner preview"
-                                                        className="w-full h-32 object-cover rounded-lg mb-3"
-                                                    />
+                                                        <img
+                                                            src={bannerPreview}
+                                                            alt="Banner preview"
+                                                            className="w-full h-32 object-cover rounded-lg mb-3"
+                                                        />
                                                     ) : (
                                                         <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
                                                             <FileText size={48} className="text-gray-400" />

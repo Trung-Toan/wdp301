@@ -19,7 +19,6 @@ const notificationSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: "Account",
     required: true,
-    index: true
   },
   recipient_type: { 
     type: String, 
@@ -41,7 +40,6 @@ const notificationSchema = new Schema({
   is_read: { 
     type: Boolean, 
     default: false,
-    index: true 
   },
   read_at: { 
     type: Date 
@@ -58,7 +56,6 @@ const notificationSchema = new Schema({
 });
 
 // Index for efficient queries
-notificationSchema.index({ recipient_id: 1, createdAt: -1 });
 notificationSchema.index({ recipient_id: 1, is_read: 1 });
 
 const Notification = mongoose.model("Notification", notificationSchema, "notifications");

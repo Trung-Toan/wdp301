@@ -11,6 +11,7 @@ export const doctorApi = {
   GET_ALL_MEDICAL_RECORDS: "/doctor/medical-records",
   GET_MEDICAL_RECORD_BY_ID: (id) => `/doctor/medical-records/${id}`,
   CHANGE_PASSWORD: "/doctor/change-password",
+  GET_PROFILE: "/doctor/profile",
 
   // Lấy bác sĩ top (nếu không truyền limit -> lấy tất cả)
   getDoctorTop: (limit) => axiosInstance.get("/doctor/top", { params: { limit } }),
@@ -49,10 +50,7 @@ export const doctorApi = {
 
   //duyệt đơn thuốc
   verifyMedicalRecord: (id, status, data = {}) =>
-    axiosInstance.put(
-      `/doctor/verify/medical-records/${id}?status=${status}`,
-      data
-    ),
+    axiosInstance.put(`/doctor/verify/medical-records/${id}?status=${status}`,data),
 
   //tìm hồ sơ bệnh án theo mã bệnh nhân
   searchMedicalRecords: (search) =>
@@ -64,11 +62,9 @@ export const doctorApi = {
     axiosInstance.get(doctorApi.VIEW_LIST_HISTORY_REQUEST_VIEW_MEDICAL_RECORD),
 
   //gửi yêu cầu truy cập hồ sơ
-  requestMedicalRecordAccess: (patientId, medicalRecordId, reason) =>
-    axiosInstance.post(
-      `/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,
-      { reason }
-    ),
+  requestMedicalRecordAccess: (patientId, medicalRecordId, reason) => {
+    return axiosInstance.post(`/doctor/patients/${patientId}/medical-records/${medicalRecordId}/request`,{ reason });
+  },
 
   //lấy danh sách trợ lý
   getAssistants: (params) =>
@@ -85,7 +81,7 @@ export const doctorApi = {
   getDoctorById: (id, params = {}) => axiosInstance.get(`/doctor/${id}`, { params }),
 
   //lấy profile bác sĩ
-  getProfile: () => axiosInstance.get("/doctor/profile"),
+  getProfile: () => axiosInstance.get(doctorApi.GET_PROFILE),
 
   //cap nhat profile bác sĩ
   updateProfile: (data) => axiosInstance.put("/doctor/profile", data),

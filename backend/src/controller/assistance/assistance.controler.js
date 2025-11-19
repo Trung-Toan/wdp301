@@ -132,7 +132,11 @@ exports.verifyAppointment = async (req, res) => {
     if (app.status !== "SCHEDULED") return resUtils.badRequestResponse(res, "Bạn chỉ được xác nhận với trạng thái là chờ duyệt");
     if (!status || (status !== "APPROVE" && status !== "CANCELLED"))
       return resUtils.badRequestResponse(res, "Trạng thái không phù hợp");
-
+    if (status === "CANCELLED") {
+      const slot = await slotService.getSlotById(app.slot_id);
+      if (!slot) return resUtils.badRequestResponse(res, "Không tìm thấy slot để hủy lịch khám");
+      slot.current_patients = Math.max(0, slot.current_patients - 1);
+    }
     app.status = status;
     const appUpdated = await appointmentService.updateAppointment(app._id, app);
     if (!appUpdated) return resUtils.badRequestResponse(res, "Cập nhật thất bại.");
@@ -151,9 +155,6 @@ exports.verifyAppointment = async (req, res) => {
         .populate("clinic_id", "name") // Lấy tên phòng khám
         .populate("specialty_id", "name") // Lấy tên chuyên khoa
         .lean();
-
-        console.log("BAT DAU TAO NOTIFY");
-        
 
       if (populatedApp) {
         // Gọi service thông báo với dữ liệu đầy đủ và trạng thái mới
@@ -182,11 +183,8 @@ exports.verifyAppointment = async (req, res) => {
 // PUT /update/appointments/:appointmentId
 // Đã được refactor dựa trên updateMedicalRecord
 exports.updateAppointment = async (req, res) => {
-  console.log("CALL API");
-  
   const { appointmentId } = req.params;
   const updateData = req.body;
-  console.log("Received update data for appointment:", appointmentId);
   if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
     return resUtils.badRequestResponse(res, "ID lịch khám không hợp lệ.");
   }
@@ -430,6 +428,7 @@ exports.viewMedicalRecordDetail = async (req, res) => {
   try {
     const { recordId } = req.params;
     const record = await medical_recordService.getMedicalRecordById(recordId);
+    console.log("record: ", record);
     return resUtils.successResponse(res, record, "lấy giữ liệu hồ sơ bệnh án thành công");
   } catch (error) {
     console.log(`Lỗi lấy hồ sơ bệnh án bởi: `, error);

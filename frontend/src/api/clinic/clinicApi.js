@@ -55,7 +55,7 @@ export const clinicApi = {
      * @param {boolean} data.is_annonymous - Review ẩn danh
      * @returns {Promise}
      */
-    submitReview: (data) => axiosInstance.post(`/feedback`, data),
+    submitReview: (data) => axiosInstance.post(`/patient/feedback`, data),
 
     /**
      * Đặt lịch khám tại phòng khám (clinic booking với auto-assign support)

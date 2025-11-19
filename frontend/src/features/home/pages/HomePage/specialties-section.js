@@ -5,6 +5,7 @@ import Card from "../../../../components/ui/Card";
 import CardContent from "../../../../components/ui/CardContent";
 import Button from "../../../../components/ui/Button";
 import { specialtyApi } from "../../../../api";
+import { withMinLoadingTime } from "../../../../utils/loadingUtils";
 
 export function SpecialtiesSection() {
     const [specialties, setSpecialties] = useState([]);
@@ -14,14 +15,17 @@ export function SpecialtiesSection() {
     useEffect(() => {
         const fetchSpecialties = async () => {
             try {
-                const res = await specialtyApi.getAll();
+                const res = await withMinLoadingTime(
+                    () => specialtyApi.getAll(),
+                    setLoading,
+                    600 // Minimum 600ms loading time
+                );
                 if (res.data.success) {
                     setSpecialties(res.data.data || []);
                 }
             } catch (err) {
                 console.error("Lỗi khi lấy danh sách chuyên khoa:", err);
                 setSpecialties([]);
-            } finally {
                 setLoading(false);
             }
         };

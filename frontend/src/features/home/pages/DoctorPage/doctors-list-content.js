@@ -25,6 +25,18 @@ export default function DoctorsListContent() {
     const [specialties, setSpecialties] = useState([]);
     const [provinces, setProvinces] = useState([]);
 
+
+    // Hàm bỏ dấu tiếng Việt để so sánh
+    const normalizeText = (text) => {
+        return text
+            .normalize("NFD") // Tách dấu
+            .replace(/[\u0300-\u036f]/g, "") // Xóa dấu
+            .replace(/đ/g, "d")
+            .replace(/Đ/g, "D")
+            .toLowerCase();
+    };
+
+
     // Lấy danh sách bác sĩ có bằng cấp đã được duyệt
     useEffect(() => {
         async function fetchDoctors() {
@@ -110,10 +122,11 @@ export default function DoctorsListContent() {
 
     // Lọc bác sĩ
     const filteredDoctors = doctors.filter((doctor) => {
+        const search = normalizeText(searchQuery);
+
         const matchesSearch =
-            doctor.fullname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            doctor.hospital.toLowerCase().includes(searchQuery.toLowerCase());
+            normalizeText(doctor.fullname).includes(search) ||
+            normalizeText(doctor.specialty).includes(search);
 
         const matchesSpecialty =
             selectedSpecialty === "Tất cả" ||
@@ -125,6 +138,7 @@ export default function DoctorsListContent() {
 
         return matchesSearch && matchesSpecialty && matchesProvince;
     });
+
 
     return (
         <div className="doctors-list-modern">
@@ -138,10 +152,13 @@ export default function DoctorsListContent() {
                         <Search className="doctors-list-search-icon" />
                         <input
                             type="text"
-                            placeholder="Tìm theo tên bác sĩ, chuyên khoa, bệnh viện..."
+                            placeholder="Tìm theo tên bác sĩ, chuyên khoa,...."
                             className="doctors-list-search-input"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchQuery(value);
+                            }}
                         />
                     </div>
                 </div>

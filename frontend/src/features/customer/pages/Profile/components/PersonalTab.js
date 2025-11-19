@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Edit2, Save, X, User, Calendar, Users, MapPin, Building2, Loader2, Phone } from "lucide-react";
+import { Edit2, Save, X, User, Calendar, Users, MapPin, Building2, Loader2, Phone, Hash, Mail } from "lucide-react";
 import { toast } from "react-toastify";
 import { profilePatientApi } from "../../../../../api/patients/profilePatientApi";
 import { provinceApi } from "../../../../../api/address/provinceApi";
 import { wardApi } from "../../../../../api/address/wardApi";
 
-export default function PersonalTab() {
+export default function PersonalTab({ onProfileUpdate }) {
     const [isEditing, setIsEditing] = useState(false);
+    const [patientCode, setPatientCode] = useState("");
     const [formData, setFormData] = useState({
         full_name: "",
         dob: "",
@@ -69,6 +70,7 @@ export default function PersonalTab() {
                     };
                     setFormData(initialData);
                     setEditData(initialData);
+                    setPatientCode(data.patient_code || "");
                     console.log("Initial formData:", initialData);
 
                     // Load wards nếu provinceCode có sẵn
@@ -174,33 +176,75 @@ export default function PersonalTab() {
                 gender: editData.gender,
                 address: editData.address,
                 phone: editData.phone_number, // Backend expect 'phone' not 'phone_number'
+                email: editData.email, // Backend expect 'email'
                 province_code: editData.provinceCode,
                 ward_code: editData.wardCode,
             };
             const res = await profilePatientApi.updateInformation(payload);
             if (res.data?.success) {
+                // Cập nhật state ngay từ editData trước, sau đó fetch lại để đồng bộ
+                const tempUpdatedData = {
+                    ...editData,
+                    email: editData.email || formData.email, // Đảm bảo email được cập nhật
+                };
+                setFormData(tempUpdatedData);
+                
                 // Fetch lại dữ liệu từ API để đảm bảo hiển thị đúng
-                const profileRes = await profilePatientApi.getInformation();
-                if (profileRes.data?.success) {
-                    const data = profileRes.data.data;
-                    const updatedData = {
-                        full_name: data.full_name || "",
-                        dob: data.dob ? data.dob.split("T")[0] : "",
-                        gender: data.gender || "",
-                        address: data.address || "",
-                        email: data.account?.email || "",
-                        phone_number: data.account?.phone_number || "",
-                        provinceCode: data.province_code || "",
-                        wardCode: data.ward_code || "",
-                    };
-                    setFormData(updatedData);
-                    setEditData(updatedData);
-                } else {
-                    // Fallback: dùng editData nếu fetch thất bại
-                    setFormData(editData);
+                try {
+                    const profileRes = await profilePatientApi.getInformation();
+                    console.log("Profile response after update:", profileRes.data);
+                    if (profileRes.data?.success) {
+                        const data = profileRes.data.data;
+                        console.log("Profile data after update:", data);
+                        const updatedData = {
+                            full_name: data.full_name || "",
+                            dob: data.dob ? data.dob.split("T")[0] : "",
+                            gender: data.gender || "",
+                            address: data.address || "",
+                            email: data.account?.email || editData.email || "",
+                            phone_number: data.account?.phone_number || "",
+                            provinceCode: data.province_code || "",
+                            wardCode: data.ward_code || "",
+                        };
+                        console.log("Updated formData:", updatedData);
+                        setFormData(updatedData);
+                        setEditData(updatedData);
+                        setPatientCode(data.patient_code || "");
+                    
+                    // Reload wards nếu provinceCode có sẵn
+                    if (data.province_code) {
+                        try {
+                            setLoadingWards(true);
+                            const wardRes = await wardApi.getWardsByProvince(data.province_code);
+                            const rawWards = wardRes.data?.data || wardRes.data?.options || [];
+                            const wardList = rawWards.map(w => ({
+                                value: w.code || w.value,
+                                label: w.name || w.label
+                            }));
+                            setWards(wardList);
+                        } catch (err) {
+                            console.error("Lỗi tải quận/huyện sau khi update:", err);
+                        } finally {
+                            setLoadingWards(false);
+                        }
+                    } else {
+                        setWards([]);
+                    }
+                    } else {
+                        // Fallback: dùng editData nếu fetch thất bại
+                        console.warn("Failed to fetch updated profile, using editData");
+                    }
+                } catch (fetchErr) {
+                    console.error("Error fetching updated profile:", fetchErr);
+                    // Giữ lại tempUpdatedData đã set ở trên
                 }
                 setIsEditing(false);
                 toast.success("Cập nhật thông tin thành công!");
+                
+                // Notify parent component để cập nhật Sidebar
+                if (onProfileUpdate) {
+                    onProfileUpdate();
+                }
             } else {
                 toast.error(res.data?.message || "Cập nhật thất bại.");
             }
@@ -309,6 +353,25 @@ export default function PersonalTab() {
                                     placeholder="Nhập số điện thoại"
                                 />
                                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            </div>
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-sky-600" />
+                                Email
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={editData.email || ""}
+                                    onChange={handleChange}
+                                    className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 font-medium hover:border-sky-300 transition-colors"
+                                    placeholder="Nhập email"
+                                />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                             </div>
                         </div>
 
@@ -421,6 +484,29 @@ export default function PersonalTab() {
                 </div>
             ) : (
                 <div className="grid gap-5 sm:grid-cols-2">
+                    {/* Mã bệnh nhân - Highlighted */}
+                    <div className="sm:col-span-2 bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-500 p-6 rounded-2xl border-2 border-blue-400 shadow-xl shadow-blue-200/50 relative overflow-hidden">
+                        {/* Decorative background pattern */}
+                        <div className="absolute inset-0 opacity-10">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-16 -mt-16"></div>
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-12 -mb-12"></div>
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                                    <Hash className="h-5 w-5 text-white" />
+                                </div>
+                                <p className="text-sm font-bold text-white/90 uppercase tracking-wider">Mã bệnh nhân</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <p className="text-3xl sm:text-4xl font-black text-white tracking-wider drop-shadow-lg">
+                                    {patientCode || "Chưa có mã"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
                         <div className="flex items-center gap-2 mb-2">
                             <User className="h-4 w-4 text-sky-600" />
@@ -453,6 +539,14 @@ export default function PersonalTab() {
                             <p className="text-xs font-semibold text-gray-500 uppercase">Số điện thoại</p>
                         </div>
                         <p className="text-base font-bold text-gray-900">{formData.phone_number || "Chưa cập nhật"}</p>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Mail className="h-4 w-4 text-sky-600" />
+                            <p className="text-xs font-semibold text-gray-500 uppercase">Email</p>
+                        </div>
+                        <p className="text-base font-bold text-gray-900">{formData.email || "Chưa cập nhật"}</p>
                     </div>
 
                     <div className="bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-xl border border-sky-200 sm:col-span-2">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Calendar,
     Clock,
@@ -21,6 +21,7 @@ import { appointmentApi } from "../../../../api/patients/appointmentApi";
 import { toast } from "react-toastify";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import { formatISOTime, formatDate } from "../../../../utils/dateTimeUtils";
+import { useAuth } from "../../../../hooks/useAuth";
 const FILE_SERVER_URL = "http://localhost:5000/uploads";
 
 // Helper function để xử lý URL ảnh
@@ -35,7 +36,8 @@ const getImageUrl = (url) => {
 };
 
 export default function AppointmentsContent() {
-    const [selectedTab, setSelectedTab] = useState("upcoming");
+    const { user } = useAuth();
+    const [selectedTab, setSelectedTab] = useState("all"); // all, upcoming, completed, cancelled
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [appointmentToCancel, setAppointmentToCancel] = useState(null);
@@ -45,23 +47,47 @@ export default function AppointmentsContent() {
     const [cancelling, setCancelling] = useState(false);
     const navigate = useNavigate();
 
+    // Helper function để lấy patient ID (ưu tiên useAuth, fallback sessionStorage)
+    const getPatientId = useCallback(() => {
+        // Ưu tiên dùng useAuth
+        if (user?.patient?._id) return user.patient._id;
+        if (user?._id) return user._id;
+        
+        // Fallback: dùng sessionStorage
+        const patientStr = sessionStorage.getItem("patient");
+        if (patientStr) {
+            try {
+                const patient = JSON.parse(patientStr);
+                return patient._id;
+            } catch (e) {
+                console.error("Error parsing patient from sessionStorage:", e);
+            }
+        }
+        
+        return null;
+    }, [user]);
+
     // Gọi API lấy danh sách lịch hẹn của bệnh nhân
     useEffect(() => {
         const fetchAppointments = async () => {
             try {
                 setLoading(true);
+                setError(null);
 
-                const patientStr = sessionStorage.getItem("patient");
-                if (!patientStr) {
+                const patientId = getPatientId();
+                if (!patientId) {
                     setError("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
                     return;
                 }
 
-                const patient = JSON.parse(patientStr);
-                console.log("Patient ID:", patient._id);
+                const params = { page: 1, limit: 50 };
+                // Map filter to backend status
+                if (selectedTab === "upcoming") params.status = "SCHEDULED";
+                else if (selectedTab === "completed") params.status = "COMPLETED";
+                else if (selectedTab === "cancelled") params.status = "CANCELLED";
+                // "all" không có status filter
 
-                const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
-                console.log("API response:", res.data);
+                const res = await appointmentApi.getAllAppointmentOfPatient(patientId, params);
 
                 // Lấy mảng thật và chuẩn hóa status
                 const mapStatus = (status) => {
@@ -122,6 +148,20 @@ export default function AppointmentsContent() {
                                 formattedDate = apt.date;
                             }
 
+                            // Map thông tin người thân từ relative_id (nếu đã populate) hoặc từ appointment fields
+                            const relativeName = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id.full_name) 
+                                ? apt.relative_id.full_name 
+                                : apt.relative_name;
+                            const relativePhone = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id.phone) 
+                                ? apt.relative_id.phone 
+                                : apt.relative_phone;
+                            const relativeRelationship = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id.relationship) 
+                                ? apt.relative_id.relationship 
+                                : apt.relative_relationship;
+                            const relativeId = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id._id) 
+                                ? apt.relative_id._id.toString() 
+                                : (apt.relative_id ? apt.relative_id.toString() : null);
+
                             return {
                                 ...apt,
                                 _id: apt._id || apt.id, // Đảm bảo _id luôn có
@@ -133,6 +173,23 @@ export default function AppointmentsContent() {
                                 // Giữ nguyên start_time và scheduled_date để dùng cho logic khác
                                 start_time: apt.start_time,
                                 scheduled_date: apt.scheduled_date,
+                                // Giữ nguyên thời gian đặt lịch để hiển thị badge "NEW"
+                                booked_at: apt.booked_at,
+                                createdAt: apt.createdAt,
+                                created_at: apt.created_at,
+                                // Thêm các field cần thiết cho modal
+                                booking_code: apt.booking_code,
+                                booking_for: apt.booking_for || "self",
+                                relative_id: relativeId,
+                                relative_name: relativeName,
+                                relative_phone: relativePhone,
+                                relative_relationship: relativeRelationship,
+                                fee_amount: apt.fee_amount,
+                                // Thông tin người đặt lịch (khi xem từ phía patient)
+                                booked_by_user_id: apt.booked_by_user_id || null,
+                                booked_by_name: apt.booked_by_name || null,
+                                booked_by_phone: apt.booked_by_phone || null,
+                                booked_by_relationship: apt.booked_by_relationship || null,
                             };
                         })
                         : [];
@@ -147,7 +204,7 @@ export default function AppointmentsContent() {
         };
 
         fetchAppointments();
-    }, []);
+    }, [selectedTab, user, getPatientId]);
 
     // Badge trạng thái
     const getStatusBadge = (status) => {
@@ -179,6 +236,51 @@ export default function AppointmentsContent() {
         }
     };
 
+    // Kiểm tra appointment có phải mới không (trong 1 giờ)
+    const isNewAppointment = (appointment) => {
+        // Ưu tiên dùng booked_at (thời điểm đặt lịch), nếu không có thì dùng createdAt
+        const bookingDate = appointment.booked_at || appointment.createdAt || appointment.created_at;
+        if (!bookingDate) return false;
+
+        const bookingTime = new Date(bookingDate);
+        const now = new Date();
+        const diffTime = Math.abs(now - bookingTime);
+        const diffHours = diffTime / (1000 * 60 * 60); // Chuyển sang giờ
+
+        return diffHours <= 1; // Mới trong 1 giờ
+    };
+
+    // Format thời gian đặt lịch để hiển thị
+    const formatBookedTime = (appointment) => {
+        const bookingDate = appointment.booked_at || appointment.createdAt || appointment.created_at;
+        if (!bookingDate) return null;
+
+        const date = new Date(bookingDate);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        // Format ngày và giờ
+        const dateStr = date.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+        const timeStr = date.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+
+        // Nếu trong cùng ngày, chỉ hiển thị giờ
+        if (diffDays === 0) {
+            return `Hôm nay lúc ${timeStr}`;
+        } else if (diffDays === 1) {
+            return `Hôm qua lúc ${timeStr}`;
+        } else {
+            return `${dateStr} lúc ${timeStr}`;
+        }
+    };
+
     const handleCancelAppointment = (appointment) => {
         setAppointmentToCancel(appointment);
         setCancelDialogOpen(true);
@@ -194,17 +296,15 @@ export default function AppointmentsContent() {
         setCancelling(true);
 
         try {
-            // Lấy patient ID từ sessionStorage
-            const patientStr = sessionStorage.getItem("patient");
-            if (!patientStr) {
+            // Lấy patient ID
+            const patientId = getPatientId();
+            if (!patientId) {
                 toast.error("Không tìm thấy thông tin bệnh nhân. Vui lòng đăng nhập lại.");
                 setCancelDialogOpen(false);
                 setAppointmentToCancel(null);
                 setCancelling(false);
                 return;
             }
-
-            const patient = JSON.parse(patientStr);
             // Lấy appointment ID - ưu tiên _id vì đó là format từ MongoDB
             let appointmentId = appointmentToCancel._id || appointmentToCancel.id || appointmentToCancel.appointment_id;
 
@@ -245,7 +345,7 @@ export default function AppointmentsContent() {
             console.log("Cancelling appointment with ID:", appointmentId, "Type:", typeof appointmentId);
             
             // Gọi API hủy lịch hẹn
-            const response = await appointmentApi.cancelAppointment(appointmentId, patient._id);
+            const response = await appointmentApi.cancelAppointment(appointmentId, patientId);
             
             console.log("Cancel appointment response:", response);
 
@@ -261,7 +361,7 @@ export default function AppointmentsContent() {
             setAppointmentToCancel(null);
 
             // Fetch lại danh sách appointments
-            const res = await appointmentApi.getAllAppointmentOfPatient(patient._id);
+            const res = await appointmentApi.getAllAppointmentOfPatient(patientId);
             
             const mapStatus = (status) => {
                 switch (status?.toUpperCase()) {
@@ -320,6 +420,20 @@ export default function AppointmentsContent() {
                         formattedDate = apt.date;
                     }
 
+                    // Map thông tin người thân từ relative_id (nếu đã populate) hoặc từ appointment fields
+                    const relativeName = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id.full_name) 
+                        ? apt.relative_id.full_name 
+                        : apt.relative_name;
+                    const relativePhone = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id.phone) 
+                        ? apt.relative_id.phone 
+                        : apt.relative_phone;
+                    const relativeRelationship = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id.relationship) 
+                        ? apt.relative_id.relationship 
+                        : apt.relative_relationship;
+                    const relativeId = (apt.relative_id && typeof apt.relative_id === 'object' && apt.relative_id._id) 
+                        ? apt.relative_id._id.toString() 
+                        : (apt.relative_id ? apt.relative_id.toString() : null);
+
                     return {
                         ...apt,
                         _id: apt._id || apt.id, // Đảm bảo _id luôn có
@@ -331,6 +445,23 @@ export default function AppointmentsContent() {
                         // Giữ nguyên start_time và scheduled_date để dùng cho logic khác
                         start_time: apt.start_time,
                         scheduled_date: apt.scheduled_date,
+                        // Giữ nguyên thời gian đặt lịch để hiển thị badge "NEW"
+                        booked_at: apt.booked_at,
+                        createdAt: apt.createdAt,
+                        created_at: apt.created_at,
+                        // Thêm các field cần thiết cho modal
+                        booking_code: apt.booking_code,
+                        booking_for: apt.booking_for || "self",
+                        relative_id: relativeId,
+                        relative_name: relativeName,
+                        relative_phone: relativePhone,
+                        relative_relationship: relativeRelationship,
+                        fee_amount: apt.fee_amount,
+                        // Thông tin người đặt lịch (khi xem từ phía patient)
+                        booked_by_user_id: apt.booked_by_user_id || null,
+                        booked_by_name: apt.booked_by_name || null,
+                        booked_by_phone: apt.booked_by_phone || null,
+                        booked_by_relationship: apt.booked_by_relationship || null,
                     };
                 })
                 : [];
@@ -370,9 +501,9 @@ export default function AppointmentsContent() {
     };
 
     //  Lọc danh sách theo tab
-    const filteredAppointments = appointments.filter(
-        (apt) => apt.status === selectedTab
-    );
+    const filteredAppointments = selectedTab === "all" 
+        ? appointments 
+        : appointments.filter((apt) => apt.status === selectedTab);
 
     if (loading) {
         return (
@@ -431,35 +562,27 @@ export default function AppointmentsContent() {
 
                     {/* Tabs */}
                     <div className="flex flex-wrap gap-3 mb-6">
-                        {["upcoming", "completed", "cancelled"].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setSelectedTab(tab)}
-                                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${selectedTab === tab
-                                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
-                                    }`}
-                            >
-                                {tab === "upcoming" && (
-                                    <>
-                                        <Clock className="h-4 w-4" />
-                                        Sắp tới
-                                    </>
-                                )}
-                                {tab === "completed" && (
-                                    <>
-                                        <CheckCircle2 className="h-4 w-4" />
-                                        Đã khám
-                                    </>
-                                )}
-                                {tab === "cancelled" && (
-                                    <>
-                                        <XCircle className="h-4 w-4" />
-                                        Đã hủy
-                                    </>
-                                )}
-                            </button>
-                        ))}
+                        {[
+                            { value: "all", label: "Tất cả", icon: CalendarDays },
+                            { value: "upcoming", label: "Sắp tới", icon: Clock },
+                            { value: "completed", label: "Đã khám", icon: CheckCircle2 },
+                            { value: "cancelled", label: "Đã hủy", icon: XCircle },
+                        ].map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setSelectedTab(tab.value)}
+                                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${selectedTab === tab.value
+                                            ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                                        }`}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -470,25 +593,44 @@ export default function AppointmentsContent() {
                             <CalendarDays className="h-10 w-10 text-gray-400" />
                         </div>
                         <p className="text-gray-700 text-lg font-semibold mb-2">
-                            Không có lịch hẹn nào trong mục này
+                            {selectedTab === "all"
+                                ? "Chưa có lịch hẹn nào"
+                                : `Không có lịch hẹn nào trong mục "${selectedTab === "upcoming"
+                                    ? "Sắp tới"
+                                    : selectedTab === "completed"
+                                        ? "Đã khám"
+                                        : "Đã hủy"
+                                }"`}
                         </p>
                         <p className="text-gray-500 text-sm mb-6">
-                            Lịch hẹn của bạn sẽ hiển thị tại đây
+                            {selectedTab === "all"
+                                ? "Bạn chưa có lịch hẹn nào trong hệ thống"
+                                : "Lịch hẹn của bạn sẽ hiển thị tại đây"}
                         </p>
-                        <Link to="/doctors">
+                        <Link to="/home/facility">
                             <button className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-lg hover:shadow-xl">
                                 <CalendarDays className="h-4 w-4" />
-                                Đặt lịch khám
+                                Đặt lịch khám ngay
                             </button>
                         </Link>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {filteredAppointments.map((appointment) => (
+                        {filteredAppointments.map((appointment) => {
+                            const isNew = isNewAppointment(appointment);
+                            return (
                             <div
                                 key={appointment._id || appointment.id}
-                                className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
+                                className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 relative"
                             >
+                                {/* Badge "New" ở góc trên bên phải */}
+                                {isNew && (
+                                    <div className="absolute top-3 right-3 z-10">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg animate-pulse">
+                                            NEW
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <div className="relative flex-shrink-0">
                                         <img
@@ -540,6 +682,14 @@ export default function AppointmentsContent() {
                                                     </span>
                                                 </div>
                                             )}
+                                            {formatBookedTime(appointment) && (
+                                                <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
+                                                    <CalendarDays className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                                    <span className="text-sm text-gray-700">
+                                                        Đặt lịch: <span className="font-semibold">{formatBookedTime(appointment)}</span>
+                                                    </span>
+                                                </div>
+                                            )}
                                             {appointment.location && [
                                                 appointment.location?.alley,
                                                 appointment.location?.houseNumber,
@@ -583,16 +733,17 @@ export default function AppointmentsContent() {
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
                 {/* Modal chi tiết */}
                 {selectedAppointment && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden">
                             {/* Header */}
-                            <div className="bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-500 text-white p-6 relative overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-500 text-white p-6 relative overflow-hidden flex-shrink-0">
                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-cyan-400/20"></div>
                                 <div className="relative flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -614,7 +765,7 @@ export default function AppointmentsContent() {
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6" style={{ minHeight: 0 }}>
                                 {/* Doctor Info */}
                                 <div className="flex items-start gap-4 bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
                                     <img
@@ -641,6 +792,13 @@ export default function AppointmentsContent() {
                                         Thông tin lịch khám
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {selectedAppointment.booking_code && (
+                                            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border-2 border-blue-300 sm:col-span-2">
+                                                <Info className="h-4 w-4 text-blue-600" />
+                                                <span className="text-sm text-gray-600">Mã lịch hẹn: </span>
+                                                <span className="text-sm font-bold text-blue-700">{selectedAppointment.booking_code}</span>
+                                            </div>
+                                        )}
                                         {selectedAppointment.hospital && (
                                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
                                                 <Building2 className="h-4 w-4 text-blue-600" />
@@ -658,6 +816,14 @@ export default function AppointmentsContent() {
                                                 <Clock className="h-4 w-4 text-blue-600" />
                                                 <span className="text-sm text-gray-700">
                                                     {selectedAppointment.time || "Chưa có giờ"} {selectedAppointment.end_time ? `- ${selectedAppointment.end_time}` : ""}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {formatBookedTime(selectedAppointment) && (
+                                            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg sm:col-span-2 border border-purple-200">
+                                                <CalendarDays className="h-4 w-4 text-purple-600" />
+                                                <span className="text-sm text-gray-700">
+                                                    Đặt lịch: <span className="font-semibold text-purple-700">{formatBookedTime(selectedAppointment)}</span>
                                                 </span>
                                             </div>
                                         )}
@@ -686,7 +852,7 @@ export default function AppointmentsContent() {
                                         {selectedAppointment.reason && (
                                             <div className="flex items-start gap-2 bg-white px-3 py-2 rounded-lg">
                                                 <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
-                                                <div>
+                                                <div className="flex-1">
                                                     <span className="text-sm font-semibold text-gray-700">Lý do khám: </span>
                                                     <span className="text-sm text-gray-700">{selectedAppointment.reason}</span>
                                                 </div>
@@ -694,11 +860,126 @@ export default function AppointmentsContent() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Thông tin người đặt lịch - Nếu xem từ phía patient (được người thân đặt cho) */}
+                                {selectedAppointment.booked_by_name && selectedAppointment.booking_for === "relative" && (
+                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                        <h4 className="text-sm font-semibold text-blue-800 uppercase mb-3 flex items-center gap-2">
+                                            <User className="h-4 w-4 text-blue-700" />
+                                            Được đặt bởi
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {selectedAppointment.booked_by_name && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <User className="h-4 w-4 text-blue-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Tên: </span>
+                                                        {selectedAppointment.booked_by_name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedAppointment.booked_by_phone && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <Phone className="h-4 w-4 text-blue-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">SĐT: </span>
+                                                        {selectedAppointment.booked_by_phone}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedAppointment.booked_by_relationship && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <Info className="h-4 w-4 text-blue-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Quan hệ: </span>
+                                                        {selectedAppointment.booked_by_relationship === "cha" ? "Cha" :
+                                                         selectedAppointment.booked_by_relationship === "me" ? "Mẹ" :
+                                                         selectedAppointment.booked_by_relationship === "con" ? "Con" :
+                                                         selectedAppointment.booked_by_relationship === "chau" ? "Cháu" :
+                                                         selectedAppointment.booked_by_relationship === "vo_chong" ? "Vợ/Chồng" :
+                                                         selectedAppointment.booked_by_relationship === "anh_chi_em" ? "Anh/Chị/Em" :
+                                                         selectedAppointment.booked_by_relationship === "ban" ? "Bạn" :
+                                                         selectedAppointment.booked_by_relationship === "khac" ? "Khác" :
+                                                         selectedAppointment.booked_by_relationship}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Relative Info - Nếu đặt cho người thân (xem từ phía người đặt lịch) */}
+                                {!selectedAppointment.booked_by_name && (selectedAppointment.booking_for === "relative" || selectedAppointment.relative_name || selectedAppointment.is_elderly) && (
+                                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                                        <h4 className="text-sm font-semibold text-amber-800 uppercase mb-3 flex items-center gap-2">
+                                            <User className="h-4 w-4 text-amber-700" />
+                                            Thông tin người thân
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {selectedAppointment.relative_name && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <User className="h-4 w-4 text-amber-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Tên: </span>
+                                                        {selectedAppointment.relative_name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedAppointment.relative_phone && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <Phone className="h-4 w-4 text-amber-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">SĐT: </span>
+                                                        {selectedAppointment.relative_phone}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedAppointment.relative_relationship && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <Info className="h-4 w-4 text-amber-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Quan hệ: </span>
+                                                        {selectedAppointment.relative_relationship === "cha" ? "Cha" :
+                                                         selectedAppointment.relative_relationship === "me" ? "Mẹ" :
+                                                         selectedAppointment.relative_relationship === "con" ? "Con" :
+                                                         selectedAppointment.relative_relationship === "chau" ? "Cháu" :
+                                                         selectedAppointment.relative_relationship === "vo_chong" ? "Vợ/Chồng" :
+                                                         selectedAppointment.relative_relationship === "anh_chi_em" ? "Anh/Chị/Em" :
+                                                         selectedAppointment.relative_relationship === "ban" ? "Bạn" :
+                                                         selectedAppointment.relative_relationship === "khac" ? "Khác" :
+                                                         selectedAppointment.relative_relationship}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedAppointment.is_elderly && (
+                                                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg">
+                                                    <Info className="h-4 w-4 text-amber-600" />
+                                                    <span className="text-sm text-gray-700">
+                                                        <span className="font-semibold">Người cao tuổi</span>
+                                                        {selectedAppointment.patient_age && ` (${selectedAppointment.patient_age} tuổi)`}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Footer */}
-                            <div className="border-t border-gray-200 p-6 bg-gray-50">
-                                <div className="flex justify-end">
+                            <div className="border-t border-gray-200 p-6 bg-gray-50 flex-shrink-0">
+                                <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                                    {selectedAppointment.status === "upcoming" && (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedAppointment(null);
+                                                handleCancelAppointment(selectedAppointment);
+                                            }}
+                                            className="px-6 py-2.5 bg-white text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                        >
+                                            <XCircle className="h-4 w-4" />
+                                            Hủy lịch
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => setSelectedAppointment(null)}
                                         className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-md hover:shadow-lg"
@@ -713,7 +994,7 @@ export default function AppointmentsContent() {
 
                 {/* Modal xác nhận hủy */}
                 {cancelDialogOpen && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                             <div className="p-6 sm:p-8">
                                 <div className="text-center mb-6">

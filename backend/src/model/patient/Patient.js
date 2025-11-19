@@ -4,7 +4,16 @@ const { Schema } = mongoose;
 const patientSchema = new Schema(
   {
     patient_code: { type: String, unique: true },
-    user_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    user_id: { 
+      type: Schema.Types.ObjectId, 
+      ref: "User", 
+      required: false, // Cho phép null khi chưa có tài khoản (người thân)
+      default: null,
+      index: true 
+    },
+    // Thông tin liên hệ để match khi đăng ký
+    phone: { type: String, index: true }, // Index để query nhanh khi match
+    email: { type: String, index: true }, // Index để query nhanh khi match
     // Location preference for proximity filtering
     province_code: { type: String, index: true },
     ward_code: { type: String, index: true },
@@ -29,9 +38,7 @@ patientSchema.pre("save", async function (next) {
     const existing = await this.constructor.findOne({ patient_code: randomCode });
     if (!existing) unique = true;
   }
-
   this.patient_code = randomCode;
-  console.log(" Sinh mã bệnh nhân:", this.patient_code);
   next();
 });
 

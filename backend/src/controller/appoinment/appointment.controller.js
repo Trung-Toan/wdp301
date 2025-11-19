@@ -9,7 +9,13 @@ const fail = (res, err, status = 500) =>
 
 exports.create = async (req, res) => {
     try {
-        const result = await svc.createAsync(req.body);
+        // Nếu booking cho người thân, thêm booked_by_user_id từ JWT token
+        const payload = { ...req.body };
+        if (payload.booking_for === "relative" && req.user && req.user.sub) {
+            payload.booked_by_user_id = req.user.sub;
+        }
+        
+        const result = await svc.createAsync(payload);
         return ok(res, result, 201);
     } catch (err) {
         const msg = String(err?.message || err);

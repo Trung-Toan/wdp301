@@ -55,7 +55,7 @@ export default function FacilityDetail() {
 
     // Booking form state
     const [showBookingForm, setShowBookingForm] = useState(false);
-    
+
     // Complaint form state
     const [showComplaintForm, setShowComplaintForm] = useState(false);
 
@@ -184,11 +184,10 @@ export default function FacilityDetail() {
             setReviewSuccess(null);
 
             await clinicApi.submitReview({
-                doctor_id: selectedDoctor,
-                patient_id: user.patient?._id || user._id,
+                doctorId: selectedDoctor,
                 rating: reviewRating,
                 comment: reviewComment,
-                is_annonymous: isAnonymous,
+                isAnonymous: isAnonymous,
             });
 
             setReviewSuccess("Cảm ơn bạn đã đánh giá!");

@@ -5,12 +5,10 @@ const wardSchema = new Schema({
     code: {
         type: String,
         required: true,
-        index: true
     }, // "00004"
     fullName: {
         type: String,
         required: true,
-        index: true
     }, // "Phường Ba Đình"
     shortName: {
         type: String,
@@ -25,7 +23,6 @@ const wardSchema = new Schema({
         type: String,
         required: true,
         ref: "Province.code",
-        index: true
     }
 }, {
     timestamps: true,

@@ -14,12 +14,12 @@ exports.findAccountByDoctorId = async (doctorId) => {
   return account || null;
 };
 
-exports.deleteDoctorById = async (doctorId) => {
+exports.deleteDoctorById = async (doctorId, status) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
         let account = await this.findAccountByDoctorId(doctorId);
-        account.status = "INACTIVE";
+        account.status = status;
         const saved = await account.save({ session });
         await session.commitTransaction();
         session.endSession();

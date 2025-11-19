@@ -9,8 +9,8 @@ const doctorService = require("../doctor/doctor.service");
 exports.getAccountIdByAssistantId = async (assistantId) => {
   try {
     const assistant = await Assistant.findById(assistantId).populate({
-      path: 'user_id',
-      select: 'account_id',
+      path: "user_id",
+      select: "account_id",
     });
     if (!assistant || !assistant.user_id) {
       throw new Error("Không tìm thấy trợ lý hoặc người dùng liên quan.");
@@ -30,86 +30,59 @@ exports.getListAssistants = async (req) => {
   const skip = (pageNum - 1) * limitNum;
 
   try {
+    // 1. Lấy bác sĩ từ access token
     const doctor = await doctorService.findDoctorByAccountId(req.user.sub);
-    if (!doctor) throw new Error('Truy cập bị từ chối: Không tìm thấy bác sĩ.');
+    if (!doctor) throw new Error("Truy cập bị từ chối: Không tìm thấy bác sĩ.");
 
     const doctorId = doctor._id;
     const searchRegex = search ? new RegExp(search, "i") : null;
 
-    // --- Aggregation Pipeline ---
-    const pipeline = [
-      // 1. Lọc Trợ lý theo doctor_id
-      { $match: { doctor_id: doctorId } },
+    // 2. Lấy assistants bằng find + populate
+    let assistants = await Assistant.find({ doctor_id: doctorId })
+      .sort({ createdAt: -1 }) // giống $sort: { createdAt: -1 }
+      .populate({
+        path: "user_id",
+        select: "-__v -createdAt -updatedAt", 
+        populate: {
+          path: "account_id",
+          select: "-__v -createdAt -updatedAt", 
+        },
+      })
+      .lean(); 
 
-      // 2. Lookup (Join) với Collection 'User'
-      {
-        $lookup: {
-          from: 'users', // Tên collection thực tế của User
-          localField: 'user_id',
-          foreignField: '_id',
-          as: 'user',
-          pipeline: [
-            // Chỉ giữ lại các trường cần thiết trong User
-            { $project: { __v: 0, createdAt: 0, updatedAt: 0, _id: 0 } },
-            // Lookup (Join) với Collection 'Account' bên trong User lookup
-            {
-              $lookup: {
-                from: 'accounts', // Tên collection thực tế của Account
-                localField: 'account_id',
-                foreignField: '_id',
-                as: 'account',
-                pipeline: [
-                  // Chỉ giữ lại các trường cần thiết trong Account và loại bỏ password
-                  { $project: { __v: 0, createdAt: 0, updatedAt: 0, _id: 0, password: 0 } }
-                ]
-              }
-            },
-            { $unwind: { path: '$account', preserveNullAndEmptyArrays: true } } // Chắc chắn account là object, không phải mảng
-          ]
-        }
-      },
-      { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } }, // Chắc chắn user là object, không phải mảng
+    // 3. Lọc theo search (full_name, phone_number, email) sau khi populate
+    if (searchRegex) {
+      assistants = assistants.filter((assistant) => {
+        const user = assistant.user_id;
+        const account = user?.account_id;
 
-      // 3. Match (Tìm kiếm) sau khi đã join
-      ...(search ? [{
-        $match: {
-          $or: [
-            { 'user.full_name': searchRegex },
-            { 'user.account.phone_number': searchRegex },
-            { 'user.account.email': searchRegex }
-          ]
-        }
-      }] : []),
+        return (
+          (user?.full_name && searchRegex.test(user.full_name)) ||
+          (account?.phone_number && searchRegex.test(account.phone_number)) ||
+          (account?.email && searchRegex.test(account.email))
+        );
+      });
+    }
 
-      // 4. Sắp xếp kết quả
-      { $sort: { createdAt: -1 } },
+    // 4. Tính total trước khi phân trang (giống $facet.metadata)
+    const totalAssistants = assistants.length;
 
-      // 5. Tính tổng số lượng (trước khi phân trang)
-      {
-        $facet: {
-          metadata: [{ $count: "total" }],
-          data: [{ $skip: skip }, { $limit: limitNum }]
-        }
+    // 5. Phân trang (giống $skip + $limit)
+    const assistantsPage = assistants.slice(skip, skip + limitNum);
+
+    // 6. Định dạng kết quả trả về cho giống code cũ
+    const assistantsWithAccount = assistantsPage.map((assistant) => {
+
+      const {user_id, ...assistantRest} = assistant;
+      const {account_id, ...userRest} = user_id;
+
+      const data = {
+        assistant: assistantRest,
+        user: userRest,
+        account: account_id,
       }
-    ];
-    // --- End Aggregation Pipeline ---
-
-    const aggregationResult = await Assistant.aggregate(pipeline);
-    const [{ metadata, data }] = aggregationResult;
-
-    const totalAssistants = metadata.length > 0 ? metadata[0].total : 0;
-
-    // Chuyển đổi định dạng kết quả để giống với cấu trúc ban đầu của bạn
-    const assistantsWithAccount = data.map(assistant => ({
-      assistant: {
-        ...assistant,
-        user: {
-          ...assistant.user,
-          account: assistant.user.account
-        }
-      }
-    }));
-
+      return data;
+    });
 
     return {
       assistants: assistantsWithAccount,
@@ -149,7 +122,9 @@ exports.createAccountForAssistant = async (req) => {
       throw new Error("Số điện thoại không hợp lệ.");
     }
 
-    const existingAccount = await Account.findOne({ username }).session(session);
+    const existingAccount = await Account.findOne({ username }).session(
+      session
+    );
     if (existingAccount) {
       throw new Error("Tên đăng nhập đã tồn tại.");
     }
@@ -204,7 +179,9 @@ exports.banAccountAssistant = async (req) => {
   }
 
   if (!["INACTIVE", "ACTIVE"].includes(status)) {
-    throw new Error("Trạng thái không hợp lệ. Chỉ chấp nhận 'INACTIVE' hoặc 'ACTIVE'.");
+    throw new Error(
+      "Trạng thái không hợp lệ. Chỉ chấp nhận 'INACTIVE' hoặc 'ACTIVE'."
+    );
   }
 
   try {

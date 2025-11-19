@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { doctorApi } from "../../../../api";
 import { specialtyApi } from "../../../../api";
+import { withMinLoadingTime } from "../../../../utils/loadingUtils";
 import FirstTimeGuide from "../../../../components/FirstTimeGuide";
 import "../../../../styles/SpecialtyDetailContent.css";
 
@@ -40,24 +41,31 @@ export default function SpecialtyDetail() {
 
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
             try {
-                const specialtyRes = await specialtyApi.getSpecialtyById(id);
+                // Fetch specialty và doctors với minimum loading time
+                const [specialtyRes, doctorRes] = await withMinLoadingTime(
+                    async () => {
+                        const specialtyRes = await specialtyApi.getSpecialtyById(id);
+                        const doctorRes = await doctorApi.getDoctorBySpecialty(id, {
+                            page: currentPage,
+                            limit,
+                        });
+                        return [specialtyRes, doctorRes];
+                    },
+                    setLoading,
+                    600 // Minimum 600ms loading time
+                );
+
                 const specialtyData = specialtyRes.data?.data;
                 if (specialtyData?.name) {
                     setSpecialtyName("Chuyên khoa " + specialtyData.name);
                 }
-                const doctorRes = await doctorApi.getDoctorBySpecialty(id, {
-                    page: currentPage,
-                    limit,
-                });
 
                 const data = doctorRes.data;
                 setDoctors(data.items || []);
                 setTotalPages(data.meta?.totalPages || 1);
             } catch (error) {
                 console.error("Lỗi khi lấy dữ liệu:", error);
-            } finally {
                 setLoading(false);
             }
         };

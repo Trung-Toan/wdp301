@@ -15,6 +15,8 @@ import {
   Eye,
   Download,
   Loader2,
+  Stethoscope,
+  Check,
 } from "lucide-react";
 import { adminclinicAPI } from "../../api/admin-clinic/adminclinicAPI";
 import defaultAvatar from "../../assets/images/default-avatar.png";
@@ -47,6 +49,9 @@ const ApproveDoctorLicenses = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailLicense, setDetailLicense] = useState(null);
 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+
   // Hàm tải danh sách
   const fetchPendingLicenses = async () => {
     try {
@@ -71,23 +76,16 @@ const ApproveDoctorLicenses = () => {
     fetchPendingLicenses();
   }, []);
 
-  // Hàm xử lý khi bấm "Duyệt"
-  const handleApprove = async (licenseId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn duyệt chứng chỉ này?")) {
-      return;
-    }
 
-    try {
-      const payload = { status: "APPROVED" };
-      await adminclinicAPI.updateLicenseStatus(licenseId, payload);
-      toast.success("Duyệt chứng chỉ thành công!");
 
-      // Xóa chứng chỉ khỏi danh sách
-      setLicenses((prev) => prev.filter((lic) => lic._id !== licenseId));
-    } catch (err) {
-      toast.error("Lỗi khi duyệt: " + err.message);
-    }
+
+  // Mở modal khi bấm "Chấp Nhận"
+  const handleApproveClick = (license) => {
+    setSelectedLicenseId(license._id);
+    setSelectedLicense(license);
+    setShowConfirmModal(true);
   };
+
 
   // Mở modal khi bấm "Từ chối"
   const openRejectModal = (license) => {
@@ -143,6 +141,28 @@ const ApproveDoctorLicenses = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Hàm xử lý khi bấm "Duyệt"
+  const handleConfirmApprove = async () => {
+    if (!selectedLicenseId) return;
+
+    try {
+      const payload = { status: "APPROVED" };
+      await adminclinicAPI.updateLicenseStatus(selectedLicenseId, payload);
+      toast.success("Duyệt chứng chỉ thành công!");
+      setLicenses((prev) => prev.filter((lic) => lic._id !== selectedLicenseId));
+    } catch (err) {
+      toast.error("Lỗi khi duyệt: " + err.message);
+    } finally {
+      setShowConfirmModal(false);
+      setSelectedLicenseId(null);
+    }
+  };
+
+  const handleCancelApprove = () => {
+    setShowConfirmModal(false);
+    setSelectedLicenseId(null);
   };
 
   // --- Render ---
@@ -368,7 +388,7 @@ const ApproveDoctorLicenses = () => {
                       Từ chối
                     </button>
                     <button
-                      onClick={() => handleApprove(lic._id)}
+                      onClick={() => handleApproveClick(lic)}
                       className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-md"
                     >
                       <CheckCircle className="h-5 w-5" />
@@ -381,6 +401,66 @@ const ApproveDoctorLicenses = () => {
           })}
         </div>
       </div>
+
+      {/* Modal Duyệt */}
+      {showConfirmModal && selectedLicense && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={handleCancelApprove} // click overlay = hủy
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()} // click bên trong modal không đóng
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 rounded-full p-2">
+                  <Stethoscope className="h-6 w-6 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Duyệt chứng chỉ</h2>
+              </div>
+              <button
+                onClick={handleCancelApprove}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Nội dung bác sĩ */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">Bác sĩ:</p>
+              <p className="font-semibold text-gray-900">
+                {selectedLicense.doctor_id?.user_id?.full_name
+                  ? `BS. ${selectedLicense.doctor_id.user_id.full_name}`
+                  : "Không rõ"}
+              </p>
+              <p className="text-sm text-gray-600 mt-2">Số hiệu chứng chỉ:</p>
+              <p className="font-medium text-gray-900">{selectedLicense.licenseNumber}</p>
+            </div>
+
+            {/* Nút xác nhận duyệt */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleCancelApprove}
+                className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmApprove}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+              >
+                <Check className="h-5 w-5" />
+                Xác nhận duyệt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Modal từ chối */}
       {showRejectModal && selectedLicense && (

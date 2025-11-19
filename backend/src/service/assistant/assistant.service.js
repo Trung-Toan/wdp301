@@ -12,12 +12,35 @@ const mongoose = require("mongoose");
  * - Trả về đúng shape FE đang dùng
  */
 exports.getDashboard = async (assistantId) => {
-  // Lấy doctor_id gắn với trợ lý
-  const assistant = await Assistant.findById(assistantId).select("doctor_id").lean();
+  // Lấy doctor_id gắn với trợ lý và populate thông tin doctor
+  const assistant = await Assistant.findById(assistantId)
+    .select("doctor_id")
+    .populate({
+      path: "doctor_id",
+      select: "title degree specialty_id user_id clinic_id",
+      populate: [
+        {
+          path: "user_id",
+          select: "full_name avatar_url"
+        },
+        {
+          path: "specialty_id",
+          select: "name description"
+        },
+        {
+          path: "clinic_id",
+          select: "name address phone"
+        }
+      ]
+    })
+    .lean();
   if (!assistant || !assistant.doctor_id) {
     throw new Error("Trợ lý chưa được gán bác sĩ.");
   }
-  const doctorId = new mongoose.Types.ObjectId(assistant.doctor_id);
+  
+  // Lấy doctorId từ object đã populate (có thể là object hoặc ObjectId)
+  const doctorIdValue = assistant.doctor_id._id || assistant.doctor_id;
+  const doctorId = new mongoose.Types.ObjectId(doctorIdValue);
 
   // Mốc thời gian trong ngày hiện tại (giờ local server)
   const now = new Date();
@@ -87,14 +110,33 @@ exports.getDashboard = async (assistantId) => {
     yesterdayTotal === 0 ? (todayTotal > 0 ? 100 : 0)
                          : Math.round(((todayTotal - yesterdayTotal) / yesterdayTotal) * 100);
 
+  // Format thông tin doctor
+  const doctor = assistant.doctor_id;
+  const doctorInfo = doctor ? {
+    _id: doctor._id?.toString() || doctor._id,
+    title: doctor.title || "",
+    degree: doctor.degree || "",
+    name: doctor.user_id?.full_name || "Chưa rõ tên",
+    avatar_url: doctor.user_id?.avatar_url || null,
+    specialties: Array.isArray(doctor.specialty_id) 
+      ? doctor.specialty_id.map(s => s.name || s) 
+      : (doctor.specialty_id?.name ? [doctor.specialty_id.name] : []),
+    clinic: doctor.clinic_id ? {
+      name: doctor.clinic_id.name || "Chưa có cơ sở",
+      address: doctor.clinic_id.address || null,
+      phone: doctor.clinic_id.phone || null,
+    } : null,
+  } : null;
+
   return {
     todayPatients: todayCompleted,
     appointmentChange,
     pendingPrescriptions: pendingRxByAssistant,
     pendingRequests: pendingApptsToday,
     totalPatients: Array.isArray(totalPatientsDistinct) ? totalPatientsDistinct.length : 0,
-    // FE label “Tổng lịch hẹn hôm nay” đang đọc từ upcomingAppointments
+    // FE label "Tổng lịch hẹn hôm nay" đang đọc từ upcomingAppointments
     upcomingAppointments: todayTotal,
+    doctor: doctorInfo,
   };
 };
 

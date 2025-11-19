@@ -12,6 +12,7 @@ import {
     FileSearch,
 } from "lucide-react";
 import { medicalRecordPatientApi } from "../../../../../api/patients/medicalRecordPatientApi";
+import { withMinLoadingTime } from "../../../../../utils/loadingUtils";
 import RecordDetail from "./RecordDetail";
 
 export default function RecordsTab() {
@@ -24,15 +25,18 @@ export default function RecordsTab() {
     const [limit] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
 
-    // ✅ Ghi nhớ hàm fetchRecords để không bị re-create mỗi render
+    // Ghi nhớ hàm fetchRecords để không bị re-create mỗi render
     const fetchRecords = useCallback(async (pageNumber = 1) => {
-        setLoading(true);
         setError(null);
         try {
-            const res = await medicalRecordPatientApi.getListMedicalRecords({
-                page: pageNumber,
-                limit,
-            });
+            const res = await withMinLoadingTime(
+                () => medicalRecordPatientApi.getListMedicalRecords({
+                    page: pageNumber,
+                    limit,
+                }),
+                setLoading,
+                600 // Minimum 600ms loading time
+            );
             const data = res.data?.data;
             if (data?.items) {
                 setRecords(data.items);
@@ -40,7 +44,6 @@ export default function RecordsTab() {
             }
         } catch (err) {
             setError(err.message || "Lỗi khi tải dữ liệu");
-        } finally {
             setLoading(false);
         }
     }, [limit]);

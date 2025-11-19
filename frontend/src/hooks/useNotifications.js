@@ -27,22 +27,16 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
         try {
             setLoading(true);
             setError(null);
-
-            console.log("🔄 Fetching notifications...");
             const response = await notificationApi.getNotifications({
                 page: params.page || meta.page,
                 limit: params.limit || meta.limit,
                 isRead: params.isRead,
             });
 
-            console.log("✅ Notification API Response:", response.data);
-
             if (response.data.success) {
                 setNotifications(response.data.data || []);
                 setMeta(response.data.meta || {});
                 setUnreadCount(response.data.meta?.unread_count || 0);
-                console.log("✅ Set notifications:", response.data.data?.length, "items");
-                console.log("✅ Unread count:", response.data.meta?.unread_count);
             }
         } catch (err) {
             const errorMsg = err.response?.data?.error || err.message || "Failed to load notifications";
@@ -75,7 +69,7 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
     const markAsRead = useCallback(async (notificationId) => {
         try {
             const response = await notificationApi.markAsRead(notificationId);
-            
+
             if (response.data.success) {
                 // Update local state
                 setNotifications((prev) =>
@@ -85,10 +79,10 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
                             : notif
                     )
                 );
-                
+
                 // Decrease unread count
                 setUnreadCount((prev) => Math.max(0, prev - 1));
-                
+
                 return true;
             }
         } catch (err) {
@@ -103,7 +97,7 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
     const markAllAsRead = useCallback(async () => {
         try {
             const response = await notificationApi.markAllAsRead();
-            
+
             if (response.data.success) {
                 // Update all notifications to read
                 setNotifications((prev) =>
@@ -113,7 +107,7 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
                         read_at: new Date(),
                     }))
                 );
-                
+
                 setUnreadCount(0);
                 return true;
             }
@@ -129,20 +123,20 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
     const deleteNotification = useCallback(async (notificationId) => {
         try {
             const response = await notificationApi.deleteNotification(notificationId);
-            
+
             if (response.data.success) {
                 // Remove from local state
                 setNotifications((prev) => {
                     const deleted = prev.find((n) => n._id === notificationId);
-                    
+
                     // If deleted notification was unread, decrease count
                     if (deleted && !deleted.is_read) {
                         setUnreadCount((count) => Math.max(0, count - 1));
                     }
-                    
+
                     return prev.filter((n) => n._id !== notificationId);
                 });
-                
+
                 return true;
             }
         } catch (err) {
@@ -172,7 +166,7 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
         if (autoFetch) {
             fetchNotifications();
         }
-    }, [autoFetch]); // Only run on mount
+    }, [autoFetch, fetchNotifications]); // Only run on mount
 
     // Auto-refresh interval
     useEffect(() => {
@@ -192,7 +186,7 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
         loading,
         error,
         meta,
-        
+
         // Methods
         fetchNotifications,
         fetchUnreadCount,
@@ -201,7 +195,7 @@ export const useNotifications = ({ autoFetch = true, refreshInterval } = {}) => 
         deleteNotification,
         loadMore,
         refresh,
-        
+
         // Computed
         hasMore: meta.page < meta.totalPages,
         hasNotifications: notifications.length > 0,

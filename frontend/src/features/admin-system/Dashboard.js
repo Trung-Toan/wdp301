@@ -16,6 +16,7 @@ import {
 } from "recharts"
 import ViewModal from "./ViewModal"
 import { adminSystemAPI } from "../../api/admin-system/adminSystemAPI"
+import "../../styles/admin-system/Dashboard.css";
 
 const Dashboard = () => {
   const [viewModal, setViewModal] = useState(null)

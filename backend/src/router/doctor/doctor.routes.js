@@ -43,7 +43,14 @@ router.get(
   DoctorController.viewListPatients
 );
 
-router.get("/dashboard", authRequired,roleRequired("DOCTOR"), DoctorController.viewDashboard);
+// GET /dashboard
+// view dashboard of doctor
+router.get(
+  "/dashboard",
+  authRequired,
+  roleRequired("DOCTOR"),
+  DoctorController.viewDashboard
+);
 
 // GET /patients/:patientId
 // view information patient by patientId
@@ -402,7 +409,10 @@ router.get("/top/by-specialty", getTopDoctorsBySpecialtyController);
  *       404:
  *         description: Chuyên ngành không tồn tại
  */
-router.get("/top/by-specialty/:specialtyId", getTopDoctorsBySingleSpecialtyController);
+router.get(
+  "/top/by-specialty/:specialtyId",
+  getTopDoctorsBySingleSpecialtyController
+);
 
 /**
  * @openapi
