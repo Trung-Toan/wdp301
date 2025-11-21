@@ -91,4 +91,14 @@ export const doctorApi = {
 
   //gửi chứng chỉ bác sĩ chờ duyệt
   uploadLicense: (data) => axiosInstance.post("/doctor/license", data),
+
+  // Đăng ký lịch nghỉ
+  registerAbsence: (data) => {
+    return axiosInstance.post("/doctor/absences", data);
+  },
+
+  // Lấy lịch sử nghỉ (để hiển thị danh sách)
+  getMyAbsences: () => {
+    return axiosInstance.get("/doctor/absences");
+  },
 };
