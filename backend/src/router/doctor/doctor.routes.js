@@ -237,8 +237,8 @@ router.get(
 // Đăng ký lịch nghỉ
 router.post(
   "/absences", 
-  verifyToken, 
-  isDoctor, 
+  authRequired,
+  roleRequired("DOCTOR"), 
   DoctorController.registerAbsence
 );
 
@@ -246,8 +246,8 @@ router.post(
 // Lấy lịch sử nghỉ
 router.get(
   "/absences", 
-  verifyToken, 
-  isDoctor, 
+  authRequired,
+  roleRequired("DOCTOR"),
   DoctorController.getMyAbsences
 );
 
