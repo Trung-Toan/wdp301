@@ -233,6 +233,24 @@ router.get(
   DoctorController.getLicense
 );
 
+// Post /absences
+// Đăng ký lịch nghỉ
+router.post(
+  "/absences", 
+  verifyToken, 
+  isDoctor, 
+  DoctorController.registerAbsence
+);
+
+// GET /absences
+// Lấy lịch sử nghỉ
+router.get(
+  "/absences", 
+  verifyToken, 
+  isDoctor, 
+  DoctorController.getMyAbsences
+);
+
 /**
  * @openapi
  * /api/doctor/by-specialty:
