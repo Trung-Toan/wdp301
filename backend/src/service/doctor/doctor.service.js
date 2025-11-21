@@ -511,3 +511,23 @@ exports.registerAbsence = async (accountId, payload) => {
     throw error; // Ném lỗi để controller bắt
   }
 };
+
+// Lấy danh sách lịch nghỉ của bác sĩ
+exports.getMyAbsences = async (accountId) => {
+  try {
+    const user = await User.findOne({ account_id: accountId });
+    if (!user) throw new Error("User không tồn tại");
+    
+    const doctor = await Doctor.findOne({ user_id: user._id });
+    if (!doctor) throw new Error("Hồ sơ bác sĩ không tồn tại");
+
+    const absences = await DoctorAbsence.find({ doctor_id: doctor._id })
+      .sort({ startTime: -1 }) // Mới nhất lên đầu
+      .lean();
+
+    return { ok: true, data: absences };
+  } catch (error) {
+    console.error("Lỗi lấy lịch nghỉ:", error);
+    throw error;
+  }
+};
