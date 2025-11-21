@@ -432,3 +432,82 @@ exports.getMyLicense = async (accountId) => {
   const licenses = await License.find({ doctor_id: doctor._id }).lean();
   return licenses;
 };
+
+// Đăng ký lịch nghỉ cho bác sĩ
+exports.registerAbsence = async (accountId, payload) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { startTime, endTime, reason } = payload;
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    // 1. Xác định bác sĩ từ accountId
+    const user = await User.findOne({ account_id: accountId }).session(session);
+    if (!user) throw new Error("User không tồn tại");
+    
+    const doctor = await Doctor.findOne({ user_id: user._id }).session(session);
+    if (!doctor) throw new Error("Hồ sơ bác sĩ không tồn tại");
+
+    // 2. Validate thời gian
+    if (start >= end) {
+      throw new Error("Thời gian kết thúc phải sau thời gian bắt đầu");
+    }
+    if (start < new Date()) {
+      throw new Error("Không thể đăng ký nghỉ trong quá khứ");
+    }
+    
+    const conflictingAppointments = await Appointment.find({
+      doctor_id: doctor._id,
+      status: { $in: ["SCHEDULED", "APPROVE"] }, // Chỉ hủy các lịch chưa hoàn thành
+      appointment_date: { 
+        $gte: start, 
+        $lte: end 
+      }
+    }).session(session);
+
+    // 4. Hủy các lịch hẹn đó
+    const appointmentIds = conflictingAppointments.map(app => app._id);
+    
+    if (appointmentIds.length > 0) {
+      await Appointment.updateMany(
+        { _id: { $in: appointmentIds } },
+        { 
+          $set: { 
+            status: "DOCTOR_CANCELLED", // Trạng thái riêng để biết do bác sĩ hủy
+            cancellation_reason: `Bác sĩ nghỉ đột xuất: ${reason}` 
+          } 
+        },
+        { session }
+      );
+      
+      // TODO: Tại đây bạn có thể bắn event để gửi Email/Notification cho danh sách bệnh nhân
+      // sendCancellationNotifications(conflictingAppointments, reason);
+    }
+
+    // 5. Tạo bản ghi nghỉ phép
+    const newAbsence = await DoctorAbsence.create([{
+      doctor_id: doctor._id,
+      startTime: start,
+      endTime: end,
+      reason: reason,
+      cancelled_appointments_count: appointmentIds.length
+    }], { session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      ok: true,
+      message: `Đăng ký nghỉ thành công. Đã hủy ${appointmentIds.length} lịch hẹn trùng.`,
+      data: newAbsence[0]
+    };
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Lỗi khi đăng ký nghỉ:", error);
+    throw error; // Ném lỗi để controller bắt
+  }
+};
