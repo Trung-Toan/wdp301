@@ -12,12 +12,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Import dữ liệu mock để tra cứu thông tin
-import {
-  sampleDoctors,
-  sampleUsers,
-  sampleSpecialties,
-} from "../../data/mockData";
 
 // Dữ liệu thô (Raw) từ CSDL (sử dụng cấu trúc của bạn)
 const rawFeedbacks = [
@@ -101,15 +95,15 @@ export default function AnonymousFeedback() {
       const ratingInfo = getRatingInfo(ratingNum);
 
       // Tra cứu thông tin bệnh nhân
-      const patient = sampleUsers.find((u) => u._id === fb.patient_id.$oid);
+      // const patient = sampleUsers.find((u) => u._id === fb.patient_id.$oid);
 
       // Tra cứu thông tin bác sĩ
-      const doctor = sampleDoctors.find((d) => d._id === fb.doctor_id.$oid);
-      const doctorUser = sampleUsers.find((u) => u._id === doctor?.user_id);
-      const specialties =
-        doctor?.specialty_id
-          .map((id) => sampleSpecialties.find((s) => s._id === id)?.name)
-          .join(", ") || "N/A";
+      // const doctor = sampleDoctors.find((d) => d._id === fb.doctor_id.$oid);
+      // const doctorUser = sampleUsers.find((u) => u._id === doctor?.user_id);
+      // const specialties =
+      //   doctor?.specialty_id
+      //     .map((id) => sampleSpecialties.find((s) => s._id === id)?.name)
+      //     .join(", ") || "N/A";
 
       return {
         id: fb._id.$oid,
@@ -120,9 +114,9 @@ export default function AnonymousFeedback() {
         ratingBadgeClass: ratingInfo.badgeClass,
         comment: fb.comment,
         isAnnonymous: fb.is_annonymous,
-        patientName: patient?.full_name || "Không rõ",
-        doctorName: doctorUser?.full_name || "Không rõ",
-        specialty: specialties,
+        // patientName: patient?.full_name || "Không rõ",
+        // doctorName: doctorUser?.full_name || "Không rõ",
+        // specialty: specialties,
         date: new Date(fb.createdAt).toLocaleDateString("vi-VN"),
       };
     });
