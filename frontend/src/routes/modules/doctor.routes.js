@@ -10,6 +10,7 @@ import AssistantManagement from "../../features/doctor/AssistantManagement";
 import MedicalRecordRequests from "../../features/doctor/MedicalRecordRequests";
 import DoctorProfile from "../../features/doctor/DoctorProfile";
 import DoctorChangePassword from "../../features/doctor/DoctorChangePassword";
+import LeaveRequests from "../../features/doctor/DoctorAbsence";
 
 export default function doctorRoutes() {
   return (
@@ -25,6 +26,7 @@ export default function doctorRoutes() {
         <Route path="record-requests" element={<MedicalRecordRequests />} />
         <Route path="assistants" element={<AssistantManagement />} />
         <Route path="change-password" element={<DoctorChangePassword />} />
+        <Route path="adsence" element={<LeaveRequests />} />
       </Route>
     </Routes>
   );
