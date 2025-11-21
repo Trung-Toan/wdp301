@@ -4,6 +4,7 @@ import {
   House,
   People,
   Calendar,
+  CalendarX,
   FileText,
   ClipboardCheck,
   ChatLeftText,
@@ -131,6 +132,12 @@ const DoctorLayout = () => {
       title: "Xem trợ lý của tôi",
       icon: <PersonBadge size={20} />,
       link: "/doctor/assistants",
+    },
+    // thông báo nghỉ phép
+    {
+      title: "Nghỉ phép",
+      icon: <CalendarX size={20} />,
+      link: "/doctor/adsence",
     },
   ];
 
