@@ -606,3 +606,27 @@ exports.getLicense = async (req, res, next) => {
     next(err);
   }
 };
+
+// POST /doctor/absences
+exports.registerAbsence = async (req, res, next) => {
+  try {
+    const accountId = req.user.sub; // Lấy ID từ token
+    const result = await doctorService.registerAbsence(accountId, req.body);
+    
+    resUtils.successResponse(res, result, "Đăng ký nghỉ thành công");
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /doctor/absences
+exports.getMyAbsences = async (req, res, next) => {
+  try {
+    const accountId = req.user.sub;
+    const result = await doctorService.getMyAbsences(accountId);
+    
+    resUtils.successResponse(res, result, "Lấy lịch sử nghỉ thành công");
+  } catch (error) {
+    next(error);
+  }
+};
