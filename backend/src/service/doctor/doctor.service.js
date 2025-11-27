@@ -8,6 +8,7 @@ const User = require("../../model/user/User");
 const Account = require("../../model/auth/Account");
 const Appointment = require("../../model/appointment/Appointment");
 const MedicalRecord = require("../../model/patient/MedicalRecord");
+const Absence = require("../../model/doctor/Absence");
 
 // Helpers ngày UTC (khớp kiểu lưu scheduled_date là date-only UTC)
 const startOfUTCDay = (d) =>
@@ -435,8 +436,6 @@ exports.getMyLicense = async (accountId) => {
 
 // Đăng ký lịch nghỉ cho bác sĩ
 exports.registerAbsence = async (accountId, payload) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     const { startTime, endTime, reason } = payload;
@@ -444,10 +443,10 @@ exports.registerAbsence = async (accountId, payload) => {
     const end = new Date(endTime);
 
     // 1. Xác định bác sĩ từ accountId
-    const user = await User.findOne({ account_id: accountId }).session(session);
+    const user = await User.findOne({ account_id: accountId });
     if (!user) throw new Error("User không tồn tại");
     
-    const doctor = await Doctor.findOne({ user_id: user._id }).session(session);
+    const doctor = await Doctor.findOne({ user_id: user._id });
     if (!doctor) throw new Error("Hồ sơ bác sĩ không tồn tại");
 
     // 2. Validate thời gian
@@ -465,7 +464,7 @@ exports.registerAbsence = async (accountId, payload) => {
         $gte: start, 
         $lte: end 
       }
-    }).session(session);
+    });
 
     // 4. Hủy các lịch hẹn đó
     const appointmentIds = conflictingAppointments.map(app => app._id);
@@ -478,8 +477,7 @@ exports.registerAbsence = async (accountId, payload) => {
             status: "DOCTOR_CANCELLED", // Trạng thái riêng để biết do bác sĩ hủy
             cancellation_reason: `Bác sĩ nghỉ đột xuất: ${reason}` 
           } 
-        },
-        { session }
+        }
       );
       
       // TODO: Tại đây bạn có thể bắn event để gửi Email/Notification cho danh sách bệnh nhân
@@ -487,16 +485,14 @@ exports.registerAbsence = async (accountId, payload) => {
     }
 
     // 5. Tạo bản ghi nghỉ phép
-    const newAbsence = await DoctorAbsence.create([{
+    const newAbsence = await Absence.create({
       doctor_id: doctor._id,
-      startTime: start,
-      endTime: end,
+      start_time: start,
+      end_time: end,
       reason: reason,
       cancelled_appointments_count: appointmentIds.length
-    }], { session });
+    });
 
-    await session.commitTransaction();
-    session.endSession();
 
     return {
       ok: true,
@@ -505,8 +501,6 @@ exports.registerAbsence = async (accountId, payload) => {
     };
 
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     console.error("Lỗi khi đăng ký nghỉ:", error);
     throw error; // Ném lỗi để controller bắt
   }
@@ -521,7 +515,7 @@ exports.getMyAbsences = async (accountId) => {
     const doctor = await Doctor.findOne({ user_id: user._id });
     if (!doctor) throw new Error("Hồ sơ bác sĩ không tồn tại");
 
-    const absences = await DoctorAbsence.find({ doctor_id: doctor._id })
+    const absences = await Absence.find({ doctor_id: doctor._id })
       .sort({ startTime: -1 }) // Mới nhất lên đầu
       .lean();
 

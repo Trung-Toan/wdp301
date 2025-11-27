@@ -34,11 +34,15 @@ const DoctorAbsence = () => {
     try {
       setLoading(true);
       const res = await doctorApi.getMyAbsences();
+
       if (res.data?.ok) {
-        setAbsences(res.data.data || []);
+        setAbsences(Array.isArray(res.data.data) ? res.data.data : []);
+      } else {
+        setAbsences([]);
       }
     } catch (error) {
       console.error("Lỗi lấy lịch sử nghỉ:", error);
+      setAbsences([]);
     } finally {
       setLoading(false);
     }
